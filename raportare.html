@@ -421,6 +421,28 @@
   }
 
   /* ============================================================
+     WHATSAPP NOTIFICATION — separate Edge Function ("send-whatsapp",
+     see supabase-functions/send-whatsapp/index.ts) that pings one or
+     more staff phone numbers via the official WhatsApp Business
+     Cloud API whenever a new ticket comes in. Deliberately isolated
+     from sendNotification()'s email call above: if WhatsApp isn't
+     configured yet (secrets missing) or the API call fails for any
+     reason, it's swallowed silently here too — a missing/failed
+     WhatsApp ping should never stop a citizen's ticket from being
+     submitted, exactly like the email notification.
+     ============================================================ */
+  async function sendWhatsAppNotification(payload){
+    try {
+      const { error } = await supabaseClient.functions.invoke('send-whatsapp', {
+        body: payload,
+      });
+      if (error) console.error('send-whatsapp function failed:', error);
+    } catch (err) {
+      console.error('send-whatsapp call failed:', err);
+    }
+  }
+
+  /* ============================================================
      TICKET REPORT FORM
      ============================================================ */
   let selectedType = null;
@@ -532,8 +554,9 @@
     formMsg.innerHTML = t('submit_success_html', {num: `<span class="ticket-num">${ticketNumber}</span>`});
 
     // Notify the team — this runs after the Supabase save already
-    // succeeded, so a failed/unconfigured email never affects the ticket.
-    sendNotification({
+    // succeeded, so a failed/unconfigured email or WhatsApp message
+    // never affects the ticket.
+    const notifyPayload = {
       type: 'ticket',
       ticket_number: ticketNumber,
       ticket_type: payload.type === 'Anunt accident' ? 'Accident / urgență' : 'Problemă de funcționalitate',
@@ -542,7 +565,9 @@
       email: payload.email || '-',
       address: payload.address,
       description: payload.description || '-',
-    });
+    };
+    sendNotification(notifyPayload);
+    sendWhatsAppNotification(notifyPayload);
 
     ticketForm.reset();
     ticketForm.style.display = 'none';
