@@ -171,6 +171,14 @@
   .ticket-body .full{grid-column:1/-1;}
   .ticket-body .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;color:var(--ink-400);letter-spacing:0.04em;display:block;margin-bottom:2px;}
   .ticket-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding-top:14px;border-top:1px solid var(--line);}
+  .res-photos-preview{display:flex;gap:14px;margin-bottom:14px;}
+  .res-photo{width:110px;}
+  .res-photo .k{font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--ink-400);letter-spacing:0.04em;display:block;margin-bottom:4px;}
+  .res-photo img{width:100%;height:80px;object-fit:cover;border-radius:3px;border:1px solid var(--line-strong);}
+  .ctrl-field input[type="file"]{
+    width:100%;background:var(--paper-050);border:1px solid var(--line-strong);
+    color:var(--ink-700);padding:8px 10px;border-radius:2px;font-family:var(--body);font-size:12.5px;
+  }
   .ctrl-field{flex:1;min-width:160px;}
   .ctrl-field label{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-600);display:block;margin-bottom:6px;}
   .ctrl-field input, .ctrl-field select{
@@ -240,6 +248,13 @@
         <button class="btn btn-primary" id="archiveSelectedBtn" type="button">Arhivează selectate</button>
       </div>
       <div class="ticket-list" id="ticketList"></div>
+      <datalist id="resolution-suggestions">
+        <option value="Bec înlocuit">
+        <option value="Stâlp înlocuit">
+        <option value="Cablu reparat">
+        <option value="Fotocelulă înlocuită">
+        <option value="Siguranță înlocuită">
+      </datalist>
     </div>
 
     <div class="admin-panel" id="panel-projects">
@@ -356,6 +371,25 @@
       .replace(/'/g, '&#39;');
   }
 
+  /* ============================================================
+     RESOLUTION PHOTOS — uploads a before/after photo to the public
+     "ticket-photos" Storage bucket (see resolution-photos.sql) and
+     returns its public URL to store on the ticket row. Files are
+     named with the ticket id + a timestamp so re-uploading a photo
+     for the same ticket never collides with or silently overwrites
+     an older one.
+     ============================================================ */
+  async function uploadResolutionPhoto(ticketId, kind, file){
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `${ticketId}/${kind}-${Date.now()}.${ext}`;
+    const { error } = await supabaseClient.storage
+      .from('ticket-photos')
+      .upload(path, file, { upsert: false });
+    if (error) throw error;
+    const { data } = supabaseClient.storage.from('ticket-photos').getPublicUrl(path);
+    return data.publicUrl;
+  }
+
   function getFilteredTickets(){
     if (activeFilter === 'Archived') {
       return allTickets.filter(t => t.archived);
@@ -379,13 +413,69 @@
     }
   }
 
+  /* ============================================================
+     AUTO-ARCHIVE / AUTO-CLEANUP — Adam's ask: two weeks after a
+     ticket is resolved or a project's due_date passes, it should
+     move to archive and stop showing on the public site.
+
+     There is no server-side cron/scheduled function wired up for
+     this (that would need a Supabase Edge Function on a schedule,
+     or the pg_cron extension enabled in the Supabase SQL editor —
+     see the note above loadProjects() for the one-time SQL if that
+     route is preferred later). Until then, this runs the sweep
+     client-side, once, every time a staff member logs into this
+     dashboard:
+       - tickets: any row with status "Terminat" and resolved_on
+         older than 14 days gets archived = true (same flag the
+         manual "Arhivează" button already sets).
+       - current_projects: any row whose due_date is more than 14
+         days in the past gets deleted outright, since there is no
+         separate "archived" state for projects — matching how staff
+         already clean these up manually today (see the Delete
+         button in the projects panel).
+     The public pages (relatii-publice.html, sesizari.html) also
+     filter by the same 14-day window client-side, so a ticket or
+     project disappears from the public site on schedule even on
+     days nobody has logged into admin.
+     ============================================================ */
+  const AUTO_ARCHIVE_DAYS = 14;
+
+  async function autoArchiveStaleTickets(){
+    const cutoffISO = new Date(Date.now() - AUTO_ARCHIVE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const { error } = await supabaseClient
+      .from('tickets')
+      .update({ archived: true, archived_at: new Date().toISOString() })
+      .eq('status', 'Terminat')
+      .eq('archived', false)
+      .lt('resolved_on', cutoffISO);
+    if (error) console.error('Auto-archive of stale tickets failed (non-blocking):', error);
+  }
+
+  async function autoCleanupStaleProjects(){
+    const cutoffDate = new Date(Date.now() - AUTO_ARCHIVE_DAYS * 24 * 60 * 60 * 1000);
+    const cutoffISO = cutoffDate.toISOString().slice(0, 10); // date-only, matches due_date column type
+    const { error } = await supabaseClient
+      .from('current_projects')
+      .delete()
+      .lt('due_date', cutoffISO);
+    if (error) console.error('Auto-cleanup of stale projects failed (non-blocking):', error);
+  }
+
+  async function runAutoArchiveSweep(){
+    // Both run before the lists are fetched, so the dashboard the
+    // staff member sees already reflects the cleaned-up state.
+    await Promise.all([autoArchiveStaleTickets(), autoCleanupStaleProjects()]);
+  }
+
   function showDashboard(email){
     loginWrap.style.display = 'none';
     dash.classList.add('show');
     logoutBtn.style.display = 'inline-flex';
     userTag.textContent = email;
-    loadTickets();
-    loadProjects();
+    runAutoArchiveSweep().finally(() => {
+      loadTickets();
+      loadProjects();
+    });
   }
 
   function showLogin(){
@@ -518,6 +608,11 @@
           ${t.description ? `<div class="full"><span class="k">Descriere</span>${safeDescription}</div>` : ''}
           ${t.resolved_on ? `<div class="full"><span class="k">Rezolvat</span>${fmtDate(t.resolved_on)}</div>` : ''}
         </div>
+        ${(t.resolution_photo_before || t.resolution_photo_after) ? `
+        <div class="res-photos-preview">
+          ${t.resolution_photo_before ? `<div class="res-photo"><span class="k">Înainte</span><img src="${t.resolution_photo_before}" alt="Foto înainte"></div>` : ''}
+          ${t.resolution_photo_after ? `<div class="res-photo"><span class="k">După</span><img src="${t.resolution_photo_after}" alt="Foto după"></div>` : ''}
+        </div>` : ''}
         <div class="ticket-controls">
           <div class="ctrl-field">
             <label>Stare</label>
@@ -529,6 +624,18 @@
           <div class="ctrl-field">
             <label>Rezolvat de</label>
             <input type="text" class="f-resolver" placeholder="Nume angajat" value="${safeResolvedBy}" ${isArchived ? 'disabled' : ''}>
+          </div>
+          <div class="ctrl-field" style="min-width:220px;">
+            <label>Ce s-a făcut (opțional)</label>
+            <input type="text" class="f-resnote" list="resolution-suggestions" placeholder="ex: Bec înlocuit" value="${escapeHtml(t.resolution_note || '')}" ${isArchived ? 'disabled' : ''}>
+          </div>
+          <div class="ctrl-field">
+            <label>Foto înainte</label>
+            <input type="file" class="f-photo-before" accept="image/*" ${isArchived ? 'disabled' : ''}>
+          </div>
+          <div class="ctrl-field">
+            <label>Foto după</label>
+            <input type="file" class="f-photo-after" accept="image/*" ${isArchived ? 'disabled' : ''}>
           </div>
           ${isArchived
             ? `<button class="btn f-restore">Dezarhivează</button>`
@@ -567,22 +674,48 @@
         const saveStatus = card.querySelector('.save-status');
         saveBtn.addEventListener('click', async () => {
           saveBtn.disabled = true;
+          saveBtn.textContent = 'Se salvează...';
           const newStatus = card.querySelector('.f-status').value;
           const resolver = card.querySelector('.f-resolver').value.trim();
+          const resNote = card.querySelector('.f-resnote').value.trim();
+          const beforeFile = card.querySelector('.f-photo-before').files[0];
+          const afterFile = card.querySelector('.f-photo-after').files[0];
+
+          const payload = {
+            status: newStatus,
+            resolved_by: resolver || null,
+            resolution_note: resNote || null,
+          };
+
+          // Upload any newly selected photos to Supabase Storage.
+          // Existing photos are left untouched if no new file was chosen.
+          try {
+            if (beforeFile) {
+              payload.resolution_photo_before = await uploadResolutionPhoto(t.id, 'before', beforeFile);
+            }
+            if (afterFile) {
+              payload.resolution_photo_after = await uploadResolutionPhoto(t.id, 'after', afterFile);
+            }
+          } catch (uploadErr) {
+            console.error(uploadErr);
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = 'Salvează<span class="save-status">✓ Salvat</span>';
+            alert('Eroare la încărcarea fotografiei. Încercați din nou.');
+            return;
+          }
 
           const { error } = await supabaseClient
             .from('tickets')
-            .update({ status: newStatus, resolved_by: resolver || null })
+            .update(payload)
             .eq('id', t.id);
 
           saveBtn.disabled = false;
+          saveBtn.innerHTML = 'Salvează<span class="save-status">✓ Salvat</span>';
           if (error) {
             console.error(error);
             alert('Eroare la salvare. Încercați din nou.');
             return;
           }
-          saveStatus.classList.add('show');
-          setTimeout(() => saveStatus.classList.remove('show'), 2000);
           loadTickets();
         });
       }
@@ -706,11 +839,40 @@
   /* ============================================================
      CURRENT PROJECTS — full CRUD (add/edit/delete) for the
      `current_projects` table, whose contents are shown publicly on
-     the homepage's "Ce facem acum" section (openly readable by
-     anon — see current-projects-table.sql). Progress % and status
-     are computed the same way here as on the public page: purely
-     from today's date relative to start_date/due_date, so nothing
-     needs manual updating except the dates themselves.
+     relatii-publice.html's "Proiecte de modernizare" section
+     (formerly the homepage's "Ce facem acum" section — moved off
+     the homepage so index.html no longer queries this table).
+     Openly readable by anon — see current-projects-table.sql.
+     Progress % and status are computed the same way here as on the
+     public page: purely from today's date relative to
+     start_date/due_date, so nothing needs manual updating except
+     the dates themselves.
+
+     AUTOMATIC ARCHIVING (optional, server-side): runAutoArchiveSweep()
+     above already handles the 2-week auto-archive/cleanup client-side
+     on every admin login, which is enough for day-to-day use. If a
+     stricter guarantee is ever wanted (e.g. cleanup happens even on
+     days nobody logs in), the same two operations can be scheduled
+     directly in Supabase using the pg_cron extension (Database ->
+     Extensions -> enable "pg_cron", then run once in the SQL editor):
+
+       select cron.schedule(
+         'auto-archive-tickets', '0 3 * * *', $$
+           update tickets set archived = true, archived_at = now()
+           where status = 'Terminat' and archived = false
+             and resolved_on < now() - interval '14 days';
+         $$
+       );
+       select cron.schedule(
+         'auto-cleanup-projects', '0 3 * * *', $$
+           delete from current_projects
+           where due_date < (now() - interval '14 days')::date;
+         $$
+       );
+
+     This is entirely optional — the client-side sweep already
+     satisfies the requirement without touching the database
+     configuration.
      ============================================================ */
   let allProjects = [];
 
