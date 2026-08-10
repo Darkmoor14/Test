@@ -162,7 +162,7 @@
     pointer-events:none;
     z-index:0;
   }
-  .about .wrap, .services .wrap, .current .wrap, .cta .wrap{
+  .about .wrap, .services .wrap, .cta .wrap{
     position:relative;z-index:1;
   }
   .hero .wrap{position:relative;z-index:2;}
@@ -414,40 +414,6 @@
   }
   .projects-foot p{font-size:14px;color:var(--ink-600);}
 
-  /* ===== CURRENT PROJECTS (public, live from Supabase) ===== */
-  .current{background:var(--paper-050);border-top:1px solid var(--line);border-bottom:1px solid var(--line);position:relative;overflow:hidden;}
-  .current .section-head h2{color:var(--ink-900);}
-  .current .section-head p{color:var(--ink-600);}
-  .current-grid{
-    display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
-    gap:20px;
-  }
-  .current-card{
-    background:var(--paper-000);border:1px solid var(--line-strong);border-radius:4px;
-    padding:26px 24px;
-  }
-  .cc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;}
-  .cc-title{font-family:var(--display);font-weight:600;font-size:17px;color:var(--ink-900);line-height:1.3;}
-  .cc-status{
-    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
-    padding:4px 9px;border-radius:3px;white-space:nowrap;flex-shrink:0;
-  }
-  .cc-status.scheduled{background:var(--paper-100);color:var(--ink-600);}
-  .cc-status.progress{background:var(--copper-050);color:var(--copper-600);}
-  .cc-status.done{background:var(--signal-green-bg);color:var(--signal-green);}
-  .cc-address{font-size:13.5px;color:var(--ink-600);margin-bottom:18px;display:flex;align-items:center;gap:6px;}
-  .cc-address svg{width:14px;height:14px;flex-shrink:0;color:var(--ink-400);}
-  .cc-bar-track{width:100%;height:6px;background:var(--paper-100);border-radius:4px;overflow:hidden;margin-bottom:8px;}
-  .cc-bar-fill{height:100%;background:var(--copper-500);border-radius:4px;transition:width .4s ease;}
-  .cc-bar-label{
-    display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;
-    color:var(--ink-400);margin-bottom:16px;
-  }
-  .cc-bar-label .pct{color:var(--copper-600);font-weight:600;}
-  .cc-dates{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-600);}
-  .cc-dates .k{font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--ink-400);letter-spacing:0.04em;display:block;margin-bottom:2px;}
-  .current-empty{text-align:center;padding:50px 0;color:var(--ink-400);font-size:14.5px;}
-
   /* ===== CTA / CONTACT ===== */
   .cta{background:var(--paper-000);position:relative;overflow:hidden;}
   .cta-grid{display:grid;grid-template-columns:1.1fr 0.9fr;gap:64px;}
@@ -559,9 +525,9 @@
           <a href="#despre" data-i18n="nav_despre">Despre noi</a>
           <a href="#servicii" data-i18n="nav_servicii">Servicii</a>
           <a href="#proiecte" data-i18n="nav_proiecte">Proiecte</a>
-          <a href="#curent" data-i18n="nav_modernizare">Proiecte de modernizare</a>
         </div>
       </div>
+      <a href="relatii-publice.html" data-i18n="nav_relatii">Relații publice</a>
       <a href="#contact" data-i18n="nav_contact">Contact</a>
     </div>
     <div class="nav-right">
@@ -609,7 +575,7 @@
 <div class="stats">
   <div class="stats-inner">
     <div class="stat"><div class="num">25</div><div class="label" data-i18n="stat_1_label">ani de activitate neîntreruptă în domeniu</div></div>
-    <div class="stat"><div class="num">1500+</div><div class="label" data-i18n="stat_2_label">proiecte finalizate în județul Mureș</div></div>
+    <div class="stat"><div class="num">150+</div><div class="label" data-i18n="stat_2_label">proiecte finalizate în județul Mureș</div></div>
     <div class="stat"><div class="num">11</div><div class="label" data-i18n="stat_3_label">atestări și certificări ISO / ANRE / ANRSC</div></div>
     <div class="stat"><div class="num">12</div><div class="label" data-i18n="stat_4_label">clienți parteneri pe termen lung</div></div>
   </div>
@@ -674,34 +640,6 @@
       <p data-i18n="proj_footer_note">Toate lucrările sunt organizate și pe categorii, pentru o parcurgere mai rapidă.</p>
       <a href="proiecte.html" class="btn btn-ghost" data-i18n="proj_archive_btn">Vezi arhiva completă →</a>
     </div>
-  </div>
-</section>
-
-<!-- ===== CURRENT PROJECTS (live, from Supabase current_projects table) ===== -->
-<section class="current" id="curent">
-  <svg class="section-trace" viewBox="0 0 1180 620" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-    <g stroke="#D3D4CE" stroke-width="1.4" fill="none">
-      <path d="M 1200 -20 V 100 H 940" />
-      <path d="M -20 640 V 520 H 260" />
-    </g>
-    <g stroke="#D11F24" stroke-width="1.6" fill="none" class="flow">
-      <path d="M 1200 -20 V 100 H 940" />
-    </g>
-    <g fill="#D11F24">
-      <circle cx="940" cy="100" r="3"/>
-      <circle cx="260" cy="520" r="3"/>
-    </g>
-  </svg>
-  <div class="wrap">
-    <div class="section-head">
-      <div class="eyebrow" data-i18n="current_eyebrow">Lucrări în derulare</div>
-      <h2 data-i18n="current_h2">Ce facem acum</h2>
-      <p data-i18n="current_lede">O privire asupra proiectelor aflate în desfășurare în acest moment, actualizată periodic de echipa noastră.</p>
-    </div>
-    <div class="current-grid" id="currentGrid">
-      <!-- Populated by JS from the public current_projects view -->
-    </div>
-    <div class="current-empty" id="currentEmpty" style="display:none;" data-i18n="current_empty">Momentan nu sunt proiecte active afișate.</div>
   </div>
 </section>
 
@@ -1222,117 +1160,6 @@
     dot.addEventListener('mouseleave', hide);
     dot.addEventListener('blur', hide);
   });
-
-  /* ============================================================
-     CURRENT PROJECTS ("Ce facem acum") — public, read-only section
-     showing what the company is actively working on right now.
-     Reads from the `current_projects` table (openly readable by
-     anon — see current-projects-table.sql — since it holds no
-     personal data, just project type/address/dates).
-
-     Progress is computed client-side from today's date relative to
-     start_date/due_date — nobody has to manually update a percentage.
-     Status label is also derived the same way:
-       - before start_date  -> "scheduled"
-       - between start/due  -> "in progress"
-       - after due_date     -> "done" (i.e. past its estimated finish;
-         see admin notes — this is a schedule estimate, not a manual
-         "actually finished" flag, so staff should remove/edit entries
-         once work is genuinely complete rather than leave them sitting
-         at 100%)
-     ============================================================ */
-  let currentProjectsData = [];
-
-  function calcProgress(startISO, dueISO){
-    const now = new Date();
-    const start = new Date(startISO);
-    const due = new Date(dueISO);
-    if (now <= start) return 0;
-    if (now >= due) return 100;
-    return Math.round(((now - start) / (due - start)) * 100);
-  }
-
-  function calcStatus(startISO, dueISO){
-    const now = new Date();
-    const start = new Date(startISO);
-    const due = new Date(dueISO);
-    if (now < start) return 'scheduled';
-    if (now >= due) return 'done';
-    return 'progress';
-  }
-
-  function fmtDateShort(iso){
-    if (!iso) return '—';
-    const d = new Date(iso);
-    const locale = getLang() === 'ro' ? 'ro-RO' : (getLang() === 'hu' ? 'hu-HU' : 'en-GB');
-    return d.toLocaleDateString(locale, {day:'2-digit', month:'2-digit', year:'numeric'});
-  }
-
-  const STATUS_LABEL_KEY = {
-    scheduled: 'current_status_scheduled',
-    progress: 'current_status_progress',
-    done: 'current_status_done',
-  };
-
-  function renderCurrentProjects(){
-    const grid = document.getElementById('currentGrid');
-    const empty = document.getElementById('currentEmpty');
-    if (!grid) return;
-
-    if (currentProjectsData.length === 0) {
-      grid.innerHTML = '';
-      empty.style.display = 'block';
-      return;
-    }
-    empty.style.display = 'none';
-
-    grid.innerHTML = currentProjectsData.map(p => {
-      const pct = calcProgress(p.start_date, p.due_date);
-      const status = calcStatus(p.start_date, p.due_date);
-      return `
-        <div class="current-card">
-          <div class="cc-top">
-            <div class="cc-title">${escapeHtmlCP(p.title)}</div>
-            <span class="cc-status ${status}">${t(STATUS_LABEL_KEY[status])}</span>
-          </div>
-          <div class="cc-address">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
-            ${escapeHtmlCP(p.address)}
-          </div>
-          <div class="cc-bar-track"><div class="cc-bar-fill" style="width:${pct}%;"></div></div>
-          <div class="cc-bar-label"><span>${t('current_progress_label')}</span><span class="pct">${pct}%</span></div>
-          <div class="cc-dates">
-            <div><span class="k">${t('current_k_start')}</span>${fmtDateShort(p.start_date)}</div>
-            <div style="text-align:right;"><span class="k">${t('current_k_due')}</span>${fmtDateShort(p.due_date)}</div>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  function escapeHtmlCP(value){
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  async function loadCurrentProjects(){
-    const { data, error } = await supabaseClient
-      .from('current_projects')
-      .select('*')
-      .order('start_date', { ascending: true });
-    if (error) {
-      console.error('Failed to load current_projects:', error);
-      return;
-    }
-    currentProjectsData = data || [];
-    renderCurrentProjects();
-  }
-  loadCurrentProjects();
-  window.addEventListener('langchange', renderCurrentProjects);
 
   /* ============================================================
      CONTACT FORM (bottom of page) — sends a notification email to
