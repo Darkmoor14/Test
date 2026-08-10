@@ -336,7 +336,7 @@
     }
     list.innerHTML = filtered.map(p => `
       <div class="proj-row">
-        <span class="proj-tag">${p.cat}</span>
+        <span class="proj-tag">${t(CATEGORY_LABEL_KEYS[p.cat] || p.cat)}</span>
         <span class="proj-title">${p.title}</span>
       </div>
     `).join('');
