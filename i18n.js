@@ -44,11 +44,12 @@ ro: {
   nav_servicii: "Servicii",
   nav_proiecte: "Proiecte",
   nav_contact: "Contact",
+  nav_modernizare: "Proiecte de modernizare",
   nav_cta: "Sesizări iluminat public",
 
   // Hero
   hero_eyebrow: "Insta Grup S.A. · din 1997 · Târgu-Mureș",
-  hero_h1_html: "Infrastructură electrică&nbsp;<em>proiectată să reziste</em>&nbsp;deceniilor.",
+  hero_h1_html: "Infrastructură&nbsp;<em>pentru generații</em>.",
   hero_lede: "Proiectare și execuție de instalații electrice, rețele de utilități și infrastructură industrială pentru autorități publice, utilități și clienți corporate din județul Mureș.",
 
   // Stats
@@ -251,6 +252,9 @@ ro: {
   public_k_address: "Adresă",
   public_k_desc: "Descrierea problemei",
   public_k_resolved: "Data rezolvării",
+  public_k_work_done: "Ce s-a făcut",
+  public_before: "Înainte",
+  public_after: "După",
 },
 
 en: {
@@ -258,10 +262,11 @@ en: {
   nav_servicii: "Services",
   nav_proiecte: "Projects",
   nav_contact: "Contact",
+  nav_modernizare: "Modernization projects",
   nav_cta: "Report a streetlight issue",
 
   hero_eyebrow: "Insta Grup S.A. · since 1997 · Târgu-Mureș",
-  hero_h1_html: "Electrical infrastructure&nbsp;<em>built to last</em>&nbsp;for decades.",
+  hero_h1_html: "Infrastructure&nbsp;<em>for generations</em>.",
   hero_lede: "Design and execution of electrical installations, utility networks and industrial infrastructure for public authorities, utility companies and corporate clients across Mureș County.",
 
   stat_1_label: "years of continuous activity in the field",
@@ -453,6 +458,9 @@ en: {
   public_k_address: "Address",
   public_k_desc: "Description of the issue",
   public_k_resolved: "Resolved on",
+  public_k_work_done: "Work done",
+  public_before: "Before",
+  public_after: "After",
 },
 
 hu: {
@@ -460,10 +468,11 @@ hu: {
   nav_servicii: "Szolgáltatások",
   nav_proiecte: "Projektek",
   nav_contact: "Kapcsolat",
+  nav_modernizare: "Korszerűsítési projektek",
   nav_cta: "Közvilágítási hibabejelentés",
 
   hero_eyebrow: "Insta Grup S.A. · 1997 óta · Marosvásárhely",
-  hero_h1_html: "Elektromos infrastruktúra,&nbsp;<em>évtizedekre tervezve</em>.",
+  hero_h1_html: "Infrastruktúra&nbsp;<em>generációknak</em>.",
   hero_lede: "Villamos hálózatok, közműhálózatok és ipari infrastruktúra tervezése és kivitelezése önkormányzatok, közműszolgáltatók és vállalati ügyfelek számára Maros megyében.",
 
   stat_1_label: "év folyamatos tevékenység a szakterületen",
@@ -655,6 +664,9 @@ hu: {
   public_k_address: "Cím",
   public_k_desc: "A probléma leírása",
   public_k_resolved: "Megoldás dátuma",
+  public_k_work_done: "Elvégzett munka",
+  public_before: "Előtte",
+  public_after: "Utána",
 },
 
 };
