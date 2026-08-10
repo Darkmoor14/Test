@@ -428,7 +428,15 @@
     });
   }
 
-  async function uploadResolutionPhoto(ticketId, kind, file){
+  function sanitizePathSegment(value){
+    return String(value ?? '')
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  async function uploadResolutionPhoto(ticket, kind, file){
     let uploadBody = file;
     let ext = 'jpg';
     try {
@@ -441,7 +449,13 @@
       uploadBody = file;
       ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
     }
-    const path = `${ticketId}/${kind}-${Date.now()}.${ext}`;
+    // Folder is named after the human-readable ticket number (e.g.
+    // "TICKET-0012") rather than the internal UUID, so browsing the
+    // "ticket-photos" bucket directly in the Supabase dashboard shows
+    // immediately which ticket each photo belongs to. Falls back to
+    // the UUID only if a ticket somehow has no number yet.
+    const folder = sanitizePathSegment(ticket.ticket_number) || ticket.id;
+    const path = `${folder}/${kind}-${Date.now()}.${ext}`;
     const { error } = await supabaseClient.storage
       .from('ticket-photos')
       .upload(path, uploadBody, { upsert: false, contentType: ext === 'jpg' ? 'image/jpeg' : (file.type || undefined) });
@@ -756,10 +770,10 @@
           // Existing photos are left untouched if no new file was chosen.
           try {
             if (beforeFile) {
-              payload.resolution_photo_before = await uploadResolutionPhoto(t.id, 'before', beforeFile);
+              payload.resolution_photo_before = await uploadResolutionPhoto(t, 'before', beforeFile);
             }
             if (afterFile) {
-              payload.resolution_photo_after = await uploadResolutionPhoto(t.id, 'after', afterFile);
+              payload.resolution_photo_after = await uploadResolutionPhoto(t, 'after', afterFile);
             }
           } catch (uploadErr) {
             console.error(uploadErr);
@@ -852,7 +866,8 @@
 
     const headers = [
       'Număr tichet', 'Tip', 'Nume', 'Telefon', 'Email', 'Adresă',
-      'Descriere', 'Stare', 'Rezolvat de', 'Trimis la', 'Rezolvat la'
+      'Descriere', 'Stare', 'Rezolvat de', 'Ce s-a făcut', 'Trimis la', 'Rezolvat la',
+      'Foto înainte', 'Foto după'
     ];
 
     const rows = exportRows.map(t => [
@@ -865,8 +880,11 @@
       t.description,
       t.status === 'Terminat' ? 'Terminat' : 'Activ',
       t.resolved_by,
+      t.resolution_note,
       fmtDate(t.submitted_on),
-      fmtDate(t.resolved_on)
+      fmtDate(t.resolved_on),
+      t.resolution_photo_before,
+      t.resolution_photo_after
     ]);
 
     const csvContent = [headers, ...rows]
