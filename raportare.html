@@ -166,7 +166,27 @@
 
 
   footer{background:var(--paper-050);color:var(--ink-400);padding:32px 0;font-size:12.5px;border-top:1px solid var(--line);}
-  .footer-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+  .footer-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;align-items:center;}
+  .footer-links{display:flex;gap:22px;flex-wrap:wrap;}
+  .footer-links button{font-family:var(--body);font-size:12.5px;color:var(--ink-400);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px;transition:color .2s;}
+  .footer-links button:hover{color:var(--copper-600);}
+
+  .modal-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(20,24,29,0.55);padding:40px 20px;overflow-y:auto;}
+  .modal-overlay.open{display:block;}
+  .modal-card{background:var(--paper-000);max-width:760px;margin:0 auto;border-radius:6px;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden;}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:26px 32px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--paper-000);}
+  .modal-head h3{font-size:20px;color:var(--ink-900);}
+  .modal-close{font-family:var(--mono);font-size:13px;color:var(--ink-600);background:var(--paper-050);border:1px solid var(--line-strong);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0;}
+  .modal-close:hover{background:var(--copper-050);border-color:var(--copper-500);color:var(--copper-600);}
+  .modal-body{padding:32px;max-height:70vh;overflow-y:auto;}
+  .modal-body h4{font-family:var(--display);font-size:15.5px;color:var(--ink-900);margin-top:26px;margin-bottom:10px;}
+  .modal-body h4:first-child{margin-top:0;}
+  .modal-body p{font-size:14.5px;color:var(--ink-600);margin-bottom:12px;line-height:1.65;}
+  .modal-body ul{margin:0 0 14px 0;padding-left:20px;}
+  .modal-body li{font-size:14.5px;color:var(--ink-600);margin-bottom:8px;line-height:1.6;}
+  .modal-body a{color:var(--copper-600);text-decoration:underline;text-underline-offset:2px;}
+  .modal-body strong{color:var(--ink-900);font-weight:600;}
+  .modal-foot{padding:16px 32px 28px;font-size:12.5px;color:var(--ink-400);font-style:italic;}
 
   @media(max-width:640px){
     nav{flex-wrap:wrap;height:auto;padding:14px 20px;row-gap:12px;}
@@ -303,9 +323,51 @@
 <footer>
   <div class="wrap footer-inner">
     <span data-i18n="footer_copy">© 2026 Insta Grup S.A. Toate drepturile rezervate.</span>
+    <div class="footer-links">
+      <button type="button" onclick="openModal('gdprModal')" data-i18n="footer_gdpr">Politica de confidențialitate (GDPR)</button>
+      <button type="button" onclick="openModal('tcModal')" data-i18n="footer_tc">Termeni și Condiții</button>
+    </div>
     <span data-i18n="footer_location">Târgu-Mureș, România</span>
   </div>
 </footer>
+
+<div class="modal-overlay" id="gdprModal" onclick="if(event.target===this) closeModal('gdprModal')">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>Notă de informare privind protecția datelor cu caracter personal</h3>
+      <button class="modal-close" onclick="closeModal('gdprModal')" aria-label="Închide">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="legal-ro-note" data-i18n="legal_ro_only_note" style="font-style:italic;color:var(--ink-400);margin-bottom:18px;">Acest document este disponibil oficial doar în limba română.</p>
+      <h4>1. Cine suntem</h4>
+      <p>Insta Grup S.A., cu sediul social în Târgu-Mureș, str. Căminului nr. 35, jud. Mureș, cod poștal 540243, este operator de date cu caracter personal atunci când prelucrează datele persoanelor care ne contactează, ale reprezentanților clienților și partenerilor noștri, precum și ale altor persoane cu care intrăm în contact în activitatea de proiectare și execuție a instalațiilor electrice și a lucrărilor conexe.</p>
+      <p>Date de contact: <a href="mailto:office@insta-grup.ro">office@insta-grup.ro</a>, tel. 0265 253997.</p>
+      <h4>2. Ce date prelucrăm</h4>
+      <p>Spre deosebire de un furnizor de utilități cu milioane de clienți casnici, INSTA GRUP prelucrează date într-un volum mult mai restrâns, în principal date de identificare și de contact ale reprezentanților clienților, partenerilor și furnizorilor, datele transmise prin formularul de contact de pe website, date cuprinse în documentația tehnică și contractuală aferentă lucrărilor, precum și date ale angajaților, dacă este cazul.</p>
+      <h4>3. Temeiurile juridice ale prelucrării</h4>
+      <p>Executarea unui contract sau demersuri precontractuale la cererea persoanei vizate, interesul legitim al societății, precum și obligații legale (ex: păstrarea documentelor financiar-contabile).</p>
+      <h4>4. Drepturile persoanelor vizate</h4>
+      <p>Conform GDPR, aveți dreptul la informare, acces la date, rectificare, ștergere, restricționarea prelucrării, portabilitatea datelor și opoziție. Vă puteți exercita aceste drepturi transmițând o solicitare scrisă la <a href="mailto:office@insta-grup.ro">office@insta-grup.ro</a>, sau puteți depune o plângere la ANSPDCP (<a href="https://www.dataprotection.ro" target="_blank" rel="noopener">www.dataprotection.ro</a>).</p>
+      <p>Pentru textul complet al notei de informare, consultați pagina principală a site-ului.</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="tcModal" onclick="if(event.target===this) closeModal('tcModal')">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>Termeni și Condiții</h3>
+      <button class="modal-close" onclick="closeModal('tcModal')" aria-label="Închide">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="legal-ro-note" data-i18n="legal_ro_only_note" style="font-style:italic;color:var(--ink-400);margin-bottom:18px;">Acest document este disponibil oficial doar în limba română.</p>
+      <p>Prin accesarea și utilizarea website-ului www.insta-grup.ro confirmați faptul că ați luat la cunoștință Termenii și Condițiile publicate pe pagina principală a site-ului, îi acceptați, îi înțelegeți și îi respectați pe deplin.</p>
+      <p>Pentru textul complet al Termenilor și Condițiilor, vă rugăm consultați pagina principală a site-ului.</p>
+      <h4>Suport</h4>
+      <p>Pentru orice întrebări sau sesizări, vă rugăm să ne contactați la adresa de e-mail <a href="mailto:office@insta-grup.ro">office@insta-grup.ro</a> sau la numărul de telefon 0265 253997.</p>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="i18n.js"></script>
@@ -313,6 +375,14 @@
   const SUPABASE_URL = "https://ebuigyyjifnjiuzsgpih.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_aXC8Q_v2faRB0uEAlZYFog_JreYGXvq";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  /* ============================================================
+     LEGAL MODALS (GDPR / Termeni și Condiții) — same pattern used
+     on every page, so the footer buttons work here too.
+     ============================================================ */
+  function openModal(id){ document.getElementById(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
+  function closeModal(id){ document.getElementById(id).classList.remove('open'); document.body.style.overflow = ''; }
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id)); } });
 
   (function initNavDropdown(){
     const dropdown = document.getElementById('navDespreDropdown');
