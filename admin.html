@@ -563,8 +563,10 @@
     logoutBtn.style.display = 'none';
     userTag.textContent = '';
     allTickets = [];
+    selectedIds.clear();
     document.getElementById('ticketList').innerHTML = '';
     document.getElementById('resultCount').textContent = '';
+    updateArchiveBar();
   }
 
   loginForm.addEventListener('submit', async (e) => {
@@ -818,6 +820,7 @@
   function updateArchiveBar(){
     selectionCount.textContent = selectedIds.size + ' selectate';
     archiveBar.classList.toggle('show', selectedIds.size > 0);
+    archiveSelectedBtn.style.display = activeFilter === 'Archived' ? 'none' : 'inline-flex';
   }
 
   clearSelectionBtn.addEventListener('click', () => {
