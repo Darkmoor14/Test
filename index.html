@@ -1141,6 +1141,7 @@
     dot.className = 'node-dot';
     dot.style.left = p.x + '%';
     dot.style.top = p.y + '%';
+    dot.dataset.i18nTitleKey = p.i18n + '_title';
     dot.setAttribute('aria-label', t(p.i18n + '_title'));
     mapWrap.appendChild(dot);
 
@@ -1159,6 +1160,14 @@
     dot.addEventListener('focus', show);
     dot.addEventListener('mouseleave', hide);
     dot.addEventListener('blur', hide);
+  });
+
+  window.addEventListener('langchange', ()=>{
+    hubDot.setAttribute('aria-label', t('hub_title'));
+    mapWrap.querySelectorAll('.node-dot').forEach(dot=>{
+      const key = dot.dataset.i18nTitleKey;
+      if (key) dot.setAttribute('aria-label', t(key));
+    });
   });
 
   /* ============================================================
