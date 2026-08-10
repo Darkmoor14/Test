@@ -255,11 +255,27 @@
      Postgres VIEW in Supabase -- NOT the real `tickets` table. That
      view intentionally excludes name, phone, email, and resolved_by,
      exposing only: ticket_number, type, address, description, status,
-     submitted_on, resolved_on. See public-tickets-view.sql for the
-     view definition. Do NOT change this page to query `tickets`
-     directly -- that table's RLS only allows staff (authenticated)
-     to read it, and even if that were opened up to anon, it would
-     leak every visitor's name/phone/email publicly.
+     submitted_on, resolved_on, resolution_note, resolution_photo_before,
+     resolution_photo_after. See public-tickets-view.sql for the
+     view definition -- if before/after photos or the "what was done"
+     note aren't showing up here even though they're saved on the
+     ticket in admin.html, the view is missing those three columns;
+     re-run something like:
+
+       create or replace view public_tickets as
+       select
+         id, ticket_number, type, address, description, status,
+         submitted_on, resolved_on, resolution_note,
+         resolution_photo_before, resolution_photo_after
+       from tickets
+       where archived = false;
+
+     (adjust to match whatever the original view's column list /
+     WHERE clause actually was, if it differs from this). Do NOT
+     change this page to query `tickets` directly -- that table's
+     RLS only allows staff (authenticated) to read it, and even if
+     that were opened up to anon, it would leak every visitor's
+     name/phone/email publicly.
 
      Only two filters are offered on purpose (Active / Rezolvate) --
      no "Toate" combined view, matching the brief for this page.
