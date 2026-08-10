@@ -272,6 +272,11 @@ en: {
   nav_modernizare: "Modernization projects",
   nav_cta: "Report a streetlight issue",
 
+  // Public Relations page
+  rp_hero_eyebrow: "Public Relations",
+  rp_hero_h1: "Modernization projects and streetlight issue reports",
+  rp_hero_lede: "A public overview of ongoing modernization projects and streetlight issue reports submitted through the site — updated periodically by our team.",
+
   hero_eyebrow: "Insta Grup S.A. · since 1997 · Târgu-Mureș",
   hero_h1_html: "Infrastructure&nbsp;<em>for generations</em>",
   hero_lede: "Design and execution of electrical installations, utility networks and industrial infrastructure for public authorities, utility companies and corporate clients across Mureș County.",
@@ -478,6 +483,11 @@ hu: {
   nav_contact: "Kapcsolat",
   nav_modernizare: "Korszerűsítési projektek",
   nav_cta: "Közvilágítási hibabejelentés",
+
+  // Közkapcsolatok oldal
+  rp_hero_eyebrow: "Közkapcsolatok",
+  rp_hero_h1: "Korszerűsítési projektek és közvilágítási hibabejelentések",
+  rp_hero_lede: "Nyilvános áttekintés a folyamatban lévő korszerűsítési projektekről és a weboldalon keresztül beküldött közvilágítási hibabejelentésekről — csapatunk által rendszeresen frissítve.",
 
   hero_eyebrow: "Insta Grup S.A. · 1997 óta · Marosvásárhely",
   hero_h1_html: "Infrastruktúra&nbsp;<em>generációknak</em>",
