@@ -253,7 +253,7 @@
   }
 
   /* ===== ABOUT ===== */
-  .about{background:var(--paper-000);position:relative;overflow:hidden;}
+  .about{background:var(--paper-050);position:relative;overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
   .about-grid{display:grid;grid-template-columns:0.95fr 1.05fr;gap:64px;align-items:stretch;}
   .about-inner{max-width:520px;display:flex;flex-direction:column;}
   .about p{color:var(--ink-600);font-size:16.5px;margin-bottom:16px;}
@@ -643,48 +643,6 @@
   </div>
 </section>
 
-<!-- ===== CTA / CONTACT ===== -->
-<section class="cta" id="contact">
-  <svg class="section-trace" viewBox="0 0 1180 560" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-    <g stroke="#D3D4CE" stroke-width="1.4" fill="none">
-      <path d="M 1200 -20 V 90 H 900" />
-      <path d="M -20 580 V 470 H 280" />
-    </g>
-    <g stroke="#D11F24" stroke-width="1.6" fill="none" class="flow">
-      <path d="M 1200 -20 V 90 H 900" />
-    </g>
-    <g fill="#D11F24">
-      <circle cx="900" cy="90" r="3"/>
-      <circle cx="280" cy="470" r="3"/>
-    </g>
-  </svg>
-  <div class="wrap cta-grid">
-    <div>
-      <div class="eyebrow" data-i18n="contact_eyebrow">Contact</div>
-      <h2 data-i18n="contact_h2">Aveți un proiect în derulare?</h2>
-      <p class="lede" data-i18n="contact_lede">Spuneți-ne despre lucrare — răspundem cu o estimare de timp și cost în cel mult 2 zile lucrătoare.</p>
-      <div class="contact-list">
-        <div class="row"><span class="k" data-i18n="contact_k_sediu">Sediu</span><span data-i18n="contact_v_sediu">Str. Căminului nr. 35, Târgu-Mureș, jud. Mureș</span></div>
-        <div class="row"><span class="k" data-i18n="contact_k_telefon">Telefon</span><span data-i18n="contact_v_telefon">+40 265 000 000</span></div>
-        <div class="row"><span class="k" data-i18n="contact_k_email">Email</span><span data-i18n="contact_v_email">office@insta-grup.ro</span></div>
-        <div class="row"><span class="k" data-i18n="contact_k_program">Program</span><span data-i18n="contact_v_program">Luni – Vineri, 08:00 – 16:00</span></div>
-      </div>
-    </div>
-    <div class="form-card">
-      <form id="contactForm">
-        <label data-i18n="cf_name_label">Nume</label>
-        <input type="text" id="c-name" placeholder="Numele dvs." data-i18n-placeholder="cf_name_ph" required>
-        <label data-i18n="cf_email_label">Email</label>
-        <input type="email" id="c-email" placeholder="nume@companie.ro" data-i18n-placeholder="cf_email_ph" required>
-        <label data-i18n="cf_message_label">Detalii proiect</label>
-        <textarea id="c-message" placeholder="Descrieți pe scurt lucrarea..." data-i18n-placeholder="cf_message_ph" required></textarea>
-        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;" id="contactSubmitBtn" data-i18n="cf_submit_btn">Trimite solicitarea</button>
-      </form>
-      <div class="form-msg" id="contactMsg"></div>
-    </div>
-  </div>
-</section>
-
 <!-- ===== ABOUT ===== -->
 <section class="about" id="despre">
   <svg class="section-trace" viewBox="0 0 1180 600" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
@@ -736,6 +694,48 @@
         <div class="about-slide-cap" data-i18n="about_slide4_cap">Rețele de apă și canalizare</div>
       </div>
       <div class="about-dots"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA / CONTACT ===== -->
+<section class="cta" id="contact">
+  <svg class="section-trace" viewBox="0 0 1180 560" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <g stroke="#D3D4CE" stroke-width="1.4" fill="none">
+      <path d="M 1200 -20 V 90 H 900" />
+      <path d="M -20 580 V 470 H 280" />
+    </g>
+    <g stroke="#D11F24" stroke-width="1.6" fill="none" class="flow">
+      <path d="M 1200 -20 V 90 H 900" />
+    </g>
+    <g fill="#D11F24">
+      <circle cx="900" cy="90" r="3"/>
+      <circle cx="280" cy="470" r="3"/>
+    </g>
+  </svg>
+  <div class="wrap cta-grid">
+    <div>
+      <div class="eyebrow" data-i18n="contact_eyebrow">Contact</div>
+      <h2 data-i18n="contact_h2">Aveți un proiect în derulare?</h2>
+      <p class="lede" data-i18n="contact_lede">Spuneți-ne despre lucrare — răspundem cu o estimare de timp și cost în cel mult 2 zile lucrătoare.</p>
+      <div class="contact-list">
+        <div class="row"><span class="k" data-i18n="contact_k_sediu">Sediu</span><span data-i18n="contact_v_sediu">Str. Căminului nr. 35, Târgu-Mureș, jud. Mureș</span></div>
+        <div class="row"><span class="k" data-i18n="contact_k_telefon">Telefon</span><span data-i18n="contact_v_telefon">+40 265 000 000</span></div>
+        <div class="row"><span class="k" data-i18n="contact_k_email">Email</span><span data-i18n="contact_v_email">office@insta-grup.ro</span></div>
+        <div class="row"><span class="k" data-i18n="contact_k_program">Program</span><span data-i18n="contact_v_program">Luni – Vineri, 08:00 – 16:00</span></div>
+      </div>
+    </div>
+    <div class="form-card">
+      <form id="contactForm">
+        <label data-i18n="cf_name_label">Nume</label>
+        <input type="text" id="c-name" placeholder="Numele dvs." data-i18n-placeholder="cf_name_ph" required>
+        <label data-i18n="cf_email_label">Email</label>
+        <input type="email" id="c-email" placeholder="nume@companie.ro" data-i18n-placeholder="cf_email_ph" required>
+        <label data-i18n="cf_message_label">Detalii proiect</label>
+        <textarea id="c-message" placeholder="Descrieți pe scurt lucrarea..." data-i18n-placeholder="cf_message_ph" required></textarea>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;" id="contactSubmitBtn" data-i18n="cf_submit_btn">Trimite solicitarea</button>
+      </form>
+      <div class="form-msg" id="contactMsg"></div>
     </div>
   </div>
 </section>
