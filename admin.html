@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin — Sesizări — Insta Grup</title>
+<title>Insta Grup Admin</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -107,6 +107,7 @@
   .pc-meta{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-600);margin-bottom:14px;}
   .pc-actions{display:flex;gap:10px;}
   .pc-actions .btn{padding:8px 14px;font-size:12px;}
+  .project-card.archived{background:var(--paper-050);opacity:0.85;}
 
   .excel-preview{
     background:var(--paper-050);border:1px solid var(--line-strong);border-radius:5px;
@@ -259,12 +260,18 @@
 
     <div class="admin-panel" id="panel-projects">
       <div class="toolbar">
-        <div class="result-count" id="projectsCount"></div>
-        <div style="display:flex; align-items:center; gap:10px;">
+        <div class="chips" id="projectsChipsWrap"></div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="result-count" id="projectsCount"></div>
           <input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none;">
           <button class="btn" id="importExcelBtn" type="button">⭳ Importă din Excel</button>
           <button class="btn btn-primary" id="addProjectBtn" type="button">+ Adaugă proiect</button>
         </div>
+      </div>
+      <div class="archive-bar" id="projectsArchiveBar">
+        <span id="projectsSelectionCount">0 selectate</span>
+        <button class="btn" id="projectsClearSelectionBtn" type="button">Anulează selecția</button>
+        <button class="btn btn-primary" id="projectsArchiveSelectedBtn" type="button">Arhivează selectate</button>
       </div>
 
       <div class="project-form" id="projectForm" style="display:none;">
@@ -482,14 +489,18 @@
          older than 14 days gets archived = true (same flag the
          manual "Arhivează" button already sets).
        - current_projects: any row whose due_date is more than 14
-         days in the past gets deleted outright, since there is no
-         separate "archived" state for projects — matching how staff
-         already clean these up manually today (see the Delete
-         button in the projects panel).
+         days in the past gets archived = true the same way — now
+         that projects have their own "Arhivate" tab (see the
+         projects filter chips), auto-archiving replaces the older
+         behavior of deleting these rows outright.
      The public pages (relatii-publice.html, sesizari.html) also
      filter by the same 14-day window client-side, so a ticket or
      project disappears from the public site on schedule even on
      days nobody has logged into admin.
+
+     REQUIRES the `archived` / `archived_at` columns on
+     `current_projects` — see the migration note above
+     getFilteredProjects().
      ============================================================ */
   const AUTO_ARCHIVE_DAYS = 14;
 
@@ -509,9 +520,10 @@
     const cutoffISO = cutoffDate.toISOString().slice(0, 10); // date-only, matches due_date column type
     const { error } = await supabaseClient
       .from('current_projects')
-      .delete()
+      .update({ archived: true, archived_at: new Date().toISOString() })
+      .eq('archived', false)
       .lt('due_date', cutoffISO);
-    if (error) console.error('Auto-cleanup of stale projects failed (non-blocking):', error);
+    if (error) console.error('Auto-archive of stale projects failed (non-blocking — likely means the archived/archived_at columns have not been added to current_projects yet):', error);
   }
 
   async function runAutoArchiveSweep(){
@@ -902,13 +914,24 @@
      start_date/due_date, so nothing needs manual updating except
      the dates themselves.
 
+     ARCHIVING: same tab structure and bulk-archive pattern as
+     Sesizări (Active / Rezolvate / Toate / Arhivate — see
+     getFilteredProjects() above). Requires an `archived` (boolean)
+     and `archived_at` (timestamptz) column on `current_projects`,
+     matching what `tickets` already has:
+
+       alter table current_projects
+         add column if not exists archived boolean not null default false,
+         add column if not exists archived_at timestamptz;
+
      AUTOMATIC ARCHIVING (optional, server-side): runAutoArchiveSweep()
-     above already handles the 2-week auto-archive/cleanup client-side
-     on every admin login, which is enough for day-to-day use. If a
+     above already handles the 2-week auto-archive client-side on
+     every admin login, which is enough for day-to-day use. If a
      stricter guarantee is ever wanted (e.g. cleanup happens even on
      days nobody logs in), the same two operations can be scheduled
      directly in Supabase using the pg_cron extension (Database ->
-     Extensions -> enable "pg_cron", then run once in the SQL editor):
+     Extensions -> enable "pg_cron", then run once in the SQL editor,
+     after the column migration above):
 
        select cron.schedule(
          'auto-archive-tickets', '0 3 * * *', $$
@@ -918,9 +941,10 @@
          $$
        );
        select cron.schedule(
-         'auto-cleanup-projects', '0 3 * * *', $$
-           delete from current_projects
-           where due_date < (now() - interval '14 days')::date;
+         'auto-archive-projects', '0 3 * * *', $$
+           update current_projects set archived = true, archived_at = now()
+           where archived = false
+             and due_date < (now() - interval '14 days')::date;
          $$
        );
 
@@ -929,6 +953,8 @@
      configuration.
      ============================================================ */
   let allProjects = [];
+  let projectsFilter = 'Ongoing';
+  const projectSelectedIds = new Set();
 
   function calcProjectProgress(startISO, dueISO){
     const now = new Date();
@@ -947,6 +973,60 @@
     return { key: 'progress', label: 'În desfășurare' };
   }
 
+  /* ============================================================
+     PROJECTS FILTER — mirrors the ticket tabs (Active / Rezolvate
+     / Toate / Arhivate). "Active" covers scheduled + in-progress
+     projects; "Rezolvate" covers those past due_date (calculated,
+     same as the public page); "Arhivate" is the persisted
+     `archived` flag, set manually here or by the 2-week auto-sweep.
+
+     NOTE: this requires an `archived` (boolean) and `archived_at`
+     (timestamptz) column on the `current_projects` table, matching
+     the ones `tickets` already has. If they don't exist yet, run
+     once in the Supabase SQL editor:
+
+       alter table current_projects
+         add column if not exists archived boolean not null default false,
+         add column if not exists archived_at timestamptz;
+
+     Until that migration runs, "Arhivate" will just show empty and
+     archiving a project will surface an error — everything else on
+     this page keeps working normally either way.
+     ============================================================ */
+  function getProjectStatusFilterKey(p){
+    return calcProjectStatus(p.start_date, p.due_date).key === 'done' ? 'Terminat' : 'Ongoing';
+  }
+  function getFilteredProjects(){
+    if (projectsFilter === 'Archived') {
+      return allProjects.filter(p => p.archived);
+    }
+    return allProjects.filter(p => !p.archived && (projectsFilter === 'Toate' || getProjectStatusFilterKey(p) === projectsFilter));
+  }
+
+  const projectChipDefs = [
+    { key: 'Ongoing', label: 'Active' },
+    { key: 'Terminat', label: 'Rezolvate' },
+    { key: 'Toate', label: 'Toate' },
+    { key: 'Archived', label: 'Arhivate' },
+  ];
+  const projectsChipsWrap = document.getElementById('projectsChipsWrap');
+  projectChipDefs.forEach(c => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip' + (c.key === projectsFilter ? ' active' : '');
+    chip.textContent = c.label;
+    chip.dataset.key = c.key;
+    chip.addEventListener('click', () => {
+      projectsFilter = c.key;
+      projectSelectedIds.clear();
+      updateProjectsArchiveBar();
+      document.querySelectorAll('#projectsChipsWrap .chip').forEach(x => x.classList.remove('active'));
+      chip.classList.add('active');
+      renderProjects();
+    });
+    projectsChipsWrap.appendChild(chip);
+  });
+
   async function loadProjects(){
     const { data, error } = await supabaseClient
       .from('current_projects')
@@ -962,24 +1042,30 @@
 
   function renderProjects(){
     const list = document.getElementById('projectList');
-    document.getElementById('projectsCount').textContent = allProjects.length + ' proiecte';
+    const filtered = getFilteredProjects();
+    document.getElementById('projectsCount').textContent = filtered.length + ' din ' + allProjects.length + ' proiecte';
 
-    if (allProjects.length === 0) {
-      list.innerHTML = '<div class="no-results" style="padding:40px 0;text-align:center;color:var(--ink-400);">Niciun proiect adăugat încă.</div>';
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="no-results" style="padding:40px 0;text-align:center;color:var(--ink-400);">Niciun proiect în această categorie.</div>';
       return;
     }
 
     list.innerHTML = '';
-    allProjects.forEach(p => {
+    filtered.forEach(p => {
       const pct = calcProjectProgress(p.start_date, p.due_date);
       const status = calcProjectStatus(p.start_date, p.due_date);
+      const isArchived = !!p.archived;
       const card = document.createElement('div');
-      card.className = 'project-card';
+      card.className = 'project-card' + (isArchived ? ' archived' : '');
       card.innerHTML = `
         <div class="pc-top">
-          <div>
-            <div class="pc-title">${escapeHtml(p.title)}</div>
-            <div class="pc-address">${escapeHtml(p.address)}</div>
+          <div class="ticket-select">
+            <input type="checkbox" class="pc-select" ${projectSelectedIds.has(p.id) ? 'checked' : ''}>
+            <div>
+              <div class="pc-title">${escapeHtml(p.title)}</div>
+              <div class="pc-address">${escapeHtml(p.address)}</div>
+              ${isArchived ? `<span class="archived-badge">Arhivat ${fmtDate(p.archived_at)}</span>` : ''}
+            </div>
           </div>
           <span class="pc-status ${status.key}">${status.label}</span>
         </div>
@@ -990,20 +1076,94 @@
         </div>
         ${p.notes ? `<div class="pc-address" style="margin-bottom:12px;">📝 ${escapeHtml(p.notes)}</div>` : ''}
         <div class="pc-actions">
-          <button class="btn pc-edit">Editează</button>
-          <button class="btn pc-delete">Șterge</button>
+          ${isArchived
+            ? `<button class="btn pc-restore">Dezarhivează</button>`
+            : `<button class="btn pc-edit">Editează</button><button class="btn pc-delete">Șterge</button>`
+          }
         </div>
       `;
-      card.querySelector('.pc-edit').addEventListener('click', () => openProjectForm(p));
-      card.querySelector('.pc-delete').addEventListener('click', async () => {
-        if (!confirm(`Ștergeți proiectul "${p.title}"? Această acțiune este permanentă.`)) return;
-        const { error } = await supabaseClient.from('current_projects').delete().eq('id', p.id);
-        if (error) { console.error(error); alert('Eroare la ștergere.'); return; }
-        loadProjects();
+
+      const checkbox = card.querySelector('.pc-select');
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) projectSelectedIds.add(p.id);
+        else projectSelectedIds.delete(p.id);
+        updateProjectsArchiveBar();
       });
+
+      const restoreBtn = card.querySelector('.pc-restore');
+      if (restoreBtn) {
+        restoreBtn.addEventListener('click', async () => {
+          restoreBtn.disabled = true;
+          const { error } = await supabaseClient
+            .from('current_projects')
+            .update({ archived: false, archived_at: null })
+            .eq('id', p.id);
+          restoreBtn.disabled = false;
+          if (error) { console.error(error); alert('Eroare la dezarhivare. Încercați din nou.'); return; }
+          loadProjects();
+        });
+      }
+
+      const editBtn = card.querySelector('.pc-edit');
+      if (editBtn) editBtn.addEventListener('click', () => openProjectForm(p));
+
+      const deleteBtn = card.querySelector('.pc-delete');
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', async () => {
+          if (!confirm(`Ștergeți proiectul "${p.title}"? Această acțiune este permanentă.`)) return;
+          const { error } = await supabaseClient.from('current_projects').delete().eq('id', p.id);
+          if (error) { console.error(error); alert('Eroare la ștergere.'); return; }
+          loadProjects();
+        });
+      }
+
       list.appendChild(card);
     });
   }
+
+  /* ============================================================
+     PROJECTS ARCHIVING — same bulk-select-and-archive pattern as
+     tickets: move projects out of the public "Proiecte de
+     modernizare" list and the default admin tabs without deleting
+     the row, so they can be restored from "Arhivate" any time.
+     ============================================================ */
+  const projectsArchiveBar = document.getElementById('projectsArchiveBar');
+  const projectsSelectionCount = document.getElementById('projectsSelectionCount');
+  const projectsArchiveSelectedBtn = document.getElementById('projectsArchiveSelectedBtn');
+  const projectsClearSelectionBtn = document.getElementById('projectsClearSelectionBtn');
+
+  function updateProjectsArchiveBar(){
+    projectsSelectionCount.textContent = projectSelectedIds.size + ' selectate';
+    projectsArchiveBar.classList.toggle('show', projectSelectedIds.size > 0);
+  }
+
+  projectsClearSelectionBtn.addEventListener('click', () => {
+    projectSelectedIds.clear();
+    updateProjectsArchiveBar();
+    renderProjects();
+  });
+
+  projectsArchiveSelectedBtn.addEventListener('click', async () => {
+    if (projectSelectedIds.size === 0) return;
+    if (!confirm(`Arhivați ${projectSelectedIds.size} proiecte? Nu vor mai apărea pe pagina publică, dar rămân salvate și pot fi restaurate oricând din tab-ul "Arhivate".`)) {
+      return;
+    }
+    projectsArchiveSelectedBtn.disabled = true;
+    const { error } = await supabaseClient
+      .from('current_projects')
+      .update({ archived: true, archived_at: new Date().toISOString() })
+      .in('id', Array.from(projectSelectedIds));
+    projectsArchiveSelectedBtn.disabled = false;
+
+    if (error) {
+      console.error(error);
+      alert('Eroare la arhivare. Încercați din nou.');
+      return;
+    }
+    projectSelectedIds.clear();
+    updateProjectsArchiveBar();
+    loadProjects();
+  });
 
   const projectForm = document.getElementById('projectForm');
   const excelPreviewWrap = document.getElementById('excelPreview');
