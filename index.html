@@ -356,9 +356,9 @@
     letter-spacing:0.04em;
   }
   .map-label strong{color:var(--copper-600);font-weight:500;}
-  .map-svg-wrap{position:relative;width:100%;aspect-ratio:1/1;}
-  .wire-line{stroke:var(--copper-500);stroke-width:1.4;fill:none;opacity:0.4;transition:stroke-dashoffset .9s ease;}
-  .wire-joint{fill:var(--copper-500);opacity:0;transition:opacity .3s ease;}
+  .map-svg-wrap{position:relative;width:100%;aspect-ratio:16/9;}
+  .wire-line{stroke:var(--copper-500);stroke-width:1.4;fill:none;opacity:0.4;}
+  .wire-joint{fill:var(--copper-500);opacity:0.55;}
   .wire-joint.show{opacity:0.55;}
   .hub-dot{
     position:absolute;left:50%;top:50%;width:16px;height:16px;
@@ -647,7 +647,7 @@
     <div class="map-shell">
       <div class="map-label"><span data-i18n-html="proj_map_full_label_html">Județul Mureș — <strong>18 din 1500+ proiecte</strong></span><span data-i18n="proj_map_updated">Actualizat 2026</span></div>
       <div class="map-svg-wrap" id="mapWrap">
-        <svg viewBox="0 0 800 800" width="100%" height="100%" style="position:absolute;inset:0;" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 800 450" width="100%" height="100%" style="position:absolute;inset:0;" xmlns="http://www.w3.org/2000/svg">
           <!-- Populated by JS: one elbow "wire" path per project, running from
                the headquarters hub (center) out to that project's dot position,
                so every line always connects two real points — see buildMapWires()
@@ -1143,7 +1143,7 @@
   // Headquarters position — center of the map panel. All wire traces
   // originate here, matching the hub-dot's CSS position (left/top 50%).
   const HUB_X_PCT = 50, HUB_Y_PCT = 50;
-  const VB_W = 800, VB_H = 800; // must match the SVG's viewBox above
+  const VB_W = 800, VB_H = 450; // must match the SVG's viewBox above
 
   const svgNS = 'http://www.w3.org/2000/svg';
 
@@ -1151,32 +1151,64 @@
     return { x: (xPct / 100) * VB_W, y: (yPct / 100) * VB_H };
   }
 
-  // Draws one elbow-shaped "wire" (horizontal then vertical, like a
-  // circuit trace) from the hub to a project's exact dot position, plus
-  // a small junction dot at the bend — so the line always terminates
-  // precisely on the project dot rendered just below.
+  // Draws the map as a horizontal "trunk" line running through the hub
+  // (left and right, like the spine of a fishbone diagram), with one
+  // vertical "branch" dropping or rising from the trunk to each
+  // project's exact dot position — matching the reference sketch Adam
+  // shared, rather than individual diagonal-ish elbows from a single
+  // point. A small junction dot marks where each branch meets the trunk.
   //
-  // Each wire is drawn using the classic SVG "line reveal" technique:
-  // stroke-dasharray is set to the path's own length and
-  // stroke-dashoffset starts equal to that length (fully hidden), then
-  // animating dashoffset down to 0 makes the line appear to extend
-  // outward from the hub. playWireAnimation()/resetWireAnimation() below
-  // trigger this every time the section scrolls into view, per Adam's
-  // request that it "expand from the HQ" each time you arrive at this
-  // part of the page, not just once on first load.
+  // Animation: the trunk expands outward from the hub in both
+  // directions first, then each vertical branch extends out from the
+  // trunk afterward (staggered slightly per project), using the classic
+  // SVG "line reveal" technique — stroke-dasharray set to the path's
+  // own length, stroke-dashoffset animated from that length down to 0.
+  // playWireAnimation()/resetWireAnimation() below trigger this every
+  // time the section scrolls into view, so it replays each time you
+  // arrive at this part of the page, not just once on first load.
+  const TRUNK_DURATION_MS = 1600;
+  const BRANCH_DURATION_MS = 1200;
+  const BRANCH_STAGGER_MS = 70;
+
   function buildMapWires(){
     const hub = pctToPx(HUB_X_PCT, HUB_Y_PCT);
-    const wires = [];
-    projects.forEach((p, i) => {
-      const target = pctToPx(p.x, p.y);
-      const length = Math.abs(target.x - hub.x) + Math.abs(target.y - hub.y);
+    const targets = projects.map(p => pctToPx(p.x, p.y));
+    const minX = Math.min(hub.x, ...targets.map(t => t.x));
+    const maxX = Math.max(hub.x, ...targets.map(t => t.x));
 
+    const wires = [];
+
+    // Trunk: two halves so both sides reveal outward from the hub at once.
+    [
+      { from: hub.x, to: minX },
+      { from: hub.x, to: maxX },
+    ].forEach(({ from, to }) => {
+      const length = Math.abs(to - from);
+      if (length < 0.5) return; // nothing to draw on this side
       const path = document.createElementNS(svgNS, 'path');
-      path.setAttribute('class', 'wire-line');
-      path.setAttribute('d', `M ${hub.x} ${hub.y} H ${target.x} V ${target.y}`);
+      path.setAttribute('class', 'wire-line wire-trunk');
+      path.setAttribute('d', `M ${from} ${hub.y} H ${to}`);
       path.style.strokeDasharray = String(length);
       path.style.strokeDashoffset = String(length);
-      path.style.transitionDelay = (i * 35) + 'ms';
+      path.style.transitionDuration = TRUNK_DURATION_MS + 'ms';
+      wireLayer.appendChild(path);
+      wires.push({ path, joint: null, length });
+    });
+
+    // Branches: one vertical stem per project, from the trunk down/up
+    // to that project's dot, starting only once the trunk has drawn.
+    projects.forEach((p, i) => {
+      const target = targets[i];
+      const length = Math.abs(target.y - hub.y);
+      const delay = TRUNK_DURATION_MS + i * BRANCH_STAGGER_MS;
+
+      const path = document.createElementNS(svgNS, 'path');
+      path.setAttribute('class', 'wire-line wire-branch');
+      path.setAttribute('d', `M ${target.x} ${hub.y} V ${target.y}`);
+      path.style.strokeDasharray = String(length);
+      path.style.strokeDashoffset = String(length);
+      path.style.transitionDuration = BRANCH_DURATION_MS + 'ms';
+      path.style.transitionDelay = delay + 'ms';
       wireLayer.appendChild(path);
 
       const joint = document.createElementNS(svgNS, 'circle');
@@ -1184,11 +1216,12 @@
       joint.setAttribute('cx', target.x);
       joint.setAttribute('cy', hub.y);
       joint.setAttribute('r', 2.5);
-      joint.style.transitionDelay = (i * 35 + 550) + 'ms';
+      joint.style.transitionDelay = delay + 'ms';
       wireLayer.appendChild(joint);
 
       wires.push({ path, joint, length });
     });
+
     return wires;
   }
   const mapWires = buildMapWires();
@@ -1196,7 +1229,7 @@
   function playWireAnimation(){
     mapWires.forEach(({ path, joint }) => {
       path.style.strokeDashoffset = '0';
-      joint.classList.add('show');
+      if (joint) joint.classList.add('show');
     });
   }
 
@@ -1204,8 +1237,10 @@
     mapWires.forEach(({ path, joint, length }) => {
       path.style.transition = 'none';
       path.style.strokeDashoffset = String(length);
-      joint.style.transition = 'none';
-      joint.classList.remove('show');
+      if (joint) {
+        joint.style.transition = 'none';
+        joint.classList.remove('show');
+      }
     });
     // Force a reflow so the browser applies the "hidden" state above
     // before any later transition is re-enabled — otherwise it can
@@ -1213,7 +1248,7 @@
     void wireLayer.getBoundingClientRect();
     mapWires.forEach(({ path, joint }) => {
       path.style.transition = '';
-      joint.style.transition = '';
+      if (joint) joint.style.transition = '';
     });
   }
 
