@@ -121,6 +121,30 @@
     .lang-switch button{padding:5px 8px;font-size:11px;}
     .nav-cta{font-size:12px;padding:9px 16px;}
   }
+
+  /* ===== COOKIE CONSENT BANNER ===== */
+  .cookie-banner{
+    position:fixed;left:0;right:0;bottom:0;z-index:300;
+    background:var(--ink-900);color:var(--paper-050);
+    padding:18px 32px;
+    display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap;
+    box-shadow:0 -8px 24px rgba(0,0,0,0.18);
+    transform:translateY(100%);transition:transform .3s ease;
+  }
+  .cookie-banner.show{transform:translateY(0);}
+  .cookie-banner p{font-size:13.5px;color:var(--paper-100);max-width:640px;line-height:1.55;margin:0;}
+  .cookie-banner a{color:var(--copper-300);text-decoration:underline;text-underline-offset:2px;}
+  .cookie-banner-actions{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+  .cookie-banner-accept{
+    font-family:var(--mono);font-size:13px;font-weight:500;
+    background:var(--copper-500);color:#fff;border:none;
+    padding:10px 22px;border-radius:2px;cursor:pointer;transition:background .2s;white-space:nowrap;
+  }
+  .cookie-banner-accept:hover{background:var(--copper-600);}
+  @media(max-width:640px){
+    .cookie-banner{padding:16px 20px;flex-direction:column;align-items:stretch;gap:14px;}
+    .cookie-banner-actions{justify-content:center;}
+  }
 </style>
 </head>
 <body>
@@ -184,6 +208,7 @@
     <div class="footer-links">
       <button type="button" onclick="openModal(&#39;gdprModal&#39;)" data-i18n="footer_gdpr">Politica de confidențialitate (GDPR)</button>
       <button type="button" onclick="openModal(&#39;tcModal&#39;)" data-i18n="footer_tc">Termeni și Condiții</button>
+      <button type="button" onclick="openModal(&#39;cookieModal&#39;)" data-i18n="footer_cookies">Politica de cookie-uri</button>
     </div>
     <span data-i18n="footer_location">Târgu-Mureș, România</span>
   </div>
@@ -223,6 +248,26 @@
       <p>Pentru textul complet al Termenilor și Condițiilor, vă rugăm consultați pagina principală a site-ului.</p>
       <h4>Suport</h4>
       <p>Pentru orice întrebări sau sesizări, vă rugăm să ne contactați la adresa de e-mail <a href="mailto:office@insta-grup.ro">office@insta-grup.ro</a> sau la numărul de telefon 0265 253997.</p>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="cookieModal" onclick="if(event.target===this) closeModal('cookieModal')">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>Politica de cookie-uri</h3>
+      <button class="modal-close" onclick="closeModal('cookieModal')" aria-label="Închide">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="legal-ro-note" data-i18n="legal_ro_only_note" style="font-style:italic;color:var(--ink-400);margin-bottom:18px;">Acest document este disponibil oficial doar în limba română.</p>
+      <h4>Ce stocăm</h4>
+      <p>Site-ul www.insta-grup.ro <strong>nu folosește cookie-uri de marketing, publicitate sau urmărire</strong>. Reținem local, în browser, doar preferința dumneavoastră de limbă (RO/EN/HU) și, exclusiv pe pagina de administrare folosită de personalul INSTA GRUP, sesiunea de autentificare tehnică furnizată de furnizorul nostru de infrastructură. Ambele sunt strict necesare pentru funcționarea site-ului.</p>
+      <h4>Resurse de la terți</h4>
+      <p>Pentru afișare corectă, încărcăm fonturi de la Google Fonts și o bibliotecă tehnică de la furnizorul nostru de infrastructură. Acestea pot primi adresa IP ca parte tehnică a livrării resursei, dar nu sunt folosite pentru urmărire sau publicitate.</p>
+      <p>Pentru textul complet al Politicii de cookie-uri, vă rugăm consultați pagina principală a site-ului.</p>
+      <h4>Suport</h4>
+      <p>Pentru orice întrebări, vă rugăm să ne contactați la <a href="mailto:office@insta-grup.ro">office@insta-grup.ro</a> sau la 0265 253997.</p>
     </div>
   </div>
 </div>
@@ -336,13 +381,45 @@
     }
     list.innerHTML = filtered.map(p => `
       <div class="proj-row">
-        <span class="proj-tag">${t(CATEGORY_LABEL_KEYS[p.cat] || p.cat)}</span>
+        <span class="proj-tag">${p.cat}</span>
         <span class="proj-title">${p.title}</span>
       </div>
     `).join('');
   }
   render();
   window.addEventListener('langchange', render);
+
+  /* ============================================================
+     COOKIE CONSENT BANNER — see index.html for the full policy
+     rationale. Simple disclosure notice (no accept/reject choice
+     needed, since nothing on the site is used for tracking or
+     marketing). Shown once; dismissal is remembered in localStorage.
+     ============================================================ */
+  (function initCookieBanner(){
+    const STORAGE_KEY = 'cookie_notice_ack';
+    if (localStorage.getItem(STORAGE_KEY) === 'true') return;
+
+    const banner = document.createElement('div');
+    banner.className = 'cookie-banner';
+    banner.innerHTML = `
+      <p data-i18n="cookie_banner_text">Folosim doar cookie-uri și stocare locală strict necesare pentru funcționarea site-ului (preferința de limbă, conectarea echipei) — fără cookie-uri de marketing sau urmărire.</p>
+      <div class="cookie-banner-actions">
+        <a href="#" onclick="openModal('cookieModal'); return false;" data-i18n="cookie_banner_link">Politica de cookie-uri</a>
+        <button type="button" class="cookie-banner-accept" data-i18n="cookie_banner_accept">Am înțeles</button>
+      </div>
+    `;
+    document.body.appendChild(banner);
+    requestAnimationFrame(() => requestAnimationFrame(() => banner.classList.add('show')));
+
+    banner.querySelector('.cookie-banner-accept').addEventListener('click', () => {
+      localStorage.setItem(STORAGE_KEY, 'true');
+      banner.classList.remove('show');
+      setTimeout(() => banner.remove(), 320);
+    });
+
+    if (typeof applyTranslations === 'function') applyTranslations();
+    window.addEventListener('langchange', () => { if (document.body.contains(banner)) applyTranslations(); });
+  })();
 </script>
 
 </body>
