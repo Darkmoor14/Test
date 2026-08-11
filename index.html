@@ -142,7 +142,11 @@
     font-size:15px;color:var(--ink-700);transition:background .15s,color .15s;
   }
   .nav-dropdown-menu a:hover{background:var(--paper-050);color:var(--copper-600);}
-  @media(max-width:860px){.navlinks{display:none;}}
+  @media(max-width:860px){
+    nav{flex-wrap:wrap;height:auto;padding:14px 20px;row-gap:12px;}
+    .navlinks{display:flex;order:3;width:100%;justify-content:center;flex-wrap:wrap;gap:16px 24px;font-size:14.5px;}
+    .nav-right{width:100%;justify-content:center;flex-wrap:wrap;}
+  }
 
   /* ===== HERO ===== */
   .hero{
@@ -542,6 +546,9 @@
     .logo-img{height:44px;}
     .lang-switch button{padding:5px 8px;font-size:12px;}
     .nav-cta{font-size:13px;padding:9px 16px;}
+    .navlinks{gap:12px 18px;font-size:14px;}
+    .hero h1{font-size:clamp(34px,11vw,46px);max-width:320px;}
+    .hero h1 em{display:block;margin-top:4px;}
   }
 </style>
 </head>
@@ -755,7 +762,7 @@
       <p class="lede" data-i18n="contact_lede">Spuneți-ne despre lucrare — răspundem cu o estimare de timp și cost în cel mult 2 zile lucrătoare.</p>
       <div class="contact-list">
         <div class="row"><span class="k" data-i18n="contact_k_sediu">Sediu</span><span data-i18n="contact_v_sediu">Str. Căminului nr. 35, Târgu-Mureș, jud. Mureș</span></div>
-        <div class="row"><span class="k" data-i18n="contact_k_telefon">Telefon</span><span data-i18n="contact_v_telefon">+40 265 000 000</span></div>
+        <div class="row"><span class="k" data-i18n="contact_k_telefon">Telefon</span><span data-i18n="contact_v_telefon">+40 265 253 997</span></div>
         <div class="row"><span class="k" data-i18n="contact_k_email">Email</span><span data-i18n="contact_v_email">office@insta-grup.ro</span></div>
         <div class="row"><span class="k" data-i18n="contact_k_program">Program</span><span data-i18n="contact_v_program">Luni – Vineri, 08:00 – 16:00</span></div>
       </div>
@@ -1313,6 +1320,7 @@
     dot.className = 'node-dot';
     dot.style.left = p.x + '%';
     dot.style.top = p.y + '%';
+    dot.dataset.i18nTitleKey = p.i18n + '_title';
     dot.setAttribute('aria-label', t(p.i18n + '_title'));
     mapWrap.appendChild(dot);
 
@@ -1331,6 +1339,14 @@
     dot.addEventListener('focus', show);
     dot.addEventListener('mouseleave', hide);
     dot.addEventListener('blur', hide);
+  });
+
+  window.addEventListener('langchange', ()=>{
+    hubDot.setAttribute('aria-label', t('hub_title'));
+    mapWrap.querySelectorAll('.node-dot').forEach(dot=>{
+      const key = dot.dataset.i18nTitleKey;
+      if (key) dot.setAttribute('aria-label', t(key));
+    });
   });
 
   /* ============================================================

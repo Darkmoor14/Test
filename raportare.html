@@ -59,7 +59,11 @@
   .nav-dropdown:hover .nav-dropdown-menu,.nav-dropdown.open .nav-dropdown-menu{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0);}
   .nav-dropdown-menu a{display:block;padding:10px 12px;border-radius:3px;font-size:14px;color:var(--ink-700);transition:background .15s,color .15s;}
   .nav-dropdown-menu a:hover{background:var(--paper-050);color:var(--copper-600);}
-  @media(max-width:860px){.navlinks{display:none;}}
+  @media(max-width:860px){
+    nav{flex-wrap:wrap;height:auto;padding:14px 20px;row-gap:12px;}
+    .navlinks{display:flex;order:3;width:100%;justify-content:center;flex-wrap:wrap;gap:16px 24px;font-size:14.5px;}
+    .nav-right{width:100%;justify-content:center;flex-wrap:wrap;}
+  }
 
   .section-head{max-width:640px;margin-bottom:56px;}
   .section-head p{color:var(--ink-600);font-size:16.5px;margin-top:14px;}
@@ -201,6 +205,7 @@
     .logo-img{height:44px;}
     .lang-switch button{padding:5px 8px;font-size:11px;}
     .nav-cta{font-size:12px;padding:9px 16px;}
+    .navlinks{gap:12px 18px;font-size:14px;}
     .report-shell{padding:28px 22px;}
   }
 
@@ -312,7 +317,7 @@
           <div>
             <div class="en-title" data-i18n="emergency_title">Pericol imediat? Sunați acum</div>
             <p data-i18n="emergency_desc">Pentru urgențe cu risc pentru siguranța publică, sunați direct — nu așteptați procesarea formularului.</p>
-            <div class="en-num">0265&nbsp;253&nbsp;997</div>
+            <div class="en-num">0265&nbsp;259&nbsp;272</div>
           </div>
         </div>
 

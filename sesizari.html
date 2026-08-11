@@ -58,7 +58,11 @@
   .nav-dropdown:hover .nav-dropdown-menu,.nav-dropdown.open .nav-dropdown-menu{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0);}
   .nav-dropdown-menu a{display:block;padding:10px 12px;border-radius:3px;font-size:14px;color:var(--ink-700);transition:background .15s,color .15s;}
   .nav-dropdown-menu a:hover{background:var(--paper-050);color:var(--copper-600);}
-  @media(max-width:860px){.navlinks{display:none;}}
+  @media(max-width:860px){
+    nav{flex-wrap:wrap;height:auto;padding:14px 20px;row-gap:12px;}
+    .navlinks{display:flex;order:3;width:100%;justify-content:center;flex-wrap:wrap;gap:16px 24px;font-size:14.5px;}
+    .nav-right{width:100%;justify-content:center;flex-wrap:wrap;}
+  }
 
   .hero{padding:64px 0 40px;border-bottom:1px solid var(--line);}
   .eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--copper-600);display:flex;align-items:center;gap:10px;margin-bottom:18px;}
@@ -144,6 +148,7 @@
     .logo-img{height:44px;}
     .lang-switch button{padding:5px 8px;font-size:11px;}
     .nav-cta{font-size:12px;padding:9px 16px;}
+    .navlinks{gap:12px 18px;font-size:14px;}
   }
 
   /* ===== COOKIE CONSENT BANNER ===== */
