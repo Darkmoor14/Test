@@ -214,8 +214,14 @@ ro: {
   footer_copy: "© 2026 Insta Grup S.A. Toate drepturile rezervate.",
   footer_gdpr: "Politica de confidențialitate (GDPR)",
   footer_tc: "Termeni și Condiții",
+  footer_cookies: "Politica de cookie-uri",
   footer_location: "Târgu-Mureș, România",
   legal_ro_only_note: "Acest document este disponibil oficial doar în limba română.",
+
+  // Cookie consent banner
+  cookie_banner_text: "Folosim doar cookie-uri și stocare locală strict necesare pentru funcționarea site-ului (preferința de limbă, conectarea echipei) — fără cookie-uri de marketing sau urmărire.",
+  cookie_banner_link: "Politica de cookie-uri",
+  cookie_banner_accept: "Am înțeles",
 
   // Ticket status vocabulary (shared with sesizari.html / dynamic labels)
   ticket_type_func: "Funcționalitate",
@@ -429,8 +435,14 @@ en: {
   footer_copy: "© 2026 Insta Grup S.A. All rights reserved.",
   footer_gdpr: "Privacy Policy (GDPR)",
   footer_tc: "Terms & Conditions",
+  footer_cookies: "Cookie Policy",
   footer_location: "Târgu-Mureș, Romania",
   legal_ro_only_note: "This document is officially available in Romanian only.",
+
+  // Cookie consent banner
+  cookie_banner_text: "We only use cookies and local storage that are strictly necessary for the site to work (language preference, staff login) — no marketing or tracking cookies.",
+  cookie_banner_link: "Cookie Policy",
+  cookie_banner_accept: "Got it",
 
   ticket_type_func: "Functionality",
   ticket_type_accident: "Accident",
@@ -641,8 +653,14 @@ hu: {
   footer_copy: "© 2026 Insta Grup S.A. Minden jog fenntartva.",
   footer_gdpr: "Adatvédelmi tájékoztató (GDPR)",
   footer_tc: "Általános Szerződési Feltételek",
+  footer_cookies: "Cookie-szabályzat",
   footer_location: "Marosvásárhely, Románia",
   legal_ro_only_note: "Ez a dokumentum hivatalosan csak román nyelven érhető el.",
+
+  // Cookie consent banner
+  cookie_banner_text: "Csak a weboldal működéséhez feltétlenül szükséges cookie-kat és helyi tárolást használunk (nyelvi beállítás, munkatársi bejelentkezés) — marketing vagy nyomkövető cookie-k nélkül.",
+  cookie_banner_link: "Cookie-szabályzat",
+  cookie_banner_accept: "Rendben",
 
   ticket_type_func: "Működési hiba",
   ticket_type_accident: "Baleset",
