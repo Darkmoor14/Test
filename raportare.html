@@ -421,24 +421,28 @@
   }
 
   /* ============================================================
-     WHATSAPP NOTIFICATION — separate Edge Function ("send-whatsapp",
-     see supabase-functions/send-whatsapp/index.ts) that pings one or
+     WHATSAPP NOTIFICATION — separate Edge Function that pings one or
      more staff phone numbers via the official WhatsApp Business
-     Cloud API whenever a new ticket comes in. Deliberately isolated
+     Cloud API whenever a new ticket comes in (source in
+     supabase-functions/send-whatsapp/index.ts, but the function is
+     actually deployed under the name "bright-function" in Supabase —
+     rename it to "send-whatsapp" there and update the string below
+     to match if you'd rather keep the naming consistent). Isolated
      from sendNotification()'s email call above: if WhatsApp isn't
-     configured yet (secrets missing) or the API call fails for any
-     reason, it's swallowed silently here too — a missing/failed
-     WhatsApp ping should never stop a citizen's ticket from being
-     submitted, exactly like the email notification.
+     configured yet (secrets missing, template not approved, etc.)
+     or the API call fails for any reason, it's swallowed silently
+     here too — a missing/failed WhatsApp ping should never stop a
+     citizen's ticket from being submitted, exactly like the email
+     notification.
      ============================================================ */
   async function sendWhatsAppNotification(payload){
     try {
-      const { error } = await supabaseClient.functions.invoke('send-whatsapp', {
+      const { error } = await supabaseClient.functions.invoke('bright-function', {
         body: payload,
       });
-      if (error) console.error('send-whatsapp function failed:', error);
+      if (error) console.error('bright-function (WhatsApp) failed:', error);
     } catch (err) {
-      console.error('send-whatsapp call failed:', err);
+      console.error('bright-function (WhatsApp) call failed:', err);
     }
   }
 
