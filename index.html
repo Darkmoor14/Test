@@ -356,9 +356,10 @@
     letter-spacing:0.04em;
   }
   .map-label strong{color:var(--copper-600);font-weight:500;}
-  .map-svg-wrap{position:relative;width:100%;aspect-ratio:16/9;}
-  .wire-line{stroke:var(--copper-500);stroke-width:1.4;fill:none;opacity:0.4;}
-  .wire-joint{fill:var(--copper-500);opacity:0.55;}
+  .map-svg-wrap{position:relative;width:100%;aspect-ratio:1/1;}
+  .wire-line{stroke:var(--copper-500);stroke-width:1.4;fill:none;opacity:0.4;transition:stroke-dashoffset .9s ease;}
+  .wire-joint{fill:var(--copper-500);opacity:0;transition:opacity .3s ease;}
+  .wire-joint.show{opacity:0.55;}
   .hub-dot{
     position:absolute;left:50%;top:50%;width:16px;height:16px;
     background:var(--copper-500);border:2px solid var(--paper-050);
@@ -600,7 +601,7 @@
 <div class="stats">
   <div class="stats-inner">
     <div class="stat"><div class="num">25</div><div class="label" data-i18n="stat_1_label">ani de activitate neîntreruptă în domeniu</div></div>
-    <div class="stat"><div class="num">150+</div><div class="label" data-i18n="stat_2_label">proiecte finalizate în județul Mureș</div></div>
+    <div class="stat"><div class="num">1500+</div><div class="label" data-i18n="stat_2_label">proiecte finalizate în județul Mureș</div></div>
     <div class="stat"><div class="num">11</div><div class="label" data-i18n="stat_3_label">atestări și certificări ISO / ANRE / ANRSC</div></div>
     <div class="stat"><div class="num">12</div><div class="label" data-i18n="stat_4_label">clienți parteneri pe termen lung</div></div>
   </div>
@@ -644,9 +645,9 @@
       <p data-i18n="proj_lede">O selecție din lucrările noastre, poziționate geografic. Treceți cursorul peste un punct pentru detalii.</p>
     </div>
     <div class="map-shell">
-      <div class="map-label"><span data-i18n-html="proj_map_full_label_html">Județul Mureș — <strong>18 din 150+ proiecte</strong></span><span data-i18n="proj_map_updated">Actualizat 2026</span></div>
+      <div class="map-label"><span data-i18n-html="proj_map_full_label_html">Județul Mureș — <strong>18 din 1500+ proiecte</strong></span><span data-i18n="proj_map_updated">Actualizat 2026</span></div>
       <div class="map-svg-wrap" id="mapWrap">
-        <svg viewBox="0 0 800 450" width="100%" height="100%" style="position:absolute;inset:0;" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 800 800" width="100%" height="100%" style="position:absolute;inset:0;" xmlns="http://www.w3.org/2000/svg">
           <!-- Populated by JS: one elbow "wire" path per project, running from
                the headquarters hub (center) out to that project's dot position,
                so every line always connects two real points — see buildMapWires()
@@ -687,7 +688,7 @@
     <div class="about-inner">
       <div class="eyebrow" data-i18n="about_eyebrow">Despre noi</div>
       <h2 style="margin-bottom:20px;" data-i18n="about_h2">25 de ani de proiecte duse la bun sfârșit</h2>
-      <p data-i18n="about_p1">Proiectate şi dezvoltate pentru mediul concurenţial, produsele şi serviciile firmei au reuşit să se impună pe anumite segmente ale pieţei din judeţul Mureş şi din împrejurimi. De la înfiinţarea societăţii, în 1997, am dus la bun sfârşit peste 150 de proiecte în domeniul instalaţiilor electrice, reţelelor de utilităţi şi infrastructurii industriale.</p>
+      <p data-i18n="about_p1">Proiectate şi dezvoltate pentru mediul concurenţial, produsele şi serviciile firmei au reuşit să se impună pe anumite segmente ale pieţei din judeţul Mureş şi din împrejurimi. De la înfiinţarea societăţii, în 1997, am dus la bun sfârşit peste 1500 de proiecte în domeniul instalaţiilor electrice, reţelelor de utilităţi şi infrastructurii industriale.</p>
       <p data-i18n="about_p2">Beneficiarii care au intrat în portofoliul firmei noastre au făcut-o ca urmare a relaţiilor pe care echipa managerială le-a promovat în timp şi a unei strategii orientate constant către parteneriate pe termen lung.</p>
       <div class="cert-row">
         <span class="cert-pill">ISO 9001</span>
@@ -1142,7 +1143,7 @@
   // Headquarters position — center of the map panel. All wire traces
   // originate here, matching the hub-dot's CSS position (left/top 50%).
   const HUB_X_PCT = 50, HUB_Y_PCT = 50;
-  const VB_W = 800, VB_H = 450; // must match the SVG's viewBox above
+  const VB_W = 800, VB_H = 800; // must match the SVG's viewBox above
 
   const svgNS = 'http://www.w3.org/2000/svg';
 
@@ -1154,13 +1155,28 @@
   // circuit trace) from the hub to a project's exact dot position, plus
   // a small junction dot at the bend — so the line always terminates
   // precisely on the project dot rendered just below.
+  //
+  // Each wire is drawn using the classic SVG "line reveal" technique:
+  // stroke-dasharray is set to the path's own length and
+  // stroke-dashoffset starts equal to that length (fully hidden), then
+  // animating dashoffset down to 0 makes the line appear to extend
+  // outward from the hub. playWireAnimation()/resetWireAnimation() below
+  // trigger this every time the section scrolls into view, per Adam's
+  // request that it "expand from the HQ" each time you arrive at this
+  // part of the page, not just once on first load.
   function buildMapWires(){
     const hub = pctToPx(HUB_X_PCT, HUB_Y_PCT);
-    projects.forEach(p => {
+    const wires = [];
+    projects.forEach((p, i) => {
       const target = pctToPx(p.x, p.y);
+      const length = Math.abs(target.x - hub.x) + Math.abs(target.y - hub.y);
+
       const path = document.createElementNS(svgNS, 'path');
       path.setAttribute('class', 'wire-line');
       path.setAttribute('d', `M ${hub.x} ${hub.y} H ${target.x} V ${target.y}`);
+      path.style.strokeDasharray = String(length);
+      path.style.strokeDashoffset = String(length);
+      path.style.transitionDelay = (i * 35) + 'ms';
       wireLayer.appendChild(path);
 
       const joint = document.createElementNS(svgNS, 'circle');
@@ -1168,10 +1184,59 @@
       joint.setAttribute('cx', target.x);
       joint.setAttribute('cy', hub.y);
       joint.setAttribute('r', 2.5);
+      joint.style.transitionDelay = (i * 35 + 550) + 'ms';
       wireLayer.appendChild(joint);
+
+      wires.push({ path, joint, length });
+    });
+    return wires;
+  }
+  const mapWires = buildMapWires();
+
+  function playWireAnimation(){
+    mapWires.forEach(({ path, joint }) => {
+      path.style.strokeDashoffset = '0';
+      joint.classList.add('show');
     });
   }
-  buildMapWires();
+
+  function resetWireAnimation(){
+    mapWires.forEach(({ path, joint, length }) => {
+      path.style.transition = 'none';
+      path.style.strokeDashoffset = String(length);
+      joint.style.transition = 'none';
+      joint.classList.remove('show');
+    });
+    // Force a reflow so the browser applies the "hidden" state above
+    // before any later transition is re-enabled — otherwise it can
+    // batch the reset and the redraw together and skip the animation.
+    void wireLayer.getBoundingClientRect();
+    mapWires.forEach(({ path, joint }) => {
+      path.style.transition = '';
+      joint.style.transition = '';
+    });
+  }
+
+  // Re-trigger the draw-in animation every time the map scrolls into
+  // view (entering AND re-entering), and quietly reset it while off
+  // screen so it's ready to play again next time.
+  const mapShellEl = document.querySelector('.map-shell');
+  if ('IntersectionObserver' in window && mapShellEl) {
+    const mapIO = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          resetWireAnimation();
+          requestAnimationFrame(() => requestAnimationFrame(playWireAnimation));
+        } else {
+          resetWireAnimation();
+        }
+      });
+    }, { threshold: 0.35 });
+    mapIO.observe(mapShellEl);
+  } else {
+    // No IntersectionObserver support — just show the wires immediately.
+    playWireAnimation();
+  }
 
   // Headquarters marker — pulsing hub at the center, with its own tooltip.
   const hubDot = document.createElement('div');
