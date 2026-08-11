@@ -501,6 +501,31 @@
     padding:16px 32px 28px;font-size:12.5px;color:var(--ink-400);
     font-style:italic;
   }
+
+  /* ===== COOKIE CONSENT BANNER ===== */
+  .cookie-banner{
+    position:fixed;left:0;right:0;bottom:0;z-index:300;
+    background:var(--ink-900);color:var(--paper-050);
+    padding:18px 32px;
+    display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap;
+    box-shadow:0 -8px 24px rgba(0,0,0,0.18);
+    transform:translateY(100%);transition:transform .3s ease;
+  }
+  .cookie-banner.show{transform:translateY(0);}
+  .cookie-banner p{font-size:13.5px;color:var(--paper-100);max-width:640px;line-height:1.55;margin:0;}
+  .cookie-banner a{color:var(--copper-300);text-decoration:underline;text-underline-offset:2px;}
+  .cookie-banner-actions{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+  .cookie-banner-accept{
+    font-family:var(--mono);font-size:13px;font-weight:500;
+    background:var(--copper-500);color:#fff;border:none;
+    padding:10px 22px;border-radius:2px;cursor:pointer;transition:background .2s;white-space:nowrap;
+  }
+  .cookie-banner-accept:hover{background:var(--copper-600);}
+  @media(max-width:640px){
+    .cookie-banner{padding:16px 20px;flex-direction:column;align-items:stretch;gap:14px;}
+    .cookie-banner-actions{justify-content:center;}
+  }
+
   @media(max-width:640px){
     nav{flex-wrap:wrap;height:auto;padding:14px 20px;row-gap:12px;}
     .nav-right{width:100%;justify-content:center;}
@@ -746,6 +771,7 @@
     <div class="footer-links">
       <button type="button" onclick="openModal('gdprModal')" data-i18n="footer_gdpr">Politica de confidențialitate (GDPR)</button>
       <button type="button" onclick="openModal('tcModal')" data-i18n="footer_tc">Termeni și Condiții</button>
+      <button type="button" onclick="openModal('cookieModal')" data-i18n="footer_cookies">Politica de cookie-uri</button>
     </div>
     <span data-i18n="footer_location">Târgu-Mureș, România</span>
   </div>
@@ -871,6 +897,39 @@
       <p>11.1 Pentru orice întrebări sau sesizări, vă rugăm să ne contactați la adresa de e-mail <a href="mailto:office@insta-grup.ro">office@insta-grup.ro</a> sau la numărul de telefon 0265 253997.</p>
 
       <div class="modal-foot">Prezenții Termeni și Condiții au fost actualizați în data de [de completat].</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== COOKIE POLICY MODAL ===== -->
+<div class="modal-overlay" id="cookieModal" onclick="if(event.target===this) closeModal('cookieModal')">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>Politica de cookie-uri</h3>
+      <button class="modal-close" onclick="closeModal('cookieModal')" aria-label="Închide">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="legal-ro-note" data-i18n="legal_ro_only_note" style="font-style:italic;color:var(--ink-400);margin-bottom:18px;">Acest document este disponibil oficial doar în limba română.</p>
+      <h4>1. Ce sunt cookie-urile și stocarea locală</h4>
+      <p>1.1 Cookie-urile sunt fișiere text de mici dimensiuni salvate de browser pe dispozitivul dumneavoastră. „Stocarea locală" (localStorage) este un mecanism similar, oferit de browser, prin care un site poate reține informații pe dispozitivul dumneavoastră între vizite, fără a le trimite automat către alte servere la fiecare cerere, spre deosebire de cookie-urile clasice.</p>
+      <p>1.2 Site-ul www.insta-grup.ro <strong>nu folosește cookie-uri sau instrumente de marketing, publicitate sau urmărire a comportamentului</strong> (de exemplu Google Analytics, Facebook Pixel sau similare). Nu construim profiluri ale vizitatorilor și nu partajăm date de navigare cu terți în scopuri publicitare.</p>
+
+      <h4>2. Ce stocăm efectiv pe dispozitivul dumneavoastră și de ce</h4>
+      <p>2.1 <strong>Preferința de limbă</strong> — atunci când alegeți RO / EN / HU din antetul site-ului, această alegere este reținută în stocarea locală a browserului, pentru a nu fi nevoie să o selectați la fiecare vizită. Nu este partajată cu niciun terț.</p>
+      <p>2.2 <strong>Autentificarea echipei (doar în panoul de administrare)</strong> — pagina de administrare, folosită exclusiv de personalul INSTA GRUP pentru gestionarea sesizărilor și a proiectelor, folosește stocare locală tehnică pentru menținerea sesiunii de autentificare, furnizată de furnizorul nostru de infrastructură (Supabase). Aceasta este strict necesară pentru funcționarea panoului de administrare și nu este accesibilă sau folosită pentru vizitatorii publici ai site-ului.</p>
+      <p>2.3 Ambele categorii de mai sus se încadrează în categoria „strict necesare / funcționale" și nu necesită consimțământul prealabil al vizitatorului conform legislației aplicabile, însă le prezentăm aici pentru transparență deplină.</p>
+
+      <h4>3. Resurse de la terți</h4>
+      <p>3.1 Pentru afișarea corectă a site-ului, încărcăm fonturi de la Google Fonts (fonts.googleapis.com, fonts.gstatic.com) și biblioteca tehnică Supabase (livrată printr-o rețea de distribuție de conținut). Aceste servicii pot primi adresa dumneavoastră IP ca parte tehnică normală a livrării resurselor solicitate de browser, însă nu sunt folosite de INSTA GRUP pentru urmărire sau publicitate.</p>
+      <p>3.2 Vă recomandăm să consultați politicile de confidențialitate ale acestor furnizori pentru mai multe detalii despre modul în care aceștia procesează datele tehnice de livrare.</p>
+
+      <h4>4. Cum puteți controla stocarea locală</h4>
+      <p>4.1 Puteți șterge oricând datele stocate local de acest site din setările browserului dumneavoastră (de obicei sub „Confidențialitate" / „Date site-uri"). Ștergerea preferinței de limbă nu are niciun impact negativ — site-ul va reveni pur și simplu la limba implicită. Ștergerea sesiunii de autentificare din panoul de administrare va necesita o nouă autentificare a personalului.</p>
+
+      <h4>5. Contact</h4>
+      <p>5.1 Pentru întrebări legate de această politică, ne puteți contacta la <a href="mailto:office@insta-grup.ro">office@insta-grup.ro</a> sau la numărul de telefon 0265 253997. Pentru detalii privind prelucrarea datelor cu caracter personal, consultați Nota de informare privind protecția datelor cu caracter personal (GDPR) afișată pe site.</p>
+
+      <div class="modal-foot">Prezenta Politică de cookie-uri a fost actualizată în data de [de completat].</div>
     </div>
   </div>
 </div>
@@ -1141,7 +1200,6 @@
     dot.className = 'node-dot';
     dot.style.left = p.x + '%';
     dot.style.top = p.y + '%';
-    dot.dataset.i18nTitleKey = p.i18n + '_title';
     dot.setAttribute('aria-label', t(p.i18n + '_title'));
     mapWrap.appendChild(dot);
 
@@ -1160,14 +1218,6 @@
     dot.addEventListener('focus', show);
     dot.addEventListener('mouseleave', hide);
     dot.addEventListener('blur', hide);
-  });
-
-  window.addEventListener('langchange', ()=>{
-    hubDot.setAttribute('aria-label', t('hub_title'));
-    mapWrap.querySelectorAll('.node-dot').forEach(dot=>{
-      const key = dot.dataset.i18nTitleKey;
-      if (key) dot.setAttribute('aria-label', t(key));
-    });
   });
 
   /* ============================================================
@@ -1207,6 +1257,41 @@
       contactSubmitBtn.textContent = t('cf_submit_btn');
     }
   });
+
+  /* ============================================================
+     COOKIE CONSENT BANNER — since the site only uses strictly
+     necessary/functional local storage (language preference, the
+     admin panel's own login session) and no tracking/marketing
+     cookies, a simple disclosure notice is sufficient here rather
+     than a full accept/reject/customize consent flow. Shown once;
+     dismissing it is remembered in localStorage so it doesn't
+     reappear on every visit.
+     ============================================================ */
+  (function initCookieBanner(){
+    const STORAGE_KEY = 'cookie_notice_ack';
+    if (localStorage.getItem(STORAGE_KEY) === 'true') return;
+
+    const banner = document.createElement('div');
+    banner.className = 'cookie-banner';
+    banner.innerHTML = `
+      <p data-i18n="cookie_banner_text">Folosim doar cookie-uri și stocare locală strict necesare pentru funcționarea site-ului (preferința de limbă, conectarea echipei) — fără cookie-uri de marketing sau urmărire.</p>
+      <div class="cookie-banner-actions">
+        <a href="#" onclick="openModal('cookieModal'); return false;" data-i18n="cookie_banner_link">Politica de cookie-uri</a>
+        <button type="button" class="cookie-banner-accept" data-i18n="cookie_banner_accept">Am înțeles</button>
+      </div>
+    `;
+    document.body.appendChild(banner);
+    requestAnimationFrame(() => requestAnimationFrame(() => banner.classList.add('show')));
+
+    banner.querySelector('.cookie-banner-accept').addEventListener('click', () => {
+      localStorage.setItem(STORAGE_KEY, 'true');
+      banner.classList.remove('show');
+      setTimeout(() => banner.remove(), 320);
+    });
+
+    if (typeof applyTranslations === 'function') applyTranslations();
+    window.addEventListener('langchange', () => { if (document.body.contains(banner)) applyTranslations(); });
+  })();
 </script>
 
 </body>
