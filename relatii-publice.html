@@ -43,6 +43,13 @@
   .lang-switch button.active{background:var(--copper-500);color:#fff;}
   .nav-right{display:flex;align-items:center;gap:14px;}
   .nav-dropdown{position:relative;}
+  .nav-dropdown::after{
+    content:'';
+    position:absolute;
+    top:100%;left:50%;
+    transform:translateX(-50%);
+    width:230px;height:16px;
+  }
   .nav-dropdown-trigger{display:flex;align-items:center;gap:6px;font-family:inherit;font-size:14.5px;color:var(--ink-600);background:none;border:none;padding:0;cursor:pointer;transition:color .2s;}
   .nav-dropdown-trigger:hover{color:var(--copper-600);}
   .nav-dropdown.open .nav-dropdown-trigger{color:var(--copper-600);}
