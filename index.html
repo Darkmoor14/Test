@@ -368,6 +368,7 @@
   .wire-line{stroke:var(--copper-500);stroke-width:1.4;fill:none;opacity:0.4;transition-property:stroke-dashoffset;transition-timing-function:ease;}
   .wire-joint{fill:var(--copper-500);opacity:0;transition:opacity .5s ease;}
   .wire-joint.show{opacity:0.55;}
+  .wire-frozen{transition:none !important;}
   .hub-dot{
     position:absolute;left:50%;top:50%;width:16px;height:16px;
     background:var(--copper-500);border:2px solid var(--paper-050);
@@ -1174,9 +1175,9 @@
   // playWireAnimation()/resetWireAnimation() below trigger this every
   // time the section scrolls into view, so it replays each time you
   // arrive at this part of the page, not just once on first load.
-  const TRUNK_DURATION_MS = 1600;
-  const BRANCH_DURATION_MS = 1200;
-  const BRANCH_STAGGER_MS = 70;
+  const TRUNK_DURATION_MS = 2600;
+  const BRANCH_DURATION_MS = 2000;
+  const BRANCH_STAGGER_MS = 110;
 
   function buildMapWires(){
     const hub = pctToPx(HUB_X_PCT, HUB_Y_PCT);
@@ -1243,10 +1244,14 @@
 
   function resetWireAnimation(){
     mapWires.forEach(({ path, joint, length }) => {
-      path.style.transition = 'none';
+      // Freeze via a CSS class rather than the "transition" shorthand —
+      // writing that shorthand from JS silently resets the individually-set
+      // transitionDuration back to 0s, which was quietly making every
+      // replay instant instead of respecting TRUNK/BRANCH_DURATION_MS above.
+      path.classList.add('wire-frozen');
       path.style.strokeDashoffset = String(length);
       if (joint) {
-        joint.style.transition = 'none';
+        joint.classList.add('wire-frozen');
         joint.classList.remove('show');
       }
     });
@@ -1255,8 +1260,8 @@
     // batch the reset and the redraw together and skip the animation.
     void wireLayer.getBoundingClientRect();
     mapWires.forEach(({ path, joint }) => {
-      path.style.transition = '';
-      if (joint) joint.style.transition = '';
+      path.classList.remove('wire-frozen');
+      if (joint) joint.classList.remove('wire-frozen');
     });
   }
 
@@ -1269,7 +1274,7 @@
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           resetWireAnimation();
-          requestAnimationFrame(() => requestAnimationFrame(playWireAnimation));
+          requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(playWireAnimation, 60)));
         } else {
           resetWireAnimation();
         }
