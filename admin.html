@@ -173,9 +173,20 @@
   .ticket-body .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;color:var(--ink-400);letter-spacing:0.04em;display:block;margin-bottom:2px;}
   .ticket-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding-top:14px;border-top:1px solid var(--line);}
   .res-photos-preview{display:flex;gap:14px;margin-bottom:14px;}
-  .res-photo{width:110px;}
+  .res-photo{width:110px;position:relative;}
   .res-photo .k{font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--ink-400);letter-spacing:0.04em;display:block;margin-bottom:4px;}
-  .res-photo img{width:100%;height:80px;object-fit:cover;border-radius:3px;border:1px solid var(--line-strong);}
+  .res-photo img{width:100%;height:80px;object-fit:cover;border-radius:3px;border:1px solid var(--line-strong);display:block;}
+  .res-photo-delete{
+    position:absolute;top:18px;right:6px;
+    width:22px;height:22px;border-radius:50%;
+    background:rgba(20,24,29,0.72);color:#fff;
+    border:none;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;line-height:1;padding:0;
+    transition:background .15s;
+  }
+  .res-photo-delete:hover{background:var(--signal-red);}
+  .res-photo-delete:disabled{opacity:0.5;cursor:default;}
   .ctrl-field input[type="file"]{
     width:100%;background:var(--paper-050);border:1px solid var(--line-strong);
     color:var(--ink-700);padding:8px 10px;border-radius:2px;font-family:var(--body);font-size:12.5px;
@@ -691,8 +702,8 @@
         </div>
         ${(t.resolution_photo_before || t.resolution_photo_after) ? `
         <div class="res-photos-preview">
-          ${t.resolution_photo_before ? `<div class="res-photo"><span class="k">Înainte</span><img src="${t.resolution_photo_before}" alt="Foto înainte"></div>` : ''}
-          ${t.resolution_photo_after ? `<div class="res-photo"><span class="k">După</span><img src="${t.resolution_photo_after}" alt="Foto după"></div>` : ''}
+          ${t.resolution_photo_before ? `<div class="res-photo"><span class="k">Înainte</span><img src="${t.resolution_photo_before}" alt="Foto înainte"><button type="button" class="res-photo-delete" data-ticket-id="${t.id}" data-kind="before" title="Șterge poza">✕</button></div>` : ''}
+          ${t.resolution_photo_after ? `<div class="res-photo"><span class="k">După</span><img src="${t.resolution_photo_after}" alt="Foto după"><button type="button" class="res-photo-delete" data-ticket-id="${t.id}" data-kind="after" title="Șterge poza">✕</button></div>` : ''}
         </div>` : ''}
         <div class="ticket-controls">
           <div class="ctrl-field">
@@ -801,6 +812,53 @@
           loadTickets();
         });
       }
+
+      // Delete a single before/after resolution photo — useful when a
+      // staff member uploaded the wrong image or a poor-quality shot
+      // and wants to remove it (with or without replacing it
+      // afterwards via the upload field above). Clears the DB column
+      // AND removes the actual file from the "ticket-photos" bucket,
+      // so it doesn't linger there unreferenced.
+      card.querySelectorAll('.res-photo-delete').forEach(delBtn => {
+        delBtn.addEventListener('click', async () => {
+          const kind = delBtn.dataset.kind; // 'before' | 'after'
+          if (!confirm('Ștergeți definitiv această fotografie?')) return;
+
+          delBtn.disabled = true;
+          const column = kind === 'before' ? 'resolution_photo_before' : 'resolution_photo_after';
+          const publicUrl = t[column];
+
+          // Best-effort: also remove the file itself from Storage so it
+          // doesn't sit there orphaned. If this fails (e.g. already
+          // deleted, permissions), we still proceed to clear the DB
+          // reference below — a missing storage file is harmless, an
+          // orphaned DB reference to a deleted photo is not.
+          if (publicUrl) {
+            const marker = '/ticket-photos/';
+            const idx = publicUrl.indexOf(marker);
+            if (idx !== -1) {
+              const storagePath = decodeURIComponent(publicUrl.slice(idx + marker.length));
+              const { error: removeErr } = await supabaseClient.storage
+                .from('ticket-photos')
+                .remove([storagePath]);
+              if (removeErr) console.warn('Could not remove storage file (continuing anyway):', removeErr);
+            }
+          }
+
+          const { error } = await supabaseClient
+            .from('tickets')
+            .update({ [column]: null })
+            .eq('id', t.id);
+
+          if (error) {
+            console.error(error);
+            delBtn.disabled = false;
+            alert('Eroare la ștergerea fotografiei. Încercați din nou.');
+            return;
+          }
+          loadTickets();
+        });
+      });
 
       list.appendChild(card);
     });
