@@ -331,6 +331,13 @@
   .svc-card:hover,.svc-card.active{background:var(--copper-050);}
   .svc-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
   .svc-icon{width:34px;height:34px;color:var(--copper-600);margin-bottom:20px;}
+  @keyframes svc-icon-bounce{
+    0%,100%{transform:translateY(0);}
+    30%{transform:translateY(-5px);}
+    50%{transform:translateY(0);}
+    70%{transform:translateY(-2px);}
+  }
+  .svc-card:hover .svc-icon,.svc-card.active .svc-icon{animation:svc-icon-bounce .6s ease;}
   .svc-chevron{
     width:18px;height:18px;color:var(--ink-400);flex-shrink:0;margin-top:4px;
     transition:transform .25s ease,color .2s;
@@ -618,7 +625,7 @@
   <div class="stats-inner">
     <div class="stat"><div class="num">25</div><div class="label" data-i18n="stat_1_label">ani de activitate neîntreruptă în domeniu</div></div>
     <div class="stat"><div class="num">1500+</div><div class="label" data-i18n="stat_2_label">proiecte finalizate în județul Mureș</div></div>
-    <div class="stat"><div class="num">11</div><div class="label" data-i18n="stat_3_label">atestări și certificări ISO / ANRE / ANRSC</div></div>
+    <div class="stat"><div class="num">10</div><div class="label" data-i18n="stat_3_label">atestări și certificări ISO / ANRE / ANRSC</div></div>
     <div class="stat"><div class="num">12</div><div class="label" data-i18n="stat_4_label">clienți parteneri pe termen lung</div></div>
   </div>
 </div>
