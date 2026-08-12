@@ -94,7 +94,7 @@
   .btn-ghost:hover{border-color:var(--copper-500);color:var(--copper-600);}
   .btn:disabled{opacity:0.55;cursor:not-allowed;}
   /* ===== REPORT / TICKET FORM ===== */
-  .report{background:var(--paper-050);border-top:1px solid var(--line);border-bottom:1px solid var(--line);position:relative;overflow:hidden;padding-top:76px;}
+  .report{background:var(--paper-050);border-top:1px solid var(--line);border-bottom:1px solid var(--line);position:relative;overflow:hidden;padding-top:140px;padding-bottom:72px;}
   .report .section-head h2{color:var(--ink-900);}
   .report .section-head p{color:var(--ink-900);}
   .report-shell{
@@ -121,13 +121,50 @@
     cursor:pointer;
     transition:all .18s;
     background:var(--paper-000);
+    box-shadow:0 1px 3px rgba(20,24,29,0.06);
   }
-  .type-card:hover{border-color:var(--copper-500);}
+  .type-card:hover{border-color:var(--copper-500);box-shadow:0 4px 14px rgba(20,24,29,0.10);transform:translateY(-1px);}
   .type-card.selected{border-color:var(--copper-500);background:var(--copper-050);box-shadow:0 0 0 1px var(--copper-500);}
   .type-card .tc-icon{width:26px;height:26px;color:var(--copper-600);margin-bottom:14px;}
-  .type-card h4{font-size:15.5px;font-weight:600;margin-bottom:6px;color:var(--ink-900);}
-  .type-card p{font-size:13px;color:var(--ink-900);line-height:1.4;}
+  .type-card .tc-head{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+  .type-card h4{font-size:15.5px;font-weight:600;color:var(--ink-900);}
   .type-card.urgent .tc-icon{color:var(--signal-red);}
+  @keyframes tc-icon-bounce{
+    0%,100%{transform:translateY(0);}
+    30%{transform:translateY(-5px);}
+    50%{transform:translateY(0);}
+    70%{transform:translateY(-2px);}
+  }
+  .type-card:hover .tc-icon,.type-card.selected .tc-icon{animation:tc-icon-bounce .6s ease;}
+  .tc-cta{
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:var(--mono);font-size:12.5px;letter-spacing:0.03em;
+    font-weight:500;color:#fff;background:var(--copper-500);
+    padding:9px 16px;border-radius:2px;
+    margin-top:16px;transition:background .18s,transform .18s;
+  }
+  .type-card:hover .tc-cta{background:var(--copper-600);transform:translateX(3px);}
+  .tc-info{position:relative;display:inline-flex;flex-shrink:0;}
+  .tc-info-icon{
+    width:17px;height:17px;border-radius:50%;
+    border:1px solid var(--line-strong);color:var(--ink-400);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:11px;font-weight:600;
+    cursor:help;transition:all .15s;
+  }
+  .tc-info:hover .tc-info-icon,.tc-info.show .tc-info-icon{border-color:var(--copper-500);color:var(--copper-600);}
+  .tc-tooltip{
+    position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+    background:var(--paper-000);color:var(--ink-900);
+    padding:12px 14px;border-radius:3px;width:220px;
+    font-size:13px;line-height:1.4;font-weight:400;font-family:var(--body);
+    text-align:left;text-transform:none;letter-spacing:normal;
+    pointer-events:none;opacity:0;visibility:hidden;
+    transition:opacity .15s,visibility .15s;
+    z-index:10;box-shadow:0 8px 24px rgba(20,24,29,0.18);
+    border:1px solid var(--line-strong);
+  }
+  .tc-info:hover .tc-tooltip,.tc-info.show .tc-tooltip{opacity:1;visibility:visible;}
   @media(max-width:600px){.type-choice{grid-template-columns:1fr;}}
 
   .field{margin-bottom:20px;}
@@ -284,7 +321,6 @@
       <div class="eyebrow" data-i18n="report_eyebrow">Sesizări iluminat public</div>
       <h2 data-i18n="report_h2">Raportează o problemă</h2>
       <p data-i18n="report_lede">Sesizați o defecțiune de funcționalitate sau un accident/urgență la rețeaua de iluminat public. Fiecare sesizare primește un număr de înregistrare.</p>
-      <a href="relatii-publice.html#sesizari-iluminat" class="btn btn-ghost" style="margin-top:20px;" data-i18n="report_all_btn">Toate sesizările →</a>
     </div>
 
     <div class="report-shell">
@@ -299,13 +335,25 @@
         <div class="type-choice">
           <div class="type-card" data-type="Sesizare functionala" id="card-functionala">
             <svg class="tc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2a5 5 0 0 0-3 9v2h6v-2a5 5 0 0 0-3-9z"/><path d="M10 17h4M11 20h2"/></svg>
-            <h4 data-i18n="type_func_title">Problemă de funcționalitate</h4>
-            <p data-i18n="type_func_desc">Bec ars, stâlp defect, cablu vizibil deteriorat sau altă problemă care nu reprezintă un pericol imediat.</p>
+            <div class="tc-head">
+              <h4 data-i18n="type_func_title">Problemă de funcționalitate</h4>
+              <div class="tc-info">
+                <span class="tc-info-icon">i</span>
+                <div class="tc-tooltip" data-i18n="type_func_desc">Bec ars, stâlp defect, cablu vizibil deteriorat sau altă problemă care nu reprezintă un pericol imediat.</div>
+              </div>
+            </div>
+            <div class="tc-cta" data-i18n="type_card_cta">Selectează acest tip →</div>
           </div>
           <div class="type-card urgent" data-type="Anunt accident" id="card-accident">
             <svg class="tc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2 1 21h22L12 2z"/><path d="M12 9v5M12 17h.01"/></svg>
-            <h4 data-i18n="type_accident_title">Accident / urgență</h4>
-            <p data-i18n="type_accident_desc">Stâlp căzut, cabluri sub tensiune expuse sau orice situație cu pericol imediat pentru siguranța publică.</p>
+            <div class="tc-head">
+              <h4 data-i18n="type_accident_title">Accident / urgență</h4>
+              <div class="tc-info">
+                <span class="tc-info-icon">i</span>
+                <div class="tc-tooltip" data-i18n="type_accident_desc">Stâlp căzut, cabluri sub tensiune expuse sau orice situație cu pericol imediat pentru siguranța publică.</div>
+              </div>
+            </div>
+            <div class="tc-cta" data-i18n="type_card_cta">Selectează acest tip →</div>
           </div>
         </div>
       </div>
@@ -351,6 +399,9 @@
 
         <div class="form-msg" id="formMsg"></div>
       </div>
+    </div>
+    <div style="text-align:center;margin-top:24px;margin-bottom:24px;">
+      <a href="relatii-publice.html#sesizari-iluminat" class="btn btn-ghost" data-i18n="report_all_btn">Toate sesizările →</a>
     </div>
   </div>
 </section>
@@ -566,6 +617,22 @@
     goToStep2('Anunt accident');
   });
   backBtn.addEventListener('click', goToStep1);
+
+  // Info ("i") icon on each type card: tapping it shows the tooltip on
+  // touch devices (hover alone doesn't work there) without also
+  // triggering the card's own click handler above, which would jump
+  // straight to step 2. Tapping anywhere else closes any open tooltip.
+  document.querySelectorAll('.tc-info').forEach(info => {
+    info.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wasOpen = info.classList.contains('show');
+      document.querySelectorAll('.tc-info.show').forEach(i => i.classList.remove('show'));
+      if (!wasOpen) info.classList.add('show');
+    });
+  });
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.tc-info.show').forEach(i => i.classList.remove('show'));
+  });
 
   // Handles the actual ticket submission: calls the create_ticket()
   // Postgres function (via Supabase RPC) instead of inserting directly,
