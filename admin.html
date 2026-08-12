@@ -187,6 +187,42 @@
   }
   .res-photo-delete:hover{background:var(--signal-red);}
   .res-photo-delete:disabled{opacity:0.5;cursor:default;}
+  .res-photo img{cursor:zoom-in;}
+
+  /* ===== PHOTO LIGHTBOX — tap/click any before/after thumbnail to
+     view it full-size. Works identically on desktop (click) and
+     mobile (tap), since both fire the same click event; the overlay
+     itself is sized responsively so it fits comfortably on phones
+     too. Single shared element reused for every photo rather than
+     one per card. ===== */
+  .photo-lightbox{
+    position:fixed;inset:0;z-index:500;
+    background:rgba(20,24,29,0.92);
+    display:none;
+    align-items:center;justify-content:center;
+    padding:24px;
+  }
+  .photo-lightbox.show{display:flex;}
+  .photo-lightbox img{
+    max-width:100%;max-height:100%;
+    object-fit:contain;
+    border-radius:4px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .photo-lightbox-close{
+    position:absolute;top:16px;right:16px;
+    width:40px;height:40px;border-radius:50%;
+    background:rgba(255,255,255,0.12);color:#fff;
+    border:none;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;line-height:1;
+    transition:background .15s;
+  }
+  .photo-lightbox-close:hover{background:rgba(255,255,255,0.22);}
+  @media(max-width:600px){
+    .photo-lightbox{padding:12px;}
+    .photo-lightbox-close{top:10px;right:10px;width:36px;height:36px;font-size:18px;}
+  }
   .ctrl-field input[type="file"]{
     width:100%;background:var(--paper-050);border:1px solid var(--line-strong);
     color:var(--ink-700);padding:8px 10px;border-radius:2px;font-family:var(--body);font-size:12.5px;
@@ -329,6 +365,11 @@
   </div>
 </div>
 
+<div class="photo-lightbox" id="photoLightbox">
+  <button type="button" class="photo-lightbox-close" id="photoLightboxClose" aria-label="Închide">✕</button>
+  <img id="photoLightboxImg" src="" alt="">
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
@@ -367,6 +408,33 @@
   const SUPABASE_URL = "https://ebuigyyjifnjiuzsgpih.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_aXC8Q_v2faRB0uEAlZYFog_JreYGXvq";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  /* ============================================================
+     PHOTO LIGHTBOX — tap/click any uploaded before/after thumbnail
+     (tickets or projects) to view it full-size, on both desktop and
+     mobile. Set up once here since the lightbox element itself is
+     static; individual photo thumbnails call openLightbox(url) when
+     clicked, wired up wherever each card is rendered.
+     ============================================================ */
+  const photoLightbox = document.getElementById('photoLightbox');
+  const photoLightboxImg = document.getElementById('photoLightboxImg');
+  const photoLightboxClose = document.getElementById('photoLightboxClose');
+
+  function openLightbox(url){
+    photoLightboxImg.src = url;
+    photoLightbox.classList.add('show');
+  }
+  function closeLightbox(){
+    photoLightbox.classList.remove('show');
+    photoLightboxImg.src = '';
+  }
+  photoLightboxClose.addEventListener('click', closeLightbox);
+  photoLightbox.addEventListener('click', (e) => {
+    if (e.target === photoLightbox) closeLightbox(); // click on the dark backdrop, not the image itself
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && photoLightbox.classList.contains('show')) closeLightbox();
+  });
 
   const loginWrap = document.getElementById('loginWrap');
   const dash = document.getElementById('dash');
@@ -812,6 +880,13 @@
           loadTickets();
         });
       }
+
+      // Tap/click a photo thumbnail to view it full-size in the
+      // shared lightbox (see openLightbox() near the top of this
+      // script). Works the same way on desktop and mobile.
+      card.querySelectorAll('.res-photo img').forEach(img => {
+        img.addEventListener('click', () => openLightbox(img.src));
+      });
 
       // Delete a single before/after resolution photo — useful when a
       // staff member uploaded the wrong image or a poor-quality shot
