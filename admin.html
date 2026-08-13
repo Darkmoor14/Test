@@ -519,13 +519,13 @@
         }, { onConflict: 'endpoint' });
         if (error) {
           console.error(error);
-          alert('Eroare la activarea notificărilor. Încercați din nou.');
+          alert('Eroare la salvarea abonării: ' + (error.message || JSON.stringify(error)));
           return;
         }
         await refreshNotifButtonState();
       } catch (err) {
         console.error('Push subscription failed:', err);
-        alert('Eroare la activarea notificărilor. Încercați din nou.');
+        alert('Eroare la activarea notificărilor: ' + (err && (err.message || err.name) || String(err)));
       }
     });
   }
