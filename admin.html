@@ -502,6 +502,20 @@
         return;
       }
       try {
+        // Diagnostic check: confirm there's actually a valid logged-in
+        // session right before we try to save anything. The
+        // "push_subscriptions" table's RLS policy only allows the
+        // authenticated role to insert — if the session has expired,
+        // failed to persist, or isn't attached to this request for
+        // some other reason, the save fails with an opaque RLS error
+        // that doesn't explain why. This check turns that into a
+        // clear, actionable message instead.
+        const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+        if (sessionError || !sessionData || !sessionData.session) {
+          alert('Sesiunea de autentificare nu este validă. Deconectați-vă și autentificați-vă din nou, apoi încercați iar.');
+          return;
+        }
+
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
           alert('Notificările au fost refuzate. Le puteți activa din setările browserului.');
@@ -519,7 +533,7 @@
         }, { onConflict: 'endpoint' });
         if (error) {
           console.error(error);
-          alert('Eroare la salvarea abonării: ' + (error.message || JSON.stringify(error)));
+          alert('Eroare la salvarea abonării: ' + (error.message || JSON.stringify(error)) + ' | sesiune activă: ' + (sessionData.session ? 'da' : 'nu'));
           return;
         }
         await refreshNotifButtonState();
