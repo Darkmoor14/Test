@@ -555,6 +555,24 @@
     }
   }
 
+  // Push notification to every staff device that has installed the
+  // Admin PWA and enabled notifications there (see admin.html). This
+  // is the free replacement for the WhatsApp notification above.
+  async function sendPushNotification(payload){
+    try {
+      const { error } = await supabaseClient.functions.invoke('send-push', {
+        body: {
+          title: 'Sesizare nouă',
+          body: `${payload.ticket_number} — ${payload.address}`,
+          url: '/admin.html',
+        },
+      });
+      if (error) console.error('send-push failed:', error);
+    } catch (err) {
+      console.error('send-push call failed:', err);
+    }
+  }
+
   /* ============================================================
      TICKET REPORT FORM
      ============================================================ */
@@ -704,6 +722,7 @@
     // place if this ever needs to be switched back on — just
     // uncomment the line below.
     // sendWhatsAppNotification(notifyPayload);
+    sendPushNotification(notifyPayload); // free — replaces WhatsApp for staff alerts
 
     ticketForm.reset();
     ticketForm.style.display = 'none';
