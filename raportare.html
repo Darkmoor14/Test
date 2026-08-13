@@ -696,7 +696,14 @@
       description: payload.description || '-',
     };
     sendNotification(notifyPayload);
-    sendWhatsAppNotification(notifyPayload);
+    // WhatsApp notifications turned off — Meta bills each one as a
+    // billable Utility template message, and Adam decided the
+    // recurring cost isn't worth it. Email notifications above are
+    // unaffected and continue exactly as before. All the WhatsApp
+    // setup (Edge Function, secrets, approved template) is still in
+    // place if this ever needs to be switched back on — just
+    // uncomment the line below.
+    // sendWhatsAppNotification(notifyPayload);
 
     ticketForm.reset();
     ticketForm.style.display = 'none';
