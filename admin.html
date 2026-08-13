@@ -281,7 +281,7 @@
 <div class="dash" id="dash">
   <div class="wrap">
     <div class="dash-head">
-      <h1>Sesizări iluminat public</h1>
+      <h1>Insta Grup Admin</h1>
       <p>Gestionați tichetele primite prin formularul de pe site și proiectele afișate public.</p>
     </div>
 
@@ -465,6 +465,13 @@
   const enableNotifBtn = document.getElementById('enableNotifBtn');
   const VAPID_PUBLIC_KEY = 'BBQABSiPkAUnsoP8vP5NIFs6P0ZpkoUiHf7zl-_f5bDkSGVbL4gKDCtSPv0Y7sFhhWy5dbQPOqRxKdgx2TC0QZY';
 
+  // Only phones/tablets get the "Activează notificări" button — on a
+  // regular desktop browser there's no home-screen install step and
+  // no meaningful use case for it, so it's just hidden there entirely.
+  function isMobileDevice(){
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  }
+
   function urlBase64ToUint8Array(base64String){
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -481,7 +488,7 @@
 
   async function refreshNotifButtonState(){
     if (!enableNotifBtn) return;
-    if (!('Notification' in window) || !swRegistration) {
+    if (!isMobileDevice() || !('Notification' in window) || !swRegistration) {
       enableNotifBtn.style.display = 'none';
       return;
     }
@@ -730,8 +737,15 @@
     dash.classList.add('show');
     logoutBtn.style.display = 'inline-flex';
     if (enableNotifBtn) {
-      enableNotifBtn.style.display = 'inline-flex';
-      refreshNotifButtonState();
+      // Checked synchronously here (not just inside refreshNotifButtonState)
+      // so the button never briefly flashes visible on desktop before
+      // being hidden — it's only ever shown on phones/tablets.
+      if (isMobileDevice()) {
+        enableNotifBtn.style.display = 'inline-flex';
+        refreshNotifButtonState();
+      } else {
+        enableNotifBtn.style.display = 'none';
+      }
     }
     userTag.textContent = email;
     runAutoArchiveSweep().finally(() => {
