@@ -30,9 +30,9 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Sesizare nouă';
   const options = {
     body: data.body || 'A fost înregistrată o sesizare nouă pe site.',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
-    data: { url: data.url || '/admin.html' },
+    icon: 'icons/icon-192.png',
+    badge: 'icons/icon-192.png',
+    data: { url: data.url || 'admin.html' },
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
@@ -44,7 +44,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = event.notification.data && event.notification.data.url
     ? event.notification.data.url
-    : '/admin.html';
+    : 'admin.html';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
