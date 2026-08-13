@@ -76,7 +76,7 @@ ro: {
 
   // Services section head
   svc_eyebrow: "Servicii oferite",
-  svc_h2: "Șapte domenii, o singură echipă",
+  svc_h2: "Opt domenii, o singură echipă",
   svc_lede: "De la proiectare la execuție și mentenanță — acoperim întregul ciclu al lucrărilor de infrastructură electrică și utilități.",
   svc_hint: "Vezi detalii",
 
@@ -113,6 +113,9 @@ ro: {
   svc7_i1: "Instalaţii electrice de curenţi slabi",
   svc7_i2: "Instalaţii de comandă, control şi protecţii prin relee",
   svc7_i3: "Măsurarea rezistenţei de izolaţie şi continuitate",
+  svc8_tag: "Betoane", svc8_title: "Fabricare produselor din beton",
+  svc8_i1: "Cămine",
+  svc8_i2: "Capace de cămine",
 
   // Projects map section
   proj_eyebrow: "Lucrări de referință",
@@ -303,7 +306,7 @@ en: {
   about_slide4_cap: "Water and sewage networks",
 
   svc_eyebrow: "Services offered",
-  svc_h2: "Seven domains, one team",
+  svc_h2: "Eight domains, one team",
   svc_lede: "From design to execution and maintenance — we cover the entire lifecycle of electrical infrastructure and utility works.",
   svc_hint: "See details",
 
@@ -339,6 +342,9 @@ en: {
   svc7_i1: "Low-current electrical installations",
   svc7_i2: "Relay-based control and protection installations",
   svc7_i3: "Insulation resistance and continuity testing",
+  svc8_tag: "Concrete", svc8_title: "Concrete product manufacturing",
+  svc8_i1: "Manholes",
+  svc8_i2: "Manhole covers",
 
   proj_eyebrow: "Reference works",
   proj_h2: "Projects completed in Mureș County",
@@ -522,7 +528,7 @@ hu: {
   about_slide4_cap: "Víz- és csatornahálózatok",
 
   svc_eyebrow: "Szolgáltatásaink",
-  svc_h2: "Hét szakterület, egy csapat",
+  svc_h2: "Nyolc szakterület, egy csapat",
   svc_lede: "A tervezéstől a kivitelezésen át a karbantartásig — a villamos infrastruktúra és közműmunkák teljes körű lefedése.",
   svc_hint: "Részletek",
 
@@ -558,6 +564,9 @@ hu: {
   svc7_i1: "Gyengeáramú villamos berendezések",
   svc7_i2: "Relés vezérlési és védelmi berendezések",
   svc7_i3: "Szigetelési ellenállás és folytonosság mérése",
+  svc8_tag: "Beton", svc8_title: "Betontermékek gyártása",
+  svc8_i1: "Aknák",
+  svc8_i2: "Aknafedlapok",
 
   proj_eyebrow: "Referenciamunkák",
   proj_h2: "Maros megyében megvalósított projektek",
