@@ -15,6 +15,7 @@
     --copper-600:#A81419; --copper-500:#D11F24; --copper-300:#E2686C; --copper-050:#FBEAEA;
     --signal-green:#3E7A57; --signal-green-bg:#E9F3EC;
     --signal-red:#B5502F; --signal-red-bg:#FBEDE7;
+    --signal-orange:#B5792F; --signal-orange-bg:#FBF2E7;
     --display:'Space Grotesk',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -181,7 +182,7 @@
   .ticket-num{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink-900);}
   .ticket-tag{
     font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
-    padding:4px 9px;border-radius:3px;background:var(--paper-100);color:var(--ink-900);
+    padding:4px 9px;border-radius:3px;background:var(--signal-orange-bg);color:var(--signal-orange);
   }
   .ticket-tag.urgent-tag{background:var(--signal-red-bg);color:var(--signal-red);}
   .ticket-status-pill{
