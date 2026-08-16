@@ -93,9 +93,17 @@
      non-archived ticket with resolved ones pushed to the bottom, plus
      two small charts. Editing still happens in the detailed cards
      below exactly as before; this section doesn't touch them. */
+  .overview-year-bar{
+    display:flex;align-items:center;gap:10px;margin-top:20px;
+  }
+  .overview-year-bar label{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-600);}
+  .overview-year-bar select{
+    font-family:var(--body);font-size:13px;padding:7px 10px;
+    border:1px solid var(--line-strong);border-radius:3px;background:var(--paper-000);color:var(--ink-900);
+  }
   .overview-section{
     display:flex;flex-direction:column;gap:20px;
-    margin-top:20px;
+    margin-top:14px;
   }
   .overview-table-wrap{
     border:1px solid var(--line-strong);border-radius:4px;
@@ -341,6 +349,10 @@
     </div>
 
     <div class="admin-panel active" id="panel-overview">
+      <div class="overview-year-bar">
+        <label for="yearFilterSelect">An:</label>
+        <select id="yearFilterSelect"></select>
+      </div>
       <div class="overview-section">
         <div class="overview-table-wrap">
           <table class="overview-table" id="overviewTable">
@@ -736,12 +748,19 @@
   }
 
   let ticketSearchQuery = '';
+  let ticketYearFilter = 'all';
 
   function matchesSearch(t, query){
     if (!query) return true;
     const haystack = [t.ticket_number, t.name, t.phone, t.address, t.email]
       .filter(Boolean).join(' ').toLowerCase();
     return haystack.includes(query);
+  }
+
+  function matchesYear(t, yearFilter){
+    if (yearFilter === 'all') return true;
+    if (!t.submitted_on) return false;
+    return String(new Date(t.submitted_on).getFullYear()) === String(yearFilter);
   }
 
   function getFilteredTickets(){
@@ -752,7 +771,37 @@
     } else {
       base = allTickets.filter(t => !t.archived && (activeFilter === 'Toate' || t.status === activeFilter));
     }
-    return base.filter(t => matchesSearch(t, query));
+    return base.filter(t => matchesSearch(t, query) && matchesYear(t, ticketYearFilter));
+  }
+
+  // Populates the "An" (Year) dropdown from whatever years actually
+  // appear in the data — nothing hardcoded, so it naturally grows as
+  // tickets accumulate in future years with no further code changes.
+  // Defaults to the current calendar year if it has any tickets yet,
+  // otherwise falls back to "Toate anii" (all years).
+  function populateYearFilterSelect(){
+    const select = document.getElementById('yearFilterSelect');
+    if (!select) return;
+    const previousValue = select.value || ticketYearFilter;
+
+    const years = new Set();
+    allTickets.forEach(t => {
+      if (t.submitted_on) years.add(new Date(t.submitted_on).getFullYear());
+    });
+    const sortedYears = [...years].sort((a, b) => b - a);
+
+    const currentYear = new Date().getFullYear();
+    let defaultValue = sortedYears.includes(currentYear) ? String(currentYear) : 'all';
+    // Keep whatever was already selected, if it's still a valid option
+    // (e.g. don't silently reset the dropdown on every data refresh).
+    const stillValid = previousValue === 'all' || sortedYears.some(y => String(y) === previousValue);
+    const valueToSelect = stillValid ? previousValue : defaultValue;
+
+    select.innerHTML =
+      '<option value="all">Toate anii</option>' +
+      sortedYears.map(y => `<option value="${y}">${y}</option>`).join('');
+    select.value = valueToSelect;
+    ticketYearFilter = valueToSelect;
   }
 
   function fmtDate(iso){
@@ -921,6 +970,16 @@
     });
   }
 
+  const yearFilterSelect = document.getElementById('yearFilterSelect');
+  if (yearFilterSelect) {
+    yearFilterSelect.addEventListener('change', () => {
+      ticketYearFilter = yearFilterSelect.value;
+      renderTickets();
+      renderOverviewTable();
+      renderOverviewCharts();
+    });
+  }
+
   const chipsWrap = document.getElementById('chipsWrap');
   chipDefs.forEach(c => {
     const chip = document.createElement('button');
@@ -953,6 +1012,7 @@
       return;
     }
     allTickets = data;
+    populateYearFilterSelect();
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
@@ -972,7 +1032,7 @@
 
   function renderOverviewTable(){
     const tbody = document.getElementById('overviewTableBody');
-    const visible = allTickets.filter(t => !t.archived);
+    const visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter));
 
     if (visible.length === 0) {
       tbody.innerHTML = '<tr><td colspan="8" class="overview-empty">Nicio sesizare de afișat.</td></tr>';
@@ -1061,7 +1121,7 @@
   }
 
   function renderOverviewCharts(){
-    const visible = allTickets.filter(t => !t.archived);
+    const visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter));
     const activeCount = visible.filter(t => t.status !== 'Terminat').length;
     const doneCount = visible.filter(t => t.status === 'Terminat').length;
 
