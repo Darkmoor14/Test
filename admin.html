@@ -599,9 +599,13 @@
   }
 
   let swRegistration = null;
+  let currentSessionEmail = null;
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')
-      .then(reg => { swRegistration = reg; })
+      .then(reg => {
+        swRegistration = reg;
+        if (currentSessionEmail) refreshNotifButtonState();
+      })
       .catch(err => console.warn('Service worker registration failed:', err));
 
     // Handles the "admin panel is already open" case for notification
@@ -985,6 +989,11 @@
   }
 
   function showDashboard(email){
+    if (dash.classList.contains('show') && currentSessionEmail === email) {
+      if (enableNotifBtn && isMobileDevice()) refreshNotifButtonState();
+      return;
+    }
+    currentSessionEmail = email;
     loginWrap.style.display = 'none';
     dash.classList.add('show');
     logoutBtn.style.display = 'inline-flex';
@@ -1007,6 +1016,7 @@
   }
 
   function showLogin(){
+    currentSessionEmail = null;
     loginWrap.style.display = 'flex';
     dash.classList.remove('show');
     logoutBtn.style.display = 'none';
@@ -1038,7 +1048,6 @@
       loginError.classList.add('show');
       return;
     }
-    showDashboard(data.user.email);
   });
 
   logoutBtn.addEventListener('click', async () => {
