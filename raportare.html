@@ -564,7 +564,7 @@
         body: {
           title: 'Sesizare nouă',
           body: `${payload.ticket_number} — ${payload.address}`,
-          url: 'admin.html',
+          url: 'admin.html?ticket=' + encodeURIComponent(payload.ticket_number),
         },
       });
       if (error) console.error('send-push failed:', error);
@@ -758,26 +758,14 @@
     document.body.appendChild(banner);
     requestAnimationFrame(() => requestAnimationFrame(() => banner.classList.add('show')));
 
-    const bannerText = banner.querySelector('[data-i18n="cookie_banner_text"]');
-    const bannerLink = banner.querySelector('[data-i18n="cookie_banner_link"]');
-    const bannerAccept = banner.querySelector('[data-i18n="cookie_banner_accept"]');
-
-    function refreshBannerCopy(){
-      if (bannerText) bannerText.textContent = t('cookie_banner_text');
-      if (bannerLink) bannerLink.textContent = t('cookie_banner_link');
-      if (bannerAccept) bannerAccept.textContent = t('cookie_banner_accept');
-    }
-
     banner.querySelector('.cookie-banner-accept').addEventListener('click', () => {
       localStorage.setItem(STORAGE_KEY, 'true');
       banner.classList.remove('show');
       setTimeout(() => banner.remove(), 320);
     });
 
-    refreshBannerCopy();
-    window.addEventListener('langchange', () => {
-      if (document.body.contains(banner)) refreshBannerCopy();
-    });
+    if (typeof applyTranslations === 'function') applyTranslations();
+    window.addEventListener('langchange', () => { if (document.body.contains(banner)) applyTranslations(); });
   })();
 </script>
 

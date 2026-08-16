@@ -101,6 +101,16 @@
     font-family:var(--body);font-size:13px;padding:7px 10px;
     border:1px solid var(--line-strong);border-radius:3px;background:var(--paper-000);color:var(--ink-900);
   }
+  .overview-year-bar select.not-current-year{
+    border-color:var(--signal-orange);background:var(--signal-orange-bg);
+    color:var(--signal-orange);font-weight:600;
+  }
+  .year-warning{
+    display:none;
+    font-family:var(--mono);font-size:12px;font-weight:600;color:var(--signal-orange);
+    white-space:nowrap;
+  }
+  .year-warning.show{display:inline;}
   .overview-section{
     display:flex;flex-direction:column;gap:20px;
     margin-top:14px;
@@ -352,6 +362,7 @@
       <div class="overview-year-bar">
         <label for="yearFilterSelect">An:</label>
         <select id="yearFilterSelect"></select>
+        <span class="year-warning" id="yearWarningOverview">⚠ Nu e anul curent</span>
       </div>
       <div class="overview-section">
         <div class="overview-table-wrap">
@@ -392,6 +403,7 @@
           <div class="overview-year-bar" style="margin-top:0;">
             <label for="yearFilterSelectTickets">An:</label>
             <select id="yearFilterSelectTickets"></select>
+            <span class="year-warning" id="yearWarningTickets">⚠ Nu e anul curent</span>
           </div>
           <input type="search" id="ticketSearchBox" placeholder="Caută adresă, nume, telefon, nr. sesizare…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:230px;">
           <div class="result-count" id="resultCount"></div>
@@ -420,7 +432,9 @@
           <div class="overview-year-bar" style="margin-top:0;">
             <label for="projectYearFilterSelect">An:</label>
             <select id="projectYearFilterSelect"></select>
+            <span class="year-warning" id="yearWarningProjects">⚠ Nu e anul curent</span>
           </div>
+          <input type="search" id="projectSearchBox" placeholder="Caută titlu, adresă…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:200px;">
           <div class="result-count" id="projectsCount"></div>
           <input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none;">
           <button class="btn" id="importExcelBtn" type="button">⭳ Importă din Excel</button>
@@ -589,6 +603,26 @@
     navigator.serviceWorker.register('sw.js')
       .then(reg => { swRegistration = reg; })
       .catch(err => console.warn('Service worker registration failed:', err));
+
+    // Handles the "admin panel is already open" case for notification
+    // taps — see the comment in sw.js for why this is needed alongside
+    // (not instead of) the URL-param check below.
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'go-to-ticket-url') {
+        const url = new URL(event.data.url, window.location.href);
+        const ticketNum = url.searchParams.get('ticket');
+        if (ticketNum) goToTicketByNumber(ticketNum);
+      }
+    });
+  }
+
+  // goToTicket() (further down) needs the ticket's internal database
+  // id, but the push notification only carries the human-readable
+  // ticket_number (that's all create_ticket's RPC call returns) — so
+  // this looks the ticket up in already-loaded data first.
+  function goToTicketByNumber(ticketNumber){
+    const match = allTickets.find(t => t.ticket_number === ticketNumber);
+    if (match) goToTicket(match.id);
   }
 
   async function refreshNotifButtonState(){
@@ -771,6 +805,21 @@
     return String(new Date(t.submitted_on).getFullYear()) === String(yearFilter);
   }
 
+  // Shared ordering used by both the overview table and the detailed
+  // ticket cards: urgent/accident tickets that are still active always
+  // come first — regardless of submission date — since those are the
+  // ones that genuinely can't wait. Everything else follows by date,
+  // with resolved tickets sinking to the bottom as before.
+  function sortTicketsForDisplay(tickets){
+    const urgentActive = tickets.filter(t => t.type === 'Anunt accident' && t.status !== 'Terminat')
+      .sort((a, b) => new Date(b.submitted_on) - new Date(a.submitted_on));
+    const regularActive = tickets.filter(t => t.type !== 'Anunt accident' && t.status !== 'Terminat')
+      .sort((a, b) => new Date(b.submitted_on) - new Date(a.submitted_on));
+    const done = tickets.filter(t => t.status === 'Terminat')
+      .sort((a, b) => new Date(b.resolved_on || b.submitted_on) - new Date(a.resolved_on || a.submitted_on));
+    return [...urgentActive, ...regularActive, ...done];
+  }
+
   function getFilteredTickets(){
     const query = ticketSearchQuery.trim().toLowerCase();
     let base;
@@ -788,6 +837,26 @@
   // Defaults to the current calendar year if it has any tickets yet,
   // otherwise falls back to "Toate anii" (all years).
   let ticketYearFilterInitialized = false;
+
+  // Highlights a year selector (and shows an explicit text warning
+  // beside it) whenever it's pinned to a specific past year — since
+  // that means current-year activity, including brand new tickets,
+  // simply isn't showing up on screen right now. Deliberately not
+  // color-only: the text label matters just as much as the highlight,
+  // same reasoning as everywhere else color carries meaning on this
+  // page.
+  function updateYearWarning(selectIds, warningIds, yearFilterValue){
+    const currentYear = String(new Date().getFullYear());
+    const isPastYearSelected = yearFilterValue !== 'all' && yearFilterValue !== currentYear;
+    selectIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('not-current-year', isPastYearSelected);
+    });
+    warningIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('show', isPastYearSelected);
+    });
+  }
 
   // Two dropdowns share this one piece of state (one on "Prezentare
   // generală", one on "Sesizări") so changing the year from either tab
@@ -822,11 +891,13 @@
     }
 
     selects.forEach(s => { s.value = ticketYearFilter; });
+    updateYearWarning(['yearFilterSelect', 'yearFilterSelectTickets'], ['yearWarningOverview', 'yearWarningTickets'], ticketYearFilter);
   }
 
   function setTicketYearFilter(value){
     ticketYearFilter = value;
     document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets').forEach(s => { s.value = value; });
+    updateYearWarning(['yearFilterSelect', 'yearFilterSelectTickets'], ['yearWarningOverview', 'yearWarningTickets'], ticketYearFilter);
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
@@ -1038,6 +1109,22 @@
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
+    handlePendingTicketUrlParam();
+  }
+
+  // If the admin panel was just opened fresh (e.g. tapping a push
+  // notification when it wasn't already running), the target ticket
+  // arrives as a URL param instead of a postMessage — this is that
+  // path. Runs at most once per page load; the param is stripped from
+  // the address bar afterward so a manual refresh doesn't re-trigger it.
+  let pendingTicketUrlParamHandled = false;
+  function handlePendingTicketUrlParam(){
+    if (pendingTicketUrlParamHandled) return;
+    pendingTicketUrlParamHandled = true;
+    const ticketNum = new URLSearchParams(window.location.search).get('ticket');
+    if (!ticketNum) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    goToTicketByNumber(ticketNum);
   }
 
   /* ============================================================
@@ -1061,11 +1148,7 @@
       return;
     }
 
-    const active = visible.filter(t => t.status !== 'Terminat')
-      .sort((a, b) => new Date(b.submitted_on) - new Date(a.submitted_on));
-    const done = visible.filter(t => t.status === 'Terminat')
-      .sort((a, b) => new Date(b.resolved_on || b.submitted_on) - new Date(a.resolved_on || a.submitted_on));
-    const ordered = [...active, ...done];
+    const ordered = sortTicketsForDisplay(visible);
 
     tbody.innerHTML = ordered.map(t => {
       const isDone = t.status === 'Terminat';
@@ -1214,7 +1297,7 @@
 
   function renderTickets(){
     const list = document.getElementById('ticketList');
-    const filtered = getFilteredTickets();
+    const filtered = sortTicketsForDisplay(getFilteredTickets());
     document.getElementById('resultCount').textContent = filtered.length + ' din ' + allTickets.length + ' tichete';
 
     if (filtered.length === 0) {
@@ -1612,6 +1695,7 @@
   let projectsFilter = 'Ongoing';
   let projectYearFilter = 'all';
   let projectYearFilterInitialized = false;
+  let projectSearchQuery = '';
   const projectSelectedIds = new Set();
 
   function calcProjectProgress(startISO, dueISO){
@@ -1682,6 +1766,13 @@
     }
 
     select.value = projectYearFilter;
+    updateYearWarning(['projectYearFilterSelect'], ['yearWarningProjects'], projectYearFilter);
+  }
+
+  function matchesProjectSearch(p, query){
+    if (!query) return true;
+    const haystack = [p.title, p.address].filter(Boolean).join(' ').toLowerCase();
+    return haystack.includes(query);
   }
 
   function getFilteredProjects(){
@@ -1691,7 +1782,8 @@
     } else {
       base = allProjects.filter(p => !p.archived && (projectsFilter === 'Toate' || getProjectStatusFilterKey(p) === projectsFilter));
     }
-    return base.filter(p => matchesProjectYear(p, projectYearFilter));
+    const query = projectSearchQuery.trim().toLowerCase();
+    return base.filter(p => matchesProjectYear(p, projectYearFilter) && matchesProjectSearch(p, query));
   }
 
   const projectChipDefs = [
@@ -1700,10 +1792,19 @@
     { key: 'Toate', label: 'Toate' },
     { key: 'Archived', label: 'Arhivate' },
   ];
+  const projectSearchBox = document.getElementById('projectSearchBox');
+  if (projectSearchBox) {
+    projectSearchBox.addEventListener('input', () => {
+      projectSearchQuery = projectSearchBox.value;
+      renderProjects();
+    });
+  }
+
   const projectYearFilterSelect = document.getElementById('projectYearFilterSelect');
   if (projectYearFilterSelect) {
     projectYearFilterSelect.addEventListener('change', () => {
       projectYearFilter = projectYearFilterSelect.value;
+      updateYearWarning(['projectYearFilterSelect'], ['yearWarningProjects'], projectYearFilter);
       renderProjects();
     });
   }
