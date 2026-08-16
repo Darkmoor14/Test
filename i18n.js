@@ -1,7 +1,8 @@
 /* ================================================================
    i18n.js -- shared translation system for insta-grup.ro
    ----------------------------------------------------------------
-   Used by: index.html, proiecte.html, sesizari.html
+   Used by: index.html, proiecte.html, sesizari.html,
+            raportare.html, relatii-publice.html
    NOT used by: admin.html (stays Romanian-only, no switcher, by design)
 
    How it works:
