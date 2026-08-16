@@ -113,6 +113,7 @@
   .overview-table tr:last-child td{border-bottom:none;}
   .overview-table tr.done-row{opacity:0.7;}
   .overview-table tr.urgent-row td:not(:first-child){color:var(--signal-red);}
+  .overview-table td.aging-date{color:var(--signal-orange);font-weight:600;}
   .status-bubble{width:11px;height:11px;border-radius:50%;display:block;}
   .status-bubble.active{background:var(--signal-orange);}
   .status-bubble.done{background:var(--signal-green);}
@@ -376,6 +377,7 @@
       <div class="toolbar">
         <div class="chips" id="chipsWrap"></div>
         <div style="display:flex; align-items:center; gap:14px;">
+          <input type="search" id="ticketSearchBox" placeholder="Caută adresă, nume, telefon, nr. sesizare…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:230px;">
           <div class="result-count" id="resultCount"></div>
           <button class="btn" id="exportBtn" type="button">⭳ Descarcă CSV</button>
         </div>
@@ -733,11 +735,24 @@
     return data.publicUrl;
   }
 
+  let ticketSearchQuery = '';
+
+  function matchesSearch(t, query){
+    if (!query) return true;
+    const haystack = [t.ticket_number, t.name, t.phone, t.address, t.email]
+      .filter(Boolean).join(' ').toLowerCase();
+    return haystack.includes(query);
+  }
+
   function getFilteredTickets(){
+    const query = ticketSearchQuery.trim().toLowerCase();
+    let base;
     if (activeFilter === 'Archived') {
-      return allTickets.filter(t => t.archived);
+      base = allTickets.filter(t => t.archived);
+    } else {
+      base = allTickets.filter(t => !t.archived && (activeFilter === 'Toate' || t.status === activeFilter));
     }
-    return allTickets.filter(t => !t.archived && (activeFilter === 'Toate' || t.status === activeFilter));
+    return base.filter(t => matchesSearch(t, query));
   }
 
   function fmtDate(iso){
@@ -897,6 +912,15 @@
     { key: 'Toate', label: 'Toate' },
     { key: 'Archived', label: 'Arhivate' },
   ];
+
+  const ticketSearchBox = document.getElementById('ticketSearchBox');
+  if (ticketSearchBox) {
+    ticketSearchBox.addEventListener('input', () => {
+      ticketSearchQuery = ticketSearchBox.value;
+      renderTickets();
+    });
+  }
+
   const chipsWrap = document.getElementById('chipsWrap');
   chipDefs.forEach(c => {
     const chip = document.createElement('button');
@@ -940,6 +964,12 @@
      the detailed cards further down the page, unchanged. Active
      tickets are listed first, resolved ones sink to the bottom.
      ============================================================ */
+  // Tickets still active after this many days get flagged as aging —
+  // easy to spot at a glance so nothing quietly falls through the
+  // cracks. Adjust this single number if a different threshold makes
+  // more sense later.
+  const AGING_THRESHOLD_DAYS = 7;
+
   function renderOverviewTable(){
     const tbody = document.getElementById('overviewTableBody');
     const visible = allTickets.filter(t => !t.archived);
@@ -958,10 +988,12 @@
     tbody.innerHTML = ordered.map(t => {
       const isDone = t.status === 'Terminat';
       const isUrgent = t.type === 'Anunt accident';
+      const daysOpen = t.submitted_on ? (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
+      const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
       return `
         <tr class="${isDone ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''}">
           <td><span class="status-bubble ${isDone ? 'done' : 'active'}" title="${isDone ? 'Rezolvat' : 'Activ'}"></span></td>
-          <td>${fmtDateOnly(t.submitted_on)}</td>
+          <td class="${isAging ? 'aging-date' : ''}" title="${isAging ? 'Deschis de peste ' + AGING_THRESHOLD_DAYS + ' zile' : ''}">${isAging ? '⚠ ' : ''}${fmtDateOnly(t.submitted_on)}</td>
           <td class="overview-ticket-num"><a href="#" class="ticket-link" data-ticket-id="${t.id}">${escapeHtml(t.ticket_number || '—')}</a></td>
           <td>${isUrgent ? 'Accident' : 'Funcțional'}</td>
           <td>${escapeHtml(t.name || '—')}</td>
@@ -1208,9 +1240,22 @@
       if (saveBtn) {
         const saveStatus = card.querySelector('.save-status');
         saveBtn.addEventListener('click', async () => {
+          const newStatus = card.querySelector('.f-status').value;
+
+          // Only ask for confirmation when the status is actually
+          // changing — a routine save (adding a note, uploading a
+          // photo) shouldn't be interrupted, but closing out or
+          // reopening a ticket is consequential enough to double-check,
+          // especially from a phone where a misclick is easy.
+          if (newStatus !== t.status) {
+            const statusLabel = newStatus === 'Terminat' ? 'Terminat (rezolvat)' : 'Activ';
+            if (!confirm(`Schimbați starea tichetului ${t.ticket_number || ''} în "${statusLabel}"?`)) {
+              return;
+            }
+          }
+
           saveBtn.disabled = true;
           saveBtn.textContent = 'Se salvează...';
-          const newStatus = card.querySelector('.f-status').value;
           const resolver = card.querySelector('.f-resolver').value.trim();
           const resNote = card.querySelector('.f-resnote').value.trim();
           const beforeFile = card.querySelector('.f-photo-before').files[0];
