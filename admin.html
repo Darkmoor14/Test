@@ -345,12 +345,13 @@
             <thead>
               <tr>
                 <th></th>
-                <th>Data / oră</th>
+                <th>Data</th>
                 <th>Nr.</th>
                 <th>Tip</th>
                 <th>Nume</th>
                 <th>Telefon</th>
                 <th>Adresă</th>
+                <th>Rezolvat</th>
               </tr>
             </thead>
             <tbody id="overviewTableBody"></tbody>
@@ -745,6 +746,12 @@
            d.toLocaleTimeString('ro-RO', {hour:'2-digit', minute:'2-digit'});
   }
 
+  function fmtDateOnly(iso){
+    if(!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('ro-RO', {day:'2-digit', month:'2-digit', year:'numeric'});
+  }
+
   async function checkSession(){
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
@@ -937,7 +944,7 @@
     const visible = allTickets.filter(t => !t.archived);
 
     if (visible.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="overview-empty">Nicio sesizare de afișat.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="overview-empty">Nicio sesizare de afișat.</td></tr>';
       return;
     }
 
@@ -953,12 +960,13 @@
       return `
         <tr class="${isDone ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''}">
           <td><span class="status-bubble ${isDone ? 'done' : 'active'}" title="${isDone ? 'Rezolvat' : 'Activ'}"></span></td>
-          <td>${fmtDate(t.submitted_on)}</td>
+          <td>${fmtDateOnly(t.submitted_on)}</td>
           <td class="overview-ticket-num"><a href="#" class="ticket-link" data-ticket-id="${t.id}">${escapeHtml(t.ticket_number || '—')}</a></td>
           <td>${isUrgent ? 'Accident' : 'Funcțional'}</td>
           <td>${escapeHtml(t.name || '—')}</td>
           <td>${escapeHtml(t.phone || '—')}</td>
           <td>${escapeHtml(t.address || '—')}</td>
+          <td>${isDone ? fmtDateOnly(t.resolved_on) : '—'}</td>
         </tr>
       `;
     }).join('');
