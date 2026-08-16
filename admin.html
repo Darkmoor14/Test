@@ -23,6 +23,7 @@
     --copper-600:#A81419; --copper-500:#D11F24; --copper-300:#E2686C; --copper-050:#FBEAEA;
     --signal-green:#3E7A57; --signal-green-bg:#E9F3EC;
     --signal-red:#B5502F; --signal-red-bg:#FBEDE7;
+    --signal-orange:#B5792F; --signal-orange-bg:#FBF2E7;
     --display:'Space Grotesk',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -86,6 +87,45 @@
   .admin-tab:hover{color:var(--ink-700);}
   .admin-tab.active{color:var(--copper-600);border-bottom-color:var(--copper-500);}
   .admin-panel{display:none;}
+
+  /* ===== TICKET OVERVIEW TABLE + CHARTS =====
+     Purely a glanceable summary — a compact, sortable table of every
+     non-archived ticket with resolved ones pushed to the bottom, plus
+     two small charts. Editing still happens in the detailed cards
+     below exactly as before; this section doesn't touch them. */
+  .overview-section{
+    display:grid;grid-template-columns:1fr 300px;gap:20px;
+    margin-top:20px;
+  }
+  .overview-table-wrap{
+    border:1px solid var(--line-strong);border-radius:4px;
+    background:var(--paper-000);
+    max-height:460px;overflow-y:auto;overflow-x:auto;
+  }
+  .overview-table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap;}
+  .overview-table th{
+    position:sticky;top:0;background:var(--paper-050);z-index:1;
+    text-align:left;padding:10px 12px;font-family:var(--mono);font-size:10px;
+    text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-600);
+    border-bottom:1px solid var(--line-strong);
+  }
+  .overview-table td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink-900);}
+  .overview-table tr:last-child td{border-bottom:none;}
+  .overview-table tr.done-row{opacity:0.7;}
+  .overview-table tr.urgent-row td:not(:first-child){color:var(--signal-red);}
+  .status-bubble{width:11px;height:11px;border-radius:50%;display:block;}
+  .status-bubble.active{background:var(--signal-orange);}
+  .status-bubble.done{background:var(--signal-green);}
+  .overview-empty{padding:24px;text-align:center;color:var(--ink-400);font-size:13px;}
+  .overview-sidebar{display:flex;flex-direction:column;gap:16px;}
+  .chart-card{border:1px solid var(--line-strong);border-radius:4px;padding:16px;background:var(--paper-000);}
+  .chart-card h4{font-size:12.5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.03em;color:var(--ink-600);margin-bottom:14px;font-weight:500;}
+  .chart-card canvas{max-height:170px;}
+  .chart-stat{font-family:var(--mono);font-size:20px;color:var(--copper-600);text-align:center;margin-top:10px;}
+  @media(max-width:900px){
+    .overview-section{grid-template-columns:1fr;}
+    .overview-table-wrap{max-height:320px;}
+  }
   .admin-panel.active{display:block;}
 
   .project-form{
@@ -291,6 +331,36 @@
     </div>
 
     <div class="admin-panel active" id="panel-tickets">
+      <div class="overview-section">
+        <div class="overview-table-wrap">
+          <table class="overview-table" id="overviewTable">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Data / oră</th>
+                <th>Nr.</th>
+                <th>Tip</th>
+                <th>Nume</th>
+                <th>Telefon</th>
+                <th>Adresă</th>
+              </tr>
+            </thead>
+            <tbody id="overviewTableBody"></tbody>
+          </table>
+        </div>
+        <div class="overview-sidebar">
+          <div class="chart-card">
+            <h4>Active vs. rezolvate</h4>
+            <canvas id="statusPieChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <h4>Timp mediu de rezolvare</h4>
+            <canvas id="resolutionTimeChart"></canvas>
+            <div class="chart-stat" id="avgResolutionStat"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="toolbar">
         <div class="chips" id="chipsWrap"></div>
         <div style="display:flex; align-items:center; gap:14px;">
@@ -380,6 +450,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
   /* ================================================================
      ADMIN DASHBOARD — insta-grup.ro
@@ -841,6 +912,135 @@
     }
     allTickets = data;
     renderTickets();
+    renderOverviewTable();
+    renderOverviewCharts();
+  }
+
+  /* ============================================================
+     TICKET OVERVIEW TABLE — a compact, glanceable summary of every
+     non-archived ticket. Purely read-only: editing still happens in
+     the detailed cards further down the page, unchanged. Active
+     tickets are listed first, resolved ones sink to the bottom.
+     ============================================================ */
+  function renderOverviewTable(){
+    const tbody = document.getElementById('overviewTableBody');
+    const visible = allTickets.filter(t => !t.archived);
+
+    if (visible.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="overview-empty">Nicio sesizare de afișat.</td></tr>';
+      return;
+    }
+
+    const active = visible.filter(t => t.status !== 'Terminat')
+      .sort((a, b) => new Date(b.submitted_on) - new Date(a.submitted_on));
+    const done = visible.filter(t => t.status === 'Terminat')
+      .sort((a, b) => new Date(b.resolved_on || b.submitted_on) - new Date(a.resolved_on || a.submitted_on));
+    const ordered = [...active, ...done];
+
+    tbody.innerHTML = ordered.map(t => {
+      const isDone = t.status === 'Terminat';
+      const isUrgent = t.type === 'Anunt accident';
+      return `
+        <tr class="${isDone ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''}">
+          <td><span class="status-bubble ${isDone ? 'done' : 'active'}" title="${isDone ? 'Rezolvat' : 'Activ'}"></span></td>
+          <td>${fmtDate(t.submitted_on)}</td>
+          <td>${escapeHtml(t.ticket_number || '—')}</td>
+          <td>${isUrgent ? 'Accident' : 'Funcțional'}</td>
+          <td>${escapeHtml(t.name || '—')}</td>
+          <td>${escapeHtml(t.phone || '—')}</td>
+          <td>${escapeHtml(t.address || '—')}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  /* ============================================================
+     OVERVIEW CHARTS — active vs. resolved counts, and average time
+     to resolution (overall + by ticket type). Chart instances are
+     destroyed and recreated on every refresh rather than updated in
+     place, since refreshes here are infrequent (only on load / after
+     an edit) and this keeps the logic simple.
+     ============================================================ */
+  let statusPieChartInstance = null;
+  let resolutionTimeChartInstance = null;
+
+  function formatDuration(hours){
+    if (!isFinite(hours) || hours < 0) return '—';
+    if (hours < 1) return Math.round(hours * 60) + ' min';
+    if (hours < 24) return hours.toFixed(1) + ' ore';
+    const days = Math.floor(hours / 24);
+    const remHours = Math.round(hours % 24);
+    return days + ' zile' + (remHours ? ' ' + remHours + ' ore' : '');
+  }
+
+  function renderOverviewCharts(){
+    const visible = allTickets.filter(t => !t.archived);
+    const activeCount = visible.filter(t => t.status !== 'Terminat').length;
+    const doneCount = visible.filter(t => t.status === 'Terminat').length;
+
+    const pieCanvas = document.getElementById('statusPieChart');
+    if (statusPieChartInstance) statusPieChartInstance.destroy();
+    if (typeof Chart !== 'undefined' && pieCanvas) {
+      statusPieChartInstance = new Chart(pieCanvas, {
+        type: 'pie',
+        data: {
+          labels: ['Active (' + activeCount + ')', 'Rezolvate (' + doneCount + ')'],
+          datasets: [{
+            data: [activeCount, doneCount],
+            backgroundColor: ['#B5792F', '#3E7A57'],
+            borderWidth: 0,
+          }],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } },
+          },
+        },
+      });
+    }
+
+    // Average resolution time — overall stat, plus a bar chart
+    // breaking it down by ticket type (functional vs. accident/urgent).
+    const resolved = visible.filter(t => t.status === 'Terminat' && t.resolved_on && t.submitted_on);
+    const hoursFor = (t) => (new Date(t.resolved_on) - new Date(t.submitted_on)) / (1000 * 60 * 60);
+    const avg = (arr) => arr.length ? arr.reduce((sum, t) => sum + hoursFor(t), 0) / arr.length : NaN;
+
+    const funcResolved = resolved.filter(t => t.type !== 'Anunt accident');
+    const accResolved = resolved.filter(t => t.type === 'Anunt accident');
+    const overallAvg = avg(resolved);
+
+    const statEl = document.getElementById('avgResolutionStat');
+    if (statEl) {
+      statEl.textContent = resolved.length ? formatDuration(overallAvg) + ' (medie)' : 'Fără date încă';
+    }
+
+    const barCanvas = document.getElementById('resolutionTimeChart');
+    if (resolutionTimeChartInstance) resolutionTimeChartInstance.destroy();
+    if (typeof Chart !== 'undefined' && barCanvas) {
+      resolutionTimeChartInstance = new Chart(barCanvas, {
+        type: 'bar',
+        data: {
+          labels: ['Funcțional', 'Accident'],
+          datasets: [{
+            data: [
+              isFinite(avg(funcResolved)) ? Math.round(avg(funcResolved) * 10) / 10 : 0,
+              isFinite(avg(accResolved)) ? Math.round(avg(accResolved) * 10) / 10 : 0,
+            ],
+            backgroundColor: ['#D11F24', '#B5502F'],
+            borderRadius: 3,
+          }],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'ore', font: { size: 10 } }, ticks: { font: { size: 10 } } },
+            x: { ticks: { font: { size: 11 } } },
+          },
+        },
+      });
+    }
   }
 
   function renderTickets(){
