@@ -117,6 +117,13 @@
   .status-bubble.active{background:var(--signal-orange);}
   .status-bubble.done{background:var(--signal-green);}
   .overview-empty{padding:24px;text-align:center;color:var(--ink-400);font-size:13px;}
+  .ticket-link{color:var(--copper-600);text-decoration:underline;text-underline-offset:2px;font-weight:500;}
+  .ticket-link:hover{color:var(--copper-500);}
+  @keyframes ticket-jump-highlight{
+    0%{box-shadow:0 0 0 3px var(--copper-500);}
+    100%{box-shadow:0 0 0 3px transparent;}
+  }
+  .ticket-card.jump-highlight{animation:ticket-jump-highlight 1.8s ease-out;}
   .overview-sidebar{display:flex;flex-direction:column;gap:16px;}
   .chart-card{border:1px solid var(--line-strong);border-radius:4px;padding:16px;background:var(--paper-000);}
   .chart-card h4{font-size:12.5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.03em;color:var(--ink-600);margin-bottom:14px;font-weight:500;}
@@ -326,11 +333,12 @@
     </div>
 
     <div class="admin-tabs">
-      <button class="admin-tab active" type="button" data-tab="tickets">Sesizări</button>
+      <button class="admin-tab active" type="button" data-tab="overview">Prezentare generală</button>
+      <button class="admin-tab" type="button" data-tab="tickets">Sesizări</button>
       <button class="admin-tab" type="button" data-tab="projects">Proiecte curente</button>
     </div>
 
-    <div class="admin-panel active" id="panel-tickets">
+    <div class="admin-panel active" id="panel-overview">
       <div class="overview-section">
         <div class="overview-table-wrap">
           <table class="overview-table" id="overviewTable">
@@ -360,7 +368,9 @@
           </div>
         </div>
       </div>
+    </div>
 
+    <div class="admin-panel" id="panel-tickets">
       <div class="toolbar">
         <div class="chips" id="chipsWrap"></div>
         <div style="display:flex; align-items:center; gap:14px;">
@@ -944,7 +954,7 @@
         <tr class="${isDone ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''}">
           <td><span class="status-bubble ${isDone ? 'done' : 'active'}" title="${isDone ? 'Rezolvat' : 'Activ'}"></span></td>
           <td>${fmtDate(t.submitted_on)}</td>
-          <td>${escapeHtml(t.ticket_number || '—')}</td>
+          <td class="overview-ticket-num"><a href="#" class="ticket-link" data-ticket-id="${t.id}">${escapeHtml(t.ticket_number || '—')}</a></td>
           <td>${isUrgent ? 'Accident' : 'Funcțional'}</td>
           <td>${escapeHtml(t.name || '—')}</td>
           <td>${escapeHtml(t.phone || '—')}</td>
@@ -953,6 +963,42 @@
       `;
     }).join('');
   }
+
+  // Clicking a ticket number in the overview table jumps straight to
+  // that ticket's editable card on the "Sesizări" tab — switching the
+  // ticket filter to "Toate" first (so the card is guaranteed to
+  // actually be rendered regardless of which filter was previously
+  // selected), then scrolling to and briefly highlighting it.
+  function goToTicket(ticketId){
+    activeFilter = 'Toate';
+    selectedIds.clear();
+    updateArchiveBar();
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.key === 'Toate');
+    });
+    renderTickets();
+
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+    document.querySelector('.admin-tab[data-tab="tickets"]').classList.add('active');
+    document.getElementById('panel-tickets').classList.add('active');
+
+    requestAnimationFrame(() => {
+      const card = document.getElementById('ticket-card-' + ticketId);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('jump-highlight');
+        setTimeout(() => card.classList.remove('jump-highlight'), 1800);
+      }
+    });
+  }
+
+  document.getElementById('overviewTableBody').addEventListener('click', (e) => {
+    const link = e.target.closest('.ticket-link');
+    if (!link) return;
+    e.preventDefault();
+    goToTicket(link.dataset.ticketId);
+  });
 
   /* ============================================================
      OVERVIEW CHARTS — active vs. resolved counts, and average time
@@ -1059,6 +1105,7 @@
       const isDone = t.status === 'Terminat';
       const isArchived = !!t.archived;
       const card = document.createElement('div');
+      card.id = 'ticket-card-' + t.id;
       card.className = 'ticket-card' + (isUrgent && !isDone ? ' urgent' : '') + (isDone ? ' done' : '') + (isArchived ? ' archived' : '');
       const safeTicketNumber = escapeHtml(t.ticket_number || '—');
       const safeName = escapeHtml(t.name || '—');
