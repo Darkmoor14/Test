@@ -389,6 +389,10 @@
       <div class="toolbar">
         <div class="chips" id="chipsWrap"></div>
         <div style="display:flex; align-items:center; gap:14px;">
+          <div class="overview-year-bar" style="margin-top:0;">
+            <label for="yearFilterSelectTickets">An:</label>
+            <select id="yearFilterSelectTickets"></select>
+          </div>
           <input type="search" id="ticketSearchBox" placeholder="Caută adresă, nume, telefon, nr. sesizare…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:230px;">
           <div class="result-count" id="resultCount"></div>
           <button class="btn" id="exportBtn" type="button">⭳ Descarcă CSV</button>
@@ -413,6 +417,10 @@
       <div class="toolbar">
         <div class="chips" id="projectsChipsWrap"></div>
         <div style="display:flex; align-items:center; gap:14px;">
+          <div class="overview-year-bar" style="margin-top:0;">
+            <label for="projectYearFilterSelect">An:</label>
+            <select id="projectYearFilterSelect"></select>
+          </div>
           <div class="result-count" id="projectsCount"></div>
           <input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none;">
           <button class="btn" id="importExcelBtn" type="button">⭳ Importă din Excel</button>
@@ -779,29 +787,49 @@
   // tickets accumulate in future years with no further code changes.
   // Defaults to the current calendar year if it has any tickets yet,
   // otherwise falls back to "Toate anii" (all years).
+  let ticketYearFilterInitialized = false;
+
+  // Two dropdowns share this one piece of state (one on "Prezentare
+  // generală", one on "Sesizări") so changing the year from either tab
+  // keeps both in sync automatically.
   function populateYearFilterSelect(){
-    const select = document.getElementById('yearFilterSelect');
-    if (!select) return;
-    const previousValue = select.value || ticketYearFilter;
+    const selects = [
+      document.getElementById('yearFilterSelect'),
+      document.getElementById('yearFilterSelectTickets'),
+    ].filter(Boolean);
+    if (selects.length === 0) return;
 
     const years = new Set();
     allTickets.forEach(t => {
       if (t.submitted_on) years.add(new Date(t.submitted_on).getFullYear());
     });
     const sortedYears = [...years].sort((a, b) => b - a);
-
-    const currentYear = new Date().getFullYear();
-    let defaultValue = sortedYears.includes(currentYear) ? String(currentYear) : 'all';
-    // Keep whatever was already selected, if it's still a valid option
-    // (e.g. don't silently reset the dropdown on every data refresh).
-    const stillValid = previousValue === 'all' || sortedYears.some(y => String(y) === previousValue);
-    const valueToSelect = stillValid ? previousValue : defaultValue;
-
-    select.innerHTML =
+    const optionsHtml =
       '<option value="all">Toate anii</option>' +
       sortedYears.map(y => `<option value="${y}">${y}</option>`).join('');
-    select.value = valueToSelect;
-    ticketYearFilter = valueToSelect;
+    selects.forEach(s => { s.innerHTML = optionsHtml; });
+
+    if (!ticketYearFilterInitialized) {
+      // First load: default to the current calendar year if it has
+      // any tickets yet, otherwise fall back to showing everything.
+      const currentYear = new Date().getFullYear();
+      ticketYearFilter = sortedYears.includes(currentYear) ? String(currentYear) : 'all';
+      ticketYearFilterInitialized = true;
+    } else if (ticketYearFilter !== 'all' && !sortedYears.some(y => String(y) === ticketYearFilter)) {
+      // The previously-selected year no longer has any tickets (rare,
+      // but possible) — fall back rather than pointing at nothing.
+      ticketYearFilter = 'all';
+    }
+
+    selects.forEach(s => { s.value = ticketYearFilter; });
+  }
+
+  function setTicketYearFilter(value){
+    ticketYearFilter = value;
+    document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets').forEach(s => { s.value = value; });
+    renderTickets();
+    renderOverviewTable();
+    renderOverviewCharts();
   }
 
   function fmtDate(iso){
@@ -970,15 +998,9 @@
     });
   }
 
-  const yearFilterSelect = document.getElementById('yearFilterSelect');
-  if (yearFilterSelect) {
-    yearFilterSelect.addEventListener('change', () => {
-      ticketYearFilter = yearFilterSelect.value;
-      renderTickets();
-      renderOverviewTable();
-      renderOverviewCharts();
-    });
-  }
+  document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets').forEach(select => {
+    select.addEventListener('change', () => setTicketYearFilter(select.value));
+  });
 
   const chipsWrap = document.getElementById('chipsWrap');
   chipDefs.forEach(c => {
@@ -1588,6 +1610,8 @@
      ============================================================ */
   let allProjects = [];
   let projectsFilter = 'Ongoing';
+  let projectYearFilter = 'all';
+  let projectYearFilterInitialized = false;
   const projectSelectedIds = new Set();
 
   function calcProjectProgress(startISO, dueISO){
@@ -1630,11 +1654,44 @@
   function getProjectStatusFilterKey(p){
     return calcProjectStatus(p.start_date, p.due_date).key === 'done' ? 'Terminat' : 'Ongoing';
   }
-  function getFilteredProjects(){
-    if (projectsFilter === 'Archived') {
-      return allProjects.filter(p => p.archived);
+  function matchesProjectYear(p, yearFilter){
+    if (yearFilter === 'all') return true;
+    if (!p.start_date) return false;
+    return String(new Date(p.start_date).getFullYear()) === String(yearFilter);
+  }
+
+  function populateProjectYearFilterSelect(){
+    const select = document.getElementById('projectYearFilterSelect');
+    if (!select) return;
+
+    const years = new Set();
+    allProjects.forEach(p => {
+      if (p.start_date) years.add(new Date(p.start_date).getFullYear());
+    });
+    const sortedYears = [...years].sort((a, b) => b - a);
+    select.innerHTML =
+      '<option value="all">Toate anii</option>' +
+      sortedYears.map(y => `<option value="${y}">${y}</option>`).join('');
+
+    if (!projectYearFilterInitialized) {
+      const currentYear = new Date().getFullYear();
+      projectYearFilter = sortedYears.includes(currentYear) ? String(currentYear) : 'all';
+      projectYearFilterInitialized = true;
+    } else if (projectYearFilter !== 'all' && !sortedYears.some(y => String(y) === projectYearFilter)) {
+      projectYearFilter = 'all';
     }
-    return allProjects.filter(p => !p.archived && (projectsFilter === 'Toate' || getProjectStatusFilterKey(p) === projectsFilter));
+
+    select.value = projectYearFilter;
+  }
+
+  function getFilteredProjects(){
+    let base;
+    if (projectsFilter === 'Archived') {
+      base = allProjects.filter(p => p.archived);
+    } else {
+      base = allProjects.filter(p => !p.archived && (projectsFilter === 'Toate' || getProjectStatusFilterKey(p) === projectsFilter));
+    }
+    return base.filter(p => matchesProjectYear(p, projectYearFilter));
   }
 
   const projectChipDefs = [
@@ -1643,6 +1700,14 @@
     { key: 'Toate', label: 'Toate' },
     { key: 'Archived', label: 'Arhivate' },
   ];
+  const projectYearFilterSelect = document.getElementById('projectYearFilterSelect');
+  if (projectYearFilterSelect) {
+    projectYearFilterSelect.addEventListener('change', () => {
+      projectYearFilter = projectYearFilterSelect.value;
+      renderProjects();
+    });
+  }
+
   const projectsChipsWrap = document.getElementById('projectsChipsWrap');
   projectChipDefs.forEach(c => {
     const chip = document.createElement('button');
@@ -1671,6 +1736,7 @@
       return;
     }
     allProjects = data || [];
+    populateProjectYearFilterSelect();
     renderProjects();
   }
 
