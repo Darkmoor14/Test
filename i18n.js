@@ -194,7 +194,7 @@ ro: {
   // Contact section
   contact_eyebrow: "Contact",
   contact_h2: "Aveți un proiect în derulare?",
-  contact_lede: "Spuneți-ne despre lucrare — răspundem cu o estimare de timp și cost în cel mult 2 zile lucrătoare.",
+  contact_lede: "Spuneți-ne despre lucrare — răspundem cu o estimare de timp și cost în cel scurt timp posibil.",
   contact_k_sediu: "Sediu",
   contact_v_sediu: "Str. Căminului nr. 35, Târgu-Mureș, jud. Mureș",
   contact_k_telefon: "Telefon",
@@ -420,7 +420,7 @@ en: {
 
   contact_eyebrow: "Contact",
   contact_h2: "Have a project in mind?",
-  contact_lede: "Tell us about the work — we'll respond with a time and cost estimate within 2 business days.",
+  contact_lede: "Tell us about the work — we'll respond with a time and cost estimate as soon as possible.",
   contact_k_sediu: "Address",
   contact_v_sediu: "35 Căminului St., Târgu-Mureș, Mureș County",
   contact_k_telefon: "Phone",
@@ -642,7 +642,7 @@ hu: {
 
   contact_eyebrow: "Kapcsolat",
   contact_h2: "Van egy projektje?",
-  contact_lede: "Meséljen a munkáról — 2 munkanapon belül válaszolunk időbecsléssel és árajánlattal.",
+  contact_lede: "Meséljen a munkáról — a lehető legrövidebb időn belül válaszolunk időbecsléssel és árajánlattal.",
   contact_k_sediu: "Székhely",
   contact_v_sediu: "Căminului utca 35, Marosvásárhely, Maros megye",
   contact_k_telefon: "Telefon",
