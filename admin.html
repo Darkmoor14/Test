@@ -88,6 +88,63 @@
   .admin-tab.active{color:var(--copper-600);border-bottom-color:var(--copper-500);}
   .admin-panel{display:none;}
 
+  /* ===== PRIORITY SUMMARY CARDS =====
+     The very first thing shown on "Prezentare generală" — answers
+     "do I need to worry about anything right now" before any
+     scrolling or scanning. Deliberately just 4 cards (dashboard
+     research consistently points to 4-6 as the effective range before
+     cognitive overload sets in), and deliberately reflects true
+     right-now reality regardless of whichever year is selected in the
+     table below — an active accident matters regardless of what
+     year's archive you happen to be browsing.
+     Color follows the same convention used everywhere else on this
+     page, without exception: red = accident/urgent, orange = aging /
+     at-risk, and NOT green for the "routine" card, since green is
+     already reserved site-wide to mean "resolved" — reusing it here
+     for something else would break that convention rather than
+     reinforce it. */
+  .priority-grid{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
+    margin-bottom:28px;
+  }
+  .priority-card{
+    border:1px solid var(--line-strong);border-radius:4px;
+    padding:16px 18px;background:var(--paper-050);
+    cursor:pointer;transition:border-color .15s,transform .15s;
+    text-align:left;
+  }
+  .priority-card:hover{border-color:var(--copper-500);transform:translateY(-1px);}
+  .priority-card.danger{border-color:rgba(181,80,47,0.3);background:var(--signal-red-bg);}
+  .priority-card.warn{border-color:rgba(181,121,47,0.3);background:var(--signal-orange-bg);}
+  .priority-card .k{
+    display:flex;align-items:center;gap:6px;
+    font-family:var(--mono);font-size:11px;letter-spacing:0.04em;text-transform:uppercase;
+    color:var(--ink-600);margin-bottom:10px;
+  }
+  .priority-card.danger .k{color:var(--signal-red);}
+  .priority-card.warn .k{color:var(--signal-orange);}
+  .priority-card .num{font-family:var(--display);font-weight:700;font-size:32px;line-height:1;color:var(--ink-900);}
+  .priority-card.danger .num{color:var(--signal-red);}
+  .priority-card.warn .num{color:var(--signal-orange);}
+  .priority-card .sub{font-size:12px;color:var(--ink-600);margin-top:6px;}
+  @media(max-width:900px){
+    .priority-grid{grid-template-columns:repeat(2,1fr);}
+  }
+  @media(max-width:560px){
+    .priority-grid{grid-template-columns:1fr;}
+  }
+
+  .active-narrow-filter{
+    display:none;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:12px;color:var(--copper-600);
+    margin-bottom:14px;
+  }
+  .active-narrow-filter.show{display:flex;}
+  .active-narrow-filter button{
+    background:none;border:none;color:var(--copper-600);cursor:pointer;
+    text-decoration:underline;font-family:inherit;font-size:inherit;padding:0;
+  }
+
   /* ===== TICKET OVERVIEW TABLE + CHARTS =====
      Purely a glanceable summary — a compact, sortable table of every
      non-archived ticket with resolved ones pushed to the bottom, plus
@@ -130,7 +187,10 @@
   .overview-table td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink-900);}
   .overview-table tr:last-child td{border-bottom:none;}
   .overview-table tr.done-row{opacity:0.7;}
-  .overview-table tr.urgent-row td:not(:first-child){color:var(--signal-red);}
+  .overview-table tr.urgent-row{background:var(--signal-red-bg);}
+  .overview-table tr.urgent-row td{border-bottom-color:rgba(181,80,47,0.25);}
+  .overview-table tr.urgent-row td:first-child{border-left:3px solid var(--signal-red);}
+  .overview-table tr.urgent-row td:not(:first-child){color:var(--signal-red);font-weight:600;}
   .overview-table td.aging-date{color:var(--signal-orange);font-weight:600;}
   .status-bubble{width:11px;height:11px;border-radius:50%;display:block;}
   .status-bubble.active{background:var(--signal-orange);}
@@ -149,8 +209,47 @@
   .chart-card h4{font-size:12.5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.03em;color:var(--ink-600);margin-bottom:14px;font-weight:500;}
   .chart-card canvas{max-height:170px;}
   .chart-stat{font-family:var(--mono);font-size:20px;color:var(--copper-600);text-align:center;margin-top:10px;}
+  /* ===== MOBILE/TABLET TICKET CARDS =====
+     Not a CSS reflow of the desktop table — a genuinely different
+     layout, purpose-built for someone glancing at a phone in the
+     field, not reading a spreadsheet. Leads with the address (the one
+     field that actually matters for "do I need to go there"), keeps
+     ticket number/phone/date as small secondary text, and makes the
+     entire card a large tap target instead of a small text link —
+     thumb-friendly, not mouse-precise. Built from the same sorted,
+     filtered data as the desktop table, so the two never drift out
+     of sync with each other. */
+  .overview-cards-mobile{display:none;flex-direction:column;gap:10px;}
+  .ov-card{
+    display:block;width:100%;text-align:left;cursor:pointer;
+    border:1px solid var(--line-strong);border-radius:6px;
+    background:var(--paper-000);padding:14px 16px;margin:0;
+    border-left:4px solid var(--signal-orange);
+    font-family:var(--body);
+  }
+  .ov-card.done{border-left-color:var(--signal-green);opacity:0.75;}
+  .ov-card.urgent{border-left-color:var(--signal-red);background:var(--signal-red-bg);}
+  .ov-card-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .ov-card-top .status-bubble{flex-shrink:0;}
+  .ov-card-type{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.04em;
+    color:var(--ink-600);
+  }
+  .ov-card.urgent .ov-card-type{color:var(--signal-red);font-weight:600;}
+  .ov-card-num{
+    margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--copper-600);font-weight:600;
+  }
+  .ov-card-address{font-size:16px;font-weight:600;color:var(--ink-900);line-height:1.35;margin-bottom:6px;}
+  .ov-card-meta{
+    display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    font-size:12.5px;color:var(--ink-600);
+  }
+  .ov-card-meta .aging{color:var(--signal-orange);font-weight:600;}
+  .ov-card-resolved{margin-top:8px;font-size:12px;color:var(--ink-600);}
+
   @media(max-width:900px){
-    .overview-table-wrap{max-height:320px;}
+    .overview-table-wrap{display:none;}
+    .overview-cards-mobile{display:flex;}
     .overview-sidebar{flex-direction:column;}
   }
   .admin-panel.active{display:block;}
@@ -359,6 +458,29 @@
     </div>
 
     <div class="admin-panel active" id="panel-overview">
+      <div class="priority-grid">
+        <button type="button" class="priority-card" id="prioActiveCard">
+          <span class="k">● Active</span>
+          <div class="num" id="prioActiveCount">0</div>
+          <div class="sub">Sesizări încă nerezolvate</div>
+        </button>
+        <button type="button" class="priority-card warn" id="prioAgingCard">
+          <span class="k">⚠ Peste 7 zile</span>
+          <div class="num" id="prioAgingCount">0</div>
+          <div class="sub">Active de prea mult timp</div>
+        </button>
+        <button type="button" class="priority-card" id="prioFuncCard">
+          <span class="k">● Funcționale</span>
+          <div class="num" id="prioFuncCount">0</div>
+          <div class="sub">Sesizări active, fără urgență</div>
+        </button>
+        <button type="button" class="priority-card danger" id="prioAccidentCard">
+          <span class="k">⛔ Accidente</span>
+          <div class="num" id="prioAccidentCount">0</div>
+          <div class="sub">Urgențe active — pericol imediat</div>
+        </button>
+      </div>
+
       <div class="overview-year-bar">
         <label for="yearFilterSelect">An:</label>
         <select id="yearFilterSelect"></select>
@@ -382,10 +504,11 @@
             <tbody id="overviewTableBody"></tbody>
           </table>
         </div>
+        <div class="overview-cards-mobile" id="overviewCardsMobile"></div>
         <div class="overview-sidebar">
           <div class="chart-card">
-            <h4>Active vs. rezolvate</h4>
-            <canvas id="statusPieChart"></canvas>
+            <h4>Sesizări pe lună</h4>
+            <canvas id="ticketVolumeChart"></canvas>
           </div>
           <div class="chart-card">
             <h4>Timp mediu de rezolvare</h4>
@@ -409,6 +532,10 @@
           <div class="result-count" id="resultCount"></div>
           <button class="btn" id="exportBtn" type="button">⭳ Descarcă CSV</button>
         </div>
+      </div>
+      <div class="active-narrow-filter" id="activeNarrowFilter">
+        <span id="activeNarrowFilterLabel"></span>
+        <button type="button" id="clearNarrowFilterBtn">✕ Elimină acest filtru</button>
       </div>
       <div class="archive-bar" id="archiveBar">
         <span id="selectionCount">0 selectate</span>
@@ -824,6 +951,9 @@
     return [...urgentActive, ...regularActive, ...done];
   }
 
+  let agingOnlyFilter = false;
+  let typeOnlyFilter = null; // null | 'functional' | 'accident'
+
   function getFilteredTickets(){
     const query = ticketSearchQuery.trim().toLowerCase();
     let base;
@@ -832,7 +962,21 @@
     } else {
       base = allTickets.filter(t => !t.archived && (activeFilter === 'Toate' || t.status === activeFilter));
     }
-    return base.filter(t => matchesSearch(t, query) && matchesYear(t, ticketYearFilter));
+    base = base.filter(t => matchesSearch(t, query) && matchesYear(t, ticketYearFilter));
+
+    // Extra narrowing applied when a priority card was clicked — see
+    // clearNarrowFilter()/the priority card handlers further down.
+    if (agingOnlyFilter) {
+      base = base.filter(t => {
+        if (t.status === 'Terminat' || !t.submitted_on) return false;
+        const daysOpen = (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24);
+        return daysOpen > AGING_THRESHOLD_DAYS;
+      });
+    }
+    if (typeOnlyFilter === 'functional') base = base.filter(t => t.type !== 'Anunt accident');
+    if (typeOnlyFilter === 'accident') base = base.filter(t => t.type === 'Anunt accident');
+
+    return base;
   }
 
   // Populates the "An" (Year) dropdown from whatever years actually
@@ -1089,14 +1233,7 @@
     chip.className = 'chip' + (c.key === activeFilter ? ' active' : '');
     chip.textContent = c.label;
     chip.dataset.key = c.key;
-    chip.addEventListener('click', () => {
-      activeFilter = c.key;
-      selectedIds.clear();
-      updateArchiveBar();
-      document.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
-      chip.classList.add('active');
-      renderTickets();
-    });
+    chip.addEventListener('click', () => setTicketFilter(c.key));
     chipsWrap.appendChild(chip);
   });
 
@@ -1118,7 +1255,33 @@
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
+    renderPrioritySummary();
     handlePendingTicketUrlParam();
+  }
+
+  // The 4 cards at the top of "Prezentare generală" — deliberately
+  // ignores whichever year is selected in the table below. These are
+  // meant to answer "what needs attention right now," and an active
+  // accident matters regardless of what year's archive someone
+  // happens to be browsing at the time.
+  function renderPrioritySummary(){
+    const active = allTickets.filter(t => !t.archived && t.status !== 'Terminat');
+    const agingCount = active.filter(t => {
+      if (!t.submitted_on) return false;
+      const daysOpen = (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24);
+      return daysOpen > AGING_THRESHOLD_DAYS;
+    }).length;
+    const accidentCount = active.filter(t => t.type === 'Anunt accident').length;
+    const funcCount = active.length - accidentCount;
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = String(value);
+    };
+    setText('prioActiveCount', active.length);
+    setText('prioAgingCount', agingCount);
+    setText('prioFuncCount', funcCount);
+    setText('prioAccidentCount', accidentCount);
   }
 
   // If the admin panel was just opened fresh (e.g. tapping a push
@@ -1150,10 +1313,12 @@
 
   function renderOverviewTable(){
     const tbody = document.getElementById('overviewTableBody');
+    const cardsWrap = document.getElementById('overviewCardsMobile');
     const visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter));
 
     if (visible.length === 0) {
       tbody.innerHTML = '<tr><td colspan="8" class="overview-empty">Nicio sesizare de afișat.</td></tr>';
+      if (cardsWrap) cardsWrap.innerHTML = '<div class="overview-empty">Nicio sesizare de afișat.</div>';
       return;
     }
 
@@ -1177,6 +1342,43 @@
         </tr>
       `;
     }).join('');
+
+    // Mobile/tablet card list — same data, deliberately different
+    // layout: address leads (that's what determines whether a
+    // technician needs to go there), ticket number/phone/date are
+    // secondary, and the whole card is one large tap target rather
+    // than a small text link.
+    if (cardsWrap) {
+      cardsWrap.innerHTML = ordered.map(t => {
+        const isDone = t.status === 'Terminat';
+        const isUrgent = t.type === 'Anunt accident';
+        const daysOpen = t.submitted_on ? (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
+        const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
+        return `
+          <button type="button" class="ov-card ${isDone ? 'done' : ''} ${isUrgent && !isDone ? 'urgent' : ''}" data-ticket-id="${t.id}">
+            <div class="ov-card-top">
+              <span class="status-bubble ${isDone ? 'done' : 'active'}"></span>
+              <span class="ov-card-type">${isUrgent ? 'Accident' : 'Funcțional'}</span>
+              <span class="ov-card-num">${escapeHtml(t.ticket_number || '—')}</span>
+            </div>
+            <div class="ov-card-address">${escapeHtml(t.address || '—')}</div>
+            <div class="ov-card-meta">
+              <span class="${isAging ? 'aging' : ''}">${isAging ? '⚠ ' : ''}${fmtDateOnly(t.submitted_on)}</span>
+              <span>${escapeHtml(t.name || '—')} · ${escapeHtml(t.phone || '—')}</span>
+            </div>
+            ${isDone ? `<div class="ov-card-resolved">Rezolvat: ${fmtDateOnly(t.resolved_on)}</div>` : ''}
+          </button>
+        `;
+      }).join('');
+    }
+  }
+
+  const overviewCardsMobileEl = document.getElementById('overviewCardsMobile');
+  if (overviewCardsMobileEl) {
+    overviewCardsMobileEl.addEventListener('click', (e) => {
+      const card = e.target.closest('.ov-card');
+      if (card) goToTicket(card.dataset.ticketId);
+    });
   }
 
   // Clicking a ticket number in the overview table jumps straight to
@@ -1184,19 +1386,54 @@
   // ticket filter to "Toate" first (so the card is guaranteed to
   // actually be rendered regardless of which filter was previously
   // selected), then scrolling to and briefly highlighting it.
-  function goToTicket(ticketId){
-    activeFilter = 'Toate';
+  function openAdminTab(tabKey){
+    document.querySelectorAll('.admin-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.tab === tabKey);
+    });
+    document.querySelectorAll('.admin-panel').forEach(p => {
+      p.classList.toggle('active', p.id === 'panel-' + tabKey);
+    });
+  }
+
+  function setTicketFilter(filterKey){
+    activeFilter = filterKey;
     selectedIds.clear();
     updateArchiveBar();
-    document.querySelectorAll('.chip').forEach(chip => {
-      chip.classList.toggle('active', chip.dataset.key === 'Toate');
+    document.querySelectorAll('#chipsWrap .chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
     renderTickets();
+  }
 
-    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
-    document.querySelector('.admin-tab[data-tab="tickets"]').classList.add('active');
-    document.getElementById('panel-tickets').classList.add('active');
+  function updateActiveNarrowFilterUI(){
+    const wrap = document.getElementById('activeNarrowFilter');
+    const label = document.getElementById('activeNarrowFilterLabel');
+    if (!wrap || !label) return;
+    let text = '';
+    if (agingOnlyFilter) text = 'Filtru activ: doar tichete deschise de peste ' + AGING_THRESHOLD_DAYS + ' zile';
+    else if (typeOnlyFilter === 'functional') text = 'Filtru activ: doar tichete funcționale';
+    else if (typeOnlyFilter === 'accident') text = 'Filtru activ: doar accidente';
+    label.textContent = text;
+    wrap.classList.toggle('show', !!text);
+  }
+
+  function clearNarrowFilter(){
+    agingOnlyFilter = false;
+    typeOnlyFilter = null;
+    updateActiveNarrowFilterUI();
+    renderTickets();
+  }
+
+  const clearNarrowFilterBtn = document.getElementById('clearNarrowFilterBtn');
+  if (clearNarrowFilterBtn) clearNarrowFilterBtn.addEventListener('click', clearNarrowFilter);
+
+  function goToTicket(ticketId){
+    agingOnlyFilter = false;
+    typeOnlyFilter = null;
+    updateActiveNarrowFilterUI();
+    if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
+    setTicketFilter('Toate');
+    openAdminTab('tickets');
 
     requestAnimationFrame(() => {
       const card = document.getElementById('ticket-card-' + ticketId);
@@ -1216,13 +1453,23 @@
   });
 
   /* ============================================================
-     OVERVIEW CHARTS — active vs. resolved counts, and average time
-     to resolution (overall + by ticket type). Chart instances are
+     OVERVIEW CHARTS — ticket volume by month, and average time to
+     resolution (overall + by ticket type). Chart instances are
      destroyed and recreated on every refresh rather than updated in
      place, since refreshes here are infrequent (only on load / after
      an edit) and this keeps the logic simple.
+
+     The pie chart that used to live here (active vs. resolved counts)
+     was dropped: once the priority cards existed, it was just
+     re-showing the same "Active" number a second time on the same
+     page in a weaker visual form — pie charts encode values in angle
+     and area, which people read far less precisely than the plain
+     number a card already shows. A ticket-volume-by-month chart earns
+     its place instead, since it's the one piece of information
+     nowhere else on this page shows: whether ticket volume is
+     climbing, flat, or shrinking over time.
      ============================================================ */
-  let statusPieChartInstance = null;
+  let ticketVolumeChartInstance = null;
   let resolutionTimeChartInstance = null;
 
   function formatDuration(hours){
@@ -1236,26 +1483,41 @@
 
   function renderOverviewCharts(){
     const visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter));
-    const activeCount = visible.filter(t => t.status !== 'Terminat').length;
-    const doneCount = visible.filter(t => t.status === 'Terminat').length;
 
-    const pieCanvas = document.getElementById('statusPieChart');
-    if (statusPieChartInstance) statusPieChartInstance.destroy();
-    if (typeof Chart !== 'undefined' && pieCanvas) {
-      statusPieChartInstance = new Chart(pieCanvas, {
-        type: 'pie',
+    const MONTH_NAMES = ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Noi','Dec'];
+    const monthCounts = {}; // 'YYYY-MM' -> count
+    visible.forEach(t => {
+      if (!t.submitted_on) return;
+      const d = new Date(t.submitted_on);
+      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      monthCounts[key] = (monthCounts[key] || 0) + 1;
+    });
+    const sortedKeys = Object.keys(monthCounts).sort();
+    const volumeLabels = sortedKeys.map(k => {
+      const [y, m] = k.split('-');
+      return MONTH_NAMES[parseInt(m, 10) - 1] + ' ' + y.slice(2);
+    });
+    const volumeData = sortedKeys.map(k => monthCounts[k]);
+
+    const volumeCanvas = document.getElementById('ticketVolumeChart');
+    if (ticketVolumeChartInstance) ticketVolumeChartInstance.destroy();
+    if (typeof Chart !== 'undefined' && volumeCanvas) {
+      ticketVolumeChartInstance = new Chart(volumeCanvas, {
+        type: 'bar',
         data: {
-          labels: ['Active (' + activeCount + ')', 'Rezolvate (' + doneCount + ')'],
+          labels: volumeLabels,
           datasets: [{
-            data: [activeCount, doneCount],
-            backgroundColor: ['#B5792F', '#3E7A57'],
-            borderWidth: 0,
+            data: volumeData,
+            backgroundColor: '#D11F24',
+            borderRadius: 3,
           }],
         },
         options: {
           responsive: true,
-          plugins: {
-            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } },
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } },
+            x: { ticks: { font: { size: 10 } } },
           },
         },
       });
@@ -1642,13 +1904,48 @@
      within the same authenticated dashboard (no second login needed).
      ============================================================ */
   document.querySelectorAll('.admin-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
-    });
+    tab.addEventListener('click', () => openAdminTab(tab.dataset.tab));
   });
+
+  // Priority summary cards — each one jumps to Sesizări with the
+  // ticket list narrowed to exactly what the card is describing,
+  // rather than just scrolling to a general area and leaving the
+  // user to hunt for the relevant rows themselves.
+  // If a priority card's narrowed filter matches exactly one ticket,
+  // skip the intermediate list entirely and jump straight to that
+  // ticket's editable card — same deep-link mechanism already used
+  // for ticket-number links and push notifications. With 2+ matches,
+  // a real judgment call is needed about which one matters most, so
+  // that case still falls back to the filtered list as before.
+  function openTicketsWith({ narrowAging = false, narrowType = null } = {}){
+    agingOnlyFilter = narrowAging;
+    typeOnlyFilter = narrowType;
+    if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
+    activeFilter = 'Ongoing';
+
+    const matches = getFilteredTickets();
+    if (matches.length === 1) {
+      goToTicket(matches[0].id); // this itself resets agingOnlyFilter/typeOnlyFilter — desired once we've landed
+      return;
+    }
+
+    updateActiveNarrowFilterUI();
+    setTicketFilter('Ongoing');
+    openAdminTab('tickets');
+  }
+
+  const prioActiveCard = document.getElementById('prioActiveCard');
+  if (prioActiveCard) prioActiveCard.addEventListener('click', () => openTicketsWith());
+
+  const prioAgingCard = document.getElementById('prioAgingCard');
+  if (prioAgingCard) prioAgingCard.addEventListener('click', () => openTicketsWith({ narrowAging: true }));
+
+  const prioFuncCard = document.getElementById('prioFuncCard');
+  if (prioFuncCard) prioFuncCard.addEventListener('click', () => openTicketsWith({ narrowType: 'functional' }));
+
+  const prioAccidentCard = document.getElementById('prioAccidentCard');
+  if (prioAccidentCard) prioAccidentCard.addEventListener('click', () => openTicketsWith({ narrowType: 'accident' }));
+
 
   /* ============================================================
      CURRENT PROJECTS — full CRUD (add/edit/delete) for the
