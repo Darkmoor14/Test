@@ -73,7 +73,7 @@
 
     .mobile-tab-bar{
       display:flex;position:fixed;left:0;right:0;bottom:0;z-index:200;
-      background:rgba(255,255,255,0.97);backdrop-filter:blur(10px);
+      background:var(--paper-000);
       border-top:1px solid var(--line-strong);
       padding-bottom:env(safe-area-inset-bottom, 0);
     }
@@ -89,6 +89,25 @@
     .mobile-tab-btn.active .mtb-dash{background:var(--copper-500);}
     /* leaves room so the fixed bar never covers the last bit of content */
     .dash{padding-bottom:64px;}
+
+    /* Sesizări toolbar on mobile: CSV export is a desktop power-user
+       action, not something worth the space here — hidden entirely.
+       The search box collapses to just a magnifying-glass button, and
+       expands into the real input only once tapped, rather than
+       permanently taking up room with a full-width text field and its
+       long placeholder. */
+    #exportBtn{display:none;}
+    .ticket-search-wrap{display:flex;align-items:center;position:relative;}
+    .search-icon-btn{
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;
+      width:38px;height:38px;border-radius:50%;
+      border:1px solid var(--line-strong);background:var(--paper-000);
+      color:var(--ink-600);cursor:pointer;
+    }
+    .search-icon-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
+    #ticketSearchBox{display:none;width:0;}
+    .ticket-search-wrap.expanded #ticketSearchBox{display:block;width:100%;margin-left:8px;}
+    .ticket-search-wrap.expanded .search-icon-btn{display:none;}
   }
   .nav-right{display:flex;align-items:center;gap:16px;}
   .nav-tag{font-family:var(--mono);font-size:12px;color:var(--ink-400);}
@@ -130,6 +149,12 @@
   .dash-head h1{font-size:26px;margin-bottom:6px;}
   .dash-head p{color:var(--ink-600);font-size:14.5px;}
   .toolbar{padding:20px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+  /* Desktop default: the wrapper adds no box of its own (children lay
+     out directly in the toolbar's flex row, unchanged from before),
+     and the icon-only toggle button stays hidden — that's a
+     mobile-only affordance, added below in the 900px breakpoint. */
+  .ticket-search-wrap{display:contents;}
+  .search-icon-btn{display:none;}
 
   .admin-tabs{display:flex;gap:6px;margin:24px 0 4px;border-bottom:1px solid var(--line);}
   .admin-tab{
@@ -489,7 +514,6 @@
     </div>
     <div class="nav-right">
       <span class="nav-tag" id="userTag"></span>
-      <button class="btn" id="enableNotifBtn" style="display:none;">Activează notificări</button>
       <button class="btn" id="logoutBtn" style="display:none;">Deconectare</button>
     </div>
   </nav>
@@ -598,7 +622,12 @@
             <select id="yearFilterSelectTickets"></select>
             <span class="year-warning" id="yearWarningTickets">⚠ Nu e anul curent</span>
           </div>
-          <input type="search" id="ticketSearchBox" placeholder="Caută adresă, nume, telefon, nr. sesizare…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:230px;">
+          <div class="ticket-search-wrap" id="ticketSearchWrap">
+            <button type="button" class="search-icon-btn" id="searchToggleBtn" aria-label="Căutare">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+            <input type="search" id="ticketSearchBox" placeholder="Caută adresă, nume, telefon, nr. sesizare…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:230px;">
+          </div>
           <div class="result-count" id="resultCount"></div>
           <button class="btn" id="exportBtn" type="button">⭳ Descarcă CSV</button>
         </div>
@@ -778,15 +807,7 @@
      registered device. Uses the standard, free Web Push protocol —
      no per-message cost like the WhatsApp integration this replaced.
      ============================================================ */
-  const enableNotifBtn = document.getElementById('enableNotifBtn');
   const VAPID_PUBLIC_KEY = 'BBQABSiPkAUnsoP8vP5NIFs6P0ZpkoUiHf7zl-_f5bDkSGVbL4gKDCtSPv0Y7sFhhWy5dbQPOqRxKdgx2TC0QZY';
-
-  // Only phones/tablets get the "Activează notificări" button — on a
-  // regular desktop browser there's no home-screen install step and
-  // no meaningful use case for it, so it's just hidden there entirely.
-  function isMobileDevice(){
-    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  }
 
   function urlBase64ToUint8Array(base64String){
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -801,7 +822,7 @@
     navigator.serviceWorker.register('sw.js')
       .then(reg => {
         swRegistration = reg;
-        if (currentSessionEmail) refreshNotifButtonState();
+        if (currentSessionEmail) maybeAutoPromptForNotifications();
       })
       .catch(err => console.warn('Service worker registration failed:', err));
 
@@ -826,69 +847,71 @@
     if (match) goToTicket(match.id);
   }
 
-  async function refreshNotifButtonState(){
-    if (!enableNotifBtn) return;
-    if (!isMobileDevice() || !('Notification' in window) || !swRegistration) {
-      enableNotifBtn.style.display = 'none';
+
+  // Requests notification permission and saves the push subscription.
+  // Used to live inside the old "Activează notificări" button's click
+  // handler — now called automatically instead (see
+  // maybeAutoPromptForNotifications below), so failures are logged
+  // rather than shown via alert(): an alert popping up unprompted the
+  // first time someone opens the app would be a jarring first
+  // impression for something they didn't explicitly ask to happen.
+  async function subscribeToPush(){
+    if (!swRegistration) {
+      console.warn('Push subscribe skipped: service worker not ready yet.');
       return;
     }
-    const existing = await swRegistration.pushManager.getSubscription();
-    if (existing || Notification.permission === 'granted') {
-      enableNotifBtn.textContent = 'Notificări active';
-      enableNotifBtn.disabled = true;
-    } else {
-      enableNotifBtn.textContent = 'Activează notificări';
-      enableNotifBtn.disabled = false;
+    try {
+      // Diagnostic check: confirm there's actually a valid logged-in
+      // session right before we try to save anything. The
+      // "push_subscriptions" table's RLS policy only allows the
+      // authenticated role to insert — if the session has expired,
+      // failed to persist, or isn't attached to this request for
+      // some other reason, the save fails with an opaque RLS error
+      // that doesn't explain why.
+      const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+      if (sessionError || !sessionData || !sessionData.session) {
+        console.warn('Push subscribe skipped: no valid session yet.');
+        return;
+      }
+
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        return; // a deliberate "no" from the user — nothing to do
+      }
+      const sub = await swRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+      const subJson = sub.toJSON();
+      const { error } = await supabaseClient.from('push_subscriptions').upsert({
+        endpoint: subJson.endpoint,
+        p256dh: subJson.keys.p256dh,
+        auth: subJson.keys.auth,
+      }, { onConflict: 'endpoint' });
+      if (error) {
+        console.error('Push subscription save failed:', error);
+        return;
+      }
+    } catch (err) {
+      console.error('Push subscription failed:', err);
     }
   }
 
-  if (enableNotifBtn) {
-    enableNotifBtn.addEventListener('click', async () => {
-      if (!swRegistration) {
-        alert('Notificările nu sunt disponibile pe acest dispozitiv/browser.');
-        return;
-      }
-      try {
-        // Diagnostic check: confirm there's actually a valid logged-in
-        // session right before we try to save anything. The
-        // "push_subscriptions" table's RLS policy only allows the
-        // authenticated role to insert — if the session has expired,
-        // failed to persist, or isn't attached to this request for
-        // some other reason, the save fails with an opaque RLS error
-        // that doesn't explain why. This check turns that into a
-        // clear, actionable message instead.
-        const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
-        if (sessionError || !sessionData || !sessionData.session) {
-          alert('Sesiunea de autentificare nu este validă. Deconectați-vă și autentificați-vă din nou, apoi încercați iar.');
-          return;
-        }
-
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-          alert('Notificările au fost refuzate. Le puteți activa din setările browserului.');
-          return;
-        }
-        const sub = await swRegistration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-        });
-        const subJson = sub.toJSON();
-        const { error } = await supabaseClient.from('push_subscriptions').upsert({
-          endpoint: subJson.endpoint,
-          p256dh: subJson.keys.p256dh,
-          auth: subJson.keys.auth,
-        }, { onConflict: 'endpoint' });
-        if (error) {
-          console.error(error);
-          alert('Eroare la salvarea abonării: ' + (error.message || JSON.stringify(error)) + ' | sesiune activă: ' + (sessionData.session ? 'da' : 'nu'));
-          return;
-        }
-        await refreshNotifButtonState();
-      } catch (err) {
-        console.error('Push subscription failed:', err);
-        alert('Eroare la activarea notificărilor: ' + (err && (err.message || err.name) || String(err)));
-      }
-    });
+  // Fires once, automatically, the very first time the installed app
+  // (not just a browser tab) is opened — replaces the old manual
+  // "Activează notificări" button entirely. Guarded by a localStorage
+  // flag so it only ever asks once, regardless of the answer.
+  const NOTIF_PROMPT_KEY = 'notifAutoPromptShownV1';
+  function isStandalonePwa(){
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+      || window.navigator.standalone === true;
+  }
+  function maybeAutoPromptForNotifications(){
+    if (!isStandalonePwa()) return;
+    if (localStorage.getItem(NOTIF_PROMPT_KEY)) return;
+    if (!swRegistration || !('Notification' in window)) return;
+    localStorage.setItem(NOTIF_PROMPT_KEY, '1'); // set first so a dismissal/crash can't re-trigger this forever
+    subscribeToPush();
   }
 
   let allTickets = [];
@@ -1204,24 +1227,14 @@
 
   function showDashboard(email){
     if (dash.classList.contains('show') && currentSessionEmail === email) {
-      if (enableNotifBtn && isMobileDevice()) refreshNotifButtonState();
+      maybeAutoPromptForNotifications();
       return;
     }
     currentSessionEmail = email;
     loginWrap.style.display = 'none';
     dash.classList.add('show');
     logoutBtn.style.display = 'inline-flex';
-    if (enableNotifBtn) {
-      // Checked synchronously here (not just inside refreshNotifButtonState)
-      // so the button never briefly flashes visible on desktop before
-      // being hidden — it's only ever shown on phones/tablets.
-      if (isMobileDevice()) {
-        enableNotifBtn.style.display = 'inline-flex';
-        refreshNotifButtonState();
-      } else {
-        enableNotifBtn.style.display = 'none';
-      }
-    }
+    maybeAutoPromptForNotifications();
     userTag.textContent = email;
     runAutoArchiveSweep().finally(() => {
       loadTickets();
@@ -1234,7 +1247,6 @@
     loginWrap.style.display = 'flex';
     dash.classList.remove('show');
     logoutBtn.style.display = 'none';
-    if (enableNotifBtn) enableNotifBtn.style.display = 'none';
     userTag.textContent = '';
     allTickets = [];
     selectedIds.clear();
@@ -1289,6 +1301,26 @@
     ticketSearchBox.addEventListener('input', () => {
       ticketSearchQuery = ticketSearchBox.value;
       renderTickets();
+    });
+  }
+
+  // Mobile-only: the magnifying-glass button expands the search box
+  // (which starts collapsed to save space); tapping the icon focuses
+  // it, and it collapses back only if left empty on blur — so a real,
+  // in-progress query never gets hidden out from under someone.
+  const searchToggleBtn = document.getElementById('searchToggleBtn');
+  const ticketSearchWrap = document.getElementById('ticketSearchWrap');
+  if (searchToggleBtn && ticketSearchWrap && ticketSearchBox) {
+    searchToggleBtn.addEventListener('click', () => {
+      ticketSearchWrap.classList.add('expanded');
+      searchToggleBtn.classList.add('active');
+      ticketSearchBox.focus();
+    });
+    ticketSearchBox.addEventListener('blur', () => {
+      if (!ticketSearchBox.value.trim()) {
+        ticketSearchWrap.classList.remove('expanded');
+        searchToggleBtn.classList.remove('active');
+      }
     });
   }
 
