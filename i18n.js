@@ -113,7 +113,7 @@ ro: {
   svc7_i1: "Instalaţii electrice de curenţi slabi",
   svc7_i2: "Instalaţii de comandă, control şi protecţii prin relee",
   svc7_i3: "Măsurarea rezistenţei de izolaţie şi continuitate",
-  svc8_tag: "Betoane", svc8_title: "Fabricare produselor din beton",
+  svc8_tag: "Betoane", svc8_title: "Fabricarea produselor din beton",
   svc8_i1: "Cămine",
   svc8_i2: "Capace de cămine",
 
