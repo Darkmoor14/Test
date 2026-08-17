@@ -95,8 +95,11 @@
        The search box collapses to just a magnifying-glass button, and
        expands into the real input only once tapped, rather than
        permanently taking up room with a full-width text field and its
-       long placeholder. */
-    #exportBtn{display:none;}
+       long placeholder. Same treatment applied to Proiecte curente's
+       toolbar below — Excel import hidden, search collapsed — while
+       "+ Adaugă proiect" stays, since adding a project is core
+       functionality, not a desktop convenience like the other two. */
+    #exportBtn, #importExcelBtn{display:none;}
     .ticket-search-wrap{display:flex;align-items:center;position:relative;}
     .search-icon-btn{
       display:flex;align-items:center;justify-content:center;flex-shrink:0;
@@ -105,8 +108,9 @@
       color:var(--ink-600);cursor:pointer;
     }
     .search-icon-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
-    #ticketSearchBox{display:none;width:0;}
-    .ticket-search-wrap.expanded #ticketSearchBox{display:block;width:100%;margin-left:8px;}
+    #ticketSearchBox, #projectSearchBox{display:none;width:0;}
+    .ticket-search-wrap.expanded #ticketSearchBox,
+    .ticket-search-wrap.expanded #projectSearchBox{display:block;width:100%;margin-left:8px;}
     .ticket-search-wrap.expanded .search-icon-btn{display:none;}
   }
   .nav-right{display:flex;align-items:center;gap:16px;}
@@ -148,10 +152,48 @@
   .dash-head{padding:36px 0 24px;border-bottom:1px solid var(--line);}
   .dash-head h1{font-size:26px;margin-bottom:6px;}
   .dash-head p{color:var(--ink-600);font-size:14.5px;}
+  /* Mobile-only logout link — the header (which normally holds the
+     logout button) is hidden entirely below 900px, so this is the
+     one bit of header functionality that needs a new home. Kept
+     deliberately small and out of the way rather than another
+     floating button. */
+  .mobile-logout-link{display:none;}
+  @media(max-width:900px){
+    header{display:none;}
+    .dash-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+    .mobile-logout-link{
+      display:inline-block;flex-shrink:0;margin-top:36px;
+      font-family:var(--mono);font-size:12px;color:var(--ink-600);
+      background:none;border:1px solid var(--line-strong);border-radius:3px;
+      padding:6px 10px;cursor:pointer;
+    }
+  }
+
+  /* ===== BACK TO TOP =====
+     Same small floating button on both desktop and mobile — appears
+     once you've scrolled down a bit, fades out near the top. On
+     mobile it sits just above the bottom tab bar rather than
+     overlapping it. */
+  .back-to-top{
+    position:fixed;right:20px;bottom:24px;z-index:150;
+    width:44px;height:44px;border-radius:50%;
+    background:var(--paper-000);border:1px solid var(--line-strong);
+    color:var(--ink-700);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 2px 10px rgba(20,24,29,0.15);
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+    transform:translateY(8px);
+  }
+  .back-to-top.show{opacity:1;pointer-events:auto;transform:translateY(0);}
+  .back-to-top:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  @media(max-width:900px){
+    .back-to-top{bottom:calc(64px + env(safe-area-inset-bottom, 0) + 16px);}
+  }
+
   .toolbar{padding:20px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
   /* Desktop default: the wrapper adds no box of its own (children lay
      out directly in the toolbar's flex row, unchanged from before),
-     and the icon-only toggle button stays hidden — that's a
+     so the icon-only toggle button stays hidden — that's a
      mobile-only affordance, added below in the 900px breakpoint. */
   .ticket-search-wrap{display:contents;}
   .search-icon-btn{display:none;}
@@ -541,8 +583,11 @@
 <div class="dash" id="dash">
   <div class="wrap">
     <div class="dash-head">
-      <h1>Insta Grup Admin</h1>
-      <p>Gestionați tichetele primite prin formularul de pe site și proiectele afișate public.</p>
+      <div>
+        <h1>Insta Grup Admin</h1>
+        <p>Gestionați tichetele primite prin formularul de pe site și proiectele afișate public.</p>
+      </div>
+      <button type="button" class="mobile-logout-link" id="mobileLogoutBtn">Deconectare</button>
     </div>
 
     <div class="admin-tabs">
@@ -660,7 +705,12 @@
             <select id="projectYearFilterSelect"></select>
             <span class="year-warning" id="yearWarningProjects">⚠ Nu e anul curent</span>
           </div>
-          <input type="search" id="projectSearchBox" placeholder="Caută titlu, adresă…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:200px;">
+          <div class="ticket-search-wrap" id="projectSearchWrap">
+            <button type="button" class="search-icon-btn" id="projectSearchToggleBtn" aria-label="Căutare">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+            <input type="search" id="projectSearchBox" placeholder="Caută titlu, adresă…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:200px;">
+          </div>
           <div class="result-count" id="projectsCount"></div>
           <input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none;">
           <button class="btn" id="importExcelBtn" type="button">⭳ Importă din Excel</button>
@@ -1276,10 +1326,13 @@
     }
   });
 
-  logoutBtn.addEventListener('click', async () => {
+  async function performLogout(){
     await supabaseClient.auth.signOut();
     showLogin();
-  });
+  }
+  logoutBtn.addEventListener('click', performLogout);
+  const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+  if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', performLogout);
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
     if (session) {
@@ -2235,6 +2288,22 @@
     });
   }
 
+  const projectSearchToggleBtn = document.getElementById('projectSearchToggleBtn');
+  const projectSearchWrap = document.getElementById('projectSearchWrap');
+  if (projectSearchToggleBtn && projectSearchWrap && projectSearchBox) {
+    projectSearchToggleBtn.addEventListener('click', () => {
+      projectSearchWrap.classList.add('expanded');
+      projectSearchToggleBtn.classList.add('active');
+      projectSearchBox.focus();
+    });
+    projectSearchBox.addEventListener('blur', () => {
+      if (!projectSearchBox.value.trim()) {
+        projectSearchWrap.classList.remove('expanded');
+        projectSearchToggleBtn.classList.remove('active');
+      }
+    });
+  }
+
   const projectYearFilterSelect = document.getElementById('projectYearFilterSelect');
   if (projectYearFilterSelect) {
     projectYearFilterSelect.addEventListener('change', () => {
@@ -2592,6 +2661,10 @@
   checkSession();
 </script>
 
+<button type="button" class="back-to-top" id="backToTopBtn" aria-label="Înapoi sus">
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+</button>
+
 <div class="mobile-tab-bar" id="mobileTabBar">
   <button type="button" class="mobile-tab-btn active" data-tab="overview">
     <span class="mtb-dash"></span>
@@ -2614,6 +2687,18 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   });
+
+  // Back-to-top — same button on both desktop and mobile, fades in
+  // once there's meaningfully far to scroll back.
+  const backToTopBtn = document.getElementById('backToTopBtn');
+  if (backToTopBtn) {
+    backToTopBtn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    window.addEventListener('scroll', () => {
+      backToTopBtn.classList.toggle('show', window.scrollY > 400);
+    }, { passive: true });
+  }
 </script>
 
 </body>
