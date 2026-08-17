@@ -54,8 +54,41 @@
   }
   .header-tab-btn:hover{color:var(--ink-900);background:var(--paper-100);}
   .header-tab-btn.active{color:var(--copper-600);background:var(--copper-050);}
-  @media(max-width:700px){
-    .header-tab-btn{font-size:12px;padding:7px 8px;}
+
+  /* ===== MOBILE BOTTOM TAB BAR =====
+     The top header's logo-swap-to-tabs trick doesn't hold up on a
+     phone — three Romanian tab labels have to fight the logo *and*
+     the user tag/notif/logout buttons for space in one ~76px row,
+     and something always loses. Below 900px, that swap is disabled
+     entirely (logo just stays put) and this bar takes over instead:
+     fixed to the bottom of the screen, where it has the full width
+     to itself and isn't competing with anything. Same underlying
+     need — jump between tabs from anywhere without scrolling back up
+     — solved with a pattern that's actually native to phones instead
+     of borrowed from desktop. */
+  .mobile-tab-bar{display:none;}
+  @media(max-width:900px){
+    .nav-header-tabs{display:none !important;}
+    header.scrolled .logo-img{display:block !important;}
+
+    .mobile-tab-bar{
+      display:flex;position:fixed;left:0;right:0;bottom:0;z-index:200;
+      background:rgba(255,255,255,0.97);backdrop-filter:blur(10px);
+      border-top:1px solid var(--line-strong);
+      padding-bottom:env(safe-area-inset-bottom, 0);
+    }
+    .mobile-tab-btn{
+      flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:4px;padding:10px 4px 8px;background:none;border:none;cursor:pointer;
+      font-family:var(--mono);font-size:11px;color:var(--ink-600);
+    }
+    .mobile-tab-btn .mtb-dash{
+      width:20px;height:2px;background:transparent;border-radius:1px;
+    }
+    .mobile-tab-btn.active{color:var(--copper-600);}
+    .mobile-tab-btn.active .mtb-dash{background:var(--copper-500);}
+    /* leaves room so the fixed bar never covers the last bit of content */
+    .dash{padding-bottom:64px;}
   }
   .nav-right{display:flex;align-items:center;gap:16px;}
   .nav-tag{font-family:var(--mono);font-size:12px;color:var(--ink-400);}
@@ -1430,6 +1463,9 @@
     document.querySelectorAll('.header-tab-btn').forEach(t => {
       t.classList.toggle('active', t.dataset.tab === tabKey);
     });
+    document.querySelectorAll('.mobile-tab-btn').forEach(t => {
+      t.classList.toggle('active', t.dataset.tab === tabKey);
+    });
     document.querySelectorAll('.admin-panel').forEach(p => {
       p.classList.toggle('active', p.id === 'panel-' + tabKey);
     });
@@ -2522,6 +2558,30 @@
   });
 
   checkSession();
+</script>
+
+<div class="mobile-tab-bar" id="mobileTabBar">
+  <button type="button" class="mobile-tab-btn active" data-tab="overview">
+    <span class="mtb-dash"></span>
+    <span>Prezentare</span>
+  </button>
+  <button type="button" class="mobile-tab-btn" data-tab="tickets">
+    <span class="mtb-dash"></span>
+    <span>Sesizări</span>
+  </button>
+  <button type="button" class="mobile-tab-btn" data-tab="projects">
+    <span class="mtb-dash"></span>
+    <span>Proiecte</span>
+  </button>
+</div>
+
+<script>
+  document.querySelectorAll('.mobile-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      openAdminTab(btn.dataset.tab);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
 </script>
 
 </body>
