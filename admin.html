@@ -79,7 +79,7 @@
     }
     .mobile-tab-btn{
       flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-      gap:4px;padding:10px 4px 8px;background:none;border:none;cursor:pointer;
+      gap:4px;padding:18px 4px 16px;background:none;border:none;cursor:pointer;
       font-family:var(--mono);font-size:11px;color:var(--ink-600);
     }
     .mobile-tab-btn .mtb-dash{
@@ -88,7 +88,7 @@
     .mobile-tab-btn.active{color:var(--copper-600);}
     .mobile-tab-btn.active .mtb-dash{background:var(--copper-500);}
     /* leaves room so the fixed bar never covers the last bit of content */
-    .dash{padding-bottom:64px;}
+    .dash{padding-bottom:82px;}
 
     /* Sesizări toolbar on mobile: CSV export is a desktop power-user
        action, not something worth the space here — hidden entirely.
@@ -160,6 +160,7 @@
   .mobile-logout-link{display:none;}
   @media(max-width:900px){
     header{display:none;}
+    .admin-tabs{display:none;}
     .dash-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
     .mobile-logout-link{
       display:inline-block;flex-shrink:0;margin-top:36px;
@@ -187,7 +188,7 @@
   .back-to-top.show{opacity:1;pointer-events:auto;transform:translateY(0);}
   .back-to-top:hover{border-color:var(--copper-500);color:var(--copper-600);}
   @media(max-width:900px){
-    .back-to-top{bottom:calc(64px + env(safe-area-inset-bottom, 0) + 16px);}
+    .back-to-top{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px);}
   }
 
   .toolbar{padding:20px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
