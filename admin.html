@@ -1399,16 +1399,16 @@
     chipsWrap.appendChild(chip);
   });
 
-  async function loadTickets(){
+  async function loadTickets(silent){
     const list = document.getElementById('ticketList');
-    list.innerHTML = '<div class="no-results">Se încarcă...</div>';
+    if (!silent) list.innerHTML = '<div class="no-results">Se încarcă...</div>';
     const { data, error } = await supabaseClient
       .from('tickets')
       .select('*')
       .order('submitted_on', { ascending: false });
 
     if (error) {
-      list.innerHTML = '<div class="no-results">Eroare la încărcarea tichetelor. Reîncercați.</div>';
+      if (!silent) list.innerHTML = '<div class="no-results">Eroare la încărcarea tichetelor. Reîncercați.</div>';
       console.error(error);
       return;
     }
@@ -2666,6 +2666,39 @@
   });
 
   checkSession();
+
+  // Auto-refresh — keeps tickets/projects current without a manual
+  // reload, e.g. when a new sesizare comes in or a colleague updates
+  // something while this tab is sitting open. A few things it
+  // deliberately avoids:
+  //  - No "Se încarcă..." flash: silent=true skips that, so a
+  //    background refresh doesn't visibly disrupt what's on screen.
+  //  - Never fires while the tab is in the background — no point
+  //    spending API calls on a tab nobody's looking at, and it means
+  //    the freshest data loads the moment you switch back instead.
+  //  - Skips the cycle entirely if focus is currently in a text
+  //    input/textarea/select — renderTickets()/renderProjects() both
+  //    rebuild their cards from scratch, which would otherwise wipe
+  //    out something like a half-typed resolution note mid-edit. It
+  //    just retries on the next interval instead of forcing the
+  //    issue.
+  const AUTO_REFRESH_MS = 60000;
+  function isUserActivelyEditing(){
+    const el = document.activeElement;
+    if (!el) return false;
+    return ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName);
+  }
+  function silentRefresh(){
+    if (!currentSessionEmail) return;
+    if (document.hidden) return;
+    if (isUserActivelyEditing()) return;
+    loadTickets(true);
+    loadProjects();
+  }
+  setInterval(silentRefresh, AUTO_REFRESH_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) silentRefresh();
+  });
 </script>
 
 <button type="button" class="back-to-top" id="backToTopBtn" aria-label="Înapoi sus">
