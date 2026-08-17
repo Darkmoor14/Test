@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Insta Grup Admin</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="manifest" href="manifest.json">
@@ -160,8 +160,14 @@
   .mobile-logout-link{display:none;}
   @media(max-width:900px){
     header{display:none;}
-    .admin-tabs{display:none;}
-    .dash-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+    .admin-tabs{display:none !important;}
+    .dash-head{
+      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+      /* header is gone on mobile, so this is now the top of the page —
+         padding-top keeps it clear of the status bar / notch area,
+         which viewport-fit=cover now lets content render behind */
+      padding-top:calc(36px + env(safe-area-inset-top, 0));
+    }
     .mobile-logout-link{
       display:inline-block;flex-shrink:0;margin-top:36px;
       font-family:var(--mono);font-size:12px;color:var(--ink-600);
