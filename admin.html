@@ -203,6 +203,26 @@
     .back-to-top{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px);}
   }
 
+  /* ===== TOAST NOTIFICATION =====
+     Small confirmation box after a save — bottom-center, above
+     everything else including the mobile tab bar. Same offset trick
+     as .back-to-top on mobile so it never overlaps that bar. */
+  .toast{
+    position:fixed;left:50%;bottom:24px;z-index:250;
+    transform:translate(-50%,12px);
+    background:var(--ink-900);color:#fff;
+    padding:12px 20px;border-radius:6px;
+    font-family:var(--body);font-size:13.5px;font-weight:500;
+    box-shadow:0 8px 24px rgba(20,24,29,0.25);
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+    display:flex;align-items:center;gap:8px;max-width:90vw;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0);}
+  .toast .toast-dot{width:7px;height:7px;border-radius:50%;background:var(--signal-green);flex-shrink:0;}
+  @media(max-width:900px){
+    .toast{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px);}
+  }
+
   .toolbar{padding:20px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
   /* Desktop default: the wrapper adds no box of its own (children lay
      out directly in the toolbar's flex row, unchanged from before),
@@ -1237,10 +1257,17 @@
   // is interpreted as local time by the browser, matching what the
   // admin actually typed/picked, then converted to ISO (UTC) for
   // storage, consistent with how the rest of the app stores dates.
+  // Both callers used to send `null` when left blank, relying on a
+  // Supabase trigger to fall back to "now" — defaulting to the
+  // current moment right here instead means that trigger dependency
+  // is no longer needed at all for the common "just resolved this
+  // now" case; it only still matters if someone wants a genuinely
+  // backdated timestamp AND the trigger doesn't respect an explicit
+  // value (worth checking, but no longer blocking for typical use).
   function combineDateTimeToISO(dateStr, timeStr){
-    if (!dateStr) return null;
+    if (!dateStr) return new Date().toISOString();
     const d = new Date(`${dateStr}T${timeStr || '00:00'}`);
-    if (isNaN(d.getTime())) return null;
+    if (isNaN(d.getTime())) return new Date().toISOString();
     return d.toISOString();
   }
 
@@ -1947,6 +1974,7 @@
             alert('Eroare la salvare. Încercați din nou.');
             return;
           }
+          showToast(`Tichetul ${t.ticket_number || ''} a fost salvat.`);
           loadTickets();
         });
       }
@@ -2570,11 +2598,11 @@
       return;
     }
 
-    // Only overwrite submitted_on if the admin actually picked a
-    // date — leaving it blank means "just use whatever create_ticket
-    // already stamped" (i.e. right now), same as the public form.
-    const customSubmittedOn = combineDateTimeToISO(dateVal, timeVal);
-    if (customSubmittedOn) {
+    // Only bother with the extra UPDATE call if the admin actually
+    // picked a date — left blank, create_ticket's own default (now)
+    // is already accurate, no follow-up needed.
+    if (dateVal) {
+      const customSubmittedOn = combineDateTimeToISO(dateVal, timeVal);
       const { error: dateError } = await supabaseClient
         .from('tickets')
         .update({ submitted_on: customSubmittedOn })
@@ -2591,6 +2619,7 @@
     saveBtn.disabled = false;
     saveBtn.textContent = 'Salvează sesizarea';
     ticketAddForm.style.display = 'none';
+    showToast(`Sesizarea ${ticketNumber} a fost creată.`);
     loadTickets();
   });
 
@@ -2639,6 +2668,7 @@
       return;
     }
     projectForm.style.display = 'none';
+    showToast(id ? 'Proiectul a fost actualizat.' : 'Proiectul a fost adăugat.');
     loadProjects();
   });
 
@@ -2819,6 +2849,11 @@
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
 </button>
 
+<div class="toast" id="toastNotification">
+  <span class="toast-dot"></span>
+  <span id="toastMessage"></span>
+</div>
+
 <div class="mobile-tab-bar" id="mobileTabBar">
   <button type="button" class="mobile-tab-btn active" data-tab="overview">
     <span class="mtb-dash"></span>
@@ -2852,6 +2887,21 @@
     window.addEventListener('scroll', () => {
       backToTopBtn.classList.toggle('show', window.scrollY > 400);
     }, { passive: true });
+  }
+
+  // Toast notification — brief confirmation after a save, called from
+  // the ticket-resolve save handler and the "Add sesizare" save
+  // handler further up. Defined here rather than a separate function
+  // library file; reused as-is if more save flows want it later.
+  let toastTimer = null;
+  function showToast(message){
+    const toast = document.getElementById('toastNotification');
+    const msgEl = document.getElementById('toastMessage');
+    if (!toast || !msgEl) return;
+    msgEl.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
   }
 </script>
 
