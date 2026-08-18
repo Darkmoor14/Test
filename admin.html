@@ -351,9 +351,9 @@
   .overview-table col.col-date{width:9%;}
   .overview-table col.col-type{width:8%;}
   .overview-table col.col-name{width:12%;}
-  .overview-table col.col-phone{width:8%;}
+  .overview-table col.col-phone{width:10%;}
   .overview-table col.col-address{width:22%;}
-  .overview-table col.col-status{width:11%;}
+  .overview-table col.col-status{width:9%;}
   .overview-table col.col-resolved{width:9%;}
   .overview-table col.col-duration{width:11%;}
   .overview-table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -379,17 +379,14 @@
   .status-bubble{width:11px;height:11px;border-radius:50%;display:block;flex-shrink:0;}
   .status-bubble.active{background:var(--signal-orange);}
   .status-bubble.done{background:var(--signal-green);}
-  /* Real chip rather than a bare dot + text floating in whitespace —
-     tinted background matching the dot's own color, so status reads
-     as one designed unit instead of two loose elements. Scoped dot
-     size here (not a change to .status-bubble itself) so the mobile
-     card view's dot is completely unaffected — this only applies
-     inside the new desktop-table pill. */
+  /* Real chip rather than bare text — tinted background matching the
+     status color. Text-only now (dot removed to save width); padding
+     is a bit more even left/right since there's no dot to balance
+     against on the left anymore. */
   .status-pill{
-    display:inline-flex;align-items:center;gap:6px;
-    font-size:12px;font-weight:600;padding:4px 10px 4px 8px;border-radius:20px;
+    display:inline-flex;align-items:center;
+    font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;
   }
-  .status-pill .status-bubble{width:7px;height:7px;}
   .status-pill-active{background:var(--signal-orange-bg);color:var(--signal-orange);}
   .status-pill-done{background:var(--signal-green-bg);color:var(--signal-green);}
   .overview-empty{padding:24px;text-align:center;color:var(--ink-400);font-size:13px;}
@@ -1625,7 +1622,7 @@
           <td class="overview-name-cell" title="${escapeHtml(t.name || '')}">${escapeHtml(t.name || '—')}</td>
           <td>${escapeHtml(t.phone || '—')}</td>
           <td class="overview-address-cell">${escapeHtml(t.address || '—')}</td>
-          <td><span class="status-pill ${isDone ? 'status-pill-done' : 'status-pill-active'}"><span class="status-bubble ${isDone ? 'done' : 'active'}"></span>${isDone ? 'Terminat' : 'În curs'}</span></td>
+          <td><span class="status-pill ${isDone ? 'status-pill-done' : 'status-pill-active'}">${isDone ? 'Terminat' : 'În curs'}</span></td>
           <td>${isDone ? fmtDateOnly(t.resolved_on) : '—'}</td>
           <td>${resolutionHours !== null ? formatDuration(resolutionHours) : '—'}</td>
         </tr>
