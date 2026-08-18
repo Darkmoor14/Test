@@ -574,6 +574,13 @@
   .ticket-body .full{grid-column:1/-1;}
   .ticket-body .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;color:var(--ink-400);letter-spacing:0.04em;display:block;margin-bottom:2px;}
   .ticket-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding-top:14px;border-top:1px solid var(--line);}
+  /* Forces Salvează/Dezarhivează onto its own full-width row below
+     the other controls, rather than trying to fit alongside them in
+     the same flex row — sidesteps any width-fitting problem between
+     it and its neighbors entirely, since it no longer competes with
+     them for horizontal space at all. */
+  .ticket-controls .f-save,
+  .ticket-controls .f-restore{flex-basis:100%;margin-top:6px;}
   .resolved-date-field{min-width:320px;}
   .resnote-field{min-width:220px;}
   .resolved-datetime-row{display:flex;gap:6px;align-items:center;}
