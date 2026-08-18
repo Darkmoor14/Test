@@ -2056,12 +2056,16 @@
             address: addressVal,
             description: descriptionVal || null,
           };
-          // Only included in the payload — i.e. only ever written —
-          // when actually resolving the ticket right now. See the
-          // comment above where resolvedOnISO is computed.
-          if (newStatus === 'Terminat') {
-            payload.resolved_on = resolvedOnISO;
-          }
+          // Terminat → resolvedOnISO (computed above). Anything else
+          // → explicitly cleared to null, not just left untouched —
+          // an Ongoing ticket shouldn't retain a stale resolved
+          // timestamp from an earlier accidental save, and this is
+          // also what actually lets you reset it: switching to
+          // Terminat, clearing the date fields, then back to Activ
+          // only works if saving while Activ genuinely clears the
+          // column rather than silently leaving the old value in
+          // place underneath.
+          payload.resolved_on = (newStatus === 'Terminat') ? resolvedOnISO : null;
 
           const { error } = await supabaseClient
             .from('tickets')
