@@ -24,6 +24,7 @@
     --signal-green:#3E7A57; --signal-green-bg:#E9F3EC;
     --signal-red:#B5502F; --signal-red-bg:#FBEDE7;
     --signal-orange:#B5792F; --signal-orange-bg:#FBF2E7;
+    --signal-blue:#2F6FB5; --signal-blue-hover:#255A93;
     --display:'Space Grotesk',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -302,7 +303,12 @@
   .overview-table-wrap{
     border:1px solid var(--line-strong);border-radius:4px;
     background:var(--paper-000);
-    max-height:460px;overflow-y:auto;overflow-x:auto;
+    /* Capped at ~10 data rows (header + 10 × row height, calculated
+       from the padding/font-size below) with its own scrollbar, kept
+       independent from the page's scroll — the header stays pinned
+       via position:sticky on .overview-table th as you scroll within
+       this box specifically. */
+    max-height:420px;overflow-y:auto;overflow-x:auto;
   }
   .overview-table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap;}
   .overview-table th{
@@ -322,9 +328,10 @@
   .status-bubble{width:11px;height:11px;border-radius:50%;display:block;}
   .status-bubble.active{background:var(--signal-orange);}
   .status-bubble.done{background:var(--signal-green);}
+  .status-pill{display:inline-flex;align-items:center;gap:7px;font-size:13px;}
   .overview-empty{padding:24px;text-align:center;color:var(--ink-400);font-size:13px;}
-  .ticket-link{color:var(--copper-600);text-decoration:underline;text-underline-offset:2px;font-weight:500;}
-  .ticket-link:hover{color:var(--copper-500);}
+  .ticket-link{color:var(--signal-blue);text-decoration:underline;text-underline-offset:2px;font-weight:500;}
+  .ticket-link:hover{color:var(--signal-blue-hover);}
   @keyframes ticket-jump-highlight{
     0%{box-shadow:0 0 0 3px var(--copper-500);}
     100%{box-shadow:0 0 0 3px transparent;}
@@ -618,12 +625,12 @@
         <button type="button" class="priority-card" id="prioFuncCard">
           <span class="k">● Funcționale</span>
           <div class="num" id="prioFuncCount">0</div>
-          <div class="sub">Sesizări active, fără urgență</div>
+          <div class="sub">Sesizări active, fără pericol iminent</div>
         </button>
         <button type="button" class="priority-card danger" id="prioAccidentCard">
           <span class="k">⛔ Accidente</span>
           <div class="num" id="prioAccidentCount">0</div>
-          <div class="sub">Urgențe active — pericol imediat</div>
+          <div class="sub">Urgențe active — pericol iminent</div>
         </button>
       </div>
 
@@ -637,14 +644,15 @@
           <table class="overview-table" id="overviewTable">
             <thead>
               <tr>
-                <th></th>
-                <th>Data</th>
-                <th>Nr.</th>
-                <th>Tip</th>
-                <th>Nume</th>
+                <th>Nr. sesizare</th>
+                <th>Data sesizării</th>
+                <th>Tip sesizare</th>
+                <th>Nume reclamant</th>
                 <th>Telefon</th>
-                <th>Adresă</th>
-                <th>Rezolvat</th>
+                <th>Adresă identificare loc defect</th>
+                <th>Stare sesizare</th>
+                <th>Data soluționării</th>
+                <th>Timp de soluționare</th>
               </tr>
             </thead>
             <tbody id="overviewTableBody"></tbody>
@@ -1101,6 +1109,17 @@
     return [...urgentActive, ...regularActive, ...done];
   }
 
+  // Used specifically by the overview table/cards — pure chronological
+  // order by submission date, newest first, regardless of status.
+  // sortTicketsForDisplay() above (still used on the Sesizări tab
+  // itself) intentionally groups urgent-first for triage purposes;
+  // the overview table is more of a straightforward activity log, so
+  // resolved tickets shouldn't get pushed out of their actual place
+  // in the timeline.
+  function sortTicketsChronological(tickets){
+    return [...tickets].sort((a, b) => new Date(b.submitted_on) - new Date(a.submitted_on));
+  }
+
   let agingOnlyFilter = false;
   let typeOnlyFilter = null; // null | 'functional' | 'accident'
 
@@ -1479,28 +1498,32 @@
     const visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter));
 
     if (visible.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="overview-empty">Nicio sesizare de afișat.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="overview-empty">Nicio sesizare de afișat.</td></tr>';
       if (cardsWrap) cardsWrap.innerHTML = '<div class="overview-empty">Nicio sesizare de afișat.</div>';
       return;
     }
 
-    const ordered = sortTicketsForDisplay(visible);
+    const ordered = sortTicketsChronological(visible);
 
     tbody.innerHTML = ordered.map(t => {
       const isDone = t.status === 'Terminat';
       const isUrgent = t.type === 'Anunt accident';
       const daysOpen = t.submitted_on ? (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
       const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
+      const resolutionHours = (isDone && t.resolved_on && t.submitted_on)
+        ? (new Date(t.resolved_on) - new Date(t.submitted_on)) / (1000 * 60 * 60)
+        : null;
       return `
         <tr class="${isDone ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''}">
-          <td><span class="status-bubble ${isDone ? 'done' : 'active'}" title="${isDone ? 'Rezolvat' : 'Activ'}"></span></td>
-          <td class="${isAging ? 'aging-date' : ''}" title="${isAging ? 'Deschis de peste ' + AGING_THRESHOLD_DAYS + ' zile' : ''}">${isAging ? '⚠ ' : ''}${fmtDateOnly(t.submitted_on)}</td>
           <td class="overview-ticket-num"><a href="#" class="ticket-link" data-ticket-id="${t.id}">${escapeHtml(t.ticket_number || '—')}</a></td>
+          <td class="${isAging ? 'aging-date' : ''}" title="${isAging ? 'Deschis de peste ' + AGING_THRESHOLD_DAYS + ' zile' : ''}">${isAging ? '⚠ ' : ''}${fmtDateOnly(t.submitted_on)}</td>
           <td>${isUrgent ? 'Accident' : 'Funcțional'}</td>
           <td>${escapeHtml(t.name || '—')}</td>
           <td>${escapeHtml(t.phone || '—')}</td>
           <td>${escapeHtml(t.address || '—')}</td>
+          <td><span class="status-pill"><span class="status-bubble ${isDone ? 'done' : 'active'}"></span>${isDone ? 'Terminat' : 'În curs'}</span></td>
           <td>${isDone ? fmtDateOnly(t.resolved_on) : '—'}</td>
+          <td>${resolutionHours !== null ? formatDuration(resolutionHours) : '—'}</td>
         </tr>
       `;
     }).join('');
