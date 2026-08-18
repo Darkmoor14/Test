@@ -313,26 +313,30 @@
   .overview-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px;}
   /* Explicit widths (table-layout:fixed) instead of letting the
      browser distribute space based on content length — that's what
-     was leaving odd, uneven gaps between columns before. Address
-     gets noticeably more room since it's the longest, most variable
-     field; short fixed-format columns (dates, phone, status) get
-     just enough. */
-  .overview-table col.col-num{width:9%;}
+     was leaving odd, uneven gaps between columns before. Headers
+     wrap onto a second line where needed rather than being forced
+     onto one and cut off (same idea as the address cells below,
+     which already wrap and shouldn't change) — with headers this
+     descriptive in a 9-column table, something has to give, and a
+     wrapped label reads far better than a truncated one. */
+  .overview-table col.col-num{width:10%;}
   .overview-table col.col-date{width:9%;}
   .overview-table col.col-type{width:8%;}
-  .overview-table col.col-name{width:11%;}
-  .overview-table col.col-phone{width:9%;}
-  .overview-table col.col-address{width:24%;}
-  .overview-table col.col-status{width:10%;}
-  .overview-table col.col-resolved{width:10%;}
-  .overview-table col.col-duration{width:10%;}
-  .overview-table td, .overview-table th{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .overview-table td.overview-address-cell{white-space:normal;}
+  .overview-table col.col-name{width:12%;}
+  .overview-table col.col-phone{width:8%;}
+  .overview-table col.col-address{width:22%;}
+  .overview-table col.col-status{width:11%;}
+  .overview-table col.col-resolved{width:9%;}
+  .overview-table col.col-duration{width:11%;}
+  .overview-table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .overview-table td.overview-address-cell,
+  .overview-table td.overview-name-cell{white-space:normal;}
   .overview-table th{
     position:sticky;top:0;background:var(--paper-050);z-index:1;
     text-align:left;padding:10px 12px;font-family:var(--mono);font-size:10px;
     text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-600);
     border-bottom:1px solid var(--line-strong);
+    white-space:normal;line-height:1.35;
   }
   .overview-table td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink-900);}
   .overview-table tr:last-child td{border-bottom:none;}
@@ -1554,7 +1558,7 @@
           <td class="overview-ticket-num"><a href="#" class="ticket-link" data-ticket-id="${t.id}">${escapeHtml(t.ticket_number || '—')}</a></td>
           <td class="${isAging ? 'aging-date' : ''}" title="${isAging ? 'Deschis de peste ' + AGING_THRESHOLD_DAYS + ' zile' : ''}">${isAging ? '⚠ ' : ''}${fmtDateOnly(t.submitted_on)}</td>
           <td>${isUrgent ? 'Accident' : 'Funcțional'}</td>
-          <td title="${escapeHtml(t.name || '')}">${escapeHtml(t.name || '—')}</td>
+          <td class="overview-name-cell" title="${escapeHtml(t.name || '')}">${escapeHtml(t.name || '—')}</td>
           <td>${escapeHtml(t.phone || '—')}</td>
           <td class="overview-address-cell">${escapeHtml(t.address || '—')}</td>
           <td><span class="status-pill ${isDone ? 'status-pill-done' : 'status-pill-active'}"><span class="status-bubble ${isDone ? 'done' : 'active'}"></span>${isDone ? 'Terminat' : 'În curs'}</span></td>
