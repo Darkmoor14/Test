@@ -582,8 +582,8 @@
      width just to force the wrap. */
   .ticket-save-row{margin-top:14px;}
   .ticket-save-row .btn{width:auto;}
-  .resolved-date-field{min-width:300px;}
-  .resnote-field{min-width:220px;}
+  .ctrl-field.resolved-date-field{min-width:300px;}
+  .ctrl-field.resnote-field{min-width:220px;}
   .resolved-datetime-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
   /* flex:1 1 Npx (not flex:none) — these can shrink a little to stay
      on one line together when space is tight, rather than the rigid
@@ -604,8 +604,8 @@
        Below 600px: the field can shrink freely, and its date/time
        inputs shrink to fit rather than staying a fixed desktop width
        (wrapping itself is already handled above, universally). */
-    .resolved-date-field{min-width:0;width:100%;}
-    .resnote-field{min-width:0;width:100%;}
+    .ctrl-field.resolved-date-field{min-width:0;width:100%;}
+    .ctrl-field.resnote-field{min-width:0;width:100%;}
     .resolved-datetime-row input[type="date"],
     .resolved-datetime-row input[type="time"]{width:auto;flex:1 1 110px;min-width:0;}
 
