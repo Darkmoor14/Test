@@ -309,6 +309,20 @@
        via position:sticky on .overview-table th as you scroll within
        this box specifically. */
     max-height:420px;overflow-y:auto;overflow-x:auto;
+    /* Deliberately breaks out of .wrap's 1180px max-width — there's
+       plenty of unused margin on a wide monitor, and this table
+       benefits from the extra room more than the rest of the page
+       does. Capped at 94vw (not 100vw) so it can never trigger the
+       page-level horizontal-scroll bug fixed earlier — this uses the
+       viewport width directly rather than a fixed negative-margin
+       trick, so it safely shrinks back to normal on any screen where
+       there isn't extra room to give it. Desktop only — mobile is
+       untouched, and below 900px this box is far narrower than
+       .wrap already, so the breakout has no visible effect there
+       even without a media guard.
+    */
+    position:relative;left:50%;transform:translateX(-50%);
+    width:94vw;max-width:1500px;
   }
   .overview-table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap;}
   .overview-table th{
