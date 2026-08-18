@@ -745,6 +745,10 @@
         <span class="year-warning" id="yearWarningOverview">⚠ Nu e anul curent</span>
       </div>
       <div class="overview-section">
+        <div class="active-narrow-filter" id="overviewNarrowFilter">
+          <span id="overviewNarrowFilterLabel"></span>
+          <button type="button" id="clearOverviewNarrowFilterBtn">✕ Elimină acest filtru</button>
+        </div>
         <div class="overview-table-wrap">
           <table class="overview-table" id="overviewTable">
             <colgroup>
@@ -1165,6 +1169,15 @@
   let agingOnlyFilter = false;
   let typeOnlyFilter = null; // null | 'functional' | 'accident'
 
+  // Separate from the two above on purpose — those are for the
+  // Sesizări tab's own filtering and get reset by goToTicket() so
+  // that list isn't left narrowed after landing on a specific ticket.
+  // This one drives the Overview table's priority-card filter
+  // instead, and deliberately must NOT be touched by goToTicket() —
+  // that's what makes the filter survive clicking into a ticket and
+  // then using the browser's back button to return.
+  let overviewCardFilter = null; // null | 'active' | 'aging' | 'functional' | 'accident'
+
   function getFilteredTickets(){
     const query = ticketSearchQuery.trim().toLowerCase();
     let base;
@@ -1583,7 +1596,27 @@
   function renderOverviewTable(){
     const tbody = document.getElementById('overviewTableBody');
     const cardsWrap = document.getElementById('overviewCardsMobile');
-    const visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter));
+    let visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter));
+
+    // All four priority cards describe a subset of ACTIVE tickets, so
+    // any card filter first narrows to non-Terminat, then applies
+    // whatever further narrowing that specific card represents.
+    if (overviewCardFilter) {
+      visible = visible.filter(t => t.status !== 'Terminat');
+      if (overviewCardFilter === 'aging') {
+        visible = visible.filter(t => {
+          if (!t.submitted_on) return false;
+          const daysOpen = (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24);
+          return daysOpen > AGING_THRESHOLD_DAYS;
+        });
+      } else if (overviewCardFilter === 'functional') {
+        visible = visible.filter(t => t.type !== 'Anunt accident');
+      } else if (overviewCardFilter === 'accident') {
+        visible = visible.filter(t => t.type === 'Anunt accident');
+      }
+      // 'active' needs nothing further — the status filter above
+      // already covers exactly what that card represents.
+    }
 
     if (visible.length === 0) {
       tbody.innerHTML = '<tr><td colspan="9" class="overview-empty">Nicio sesizare de afișat.</td></tr>';
@@ -2300,44 +2333,53 @@
     headerTabsObserver.observe(adminTabsBar);
   }
 
-  // Priority summary cards — each one jumps to Sesizări with the
-  // ticket list narrowed to exactly what the card is describing,
-  // rather than just scrolling to a general area and leaving the
-  // user to hunt for the relevant rows themselves.
-  // If a priority card's narrowed filter matches exactly one ticket,
-  // skip the intermediate list entirely and jump straight to that
-  // ticket's editable card — same deep-link mechanism already used
-  // for ticket-number links and push notifications. With 2+ matches,
-  // a real judgment call is needed about which one matters most, so
-  // that case still falls back to the filtered list as before.
-  function openTicketsWith({ narrowAging = false, narrowType = null } = {}){
-    agingOnlyFilter = narrowAging;
-    typeOnlyFilter = narrowType;
-    if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
-    activeFilter = 'Ongoing';
-
-    const matches = getFilteredTickets();
-    if (matches.length === 1) {
-      goToTicket(matches[0].id); // this itself resets agingOnlyFilter/typeOnlyFilter — desired once we've landed
-      return;
-    }
-
-    updateActiveNarrowFilterUI();
-    setTicketFilter('Ongoing');
-    openAdminTab('tickets');
+  // Priority summary cards — each one filters the Overview table
+  // in place to exactly what the card is describing, rather than
+  // navigating away to the Sesizări tab. Deliberately does NOT touch
+  // agingOnlyFilter/typeOnlyFilter (the Sesizări tab's own filter
+  // state) or switch tabs at all — clicking a ticket number from the
+  // filtered table still takes you to Sesizări as normal, but since
+  // this filter lives in its own separate state, using the browser's
+  // back button to return leaves it exactly as it was.
+  function applyOverviewCardFilter(filterKey){
+    overviewCardFilter = filterKey;
+    updateOverviewNarrowFilterUI();
+    renderOverviewTable();
   }
 
+  function updateOverviewNarrowFilterUI(){
+    const wrap = document.getElementById('overviewNarrowFilter');
+    const label = document.getElementById('overviewNarrowFilterLabel');
+    if (!wrap || !label) return;
+    const labels = {
+      active: 'Filtru activ: doar sesizări active',
+      aging: 'Filtru activ: doar sesizări deschise de peste ' + AGING_THRESHOLD_DAYS + ' zile',
+      functional: 'Filtru activ: doar sesizări cu defect',
+      accident: 'Filtru activ: doar accidente',
+    };
+    label.textContent = overviewCardFilter ? labels[overviewCardFilter] : '';
+    wrap.classList.toggle('show', !!overviewCardFilter);
+  }
+
+  function clearOverviewCardFilter(){
+    overviewCardFilter = null;
+    updateOverviewNarrowFilterUI();
+    renderOverviewTable();
+  }
+  const clearOverviewNarrowFilterBtn = document.getElementById('clearOverviewNarrowFilterBtn');
+  if (clearOverviewNarrowFilterBtn) clearOverviewNarrowFilterBtn.addEventListener('click', clearOverviewCardFilter);
+
   const prioActiveCard = document.getElementById('prioActiveCard');
-  if (prioActiveCard) prioActiveCard.addEventListener('click', () => openTicketsWith());
+  if (prioActiveCard) prioActiveCard.addEventListener('click', () => applyOverviewCardFilter('active'));
 
   const prioAgingCard = document.getElementById('prioAgingCard');
-  if (prioAgingCard) prioAgingCard.addEventListener('click', () => openTicketsWith({ narrowAging: true }));
+  if (prioAgingCard) prioAgingCard.addEventListener('click', () => applyOverviewCardFilter('aging'));
 
   const prioFuncCard = document.getElementById('prioFuncCard');
-  if (prioFuncCard) prioFuncCard.addEventListener('click', () => openTicketsWith({ narrowType: 'functional' }));
+  if (prioFuncCard) prioFuncCard.addEventListener('click', () => applyOverviewCardFilter('functional'));
 
   const prioAccidentCard = document.getElementById('prioAccidentCard');
-  if (prioAccidentCard) prioAccidentCard.addEventListener('click', () => openTicketsWith({ narrowType: 'accident' }));
+  if (prioAccidentCard) prioAccidentCard.addEventListener('click', () => applyOverviewCardFilter('accident'));
 
 
   /* ============================================================
