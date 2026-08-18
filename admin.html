@@ -255,6 +255,15 @@
     display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
     margin-bottom:28px;
   }
+  /* Desktop only — on mobile, .admin-tabs-row (the tabs this spacing
+     is meant to separate from) is hidden entirely, replaced by the
+     bottom tab bar, so this specific relationship doesn't apply
+     there; adding a universal margin-top would still visibly shift
+     mobile's spacing even though the tabs it's meant to sit below
+     aren't shown. */
+  @media(min-width:901px){
+    .priority-grid{margin-top:28px;}
+  }
   .priority-card{
     border:1px solid var(--line-strong);border-radius:4px;
     padding:16px 18px;background:var(--paper-050);
@@ -323,12 +332,11 @@
   .overview-table-wrap{
     border:1px solid var(--line-strong);border-radius:6px;
     background:var(--paper-000);
-    /* Capped at ~10 data rows (header + 10 × row height, calculated
-       from the padding/font-size below) with its own scrollbar, kept
-       independent from the page's scroll — the header stays pinned
+    /* Header + ~15 data rows before its own scrollbar kicks in (kept
+       independent from the page's scroll) — the header stays pinned
        via position:sticky on .overview-table th as you scroll within
        this box specifically. */
-    max-height:420px;overflow-y:auto;overflow-x:auto;
+    max-height:600px;overflow-y:auto;overflow-x:auto;
   }
   .overview-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px;}
   /* Explicit widths (table-layout:fixed) instead of letting the
