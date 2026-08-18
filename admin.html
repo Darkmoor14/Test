@@ -605,6 +605,18 @@
   .resolved-datetime-row .btn{padding:8px 12px;white-space:nowrap;flex:0 0 auto;}
 
   @media(max-width:600px){
+    /* .ticket-controls uses flex, not grid (unlike .pf-grid/
+       .ticket-body below, which already collapse cleanly via
+       grid-template-columns:1fr) — with flex, mixing fields that have
+       different width rules (some forced to 100%, some just
+       flexible with a min-width) can genuinely produce an
+       unpredictable, overlapping mess on a narrow screen once several
+       of them are competing for the same row. Forcing every field in
+       here onto its own full-width row sidesteps that ambiguity
+       entirely, rather than trying to carefully balance individual
+       field widths against each other. */
+    .ticket-controls .ctrl-field{flex:1 1 100%;width:100%;min-width:0;}
+
     /* The min-width above (and the row's own fixed-width date/time
        inputs) were sized for desktop and don't fit a narrow phone's
        actual available width after page + card padding — same
