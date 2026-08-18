@@ -582,12 +582,19 @@
      width just to force the wrap. */
   .ticket-save-row{margin-top:14px;}
   .ticket-save-row .btn{width:auto;}
-  .resolved-date-field{min-width:340px;}
+  .resolved-date-field{min-width:300px;}
   .resnote-field{min-width:220px;}
   .resolved-datetime-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
-  .resolved-datetime-row input[type="date"]{width:132px;flex:none;}
-  .resolved-datetime-row input[type="time"]{width:90px;flex:none;}
-  .resolved-datetime-row .btn{padding:8px 12px;white-space:nowrap;flex:none;}
+  /* flex:1 1 Npx (not flex:none) — these can shrink a little to stay
+     on one line together when space is tight, rather than the rigid
+     fixed-width version, which had no middle ground between
+     overflowing past the card's edge and — once wrap was added to
+     fix that overflow — instead cascading onto three separate lines
+     the moment the row was even slightly short on room. Genuinely
+     flexible sizing avoids both failure modes at once. */
+  .resolved-datetime-row input[type="date"]{flex:1 1 118px;min-width:100px;}
+  .resolved-datetime-row input[type="time"]{flex:1 1 82px;min-width:70px;}
+  .resolved-datetime-row .btn{padding:8px 12px;white-space:nowrap;flex:0 0 auto;}
 
   @media(max-width:600px){
     /* The min-width above (and the row's own fixed-width date/time
@@ -764,7 +771,7 @@
         <div class="overview-cards-mobile" id="overviewCardsMobile"></div>
         <div class="overview-sidebar">
           <div class="chart-card">
-            <h4>Sesizări pe lună</h4>
+            <h4>Sesizări pe an</h4>
             <canvas id="ticketVolumeChart"></canvas>
           </div>
           <div class="chart-card">
@@ -1604,7 +1611,7 @@
           <td class="overview-address-cell">${escapeHtml(t.address || '—')}</td>
           <td><span class="status-pill ${isDone ? 'status-pill-done' : 'status-pill-active'}">${isDone ? 'Terminat' : 'În curs'}</span></td>
           <td>${isDone ? fmtDateOnly(t.resolved_on) : '—'}</td>
-          <td>${resolutionHours !== null ? formatDuration(resolutionHours) : '—'}</td>
+          <td>${resolutionHours !== null ? formatDurationDays(resolutionHours) : '—'}</td>
         </tr>
       `;
     }).join('');
@@ -1780,12 +1787,34 @@
     return days + ' zile' + (remHours ? ' ' + remHours + ' ore' : '');
   }
 
+  // Used specifically for the "Timp de soluționare" table column —
+  // whole days only, rounded UP: anything under 24h counts as 1 day,
+  // under 48h as 2 days, and so on. Deliberately separate from
+  // formatDuration() above, which stays hours-precise for the
+  // "average resolution time" chart stat, where fractional precision
+  // is actually useful for an average.
+  function formatDurationDays(hours){
+    if (!isFinite(hours) || hours < 0) return '—';
+    const days = Math.max(1, Math.ceil(hours / 24));
+    return days === 1 ? '1 zi' : days + ' zile';
+  }
+
   function renderOverviewCharts(){
     const visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter));
 
     const MONTH_NAMES = ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Noi','Dec'];
+    // "Sesizări pe an" deliberately ignores the year filter above and
+    // uses every non-archived ticket regardless of year — it's meant
+    // to show the full history across however many years of data
+    // exist, not just whichever single year happens to be selected
+    // in the dropdown. Months with zero tickets are skipped entirely
+    // rather than shown as empty bars, so e.g. 2026 (if that's when
+    // this system started being used) correctly starts at whichever
+    // month actually has its first ticket, instead of padding out
+    // several meaningless zero-bars before that.
+    const volumeSource = allTickets.filter(t => !t.archived);
     const monthCounts = {}; // 'YYYY-MM' -> count
-    visible.forEach(t => {
+    volumeSource.forEach(t => {
       if (!t.submitted_on) return;
       const d = new Date(t.submitted_on);
       const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
