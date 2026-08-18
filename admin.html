@@ -22,6 +22,7 @@
     --line:#E2E3DE; --line-strong:#D3D4CE;
     --copper-600:#A81419; --copper-500:#D11F24; --copper-300:#E2686C; --copper-050:#FBEAEA;
     --signal-green:#3E7A57; --signal-green-bg:#E9F3EC;
+    --signal-green-bright:#1E9E5A; --signal-green-bright-bg:#E4F7EC;
     --signal-red:#B5502F; --signal-red-bg:#FBEDE7;
     --signal-orange:#B5792F; --signal-orange-bg:#FBF2E7;
     --signal-blue:#2F6FB5; --signal-blue-hover:#255A93;
@@ -390,6 +391,13 @@
   .overview-table tr:last-child td{border-bottom:none;}
   .overview-table tbody tr:hover{background:var(--paper-050);}
   .overview-table tr.done-row{opacity:0.7;}
+  /* Active (still-open, non-urgent) rows get genuinely darker, slightly
+     heavier text so they read as the "current, matters now" rows at a
+     glance — especially next to done rows, which are already faded via
+     opacity above. Explicitly excludes both .done-row and .urgent-row
+     so this can't accidentally fight with either of their own text
+     colors regardless of any future edits to this area. */
+  .overview-table tr:not(.done-row):not(.urgent-row) td:not(.aging-date){color:#000;font-weight:500;}
   .overview-table tr.urgent-row{background:var(--signal-red-bg);}
   .overview-table tr.urgent-row:hover{background:var(--signal-red-bg);}
   .overview-table tr.urgent-row td{border-bottom-color:rgba(181,80,47,0.25);}
@@ -407,8 +415,8 @@
     display:inline-flex;align-items:center;
     font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;
   }
-  .status-pill-active{background:var(--signal-orange-bg);color:var(--signal-orange);}
-  .status-pill-done{background:var(--signal-green-bg);color:var(--signal-green);}
+  .status-pill-active{background:var(--copper-050);color:var(--copper-500);}
+  .status-pill-done{background:var(--signal-green-bright-bg);color:var(--signal-green-bright);}
   .overview-empty{padding:24px;text-align:center;color:var(--ink-400);font-size:13px;}
   .ticket-link{color:var(--signal-blue);text-decoration:underline;text-underline-offset:2px;font-weight:500;}
   .ticket-link:hover{color:var(--signal-blue-hover);}
