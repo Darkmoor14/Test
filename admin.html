@@ -824,6 +824,7 @@
       <div class="archive-bar" id="archiveBar">
         <span id="selectionCount">0 selectate</span>
         <button class="btn" id="clearSelectionBtn" type="button">Anulează selecția</button>
+        <button class="btn" id="editSelectedBtn" type="button">Editează</button>
         <button class="btn btn-primary" id="archiveSelectedBtn" type="button">Arhivează selectate</button>
       </div>
       <div class="ticket-list" id="ticketList"></div>
@@ -1075,6 +1076,11 @@
   let allTickets = [];
   let activeFilter = 'Ongoing';
   const selectedIds = new Set();
+  // Set to a ticket's id while its name/phone/email/address/
+  // description fields are shown as editable inputs — only one
+  // ticket at a time, triggered by "Editează" in the floating
+  // selection bar (see updateArchiveBar/openTicketEdit below).
+  let editingTicketId = null;
 
   function escapeHtml(value){
     return String(value ?? '')
@@ -1863,6 +1869,7 @@
       const safeDescription = escapeHtml(t.description || '');
       const safeResolvedBy = escapeHtml(t.resolved_by || '');
       const resolvedDateParts = toDateTimeInputParts(t.resolved_on);
+      const isEditing = (t.id === editingTicketId);
       card.innerHTML = `
         <div class="ticket-top">
           <div class="ticket-meta">
@@ -1876,6 +1883,7 @@
           <span class="ticket-date">Trimis: ${fmtDate(t.submitted_on)}</span>
         </div>
         <div class="ticket-body">
+          ${isEditing ? `
           <div class="ctrl-field">
             <label>Nume reclamant</label>
             <input type="text" class="f-name" value="${safeName}" ${isArchived ? 'disabled' : ''}>
@@ -1896,6 +1904,13 @@
             <label>Descriere</label>
             <input type="text" class="f-description" value="${safeDescription}" ${isArchived ? 'disabled' : ''}>
           </div>
+          ` : `
+          <div><span class="k">Nume</span>${safeName || '—'}</div>
+          <div><span class="k">Telefon</span>${safePhone || '—'}</div>
+          <div><span class="k">Email</span>${safeEmail || '—'}</div>
+          <div><span class="k">Adresă</span>${safeAddress || '—'}</div>
+          ${t.description ? `<div class="full"><span class="k">Descriere</span>${safeDescription}</div>` : ''}
+          `}
           ${t.resolved_on ? `<div class="full"><span class="k">Rezolvat</span>${fmtDate(t.resolved_on)}</div>` : ''}
         </div>
         <div class="ticket-controls">
@@ -1972,10 +1987,15 @@
             return;
           }
 
-          const nameVal = card.querySelector('.f-name').value.trim();
-          const phoneVal = card.querySelector('.f-phone').value.trim();
-          const addressVal = card.querySelector('.f-address').value.trim();
-          if (!nameVal || !phoneVal || !addressVal) {
+          // These fields only render as inputs while this specific
+          // card is in edit mode (triggered via "Editează" in the
+          // floating bar) — otherwise they're plain read-only text,
+          // so there's nothing to read and the existing values are
+          // simply kept as-is.
+          const nameVal = isEditing ? card.querySelector('.f-name').value.trim() : (t.name || '');
+          const phoneVal = isEditing ? card.querySelector('.f-phone').value.trim() : (t.phone || '');
+          const addressVal = isEditing ? card.querySelector('.f-address').value.trim() : (t.address || '');
+          if (isEditing && (!nameVal || !phoneVal || !addressVal)) {
             alert('Numele, telefonul și adresa nu pot fi golite complet.');
             return;
           }
@@ -1997,8 +2017,8 @@
           saveBtn.textContent = 'Se salvează...';
           const resolver = card.querySelector('.f-resolver').value.trim();
           const resNote = card.querySelector('.f-resnote').value.trim();
-          const emailVal = card.querySelector('.f-email').value.trim();
-          const descriptionVal = card.querySelector('.f-description').value.trim();
+          const emailVal = isEditing ? card.querySelector('.f-email').value.trim() : (t.email || '');
+          const descriptionVal = isEditing ? card.querySelector('.f-description').value.trim() : (t.description || '');
 
           const payload = {
             status: newStatus,
@@ -2029,6 +2049,7 @@
             alert('Eroare la salvare. Încercați din nou.');
             return;
           }
+          if (editingTicketId === t.id) editingTicketId = null;
           showToast(`Tichetul ${t.ticket_number || ''} a fost salvat.`);
           loadTickets();
         });
@@ -2061,12 +2082,27 @@
   const selectionCount = document.getElementById('selectionCount');
   const archiveSelectedBtn = document.getElementById('archiveSelectedBtn');
   const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+  const editSelectedBtn = document.getElementById('editSelectedBtn');
 
   function updateArchiveBar(){
     selectionCount.textContent = selectedIds.size + ' selectate';
     archiveBar.classList.toggle('show', selectedIds.size > 0);
     archiveSelectedBtn.style.display = activeFilter === 'Archived' ? 'none' : 'inline-flex';
+    // Editing one ticket's own details at a time makes sense;
+    // bulk-editing several at once doesn't, so this only shows when
+    // exactly one is selected — with 2+, only Archive remains.
+    editSelectedBtn.style.display = (selectedIds.size === 1 && activeFilter !== 'Archived') ? 'inline-flex' : 'none';
   }
+
+  editSelectedBtn.addEventListener('click', () => {
+    const [onlyId] = selectedIds;
+    editingTicketId = onlyId;
+    selectedIds.clear();
+    updateArchiveBar();
+    renderTickets();
+    const card = document.getElementById('ticket-card-' + onlyId);
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
 
   clearSelectionBtn.addEventListener('click', () => {
     selectedIds.clear();
@@ -2865,39 +2901,6 @@
   });
 
   checkSession();
-
-  // Auto-refresh — keeps tickets/projects current without a manual
-  // reload, e.g. when a new sesizare comes in or a colleague updates
-  // something while this tab is sitting open. A few things it
-  // deliberately avoids:
-  //  - No "Se încarcă..." flash: silent=true skips that, so a
-  //    background refresh doesn't visibly disrupt what's on screen.
-  //  - Never fires while the tab is in the background — no point
-  //    spending API calls on a tab nobody's looking at, and it means
-  //    the freshest data loads the moment you switch back instead.
-  //  - Skips the cycle entirely if focus is currently in a text
-  //    input/textarea/select — renderTickets()/renderProjects() both
-  //    rebuild their cards from scratch, which would otherwise wipe
-  //    out something like a half-typed resolution note mid-edit. It
-  //    just retries on the next interval instead of forcing the
-  //    issue.
-  const AUTO_REFRESH_MS = 60000;
-  function isUserActivelyEditing(){
-    const el = document.activeElement;
-    if (!el) return false;
-    return ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName);
-  }
-  function silentRefresh(){
-    if (!currentSessionEmail) return;
-    if (document.hidden) return;
-    if (isUserActivelyEditing()) return;
-    loadTickets(true);
-    loadProjects();
-  }
-  setInterval(silentRefresh, AUTO_REFRESH_MS);
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) silentRefresh();
-  });
 </script>
 
 <button type="button" class="back-to-top" id="backToTopBtn" aria-label="Înapoi sus">
