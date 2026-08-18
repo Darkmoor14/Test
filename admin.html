@@ -574,31 +574,31 @@
   .ticket-body .full{grid-column:1/-1;}
   .ticket-body .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;color:var(--ink-400);letter-spacing:0.04em;display:block;margin-bottom:2px;}
   .ticket-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding-top:14px;border-top:1px solid var(--line);}
-  /* Forces Salvează/Dezarhivează onto its own full-width row below
-     the other controls, rather than trying to fit alongside them in
-     the same flex row — sidesteps any width-fitting problem between
-     it and its neighbors entirely, since it no longer competes with
-     them for horizontal space at all. */
-  .ticket-controls .f-save,
-  .ticket-controls .f-restore{flex-basis:100%;margin-top:6px;}
-  .resolved-date-field{min-width:320px;}
+  /* Salvează/Dezarhivează live in their own row below the other
+     controls (see the HTML — a separate div, not a flex item inside
+     .ticket-controls), so they never compete for space with the
+     other fields at all — a real block-level element on its own line
+     naturally, not a flex-basis trick that ends up stretching it full
+     width just to force the wrap. */
+  .ticket-save-row{margin-top:14px;}
+  .ticket-save-row .btn{width:auto;}
+  .resolved-date-field{min-width:340px;}
   .resnote-field{min-width:220px;}
-  .resolved-datetime-row{display:flex;gap:6px;align-items:center;}
+  .resolved-datetime-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
   .resolved-datetime-row input[type="date"]{width:132px;flex:none;}
   .resolved-datetime-row input[type="time"]{width:90px;flex:none;}
   .resolved-datetime-row .btn{padding:8px 12px;white-space:nowrap;flex:none;}
 
   @media(max-width:600px){
-    /* The 320px min-width above (and the row's own fixed-width date/
-       time inputs) were sized for desktop and don't fit a narrow
-       phone's actual available width after page + card padding —
-       same overflow pattern caught and fixed elsewhere in this file.
-       Below 600px: the field can shrink freely, and its row wraps
-       date/time/button onto their own space as needed instead of
-       forcing a fixed-width row into too little room. */
+    /* The min-width above (and the row's own fixed-width date/time
+       inputs) were sized for desktop and don't fit a narrow phone's
+       actual available width after page + card padding — same
+       overflow pattern caught and fixed elsewhere in this file.
+       Below 600px: the field can shrink freely, and its date/time
+       inputs shrink to fit rather than staying a fixed desktop width
+       (wrapping itself is already handled above, universally). */
     .resolved-date-field{min-width:0;width:100%;}
     .resnote-field{min-width:0;width:100%;}
-    .resolved-datetime-row{flex-wrap:wrap;}
     .resolved-datetime-row input[type="date"],
     .resolved-datetime-row input[type="time"]{width:auto;flex:1 1 110px;min-width:0;}
 
@@ -1959,6 +1959,8 @@
               <button type="button" class="btn f-resolved-today" title="Completează data și ora curentă" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>Astăzi</button>
             </div>
           </div>
+        </div>
+        <div class="ticket-save-row">
           ${isArchived
             ? `<button class="btn f-restore">Dezarhivează</button>`
             : `<button class="btn btn-primary f-save">Salvează<span class="save-status">✓ Salvat</span></button>`
