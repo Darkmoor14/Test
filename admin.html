@@ -1932,9 +1932,9 @@
           <div class="ctrl-field" style="min-width:320px;">
             <label>Data soluționării</label>
             <div class="resolved-datetime-row">
-              <input type="date" class="f-resolved-date" value="${resolvedDateParts.date}" ${isArchived ? 'disabled' : ''}>
-              <input type="time" class="f-resolved-time" value="${resolvedDateParts.time}" ${isArchived ? 'disabled' : ''}>
-              <button type="button" class="btn f-resolved-today" title="Completează data și ora curentă" ${isArchived ? 'disabled' : ''}>Astăzi</button>
+              <input type="date" class="f-resolved-date" value="${resolvedDateParts.date}" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>
+              <input type="time" class="f-resolved-time" value="${resolvedDateParts.time}" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>
+              <button type="button" class="btn f-resolved-today" title="Completează data și ora curentă" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>Astăzi</button>
             </div>
           </div>
           ${isArchived
@@ -1950,6 +1950,20 @@
         else selectedIds.delete(t.id);
         updateArchiveBar();
       });
+
+      // Resolution date/time only ever gets saved when actually
+      // marking the ticket Terminat (see the save handler above) —
+      // disabled here the rest of the time so that's visible upfront
+      // rather than something to discover after the fact.
+      const statusSelect = card.querySelector('.f-status');
+      if (statusSelect && !isArchived) {
+        statusSelect.addEventListener('change', () => {
+          const nowTerminat = statusSelect.value === 'Terminat';
+          card.querySelector('.f-resolved-date').disabled = !nowTerminat;
+          card.querySelector('.f-resolved-time').disabled = !nowTerminat;
+          card.querySelector('.f-resolved-today').disabled = !nowTerminat;
+        });
+      }
 
       const restoreBtn = card.querySelector('.f-restore');
       if (restoreBtn) {
@@ -1974,17 +1988,29 @@
         const saveStatus = card.querySelector('.save-status');
         saveBtn.addEventListener('click', async () => {
           const newStatus = card.querySelector('.f-status').value;
-          const resolvedDateVal = card.querySelector('.f-resolved-date').value;
-          const resolvedTimeVal = card.querySelector('.f-resolved-time').value;
-          const resolvedOnISO = combineDateTimeToISO(resolvedDateVal, resolvedTimeVal);
 
-          // A resolution can't have happened before the issue was
-          // even reported — most likely a typo in the date/time
-          // fields, so this blocks the save rather than silently
-          // storing a nonsensical timestamp.
-          if (t.submitted_on && new Date(resolvedOnISO) < new Date(t.submitted_on)) {
-            alert(`Data soluționării (${fmtDate(resolvedOnISO)}) nu poate fi înainte de data sesizării (${fmtDate(t.submitted_on)}).`);
-            return;
+          // The resolution date/time only matters — and should only
+          // ever get touched — when the ticket is actually being
+          // marked Terminat. Previously this ran unconditionally,
+          // meaning leaving the fields blank while just editing name/
+          // phone/etc on a still-Ongoing ticket would silently stamp
+          // it with the current time anyway. Left as undefined here,
+          // it's simply omitted from the payload below, so the
+          // column isn't touched at all for a ticket staying Ongoing.
+          let resolvedOnISO;
+          if (newStatus === 'Terminat') {
+            const resolvedDateVal = card.querySelector('.f-resolved-date').value;
+            const resolvedTimeVal = card.querySelector('.f-resolved-time').value;
+            resolvedOnISO = combineDateTimeToISO(resolvedDateVal, resolvedTimeVal);
+
+            // A resolution can't have happened before the issue was
+            // even reported — most likely a typo in the date/time
+            // fields, so this blocks the save rather than silently
+            // storing a nonsensical timestamp.
+            if (t.submitted_on && new Date(resolvedOnISO) < new Date(t.submitted_on)) {
+              alert(`Data soluționării (${fmtDate(resolvedOnISO)}) nu poate fi înainte de data sesizării (${fmtDate(t.submitted_on)}).`);
+              return;
+            }
           }
 
           // These fields only render as inputs while this specific
@@ -2024,18 +2050,18 @@
             status: newStatus,
             resolved_by: resolver || null,
             resolution_note: resNote || null,
-            // Sent explicitly rather than left to the database's
-            // automatic trigger, so the admin has real control over
-            // this timestamp — see set_resolved_on in Supabase, which
-            // now only fills this in as a fallback when it's left
-            // blank, rather than always overwriting it with "now".
-            resolved_on: resolvedOnISO,
             name: nameVal,
             phone: phoneVal,
             email: emailVal || null,
             address: addressVal,
             description: descriptionVal || null,
           };
+          // Only included in the payload — i.e. only ever written —
+          // when actually resolving the ticket right now. See the
+          // comment above where resolvedOnISO is computed.
+          if (newStatus === 'Terminat') {
+            payload.resolved_on = resolvedOnISO;
+          }
 
           const { error } = await supabaseClient
             .from('tickets')
