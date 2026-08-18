@@ -520,13 +520,28 @@
   .chip.active{background:var(--copper-500);border-color:var(--copper-500);color:#fff;}
   .result-count{font-family:var(--mono);font-size:12.5px;color:var(--ink-400);}
 
+  /* Floats in a fixed position (bottom of the screen, same pattern as
+     .back-to-top and .toast) rather than sitting inline in the page
+     flow where it used to live — that meant selecting a card deep in
+     a long list left this bar rendering far off-screen above, easy
+     to miss entirely without scrolling back up to look for it. Now
+     it's always immediately visible the moment something's selected,
+     regardless of scroll position. */
   .archive-bar{
     display:none;align-items:center;gap:14px;
-    padding:12px 18px;margin-top:16px;border-radius:5px;
-    background:var(--paper-050);border:1px solid var(--line-strong);
+    position:fixed;left:50%;bottom:24px;z-index:250;
+    transform:translate(-50%,12px);
+    padding:12px 18px;border-radius:8px;
+    background:var(--paper-000);border:1px solid var(--line-strong);
+    box-shadow:0 8px 24px rgba(20,24,29,0.18);
     font-family:var(--mono);font-size:12.5px;color:var(--ink-600);
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+    max-width:92vw;flex-wrap:wrap;justify-content:center;
   }
-  .archive-bar.show{display:flex;}
+  .archive-bar.show{display:flex;opacity:1;pointer-events:auto;transform:translate(-50%,0);}
+  @media(max-width:900px){
+    .archive-bar{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px);}
+  }
   .ticket-select{
     display:flex;align-items:flex-start;gap:10px;
   }
@@ -1841,11 +1856,11 @@
       card.id = 'ticket-card-' + t.id;
       card.className = 'ticket-card' + (isUrgent && !isDone ? ' urgent' : '') + (isDone ? ' done' : '') + (isArchived ? ' archived' : '');
       const safeTicketNumber = escapeHtml(t.ticket_number || '—');
-      const safeName = escapeHtml(t.name || '—');
-      const safePhone = escapeHtml(t.phone || '—');
-      const safeEmail = escapeHtml(t.email || '—');
-      const safeAddress = escapeHtml(t.address || '—');
-      const safeDescription = t.description ? escapeHtml(t.description) : '';
+      const safeName = escapeHtml(t.name || '');
+      const safePhone = escapeHtml(t.phone || '');
+      const safeEmail = escapeHtml(t.email || '');
+      const safeAddress = escapeHtml(t.address || '');
+      const safeDescription = escapeHtml(t.description || '');
       const safeResolvedBy = escapeHtml(t.resolved_by || '');
       const resolvedDateParts = toDateTimeInputParts(t.resolved_on);
       card.innerHTML = `
@@ -1861,11 +1876,26 @@
           <span class="ticket-date">Trimis: ${fmtDate(t.submitted_on)}</span>
         </div>
         <div class="ticket-body">
-          <div><span class="k">Nume</span>${safeName}</div>
-          <div><span class="k">Telefon</span>${safePhone}</div>
-          <div><span class="k">Email</span>${safeEmail}</div>
-          <div><span class="k">Adresă</span>${safeAddress}</div>
-          ${t.description ? `<div class="full"><span class="k">Descriere</span>${safeDescription}</div>` : ''}
+          <div class="ctrl-field">
+            <label>Nume reclamant</label>
+            <input type="text" class="f-name" value="${safeName}" ${isArchived ? 'disabled' : ''}>
+          </div>
+          <div class="ctrl-field">
+            <label>Telefon</label>
+            <input type="text" class="f-phone" value="${safePhone}" ${isArchived ? 'disabled' : ''}>
+          </div>
+          <div class="ctrl-field">
+            <label>Email</label>
+            <input type="email" class="f-email" value="${safeEmail}" ${isArchived ? 'disabled' : ''}>
+          </div>
+          <div class="ctrl-field">
+            <label>Adresă identificare loc defect</label>
+            <input type="text" class="f-address" value="${safeAddress}" ${isArchived ? 'disabled' : ''}>
+          </div>
+          <div class="ctrl-field full">
+            <label>Descriere</label>
+            <input type="text" class="f-description" value="${safeDescription}" ${isArchived ? 'disabled' : ''}>
+          </div>
           ${t.resolved_on ? `<div class="full"><span class="k">Rezolvat</span>${fmtDate(t.resolved_on)}</div>` : ''}
         </div>
         <div class="ticket-controls">
@@ -1929,6 +1959,26 @@
         const saveStatus = card.querySelector('.save-status');
         saveBtn.addEventListener('click', async () => {
           const newStatus = card.querySelector('.f-status').value;
+          const resolvedDateVal = card.querySelector('.f-resolved-date').value;
+          const resolvedTimeVal = card.querySelector('.f-resolved-time').value;
+          const resolvedOnISO = combineDateTimeToISO(resolvedDateVal, resolvedTimeVal);
+
+          // A resolution can't have happened before the issue was
+          // even reported — most likely a typo in the date/time
+          // fields, so this blocks the save rather than silently
+          // storing a nonsensical timestamp.
+          if (t.submitted_on && new Date(resolvedOnISO) < new Date(t.submitted_on)) {
+            alert(`Data soluționării (${fmtDate(resolvedOnISO)}) nu poate fi înainte de data sesizării (${fmtDate(t.submitted_on)}).`);
+            return;
+          }
+
+          const nameVal = card.querySelector('.f-name').value.trim();
+          const phoneVal = card.querySelector('.f-phone').value.trim();
+          const addressVal = card.querySelector('.f-address').value.trim();
+          if (!nameVal || !phoneVal || !addressVal) {
+            alert('Numele, telefonul și adresa nu pot fi golite complet.');
+            return;
+          }
 
           // Only ask for confirmation when the status is actually
           // changing — a routine save (adding a note, adjusting the
@@ -1947,8 +1997,8 @@
           saveBtn.textContent = 'Se salvează...';
           const resolver = card.querySelector('.f-resolver').value.trim();
           const resNote = card.querySelector('.f-resnote').value.trim();
-          const resolvedDateVal = card.querySelector('.f-resolved-date').value;
-          const resolvedTimeVal = card.querySelector('.f-resolved-time').value;
+          const emailVal = card.querySelector('.f-email').value.trim();
+          const descriptionVal = card.querySelector('.f-description').value.trim();
 
           const payload = {
             status: newStatus,
@@ -1959,7 +2009,12 @@
             // this timestamp — see set_resolved_on in Supabase, which
             // now only fills this in as a fallback when it's left
             // blank, rather than always overwriting it with "now".
-            resolved_on: combineDateTimeToISO(resolvedDateVal, resolvedTimeVal),
+            resolved_on: resolvedOnISO,
+            name: nameVal,
+            phone: phoneVal,
+            email: emailVal || null,
+            address: addressVal,
+            description: descriptionVal || null,
           };
 
           const { error } = await supabaseClient
