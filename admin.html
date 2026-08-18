@@ -539,56 +539,12 @@
   .ticket-body .full{grid-column:1/-1;}
   .ticket-body .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;color:var(--ink-400);letter-spacing:0.04em;display:block;margin-bottom:2px;}
   .ticket-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding-top:14px;border-top:1px solid var(--line);}
-  .res-photos-preview{display:flex;gap:14px;margin-bottom:14px;}
-  .res-photo{width:110px;position:relative;}
-  .res-photo .k{font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--ink-400);letter-spacing:0.04em;display:block;margin-bottom:4px;}
-  .res-photo img{width:100%;height:80px;object-fit:cover;border-radius:3px;border:1px solid var(--line-strong);display:block;}
-  .res-photo-delete{
-    position:absolute;top:18px;right:6px;
-    width:22px;height:22px;border-radius:50%;
-    background:rgba(20,24,29,0.72);color:#fff;
-    border:none;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;
-    font-size:14px;line-height:1;padding:0;
-    transition:background .15s;
-  }
-  .res-photo-delete:hover{background:var(--signal-red);}
-  .res-photo-delete:disabled{opacity:0.5;cursor:default;}
-  .res-photo img{cursor:zoom-in;}
+  .resolved-datetime-row{display:flex;gap:6px;align-items:center;}
+  .resolved-datetime-row input[type="date"]{width:132px;flex:none;}
+  .resolved-datetime-row input[type="time"]{width:90px;flex:none;}
+  .resolved-datetime-row .btn{padding:8px 12px;white-space:nowrap;flex:none;}
 
-  /* ===== PHOTO LIGHTBOX — tap/click any before/after thumbnail to
-     view it full-size. Works identically on desktop (click) and
-     mobile (tap), since both fire the same click event; the overlay
-     itself is sized responsively so it fits comfortably on phones
-     too. Single shared element reused for every photo rather than
-     one per card. ===== */
-  .photo-lightbox{
-    position:fixed;inset:0;z-index:500;
-    background:rgba(20,24,29,0.92);
-    display:none;
-    align-items:center;justify-content:center;
-    padding:24px;
-  }
-  .photo-lightbox.show{display:flex;}
-  .photo-lightbox img{
-    max-width:100%;max-height:100%;
-    object-fit:contain;
-    border-radius:4px;
-    box-shadow:0 20px 60px rgba(0,0,0,0.5);
-  }
-  .photo-lightbox-close{
-    position:absolute;top:16px;right:16px;
-    width:40px;height:40px;border-radius:50%;
-    background:rgba(255,255,255,0.12);color:#fff;
-    border:none;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;
-    font-size:20px;line-height:1;
-    transition:background .15s;
-  }
-  .photo-lightbox-close:hover{background:rgba(255,255,255,0.22);}
   @media(max-width:600px){
-    .photo-lightbox{padding:12px;}
-    .photo-lightbox-close{top:10px;right:10px;width:36px;height:36px;font-size:18px;}
     /* .pf-grid and .ticket-body are display:grid (not flex), so unlike
        .toolbar/.ticket-controls they can't wrap — a 1fr track still
        can't shrink below its content's min-width. .ctrl-field's
@@ -779,7 +735,51 @@
             <input type="search" id="ticketSearchBox" placeholder="Caută adresă, nume, telefon, nr. sesizare…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:230px;">
           </div>
           <div class="result-count" id="resultCount"></div>
+          <button class="btn btn-primary" id="addTicketBtn" type="button">+ Adaugă sesizare</button>
           <button class="btn" id="exportBtn" type="button">⭳ Descarcă CSV</button>
+        </div>
+      </div>
+      <div class="project-form" id="ticketAddForm" style="display:none;">
+        <div class="pf-grid">
+          <div class="ctrl-field">
+            <label>Tip sesizare</label>
+            <select id="tf-type">
+              <option value="Sesizare functionala">Defect</option>
+              <option value="Anunt accident">Accident</option>
+            </select>
+          </div>
+          <div class="ctrl-field" style="min-width:320px;">
+            <label>Data și ora sesizării</label>
+            <div class="resolved-datetime-row">
+              <input type="date" id="tf-date">
+              <input type="time" id="tf-time">
+              <button type="button" class="btn" id="tfTodayBtn" title="Completează data și ora curentă">Astăzi</button>
+            </div>
+          </div>
+          <div class="ctrl-field">
+            <label>Nume reclamant</label>
+            <input type="text" id="tf-name" placeholder="ex: Ion Popescu">
+          </div>
+          <div class="ctrl-field">
+            <label>Telefon</label>
+            <input type="text" id="tf-phone" placeholder="ex: 0740123456">
+          </div>
+          <div class="ctrl-field">
+            <label>Email (opțional)</label>
+            <input type="email" id="tf-email" placeholder="ex: nume@exemplu.ro">
+          </div>
+          <div class="ctrl-field">
+            <label>Adresă identificare loc defect</label>
+            <input type="text" id="tf-address" placeholder="ex: Str. Gh. Doja nr. 4">
+          </div>
+          <div class="ctrl-field" style="grid-column:1/-1;">
+            <label>Descriere (opțional)</label>
+            <input type="text" id="tf-description" placeholder="Detalii despre sesizare">
+          </div>
+        </div>
+        <div class="pf-actions">
+          <button class="btn" id="tfCancelBtn" type="button">Anulează</button>
+          <button class="btn btn-primary" id="tfSaveBtn" type="button">Salvează sesizarea</button>
         </div>
       </div>
       <div class="active-narrow-filter" id="activeNarrowFilter">
@@ -872,11 +872,6 @@
   </div>
 </div>
 
-<div class="photo-lightbox" id="photoLightbox">
-  <button type="button" class="photo-lightbox-close" id="photoLightboxClose" aria-label="Închide">✕</button>
-  <img id="photoLightboxImg" src="" alt="">
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -916,33 +911,6 @@
   const SUPABASE_URL = "https://ebuigyyjifnjiuzsgpih.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_aXC8Q_v2faRB0uEAlZYFog_JreYGXvq";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  /* ============================================================
-     PHOTO LIGHTBOX — tap/click any uploaded before/after thumbnail
-     (tickets or projects) to view it full-size, on both desktop and
-     mobile. Set up once here since the lightbox element itself is
-     static; individual photo thumbnails call openLightbox(url) when
-     clicked, wired up wherever each card is rendered.
-     ============================================================ */
-  const photoLightbox = document.getElementById('photoLightbox');
-  const photoLightboxImg = document.getElementById('photoLightboxImg');
-  const photoLightboxClose = document.getElementById('photoLightboxClose');
-
-  function openLightbox(url){
-    photoLightboxImg.src = url;
-    photoLightbox.classList.add('show');
-  }
-  function closeLightbox(){
-    photoLightbox.classList.remove('show');
-    photoLightboxImg.src = '';
-  }
-  photoLightboxClose.addEventListener('click', closeLightbox);
-  photoLightbox.addEventListener('click', (e) => {
-    if (e.target === photoLightbox) closeLightbox(); // click on the dark backdrop, not the image itself
-  });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && photoLightbox.classList.contains('show')) closeLightbox();
-  });
 
   const loginWrap = document.getElementById('loginWrap');
   const dash = document.getElementById('dash');
@@ -1080,92 +1048,6 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
-  }
-
-  /* ============================================================
-     RESOLUTION PHOTOS — uploads a before/after photo to the public
-     "ticket-photos" Storage bucket (see resolution-photos.sql) and
-     returns its public URL to store on the ticket row. Files are
-     named with the ticket id + a timestamp so re-uploading a photo
-     for the same ticket never collides with or silently overwrites
-     an older one.
-
-     NORMALIZE TO JPEG BEFORE UPLOAD: phone cameras and screenshot
-     tools save in all sorts of formats (.avif, .heic, .webp...).
-     Supabase Storage buckets can be configured with an "allowed
-     MIME types" list, and if a format like image/avif isn't on
-     that list, the upload is rejected with a generic error. Rather
-     than relying on the bucket's configuration matching whatever
-     format a phone happens to produce, every photo is redrawn to a
-     canvas and re-encoded as a JPEG client-side first — this also
-     caps the resolution so huge camera photos don't bloat storage.
-     If the browser can't decode the original file for some reason,
-     upload falls back to sending it as-is.
-     ============================================================ */
-  function toJpegBlob(file, maxDimension = 2000, quality = 0.85){
-    return new Promise((resolve, reject) => {
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
-        let { width, height } = img;
-        if (width > maxDimension || height > maxDimension) {
-          const scale = maxDimension / Math.max(width, height);
-          width = Math.round(width * scale);
-          height = Math.round(height * scale);
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        URL.revokeObjectURL(url);
-        canvas.toBlob(
-          (blob) => blob ? resolve(blob) : reject(new Error('canvas.toBlob returned null')),
-          'image/jpeg',
-          quality
-        );
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject(new Error('Browser could not decode this image format'));
-      };
-      img.src = url;
-    });
-  }
-
-  function sanitizePathSegment(value){
-    return String(value ?? '')
-      .trim()
-      .replace(/[^a-zA-Z0-9_-]+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-  }
-
-  async function uploadResolutionPhoto(ticket, kind, file){
-    let uploadBody = file;
-    let ext = 'jpg';
-    try {
-      uploadBody = await toJpegBlob(file);
-    } catch (convertErr) {
-      // Fall back to the original file untouched if it couldn't be
-      // decoded/re-encoded client-side (rare, but safer than failing
-      // outright) — keep its own extension in that case.
-      console.warn('Photo conversion to JPEG failed, uploading original file instead:', convertErr);
-      uploadBody = file;
-      ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-    }
-    // Folder is named after the human-readable ticket number (e.g.
-    // "TICKET-0012") rather than the internal UUID, so browsing the
-    // "ticket-photos" bucket directly in the Supabase dashboard shows
-    // immediately which ticket each photo belongs to. Falls back to
-    // the UUID only if a ticket somehow has no number yet.
-    const folder = sanitizePathSegment(ticket.ticket_number) || ticket.id;
-    const path = `${folder}/${kind}-${Date.now()}.${ext}`;
-    const { error } = await supabaseClient.storage
-      .from('ticket-photos')
-      .upload(path, uploadBody, { upsert: false, contentType: ext === 'jpg' ? 'image/jpeg' : (file.type || undefined) });
-    if (error) throw error;
-    const { data } = supabaseClient.storage.from('ticket-photos').getPublicUrl(path);
-    return data.publicUrl;
   }
 
   let ticketSearchQuery = '';
@@ -1332,6 +1214,34 @@
     if(!iso) return '—';
     const d = new Date(iso);
     return d.toLocaleDateString('ro-RO', {day:'2-digit', month:'2-digit', year:'numeric'});
+  }
+
+  // Splits an ISO timestamp into the separate {date, time} strings
+  // <input type="date">/<input type="time"> expect (YYYY-MM-DD /
+  // HH:MM) — using the browser's LOCAL time getters, not
+  // toISOString() (which is UTC and would silently shift the
+  // displayed date/time, confusing anyone editing it near midnight).
+  function toDateTimeInputParts(iso){
+    if (!iso) return { date: '', time: '' };
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return { date: '', time: '' };
+    const pad = (n) => String(n).padStart(2, '0');
+    return {
+      date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+      time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+    };
+  }
+
+  // Reverse of the above — combines the two input values back into a
+  // proper ISO timestamp for saving. `new Date('YYYY-MM-DDTHH:MM')`
+  // is interpreted as local time by the browser, matching what the
+  // admin actually typed/picked, then converted to ISO (UTC) for
+  // storage, consistent with how the rest of the app stores dates.
+  function combineDateTimeToISO(dateStr, timeStr){
+    if (!dateStr) return null;
+    const d = new Date(`${dateStr}T${timeStr || '00:00'}`);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString();
   }
 
   async function checkSession(){
@@ -1910,6 +1820,7 @@
       const safeAddress = escapeHtml(t.address || '—');
       const safeDescription = t.description ? escapeHtml(t.description) : '';
       const safeResolvedBy = escapeHtml(t.resolved_by || '');
+      const resolvedDateParts = toDateTimeInputParts(t.resolved_on);
       card.innerHTML = `
         <div class="ticket-top">
           <div class="ticket-meta">
@@ -1930,11 +1841,6 @@
           ${t.description ? `<div class="full"><span class="k">Descriere</span>${safeDescription}</div>` : ''}
           ${t.resolved_on ? `<div class="full"><span class="k">Rezolvat</span>${fmtDate(t.resolved_on)}</div>` : ''}
         </div>
-        ${(t.resolution_photo_before || t.resolution_photo_after) ? `
-        <div class="res-photos-preview">
-          ${t.resolution_photo_before ? `<div class="res-photo"><span class="k">Înainte</span><img src="${t.resolution_photo_before}" alt="Foto înainte"><button type="button" class="res-photo-delete" data-ticket-id="${t.id}" data-kind="before" title="Șterge poza">✕</button></div>` : ''}
-          ${t.resolution_photo_after ? `<div class="res-photo"><span class="k">După</span><img src="${t.resolution_photo_after}" alt="Foto după"><button type="button" class="res-photo-delete" data-ticket-id="${t.id}" data-kind="after" title="Șterge poza">✕</button></div>` : ''}
-        </div>` : ''}
         <div class="ticket-controls">
           <div class="ctrl-field">
             <label>Stare</label>
@@ -1951,13 +1857,13 @@
             <label>Ce s-a făcut (opțional)</label>
             <input type="text" class="f-resnote" list="resolution-suggestions" placeholder="ex: Bec înlocuit" value="${escapeHtml(t.resolution_note || '')}" ${isArchived ? 'disabled' : ''}>
           </div>
-          <div class="ctrl-field">
-            <label>Foto înainte</label>
-            <input type="file" class="f-photo-before" accept="image/*" ${isArchived ? 'disabled' : ''}>
-          </div>
-          <div class="ctrl-field">
-            <label>Foto după</label>
-            <input type="file" class="f-photo-after" accept="image/*" ${isArchived ? 'disabled' : ''}>
+          <div class="ctrl-field" style="min-width:320px;">
+            <label>Data soluționării</label>
+            <div class="resolved-datetime-row">
+              <input type="date" class="f-resolved-date" value="${resolvedDateParts.date}" ${isArchived ? 'disabled' : ''}>
+              <input type="time" class="f-resolved-time" value="${resolvedDateParts.time}" ${isArchived ? 'disabled' : ''}>
+              <button type="button" class="btn f-resolved-today" title="Completează data și ora curentă" ${isArchived ? 'disabled' : ''}>Astăzi</button>
+            </div>
           </div>
           ${isArchived
             ? `<button class="btn f-restore">Dezarhivează</button>`
@@ -1998,10 +1904,11 @@
           const newStatus = card.querySelector('.f-status').value;
 
           // Only ask for confirmation when the status is actually
-          // changing — a routine save (adding a note, uploading a
-          // photo) shouldn't be interrupted, but closing out or
-          // reopening a ticket is consequential enough to double-check,
-          // especially from a phone where a misclick is easy.
+          // changing — a routine save (adding a note, adjusting the
+          // resolution date) shouldn't be interrupted, but closing out
+          // or reopening a ticket is consequential enough to
+          // double-check, especially from a phone where a misclick is
+          // easy.
           if (newStatus !== t.status) {
             const statusLabel = newStatus === 'Terminat' ? 'Terminat (rezolvat)' : 'Activ';
             if (!confirm(`Schimbați starea tichetului ${t.ticket_number || ''} în "${statusLabel}"?`)) {
@@ -2013,32 +1920,20 @@
           saveBtn.textContent = 'Se salvează...';
           const resolver = card.querySelector('.f-resolver').value.trim();
           const resNote = card.querySelector('.f-resnote').value.trim();
-          const beforeFile = card.querySelector('.f-photo-before').files[0];
-          const afterFile = card.querySelector('.f-photo-after').files[0];
+          const resolvedDateVal = card.querySelector('.f-resolved-date').value;
+          const resolvedTimeVal = card.querySelector('.f-resolved-time').value;
 
           const payload = {
             status: newStatus,
             resolved_by: resolver || null,
             resolution_note: resNote || null,
+            // Sent explicitly rather than left to the database's
+            // automatic trigger, so the admin has real control over
+            // this timestamp — see set_resolved_on in Supabase, which
+            // now only fills this in as a fallback when it's left
+            // blank, rather than always overwriting it with "now".
+            resolved_on: combineDateTimeToISO(resolvedDateVal, resolvedTimeVal),
           };
-
-          // Upload any newly selected photos to Supabase Storage.
-          // Existing photos are left untouched if no new file was chosen.
-          try {
-            if (beforeFile) {
-              payload.resolution_photo_before = await uploadResolutionPhoto(t, 'before', beforeFile);
-            }
-            if (afterFile) {
-              payload.resolution_photo_after = await uploadResolutionPhoto(t, 'after', afterFile);
-            }
-          } catch (uploadErr) {
-            console.error(uploadErr);
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = 'Salvează<span class="save-status">✓ Salvat</span>';
-            const reason = uploadErr && uploadErr.message ? uploadErr.message : 'motiv necunoscut';
-            alert('Eroare la încărcarea fotografiei: ' + reason + '\n\nÎncercați din nou, sau alegeți o altă poză.');
-            return;
-          }
 
           const { error } = await supabaseClient
             .from('tickets')
@@ -2056,59 +1951,18 @@
         });
       }
 
-      // Tap/click a photo thumbnail to view it full-size in the
-      // shared lightbox (see openLightbox() near the top of this
-      // script). Works the same way on desktop and mobile.
-      card.querySelectorAll('.res-photo img').forEach(img => {
-        img.addEventListener('click', () => openLightbox(img.src));
-      });
-
-      // Delete a single before/after resolution photo — useful when a
-      // staff member uploaded the wrong image or a poor-quality shot
-      // and wants to remove it (with or without replacing it
-      // afterwards via the upload field above). Clears the DB column
-      // AND removes the actual file from the "ticket-photos" bucket,
-      // so it doesn't linger there unreferenced.
-      card.querySelectorAll('.res-photo-delete').forEach(delBtn => {
-        delBtn.addEventListener('click', async () => {
-          const kind = delBtn.dataset.kind; // 'before' | 'after'
-          if (!confirm('Ștergeți definitiv această fotografie?')) return;
-
-          delBtn.disabled = true;
-          const column = kind === 'before' ? 'resolution_photo_before' : 'resolution_photo_after';
-          const publicUrl = t[column];
-
-          // Best-effort: also remove the file itself from Storage so it
-          // doesn't sit there orphaned. If this fails (e.g. already
-          // deleted, permissions), we still proceed to clear the DB
-          // reference below — a missing storage file is harmless, an
-          // orphaned DB reference to a deleted photo is not.
-          if (publicUrl) {
-            const marker = '/ticket-photos/';
-            const idx = publicUrl.indexOf(marker);
-            if (idx !== -1) {
-              const storagePath = decodeURIComponent(publicUrl.slice(idx + marker.length));
-              const { error: removeErr } = await supabaseClient.storage
-                .from('ticket-photos')
-                .remove([storagePath]);
-              if (removeErr) console.warn('Could not remove storage file (continuing anyway):', removeErr);
-            }
-          }
-
-          const { error } = await supabaseClient
-            .from('tickets')
-            .update({ [column]: null })
-            .eq('id', t.id);
-
-          if (error) {
-            console.error(error);
-            delBtn.disabled = false;
-            alert('Eroare la ștergerea fotografiei. Încercați din nou.');
-            return;
-          }
-          loadTickets();
+      // "Astăzi" — fills the resolution date/time fields with the
+      // current moment, so closing out a ticket right now doesn't
+      // require manually typing the date. Doesn't save by itself;
+      // still requires pressing "Salvează" like any other edit here.
+      const todayBtn = card.querySelector('.f-resolved-today');
+      if (todayBtn) {
+        todayBtn.addEventListener('click', () => {
+          const nowParts = toDateTimeInputParts(new Date().toISOString());
+          card.querySelector('.f-resolved-date').value = nowParts.date;
+          card.querySelector('.f-resolved-time').value = nowParts.time;
         });
-      });
+      }
 
       list.appendChild(card);
     });
@@ -2177,8 +2031,7 @@
 
     const headers = [
       'Număr tichet', 'Tip', 'Nume', 'Telefon', 'Email', 'Adresă',
-      'Descriere', 'Stare', 'Rezolvat de', 'Ce s-a făcut', 'Trimis la', 'Rezolvat la',
-      'Foto înainte', 'Foto după'
+      'Descriere', 'Stare', 'Rezolvat de', 'Ce s-a făcut', 'Trimis la', 'Rezolvat la'
     ];
 
     const rows = exportRows.map(t => [
@@ -2193,9 +2046,7 @@
       t.resolved_by,
       t.resolution_note,
       fmtDate(t.submitted_on),
-      fmtDate(t.resolved_on),
-      t.resolution_photo_before,
-      t.resolution_photo_after
+      fmtDate(t.resolved_on)
     ]);
 
     const csvContent = [headers, ...rows]
@@ -2642,6 +2493,106 @@
 
   const projectForm = document.getElementById('projectForm');
   const excelPreviewWrap = document.getElementById('excelPreview');
+
+  /* ============================================================
+     ADD TICKET MANUALLY — lets an admin log a report that came in
+     some other way (phone call, in person) with the same fields the
+     public form collects, plus a fully editable submission date/time
+     (defaults to blank; "Astăzi" fills in the current moment) so the
+     record reflects when the issue was actually reported, not just
+     whenever it got typed into the system.
+
+     Reuses create_ticket — the same RPC the public raportare.html
+     form calls — so ticket-number generation stays centralized in
+     one place rather than being duplicated/guessed at here. That RPC
+     doesn't accept a custom submission date (it always stamps "now"),
+     so a lightweight follow-up UPDATE overwrites submitted_on
+     immediately after, only when the admin picked a specific one.
+     ============================================================ */
+  const ticketAddForm = document.getElementById('ticketAddForm');
+
+  function openTicketAddForm(){
+    document.getElementById('tf-type').value = 'Sesizare functionala';
+    document.getElementById('tf-date').value = '';
+    document.getElementById('tf-time').value = '';
+    document.getElementById('tf-name').value = '';
+    document.getElementById('tf-phone').value = '';
+    document.getElementById('tf-email').value = '';
+    document.getElementById('tf-address').value = '';
+    document.getElementById('tf-description').value = '';
+    ticketAddForm.style.display = 'block';
+    ticketAddForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  document.getElementById('addTicketBtn').addEventListener('click', openTicketAddForm);
+  document.getElementById('tfCancelBtn').addEventListener('click', () => {
+    ticketAddForm.style.display = 'none';
+  });
+  document.getElementById('tfTodayBtn').addEventListener('click', () => {
+    const nowParts = toDateTimeInputParts(new Date().toISOString());
+    document.getElementById('tf-date').value = nowParts.date;
+    document.getElementById('tf-time').value = nowParts.time;
+  });
+
+  document.getElementById('tfSaveBtn').addEventListener('click', async () => {
+    const type = document.getElementById('tf-type').value;
+    const dateVal = document.getElementById('tf-date').value;
+    const timeVal = document.getElementById('tf-time').value;
+    const name = document.getElementById('tf-name').value.trim();
+    const phone = document.getElementById('tf-phone').value.trim();
+    const email = document.getElementById('tf-email').value.trim();
+    const address = document.getElementById('tf-address').value.trim();
+    const description = document.getElementById('tf-description').value.trim();
+
+    if (!name || !phone || !address) {
+      alert('Completați nume, telefon și adresă.');
+      return;
+    }
+
+    const saveBtn = document.getElementById('tfSaveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Se salvează...';
+
+    const { data: ticketNumber, error } = await supabaseClient.rpc('create_ticket', {
+      p_type: type,
+      p_name: name,
+      p_phone: phone,
+      p_email: email || null,
+      p_address: address,
+      p_description: description || null,
+    });
+
+    if (error) {
+      console.error(error);
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Salvează sesizarea';
+      alert('Eroare la salvare. Încercați din nou.');
+      return;
+    }
+
+    // Only overwrite submitted_on if the admin actually picked a
+    // date — leaving it blank means "just use whatever create_ticket
+    // already stamped" (i.e. right now), same as the public form.
+    const customSubmittedOn = combineDateTimeToISO(dateVal, timeVal);
+    if (customSubmittedOn) {
+      const { error: dateError } = await supabaseClient
+        .from('tickets')
+        .update({ submitted_on: customSubmittedOn })
+        .eq('ticket_number', ticketNumber);
+      if (dateError) {
+        console.error(dateError);
+        // The ticket itself was already created successfully at this
+        // point — only the custom date failed to apply — so this
+        // warns rather than treating it as a full failure.
+        alert(`Sesizarea ${ticketNumber} a fost creată, dar data personalizată nu a putut fi salvată. Editați data direct pe tichet dacă e nevoie.`);
+      }
+    }
+
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Salvează sesizarea';
+    ticketAddForm.style.display = 'none';
+    loadTickets();
+  });
 
   function openProjectForm(project){
     excelPreviewWrap.style.display = 'none';
