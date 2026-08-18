@@ -574,12 +574,28 @@
   .ticket-body .full{grid-column:1/-1;}
   .ticket-body .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;color:var(--ink-400);letter-spacing:0.04em;display:block;margin-bottom:2px;}
   .ticket-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding-top:14px;border-top:1px solid var(--line);}
+  .resolved-date-field{min-width:320px;}
+  .resnote-field{min-width:220px;}
   .resolved-datetime-row{display:flex;gap:6px;align-items:center;}
   .resolved-datetime-row input[type="date"]{width:132px;flex:none;}
   .resolved-datetime-row input[type="time"]{width:90px;flex:none;}
   .resolved-datetime-row .btn{padding:8px 12px;white-space:nowrap;flex:none;}
 
   @media(max-width:600px){
+    /* The 320px min-width above (and the row's own fixed-width date/
+       time inputs) were sized for desktop and don't fit a narrow
+       phone's actual available width after page + card padding —
+       same overflow pattern caught and fixed elsewhere in this file.
+       Below 600px: the field can shrink freely, and its row wraps
+       date/time/button onto their own space as needed instead of
+       forcing a fixed-width row into too little room. */
+    .resolved-date-field{min-width:0;width:100%;}
+    .resnote-field{min-width:0;width:100%;}
+    .resolved-datetime-row{flex-wrap:wrap;}
+    .resolved-datetime-row input[type="date"],
+    .resolved-datetime-row input[type="time"]{width:auto;flex:1 1 110px;min-width:0;}
+  }
+
     /* .pf-grid and .ticket-body are display:grid (not flex), so unlike
        .toolbar/.ticket-controls they can't wrap — a 1fr track still
        can't shrink below its content's min-width. .ctrl-field's
@@ -783,7 +799,7 @@
               <option value="Anunt accident">Accident</option>
             </select>
           </div>
-          <div class="ctrl-field" style="min-width:320px;">
+          <div class="ctrl-field resolved-date-field">
             <label>Data și ora sesizării</label>
             <div class="resolved-datetime-row">
               <input type="date" id="tf-date">
@@ -1925,11 +1941,11 @@
             <label>Rezolvat de</label>
             <input type="text" class="f-resolver" placeholder="Nume angajat" value="${safeResolvedBy}" ${isArchived ? 'disabled' : ''}>
           </div>
-          <div class="ctrl-field" style="min-width:220px;">
+          <div class="ctrl-field resnote-field">
             <label>Ce s-a făcut (opțional)</label>
             <input type="text" class="f-resnote" list="resolution-suggestions" placeholder="ex: Bec înlocuit" value="${escapeHtml(t.resolution_note || '')}" ${isArchived ? 'disabled' : ''}>
           </div>
-          <div class="ctrl-field" style="min-width:320px;">
+          <div class="ctrl-field resolved-date-field">
             <label>Data soluționării</label>
             <div class="resolved-datetime-row">
               <input type="date" class="f-resolved-date" value="${resolvedDateParts.date}" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>
