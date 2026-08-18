@@ -321,7 +321,7 @@
     <div class="section-head">
       <div class="eyebrow" data-i18n="report_eyebrow">Sesizări iluminat public</div>
       <h2 data-i18n="report_h2">Raportează o problemă</h2>
-      <p data-i18n="report_lede">Sesizați o defecțiune de funcționalitate sau un accident/urgență la rețeaua de iluminat public. Fiecare sesizare primește un număr de înregistrare.</p>
+      <p data-i18n="report_lede">Sesizați un defect sau un accident/urgență la rețeaua de iluminat public. Fiecare sesizare primește un număr de înregistrare.</p>
     </div>
 
     <div class="report-shell">
@@ -337,7 +337,7 @@
           <div class="type-card" data-type="Sesizare functionala" id="card-functionala">
             <svg class="tc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2a5 5 0 0 0-3 9v2h6v-2a5 5 0 0 0-3-9z"/><path d="M10 17h4M11 20h2"/></svg>
             <div class="tc-head">
-              <h4 data-i18n="type_func_title">Problemă de funcționalitate</h4>
+              <h4 data-i18n="type_func_title">Defect</h4>
               <div class="tc-info">
                 <span class="tc-info-icon">i</span>
                 <div class="tc-tooltip" data-i18n="type_func_desc">Bec ars, stâlp defect, cablu vizibil deteriorat sau altă problemă care nu reprezintă un pericol imediat.</div>
@@ -706,7 +706,7 @@
     const notifyPayload = {
       type: 'ticket',
       ticket_number: ticketNumber,
-      ticket_type: payload.type === 'Anunt accident' ? 'Accident / urgență' : 'Problemă de funcționalitate',
+      ticket_type: payload.type === 'Anunt accident' ? 'Accident / urgență' : 'Defect',
       name: payload.name,
       phone: payload.phone,
       email: payload.email || '-',

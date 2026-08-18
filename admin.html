@@ -711,7 +711,7 @@
           <div class="sub">Active de prea mult timp</div>
         </button>
         <button type="button" class="priority-card" id="prioFuncCard">
-          <span class="k">● Funcționale</span>
+          <span class="k">● Defecte</span>
           <div class="num" id="prioFuncCount">0</div>
           <div class="sub">Sesizări active, fără pericol iminent</div>
         </button>
@@ -1621,7 +1621,7 @@
         <tr class="${isDone ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''}">
           <td class="overview-ticket-num"><a href="#" class="ticket-link" data-ticket-id="${t.id}">${escapeHtml(t.ticket_number || '—')}</a></td>
           <td class="${isAging ? 'aging-date' : ''}" title="${isAging ? 'Deschis de peste ' + AGING_THRESHOLD_DAYS + ' zile' : ''}">${isAging ? '⚠ ' : ''}${fmtDateOnly(t.submitted_on)}</td>
-          <td>${isUrgent ? 'Accident' : 'Funcțional'}</td>
+          <td>${isUrgent ? 'Accident' : 'Defect'}</td>
           <td class="overview-name-cell" title="${escapeHtml(t.name || '')}">${escapeHtml(t.name || '—')}</td>
           <td>${escapeHtml(t.phone || '—')}</td>
           <td class="overview-address-cell">${escapeHtml(t.address || '—')}</td>
@@ -1647,7 +1647,7 @@
           <button type="button" class="ov-card ${isDone ? 'done' : ''} ${isUrgent && !isDone ? 'urgent' : ''}" data-ticket-id="${t.id}">
             <div class="ov-card-top">
               <span class="status-bubble ${isDone ? 'done' : 'active'}"></span>
-              <span class="ov-card-type">${isUrgent ? 'Accident' : 'Funcțional'}</span>
+              <span class="ov-card-type">${isUrgent ? 'Accident' : 'Defect'}</span>
               <span class="ov-card-num">${escapeHtml(t.ticket_number || '—')}</span>
             </div>
             <div class="ov-card-address">${escapeHtml(t.address || '—')}</div>
@@ -1733,7 +1733,7 @@
     if (!wrap || !label) return;
     let text = '';
     if (agingOnlyFilter) text = 'Filtru activ: doar tichete deschise de peste ' + AGING_THRESHOLD_DAYS + ' zile';
-    else if (typeOnlyFilter === 'functional') text = 'Filtru activ: doar tichete funcționale';
+    else if (typeOnlyFilter === 'functional') text = 'Filtru activ: doar tichete cu defect';
     else if (typeOnlyFilter === 'accident') text = 'Filtru activ: doar accidente';
     label.textContent = text;
     wrap.classList.toggle('show', !!text);
@@ -1866,7 +1866,7 @@
       resolutionTimeChartInstance = new Chart(barCanvas, {
         type: 'bar',
         data: {
-          labels: ['Funcțional', 'Accident'],
+          labels: ['Defect', 'Accident'],
           datasets: [{
             data: [
               isFinite(avg(funcResolved)) ? Math.round(avg(funcResolved) * 10) / 10 : 0,
@@ -1920,7 +1920,7 @@
               <input type="checkbox" class="f-select" ${selectedIds.has(t.id) ? 'checked' : ''}>
             </label>
             <span class="ticket-num">${safeTicketNumber}</span>
-            <span class="ticket-tag ${isUrgent ? 'urgent-tag' : ''}">${t.type === 'Anunt accident' ? 'Accident' : 'Funcționalitate'}</span>
+            <span class="ticket-tag ${isUrgent ? 'urgent-tag' : ''}">${t.type === 'Anunt accident' ? 'Accident' : 'Defect'}</span>
             ${isArchived ? `<span class="archived-badge">Arhivat ${fmtDate(t.archived_at)}</span>` : ''}
           </div>
           <span class="ticket-date">Trimis: ${fmtDate(t.submitted_on)}</span>
@@ -2186,7 +2186,7 @@
 
     const rows = exportRows.map(t => [
       t.ticket_number,
-      t.type === 'Anunt accident' ? 'Accident' : 'Funcționalitate',
+      t.type === 'Anunt accident' ? 'Accident' : 'Defect',
       t.name,
       t.phone,
       t.email,

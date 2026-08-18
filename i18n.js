@@ -163,11 +163,11 @@ ro: {
   // Ticket report section
   report_eyebrow: "Sesizări iluminat public",
   report_h2: "Raportează o problemă",
-  report_lede: "Sesizați o defecțiune de funcționalitate sau un accident/urgență la rețeaua de iluminat public. Fiecare sesizare primește un număr de înregistrare.",
+  report_lede: "Sesizați un defect sau un accident/urgență la rețeaua de iluminat public. Fiecare sesizare primește un număr de înregistrare.",
   report_all_btn: "Toate sesizările →",
   step1_label: "01 · Tip sesizare",
   step2_label: "02 · Detalii",
-  type_func_title: "Problemă de funcționalitate",
+  type_func_title: "Defect",
   type_func_desc: "Bec ars, stâlp defect, cablu vizibil deteriorat sau altă problemă care nu reprezintă un pericol imediat.",
   type_accident_title: "Accident / urgență",
   type_accident_desc: "Stâlp căzut, cabluri sub tensiune expuse sau orice situație cu pericol imediat pentru siguranța publică.",
@@ -228,7 +228,7 @@ ro: {
   cookie_banner_accept: "Am înțeles",
 
   // Ticket status vocabulary (shared with sesizari.html / dynamic labels)
-  ticket_type_func: "Funcționalitate",
+  ticket_type_func: "Defect",
   ticket_type_accident: "Accident",
   ticket_status_active: "Activ",
   ticket_status_done: "Rezolvat",
@@ -390,11 +390,11 @@ en: {
 
   report_eyebrow: "Report a streetlight issue",
   report_h2: "Report a problem",
-  report_lede: "Report a functionality issue or an accident/emergency on the public lighting network. Every report receives a registration number.",
+  report_lede: "Report a defect or an accident/emergency on the public lighting network. Every report receives a registration number.",
   report_all_btn: "All reports →",
   step1_label: "01 · Issue type",
   step2_label: "02 · Details",
-  type_func_title: "Functionality issue",
+  type_func_title: "Defect",
   type_func_desc: "Burnt-out bulb, damaged pole, visibly damaged cable, or another issue that isn't an immediate danger.",
   type_accident_title: "Accident / emergency",
   type_accident_desc: "Fallen pole, exposed live cables, or any situation posing an immediate danger to public safety.",
@@ -452,7 +452,7 @@ en: {
   cookie_banner_link: "Cookie Policy",
   cookie_banner_accept: "Got it",
 
-  ticket_type_func: "Functionality",
+  ticket_type_func: "Defect",
   ticket_type_accident: "Accident",
   ticket_status_active: "Active",
   ticket_status_done: "Resolved",
@@ -612,11 +612,11 @@ hu: {
 
   report_eyebrow: "Közvilágítási hibabejelentés",
   report_h2: "Probléma bejelentése",
-  report_lede: "Jelentsen be egy működési hibát vagy baleset/vészhelyzetet a közvilágítási hálózaton. Minden bejelentés nyilvántartási számot kap.",
+  report_lede: "Jelentsen be egy hibát vagy baleset/vészhelyzetet a közvilágítási hálózaton. Minden bejelentés nyilvántartási számot kap.",
   report_all_btn: "Összes bejelentés →",
   step1_label: "01 · Bejelentés típusa",
   step2_label: "02 · Részletek",
-  type_func_title: "Működési hiba",
+  type_func_title: "Hiba",
   type_func_desc: "Kiégett izzó, sérült oszlop, láthatóan sérült kábel vagy más, nem közvetlen veszélyt jelentő probléma.",
   type_accident_title: "Baleset / vészhelyzet",
   type_accident_desc: "Ledőlt oszlop, szabadon lévő feszültség alatti kábelek vagy bármilyen, a közbiztonságot közvetlenül veszélyeztető helyzet.",
@@ -674,7 +674,7 @@ hu: {
   cookie_banner_link: "Cookie-szabályzat",
   cookie_banner_accept: "Rendben",
 
-  ticket_type_func: "Működési hiba",
+  ticket_type_func: "Hiba",
   ticket_type_accident: "Baleset",
   ticket_status_active: "Aktív",
   ticket_status_done: "Megoldva",
