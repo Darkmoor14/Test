@@ -162,6 +162,11 @@
   @media(max-width:900px){
     header{display:none;}
     .admin-tabs{display:none !important;}
+    /* Both children of .admin-tabs-row (.admin-tabs above, and the
+       desktop-only duplicate year-bars) are already hidden on mobile
+       independently — this just collapses the now-empty row itself
+       so it can't leave any stray gap/margin behind. */
+    .admin-tabs-row{display:none !important;}
     .dash-head{
       display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
       /* header is gone on mobile, so this is now the top of the page —
@@ -206,6 +211,7 @@
   .ticket-search-wrap{display:contents;}
   .search-icon-btn{display:none;}
 
+  .admin-tabs-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;}
   .admin-tabs{display:flex;gap:6px;margin:24px 0 4px;border-bottom:1px solid var(--line);}
   .admin-tab{
     font-family:var(--mono);font-size:13px;font-weight:500;color:var(--ink-400);
@@ -215,6 +221,20 @@
   .admin-tab:hover{color:var(--ink-700);}
   .admin-tab.active{color:var(--copper-600);border-bottom-color:var(--copper-500);}
   .admin-panel{display:none;}
+  /* Desktop-only duplicate year-bars in .admin-tabs-row, kept in sync
+     with the originals (still inside each panel, used on mobile) via
+     the same querySelectorAll groups that already keep Overview and
+     Sesizări's selects synced to each other. Hidden by default here;
+     shown on desktop only, and only the one matching the active tab.
+     Mobile never sees these at all — see the 900px breakpoint below,
+     which hides this whole row's year-bars and un-hides the originals
+     instead, leaving mobile's actual rendered elements exactly as
+     they were before this feature existed. */
+  .admin-tabs-row .overview-year-bar{display:none;margin-top:0;margin-bottom:4px;}
+  @media(min-width:901px){
+    .admin-tabs-row .overview-year-bar.active{display:flex;}
+    .admin-panel .overview-year-bar{display:none;}
+  }
 
   /* ===== PRIORITY SUMMARY CARDS =====
      The very first thing shown on "Prezentare generală" — answers
@@ -639,10 +659,35 @@
       <button type="button" class="mobile-logout-link" id="mobileLogoutBtn">Deconectare</button>
     </div>
 
-    <div class="admin-tabs">
-      <button class="admin-tab active" type="button" data-tab="overview">Prezentare generală</button>
-      <button class="admin-tab" type="button" data-tab="tickets">Sesizări</button>
-      <button class="admin-tab" type="button" data-tab="projects">Proiecte curente</button>
+    <div class="admin-tabs-row">
+      <div class="admin-tabs">
+        <button class="admin-tab active" type="button" data-tab="overview">Prezentare generală</button>
+        <button class="admin-tab" type="button" data-tab="tickets">Sesizări</button>
+        <button class="admin-tab" type="button" data-tab="projects">Proiecte curente</button>
+      </div>
+      <!-- Desktop-only — a separate set of year-selects, kept in sync
+           with the originals still living inside each panel below
+           (used on mobile), rather than moving those originals here.
+           Duplicating rather than moving means mobile's layout is
+           genuinely 100% unchanged, not just visually similar — the
+           elements mobile renders are literally the same ones as
+           before, in the same place, untouched by any of this. Only
+           the one matching the current tab is shown at a time. -->
+      <div class="overview-year-bar admin-tabs-row-year active" data-year-panel="overview">
+        <label for="yearFilterSelectDesktop">An:</label>
+        <select id="yearFilterSelectDesktop"></select>
+        <span class="year-warning" id="yearWarningOverviewDesktop">⚠ Nu e anul curent</span>
+      </div>
+      <div class="overview-year-bar admin-tabs-row-year" data-year-panel="tickets">
+        <label for="yearFilterSelectTicketsDesktop">An:</label>
+        <select id="yearFilterSelectTicketsDesktop"></select>
+        <span class="year-warning" id="yearWarningTicketsDesktop">⚠ Nu e anul curent</span>
+      </div>
+      <div class="overview-year-bar admin-tabs-row-year" data-year-panel="projects">
+        <label for="projectYearFilterSelectDesktop">An:</label>
+        <select id="projectYearFilterSelectDesktop"></select>
+        <span class="year-warning" id="yearWarningProjectsDesktop">⚠ Nu e anul curent</span>
+      </div>
     </div>
 
     <div class="admin-panel active" id="panel-overview">
@@ -1215,13 +1260,16 @@
     });
   }
 
-  // Two dropdowns share this one piece of state (one on "Prezentare
-  // generală", one on "Sesizări") so changing the year from either tab
-  // keeps both in sync automatically.
+  // Dropdowns sharing this one piece of state (Overview + Sesizări
+  // panels, each ×2 for the mobile-original/desktop-duplicate pair)
+  // so changing the year from any of them keeps all the others synced
+  // automatically.
   function populateYearFilterSelect(){
     const selects = [
       document.getElementById('yearFilterSelect'),
       document.getElementById('yearFilterSelectTickets'),
+      document.getElementById('yearFilterSelectDesktop'),
+      document.getElementById('yearFilterSelectTicketsDesktop'),
     ].filter(Boolean);
     if (selects.length === 0) return;
 
@@ -1248,13 +1296,21 @@
     }
 
     selects.forEach(s => { s.value = ticketYearFilter; });
-    updateYearWarning(['yearFilterSelect', 'yearFilterSelectTickets'], ['yearWarningOverview', 'yearWarningTickets'], ticketYearFilter);
+    updateYearWarning(
+      ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
+      ['yearWarningOverview', 'yearWarningTickets', 'yearWarningOverviewDesktop', 'yearWarningTicketsDesktop'],
+      ticketYearFilter
+    );
   }
 
   function setTicketYearFilter(value){
     ticketYearFilter = value;
-    document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets').forEach(s => { s.value = value; });
-    updateYearWarning(['yearFilterSelect', 'yearFilterSelectTickets'], ['yearWarningOverview', 'yearWarningTickets'], ticketYearFilter);
+    document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
+    updateYearWarning(
+      ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
+      ['yearWarningOverview', 'yearWarningTickets', 'yearWarningOverviewDesktop', 'yearWarningTicketsDesktop'],
+      ticketYearFilter
+    );
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
@@ -1443,7 +1499,7 @@
     });
   }
 
-  document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets').forEach(select => {
+  document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(select => {
     select.addEventListener('change', () => setTicketYearFilter(select.value));
   });
 
@@ -1611,7 +1667,9 @@
   // ticket filter to "Toate" first (so the card is guaranteed to
   // actually be rendered regardless of which filter was previously
   // selected), then scrolling to and briefly highlighting it.
-  function openAdminTab(tabKey){
+  let currentAdminTab = 'overview';
+
+  function openAdminTab(tabKey, fromPopState){
     document.querySelectorAll('.admin-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.tab === tabKey);
     });
@@ -1624,7 +1682,32 @@
     document.querySelectorAll('.admin-panel').forEach(p => {
       p.classList.toggle('active', p.id === 'panel-' + tabKey);
     });
+    document.querySelectorAll('.admin-tabs-row .overview-year-bar').forEach(bar => {
+      bar.classList.toggle('active', bar.dataset.yearPanel === tabKey);
+    });
+
+    // Browser back/forward support — each real tab switch becomes its
+    // own history entry, so pressing back steps back through
+    // Sesizări → Prezentare generală → (wherever you were before
+    // admin) one at a time, instead of the very first back-press
+    // leaving the admin page entirely, which is what happened before
+    // this existed. fromPopState=true means this call is already a
+    // response to the browser's own back/forward button, so it must
+    // not push yet another entry on top of that.
+    if (!fromPopState && tabKey !== currentAdminTab) {
+      history.pushState({ adminTab: tabKey }, '', '#' + tabKey);
+    }
+    currentAdminTab = tabKey;
   }
+
+  window.addEventListener('popstate', (event) => {
+    const tabKey = (event.state && event.state.adminTab) || 'overview';
+    openAdminTab(tabKey, true);
+  });
+  // Replaces (not pushes) the current history entry so the very first
+  // back-press still correctly leaves admin.html entirely, landing on
+  // whatever page linked here — it doesn't insert an extra step.
+  history.replaceState({ adminTab: 'overview' }, '', '#overview');
 
   function setTicketFilter(filterKey){
     activeFilter = filterKey;
@@ -2303,17 +2386,21 @@
   }
 
   function populateProjectYearFilterSelect(){
-    const select = document.getElementById('projectYearFilterSelect');
-    if (!select) return;
+    const selects = [
+      document.getElementById('projectYearFilterSelect'),
+      document.getElementById('projectYearFilterSelectDesktop'),
+    ].filter(Boolean);
+    if (selects.length === 0) return;
 
     const years = new Set();
     allProjects.forEach(p => {
       if (p.start_date) years.add(new Date(p.start_date).getFullYear());
     });
     const sortedYears = [...years].sort((a, b) => b - a);
-    select.innerHTML =
+    const optionsHtml =
       '<option value="all">Toate anii</option>' +
       sortedYears.map(y => `<option value="${y}">${y}</option>`).join('');
+    selects.forEach(s => { s.innerHTML = optionsHtml; });
 
     if (!projectYearFilterInitialized) {
       const currentYear = new Date().getFullYear();
@@ -2323,8 +2410,12 @@
       projectYearFilter = 'all';
     }
 
-    select.value = projectYearFilter;
-    updateYearWarning(['projectYearFilterSelect'], ['yearWarningProjects'], projectYearFilter);
+    selects.forEach(s => { s.value = projectYearFilter; });
+    updateYearWarning(
+      ['projectYearFilterSelect', 'projectYearFilterSelectDesktop'],
+      ['yearWarningProjects', 'yearWarningProjectsDesktop'],
+      projectYearFilter
+    );
   }
 
   function matchesProjectSearch(p, query){
@@ -2374,14 +2465,18 @@
     });
   }
 
-  const projectYearFilterSelect = document.getElementById('projectYearFilterSelect');
-  if (projectYearFilterSelect) {
-    projectYearFilterSelect.addEventListener('change', () => {
-      projectYearFilter = projectYearFilterSelect.value;
-      updateYearWarning(['projectYearFilterSelect'], ['yearWarningProjects'], projectYearFilter);
+  document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectDesktop').forEach(select => {
+    select.addEventListener('change', () => {
+      projectYearFilter = select.value;
+      document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectDesktop').forEach(s => { s.value = projectYearFilter; });
+      updateYearWarning(
+        ['projectYearFilterSelect', 'projectYearFilterSelectDesktop'],
+        ['yearWarningProjects', 'yearWarningProjectsDesktop'],
+        projectYearFilter
+      );
       renderProjects();
     });
-  }
+  });
 
   const projectsChipsWrap = document.getElementById('projectsChipsWrap');
   projectChipDefs.forEach(c => {
