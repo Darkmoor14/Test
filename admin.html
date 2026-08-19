@@ -607,6 +607,16 @@
   .ticket-save-row .btn{width:auto;}
   .ctrl-field.resolved-date-field{min-width:240px;}
   .ctrl-field.resnote-field{min-width:220px;}
+  .ctrl-field.report-pdf-field{min-width:200px;}
+  .report-pdf-row{display:flex;align-items:center;gap:8px;}
+  .report-pdf-remove{
+    width:32px;height:32px;flex-shrink:0;border-radius:50%;
+    border:1px solid var(--line-strong);background:var(--paper-000);
+    color:var(--ink-600);cursor:pointer;font-size:14px;line-height:1;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .report-pdf-remove:hover{border-color:var(--signal-red);color:var(--signal-red);}
+  .report-pdf-remove:disabled{opacity:0.5;cursor:default;}
   .resolved-datetime-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
   /* Only a date input + "Astăzi" button now (time input removed) —
      flex:1 1 Npx (not flex:none) lets the date input shrink a little
@@ -1377,6 +1387,53 @@
     return d.toISOString();
   }
 
+  /* ============================================================
+     REPORT CARD PDF — admin-only attachment (a scanned form or
+     external document, uploaded when resolving a ticket). Unlike the
+     old resolution-photo bucket (public, plain URLs), this one is
+     deliberately kept PRIVATE: the "tickets" table only stores the
+     file's storage PATH, not a permanent public URL, and viewing it
+     requires generating a short-lived signed URL on demand via an
+     authenticated request. That's a real access-control boundary,
+     not just "nobody happens to guess the URL" — the file genuinely
+     cannot be opened by anyone who isn't signed in as staff.
+     Requires a PRIVATE "ticket-reports" bucket in Supabase Storage —
+     see the SQL/setup notes provided alongside this feature.
+     ============================================================ */
+  function sanitizePathSegment(value){
+    return String(value ?? '')
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  async function uploadReportPdf(ticket, file){
+    const folder = sanitizePathSegment(ticket.ticket_number) || ticket.id;
+    const path = `${folder}/report-${Date.now()}.pdf`;
+    const { error } = await supabaseClient.storage
+      .from('ticket-reports')
+      .upload(path, file, { upsert: false, contentType: 'application/pdf' });
+    if (error) throw error;
+    return path;
+  }
+
+  // Signed URLs are short-lived on purpose (5 minutes) — plenty of
+  // time to open/download the file right after clicking, without
+  // leaving a long-lived link sitting around that could be shared or
+  // reused later.
+  async function openReportPdf(path){
+    const { data, error } = await supabaseClient.storage
+      .from('ticket-reports')
+      .createSignedUrl(path, 300);
+    if (error || !data) {
+      console.error(error);
+      alert('Eroare la deschiderea fișierului.');
+      return;
+    }
+    window.open(data.signedUrl, '_blank', 'noopener');
+  }
+
   async function checkSession(){
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
@@ -2092,6 +2149,17 @@
               <button type="button" class="btn f-resolved-today" title="Completează data curentă" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>Astăzi</button>
             </div>
           </div>
+          <div class="ctrl-field report-pdf-field">
+            <label>Fișă raport (PDF)</label>
+            ${t.report_pdf_path ? `
+            <div class="report-pdf-row">
+              <button type="button" class="btn f-view-pdf" data-path="${escapeHtml(t.report_pdf_path)}">📄 Vezi fișierul</button>
+              <button type="button" class="report-pdf-remove f-remove-pdf" title="Șterge fișierul" ${isArchived ? 'disabled' : ''}>✕</button>
+            </div>
+            ` : `
+            <input type="file" class="f-report-pdf" accept="application/pdf" ${isArchived ? 'disabled' : ''}>
+            `}
+          </div>
         </div>
         <div class="ticket-save-row">
           ${isArchived
@@ -2118,6 +2186,41 @@
           const nowTerminat = statusSelect.value === 'Terminat';
           card.querySelector('.f-resolved-date').disabled = !nowTerminat;
           card.querySelector('.f-resolved-today').disabled = !nowTerminat;
+        });
+      }
+
+      const viewPdfBtn = card.querySelector('.f-view-pdf');
+      if (viewPdfBtn) {
+        viewPdfBtn.addEventListener('click', () => openReportPdf(viewPdfBtn.dataset.path));
+      }
+
+      // Deletes the attached PDF — clears the DB reference AND removes
+      // the actual file from the private "ticket-reports" bucket, so
+      // it doesn't linger there unreferenced once nothing points to
+      // it anymore.
+      const removePdfBtn = card.querySelector('.f-remove-pdf');
+      if (removePdfBtn) {
+        removePdfBtn.addEventListener('click', async () => {
+          if (!confirm('Ștergeți definitiv acest fișier PDF?')) return;
+          removePdfBtn.disabled = true;
+          const path = t.report_pdf_path;
+          if (path) {
+            const { error: removeErr } = await supabaseClient.storage
+              .from('ticket-reports')
+              .remove([path]);
+            if (removeErr) console.warn('Could not remove storage file (continuing anyway):', removeErr);
+          }
+          const { error } = await supabaseClient
+            .from('tickets')
+            .update({ report_pdf_path: null })
+            .eq('id', t.id);
+          if (error) {
+            console.error(error);
+            removePdfBtn.disabled = false;
+            alert('Eroare la ștergerea fișierului. Încercați din nou.');
+            return;
+          }
+          loadTickets();
         });
       }
 
@@ -2181,6 +2284,19 @@
             return;
           }
 
+          const pdfFileInput = card.querySelector('.f-report-pdf');
+          const pdfFile = pdfFileInput ? pdfFileInput.files[0] : null;
+          if (pdfFile) {
+            if (pdfFile.type !== 'application/pdf') {
+              alert('Fișierul trebuie să fie de tip PDF.');
+              return;
+            }
+            if (pdfFile.size > 15 * 1024 * 1024) {
+              alert('Fișierul este prea mare (limită 15MB).');
+              return;
+            }
+          }
+
           // Only ask for confirmation when the status is actually
           // changing — a routine save (adding a note, adjusting the
           // resolution date) shouldn't be interrupted, but closing out
@@ -2196,6 +2312,25 @@
 
           saveBtn.disabled = true;
           saveBtn.textContent = 'Se salvează...';
+
+          // Uploads a newly selected PDF before the rest of the save —
+          // if this fails, nothing else about the ticket gets touched,
+          // so a failed upload never leaves the ticket half-saved.
+          let reportPdfPath = t.report_pdf_path || null;
+          if (pdfFile) {
+            try {
+              reportPdfPath = await uploadReportPdf(t, pdfFile);
+            } catch (uploadErr) {
+              console.error(uploadErr);
+              saveBtn.disabled = false;
+              saveBtn.innerHTML = 'Salvează<span class="save-status">✓ Salvat</span>';
+              const reason = uploadErr && uploadErr.message ? uploadErr.message : 'motiv necunoscut';
+              alert('Eroare la încărcarea fișierului PDF: ' + reason);
+              return;
+            }
+          }
+
+          saveBtn.textContent = 'Se salvează...';
           const resolver = card.querySelector('.f-resolver').value.trim();
           const resNote = card.querySelector('.f-resnote').value.trim();
           const emailVal = isEditing ? card.querySelector('.f-email').value.trim() : (t.email || '');
@@ -2210,6 +2345,7 @@
             email: emailVal || null,
             address: addressVal,
             description: descriptionVal || null,
+            report_pdf_path: reportPdfPath,
           };
           // Terminat → resolvedOnISO (computed above). Anything else
           // → explicitly cleared to null, not just left untouched —
