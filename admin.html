@@ -803,7 +803,7 @@
         <button type="button" class="priority-card" id="prioActiveCard">
           <span class="k">● Active</span>
           <div class="num" id="prioActiveCount">0</div>
-          <div class="sub">Sesizări încă nerezolvate</div>
+          <div class="sub">Sesizări încă nesoluționate</div>
         </button>
         <button type="button" class="priority-card warn" id="prioAgingCard">
           <span class="k">⚠ Peste 7 zile</span>
@@ -2481,7 +2481,7 @@
           // double-check, especially from a phone where a misclick is
           // easy.
           if (newStatus !== t.status) {
-            const statusLabel = newStatus === 'Terminat' ? 'Terminat (rezolvat)' : 'Activ';
+            const statusLabel = newStatus === 'Terminat' ? 'Terminat (soluționat)' : 'Activ';
             if (!confirm(`Schimbați starea tichetului ${t.ticket_number || ''} în "${statusLabel}"?`)) {
               return;
             }
@@ -2691,7 +2691,7 @@
      not on every page load.
 
      Pulls EVERY ticket for the selected year regardless of the
-     Active/Rezolvate/Toate/Arhivate chip currently selected — a
+     Active/Soluționate/Toate/Arhivate chip currently selected — a
      yearly report should be a complete record, not limited by
      whatever narrow view happens to be on screen at the time.
      ============================================================ */
@@ -2837,7 +2837,7 @@
 
      ARCHIVING: same tab structure and bulk-archive pattern as
      Sesizări (Active / Soluționate / Toate / Arhivate on tickets,
-     Active / Rezolvate / Toate / Arhivate here — see
+     Active / Soluționate / Toate / Arhivate here — see
      getFilteredProjects() above). Requires an `archived` (boolean)
      and `archived_at` (timestamptz) column on `current_projects`,
      matching what `tickets` already has:
@@ -2899,9 +2899,9 @@
   }
 
   /* ============================================================
-     PROJECTS FILTER — mirrors the ticket tabs (Active / Rezolvate
+     PROJECTS FILTER — mirrors the ticket tabs (Active / Soluționate
      / Toate / Arhivate). "Active" covers scheduled + in-progress
-     projects; "Rezolvate" covers those past due_date (calculated,
+     projects; "Soluționate" covers those past due_date (calculated,
      same as the public page); "Arhivate" is the persisted
      `archived` flag, set manually here or by the 2-week auto-sweep.
 
@@ -2979,7 +2979,7 @@
 
   const projectChipDefs = [
     { key: 'Ongoing', label: 'Active' },
-    { key: 'Terminat', label: 'Rezolvate' },
+    { key: 'Terminat', label: 'Soluționate' },
     { key: 'Toate', label: 'Toate' },
     { key: 'Archived', label: 'Arhivate' },
   ];

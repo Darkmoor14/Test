@@ -230,7 +230,7 @@ ro: {
   ticket_type_func: "Defect",
   ticket_type_accident: "Accident",
   ticket_status_active: "Activ",
-  ticket_status_done: "Rezolvat",
+  ticket_status_done: "Soluționat",
 
   // proiecte.html
   archive_eyebrow: "Arhivă completă",
@@ -259,7 +259,7 @@ ro: {
   public_search_ph: "Caută după adresă sau număr tichet...",
   public_search_aria: "Caută o sesizare",
   public_chip_active: "Active",
-  public_chip_done: "Rezolvate",
+  public_chip_done: "Soluționate",
   public_count: "{n} sesizări",
   public_no_results: "Nicio sesizare în această categorie.",
   public_load_error: "Eroare la încărcarea sesizărilor. Reîncercați.",
@@ -453,7 +453,7 @@ en: {
   ticket_type_func: "Defect",
   ticket_type_accident: "Accident",
   ticket_status_active: "Active",
-  ticket_status_done: "Resolved",
+  ticket_status_done: "Solved",
 
   archive_eyebrow: "Full archive",
   archive_h1: "All projects completed in Mureș County",
@@ -480,7 +480,7 @@ en: {
   public_search_ph: "Search by address or report number...",
   public_search_aria: "Search a report",
   public_chip_active: "Active",
-  public_chip_done: "Resolved",
+  public_chip_done: "Solved",
   public_count: "{n} reports",
   public_no_results: "No reports in this category.",
   public_load_error: "Error loading reports. Please try again.",
