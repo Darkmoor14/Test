@@ -57,7 +57,6 @@ ro: {
   hero_eyebrow: "Insta Grup S.A. · din 1997 · Târgu-Mureș",
   hero_h1_html: "Infrastructură&nbsp;<em>pentru generații</em>",
   hero_lede: "Proiectare și execuție de instalații electrice, rețele de utilități și infrastructură industrială pentru autorități publice, utilități și clienți corporate din județul Mureș.",
-
   // Stats
   stat_1_label: "ani de activitate neîntreruptă în domeniu",
   stat_2_label: "proiecte finalizate în județul Mureș",
@@ -290,7 +289,6 @@ en: {
   hero_eyebrow: "Insta Grup S.A. · since 1997 · Târgu-Mureș",
   hero_h1_html: "Infrastructure&nbsp;<em>for generations</em>",
   hero_lede: "Design and execution of electrical installations, utility networks and industrial infrastructure for public authorities, utility companies and corporate clients across Mureș County.",
-
   stat_1_label: "years of continuous activity in the field",
   stat_2_label: "completed projects in Mureș County",
   stat_3_label: "ISO / ANRE / ANRSC attestations and certifications",
@@ -512,7 +510,6 @@ hu: {
   hero_eyebrow: "Insta Grup S.A. · 1997 óta · Marosvásárhely",
   hero_h1_html: "Infrastruktúra&nbsp;<em>generációknak</em>",
   hero_lede: "Villamos hálózatok, közműhálózatok és ipari infrastruktúra tervezése és kivitelezése önkormányzatok, közműszolgáltatók és vállalati ügyfelek számára Maros megyében.",
-
   stat_1_label: "év folyamatos tevékenység a szakterületen",
   stat_2_label: "befejezett projekt Maros megyében",
   stat_3_label: "ISO / ANRE / ANRSC tanúsítvány",

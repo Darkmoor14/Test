@@ -1056,7 +1056,9 @@
   // this looks the ticket up in already-loaded data first.
   function goToTicketByNumber(ticketNumber){
     const match = allTickets.find(t => t.ticket_number === ticketNumber);
-    if (match) goToTicket(match.id);
+    if (!match) return false;
+    goToTicket(match.id);
+    return true;
   }
 
 
@@ -1446,10 +1448,38 @@
     logoutBtn.style.display = 'none';
     userTag.textContent = '';
     allTickets = [];
+    allProjects = [];
     selectedIds.clear();
+    projectSelectedIds.clear();
+    editingTicketId = null;
+    ticketSearchQuery = '';
+    projectSearchQuery = '';
+    activeFilter = 'Ongoing';
+    projectsFilter = 'Ongoing';
+    overviewCardFilter = null;
+    agingOnlyFilter = false;
+    typeOnlyFilter = null;
+    ticketYearFilter = 'all';
+    projectYearFilter = 'all';
+    ticketYearFilterInitialized = false;
+    projectYearFilterInitialized = false;
+    currentAdminTab = 'overview';
+    openAdminTab('overview', true);
     document.getElementById('ticketList').innerHTML = '';
+    document.getElementById('projectList').innerHTML = '';
+    document.getElementById('overviewTableBody').innerHTML = '';
+    const overviewCardsMobile = document.getElementById('overviewCardsMobile');
+    if (overviewCardsMobile) overviewCardsMobile.innerHTML = '';
     document.getElementById('resultCount').textContent = '';
+    document.getElementById('projectsCount').textContent = '';
+    document.getElementById('selectionCount').textContent = '0 selectate';
+    document.getElementById('projectsSelectionCount').textContent = '0 selectate';
+    document.getElementById('ticketAddForm').style.display = 'none';
+    document.getElementById('projectForm').style.display = 'none';
+    document.getElementById('excelPreview').style.display = 'none';
+    renderPrioritySummary();
     updateArchiveBar();
+    updateProjectsArchiveBar();
   }
 
   loginForm.addEventListener('submit', async (e) => {
@@ -1597,8 +1627,9 @@
     pendingTicketUrlParamHandled = true;
     const ticketNum = new URLSearchParams(window.location.search).get('ticket');
     if (!ticketNum) return;
-    window.history.replaceState({}, '', window.location.pathname);
-    goToTicketByNumber(ticketNum);
+    const jumped = goToTicketByNumber(ticketNum);
+    const cleanHash = jumped ? '#tickets' : '#overview';
+    window.history.replaceState({ adminTab: jumped ? 'tickets' : 'overview' }, '', window.location.pathname + cleanHash);
   }
 
   /* ============================================================
@@ -1752,7 +1783,7 @@
   // Replaces (not pushes) the current history entry so the very first
   // back-press still correctly leaves admin.html entirely, landing on
   // whatever page linked here — it doesn't insert an extra step.
-  history.replaceState({ adminTab: 'overview' }, '', '#overview');
+  history.replaceState({ adminTab: 'overview' }, '', window.location.pathname + window.location.search + '#overview');
 
   function setTicketFilter(filterKey){
     activeFilter = filterKey;
