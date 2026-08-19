@@ -608,6 +608,19 @@
   .ctrl-field.resolved-date-field{min-width:150px;}
   .ctrl-field.resnote-field{min-width:320px;}
   .ctrl-field.report-pdf-field{min-width:200px;}
+  /* Real browser file inputs mostly ignore CSS styling for their
+     internal "Choose File" button and filename text — the standard,
+     reliable fix is hiding the actual input entirely and using a
+     <label for="..."> as the visible trigger instead, which natively
+     opens the file picker on click with zero JS needed for that
+     part. A separate span shows the chosen filename once picked. */
+  .report-pdf-upload{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .report-pdf-hidden-input{display:none;}
+  .report-pdf-choose-btn{cursor:pointer;flex-shrink:0;}
+  .report-pdf-filename{
+    font-size:12.5px;color:var(--ink-600);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;
+  }
   .report-pdf-row{display:flex;align-items:center;gap:8px;}
   .report-pdf-remove{
     width:32px;height:32px;flex-shrink:0;border-radius:50%;
@@ -658,6 +671,7 @@
   .ctrl-field input, .ctrl-field select{
     width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:3px;
     font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-900);
+    line-height:1.3;
   }
   /* "Ce s-a făcut" grows downward as its text wraps onto more lines
      (see the .autogrow JS below), rather than staying a fixed single
@@ -670,10 +684,10 @@
   .ctrl-field textarea.autogrow{
     width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:3px;
     font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-900);
-    resize:none;overflow:hidden;line-height:1.4;
-    min-height:37px;
+    resize:none;overflow:hidden;line-height:1.3;
+    display:block;
   }
-  .ctrl-field input:focus, .ctrl-field select:focus{border-color:var(--copper-500);background:var(--paper-000);}
+  .ctrl-field input:focus, .ctrl-field select:focus, .ctrl-field textarea:focus{border-color:var(--copper-500);background:var(--paper-000);}
   .save-status{font-family:var(--mono);font-size:11.5px;color:var(--signal-green);margin-left:8px;opacity:0;transition:opacity .2s;}
   .save-status.show{opacity:1;}
   .no-results{padding:60px 0;text-align:center;color:var(--ink-400);font-size:14.5px;}
@@ -2155,7 +2169,11 @@
               <button type="button" class="report-pdf-remove f-remove-pdf" title="Șterge fișierul" ${isArchived ? 'disabled' : ''}>✕</button>
             </div>
             ` : `
-            <input type="file" class="f-report-pdf" accept="application/pdf" ${isArchived ? 'disabled' : ''}>
+            <div class="report-pdf-upload">
+              <label class="btn report-pdf-choose-btn" for="report-pdf-input-${t.id}">Alege fișier</label>
+              <span class="report-pdf-filename">Niciun fișier ales</span>
+              <input type="file" id="report-pdf-input-${t.id}" class="f-report-pdf report-pdf-hidden-input" accept="application/pdf" ${isArchived ? 'disabled' : ''}>
+            </div>
             `}
           </div>
         </div>
@@ -2175,9 +2193,19 @@
       // after the next keystroke), then again on every input.
       const resnoteEl = card.querySelector('.f-resnote.autogrow');
       if (resnoteEl) {
+        // Only forces an explicit pixel height when content genuinely
+        // needs more than one line — clearing to '' first (rather
+        // than always writing scrollHeight as an inline style, even
+        // for short/empty content) means a short note is left to the
+        // plain CSS single-line height, which now exactly matches its
+        // sibling inputs (same padding/line-height/border), instead
+        // of a JS-computed number that could come out a pixel or two
+        // different and throw off the row's alignment.
         const autoResize = () => {
-          resnoteEl.style.height = 'auto';
-          resnoteEl.style.height = resnoteEl.scrollHeight + 'px';
+          resnoteEl.style.height = '';
+          if (resnoteEl.scrollHeight > resnoteEl.clientHeight) {
+            resnoteEl.style.height = resnoteEl.scrollHeight + 'px';
+          }
         };
         resnoteEl.addEventListener('input', autoResize);
         autoResize();
@@ -2205,6 +2233,18 @@
       const viewPdfBtn = card.querySelector('.f-view-pdf');
       if (viewPdfBtn) {
         viewPdfBtn.addEventListener('click', () => openReportPdf(viewPdfBtn.dataset.path));
+      }
+
+      // Shows the chosen file's name next to the "Alege fișier" button
+      // once picked, since the hidden native input can't display that
+      // itself anymore — the styled label replacing it has no way to
+      // reflect the selection on its own.
+      const pdfInputEl = card.querySelector('.f-report-pdf');
+      const pdfFilenameEl = card.querySelector('.report-pdf-filename');
+      if (pdfInputEl && pdfFilenameEl) {
+        pdfInputEl.addEventListener('change', () => {
+          pdfFilenameEl.textContent = pdfInputEl.files[0] ? pdfInputEl.files[0].name : 'Niciun fișier ales';
+        });
       }
 
       // Deletes the attached PDF — clears the DB reference AND removes
