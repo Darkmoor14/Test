@@ -614,12 +614,12 @@
   let activeFilter = 'Ongoing';
   let searchTerm = '';
 
+  // Used to include a time component (HH:MM) — dropped per request.
   function fmtDate(iso){
     if(!iso) return '—';
     const d = new Date(iso);
     const locale = getLang() === 'ro' ? 'ro-RO' : (getLang() === 'hu' ? 'hu-HU' : 'en-GB');
-    return d.toLocaleDateString(locale, {day:'2-digit', month:'2-digit', year:'numeric'}) + ' ' +
-           d.toLocaleTimeString(locale, {hour:'2-digit', minute:'2-digit'});
+    return d.toLocaleDateString(locale, {day:'2-digit', month:'2-digit', year:'numeric'});
   }
 
   function escapeHtml(value){
@@ -717,7 +717,6 @@
           <div><span class="k">${t('public_k_address')}</span>${escapeHtml(tk.address || '—')}</div>
           ${tk.description ? `<div class="full"><span class="k">${t('public_k_desc')}</span>${escapeHtml(tk.description)}</div>` : ''}
           ${isDone ? `<div class="full"><span class="k">${t('public_k_resolved')}</span>${fmtDate(tk.resolved_on)}</div>` : ''}
-          ${isDone && tk.resolution_note ? `<div class="full"><span class="k">${t('public_k_work_done')}</span>${escapeHtml(tk.resolution_note)}</div>` : ''}
         </div>
         ${isDone && (tk.resolution_photo_before || tk.resolution_photo_after) ? `
         <div class="res-photos">

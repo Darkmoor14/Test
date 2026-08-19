@@ -996,7 +996,7 @@
           to allow reading and updating the `tickets` table — see the
           RLS policies set up in the Supabase SQL Editor.
        3. Tickets are fetched with `.from('tickets').select('*')` and
-          rendered as cards. Editing Status or "Rezolvat de" and
+          rendered as cards. Editing Status or "Soluționat de" and
           clicking Salvează runs `.update(...)` on that one row.
        4. A Postgres trigger (set_resolved_on, set up separately in
           Supabase) automatically stamps `resolved_on` the moment a
@@ -1323,11 +1323,16 @@
     renderOverviewCharts();
   }
 
+  // Used to include a time component (HH:MM) — dropped per request,
+  // so it's now functionally identical to fmtDateOnly() below. Kept
+  // as a separate function rather than replacing every call site with
+  // fmtDateOnly(), since that's a much smaller, lower-risk change and
+  // every existing caller keeps working exactly as before, just
+  // without the time.
   function fmtDate(iso){
     if(!iso) return '—';
     const d = new Date(iso);
-    return d.toLocaleDateString('ro-RO', {day:'2-digit', month:'2-digit', year:'numeric'}) + ' ' +
-           d.toLocaleTimeString('ro-RO', {hour:'2-digit', minute:'2-digit'});
+    return d.toLocaleDateString('ro-RO', {day:'2-digit', month:'2-digit', year:'numeric'});
   }
 
   function fmtDateOnly(iso){
@@ -1536,7 +1541,7 @@
 
   const chipDefs = [
     { key: 'Ongoing', label: 'Active' },
-    { key: 'Terminat', label: 'Rezolvate' },
+    { key: 'Terminat', label: 'Soluționate' },
     { key: 'Toate', label: 'Toate' },
     { key: 'Archived', label: 'Arhivate' },
   ];
@@ -1738,7 +1743,7 @@
               <span class="${isAging ? 'aging' : ''}">${isAging ? '⚠ ' : ''}${fmtDateOnly(t.submitted_on)}</span>
               <span>${escapeHtml(t.name || '—')} · ${escapeHtml(t.phone || '—')}</span>
             </div>
-            ${isDone ? `<div class="ov-card-resolved">Rezolvat: ${fmtDateOnly(t.resolved_on)}</div>` : ''}
+            ${isDone ? `<div class="ov-card-resolved">Soluționat: ${fmtDateOnly(t.resolved_on)}</div>` : ''}
           </button>
         `;
       }).join('');
@@ -2061,7 +2066,7 @@
           <div><span class="k">Adresă</span>${safeAddress || '—'}</div>
           ${t.description ? `<div class="full"><span class="k">Descriere</span>${safeDescription}</div>` : ''}
           `}
-          ${t.resolved_on ? `<div class="full"><span class="k">Rezolvat</span>${fmtDate(t.resolved_on)}</div>` : ''}
+          ${t.resolved_on ? `<div class="full"><span class="k">Soluționat</span>${fmtDate(t.resolved_on)}</div>` : ''}
         </div>
         <div class="ticket-controls">
           <div class="ctrl-field">
@@ -2072,7 +2077,7 @@
             </select>
           </div>
           <div class="ctrl-field">
-            <label>Rezolvat de</label>
+            <label>Soluționat de</label>
             <input type="text" class="f-resolver" placeholder="Nume angajat" value="${safeResolvedBy}" ${isArchived ? 'disabled' : ''}>
           </div>
           <div class="ctrl-field resnote-field">
@@ -2332,7 +2337,7 @@
 
     const headers = [
       'Număr tichet', 'Tip', 'Nume', 'Telefon', 'Email', 'Adresă',
-      'Descriere', 'Stare', 'Rezolvat de', 'Ce s-a făcut', 'Trimis la', 'Rezolvat la'
+      'Descriere', 'Stare', 'Soluționat de', 'Ce s-a făcut', 'Trimis la', 'Soluționat la'
     ];
 
     const rows = exportRows.map(t => [
@@ -2461,7 +2466,8 @@
      the dates themselves.
 
      ARCHIVING: same tab structure and bulk-archive pattern as
-     Sesizări (Active / Rezolvate / Toate / Arhivate — see
+     Sesizări (Active / Soluționate / Toate / Arhivate on tickets,
+     Active / Rezolvate / Toate / Arhivate here — see
      getFilteredProjects() above). Requires an `archived` (boolean)
      and `archived_at` (timestamptz) column on `current_projects`,
      matching what `tickets` already has:
