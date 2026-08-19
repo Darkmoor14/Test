@@ -659,6 +659,20 @@
     width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:3px;
     font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-900);
   }
+  /* "Ce s-a făcut" grows downward as its text wraps onto more lines
+     (see the .autogrow JS below), rather than staying a fixed single
+     line and either cutting text off or forcing horizontal scroll
+     within the box. Matches the surrounding inputs' exact look at
+     rest (same padding/border/font) so it isn't visually distinct
+     until it actually needs the extra room. resize:none — the auto-
+     grow logic already handles sizing, so the browser's own manual
+     resize handle would just be redundant and easy to misuse. */
+  .ctrl-field textarea.autogrow{
+    width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:3px;
+    font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-900);
+    resize:none;overflow:hidden;line-height:1.4;
+    min-height:37px;
+  }
   .ctrl-field input:focus, .ctrl-field select:focus{border-color:var(--copper-500);background:var(--paper-000);}
   .save-status{font-family:var(--mono);font-size:11.5px;color:var(--signal-green);margin-left:8px;opacity:0;transition:opacity .2s;}
   .save-status.show{opacity:1;}
@@ -2127,7 +2141,7 @@
           </div>
           <div class="ctrl-field resnote-field">
             <label>Ce s-a făcut (opțional)</label>
-            <input type="text" class="f-resnote" list="resolution-suggestions" placeholder="ex: Bec înlocuit" value="${escapeHtml(t.resolution_note || '')}" ${isArchived ? 'disabled' : ''}>
+            <textarea class="f-resnote autogrow" rows="1" placeholder="ex: Bec înlocuit" ${isArchived ? 'disabled' : ''}>${escapeHtml(t.resolution_note || '')}</textarea>
           </div>
           <div class="ctrl-field resolved-date-field">
             <label>Data soluționării</label>
@@ -2152,6 +2166,22 @@
           }
         </div>
       `;
+
+      // "Ce s-a făcut" grows to fit its content — resets height to
+      // auto first so it can shrink back down too (not just grow),
+      // e.g. after deleting a long note back to something short.
+      // Runs once immediately on render (so a ticket that already has
+      // a long saved note starts at the correct height, not just
+      // after the next keystroke), then again on every input.
+      const resnoteEl = card.querySelector('.f-resnote.autogrow');
+      if (resnoteEl) {
+        const autoResize = () => {
+          resnoteEl.style.height = 'auto';
+          resnoteEl.style.height = resnoteEl.scrollHeight + 'px';
+        };
+        resnoteEl.addEventListener('input', autoResize);
+        autoResize();
+      }
 
       const checkbox = card.querySelector('.f-select');
       checkbox.addEventListener('change', () => {
