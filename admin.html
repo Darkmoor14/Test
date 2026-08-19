@@ -605,6 +605,16 @@
      width just to force the wrap. */
   .ticket-save-row{margin-top:14px;}
   .ticket-save-row .btn{width:auto;}
+  /* "Soluționat" is longer than "Terminat" was — the base
+     .ctrl-field min-width:160px left this dropdown too narrow to
+     show the full word once the row got crowded with its neighbors,
+     so the browser silently truncated it with "…" in the closed
+     state. Compound selector (not just .stare-field alone) so this
+     genuinely outweighs the base .ctrl-field rule regardless of file
+     order — same specificity pattern as the fields below it, after
+     getting bitten by the equal-specificity version of this exact
+     mistake more than once already in this file. */
+  .ctrl-field.stare-field{min-width:190px;}
   .ctrl-field.resolved-date-field{min-width:150px;}
   .ctrl-field.resnote-field{min-width:320px;}
   .ctrl-field.report-pdf-field{min-width:200px;}
@@ -2261,7 +2271,7 @@
           ${t.resolved_on ? `<div class="full"><span class="k">Soluționat</span>${fmtDate(t.resolved_on)}</div>` : ''}
         </div>
         <div class="ticket-controls">
-          <div class="ctrl-field">
+          <div class="ctrl-field stare-field">
             <label>Stare</label>
             <select class="f-status" ${isArchived ? 'disabled' : ''}>
               <option value="Ongoing" ${t.status === 'Ongoing' ? 'selected' : ''}>Activ</option>
