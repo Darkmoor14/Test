@@ -93,16 +93,16 @@
     /* leaves room so the fixed bar never covers the last bit of content */
     .dash{padding-bottom:82px;}
 
-    /* Sesizări toolbar on mobile: CSV export is a desktop power-user
-       action, not something worth the space here — hidden entirely.
-       The search box collapses to just a magnifying-glass button, and
+    /* Sesizări toolbar on mobile: export/import actions are not worth
+       the space here — hidden entirely. The search box collapses to
+       just a magnifying-glass button, and
        expands into the real input only once tapped, rather than
        permanently taking up room with a full-width text field and its
        long placeholder. Same treatment applied to Proiecte curente's
        toolbar below — Excel import hidden, search collapsed — while
        "+ Adaugă proiect" stays, since adding a project is core
-       functionality, not a desktop convenience like the other two. */
-    #exportBtn, #importExcelBtn, #exportExcelBtn{display:none;}
+       functionality, not a desktop convenience like the other ones. */
+    #importExcelBtn, #exportExcelBtn{display:none;}
     .ticket-search-wrap{display:flex;align-items:center;position:relative;}
     .search-icon-btn{
       display:flex;align-items:center;justify-content:center;flex-shrink:0;
@@ -901,8 +901,7 @@
           </div>
           <div class="result-count" id="resultCount"></div>
           <button class="btn btn-primary" id="addTicketBtn" type="button">+ Adaugă sesizare</button>
-          <button class="btn" id="exportBtn" type="button">⭳ Descarcă CSV</button>
-          <button class="btn" id="exportExcelBtn" type="button">⭳ Raport Excel (an)</button>
+          <button class="btn" id="exportExcelBtn" type="button">⭳ Raport Excel</button>
         </div>
       </div>
       <div class="project-form" id="ticketAddForm" style="display:none;">
@@ -1061,9 +1060,9 @@
           Supabase) automatically stamps `resolved_on` the moment a
           ticket's status is changed to "Terminat" — this page does
           not set that timestamp itself.
-       5. "Descarcă CSV" builds a CSV client-side from the tickets
-          already loaded in memory (no extra network request) and
-          triggers a browser download — see exportTicketsCSV() below.
+       5. "Raport Excel" builds an .xlsx client-side from the tickets
+          already loaded in memory (no extra network request), then
+          asks for one month or all months before download.
 
      Editing this file: the Supabase URL/key below are meant to be
      public (they only grant what the RLS policies allow — nothing
@@ -2626,73 +2625,24 @@
     updateArchiveBar();
     loadTickets();
   });
-
-
   /* ============================================================
-     EXPORT CSV — downloads all currently loaded tickets
-     ============================================================ */
-  function csvEscape(value) {
-    const str = (value === null || value === undefined) ? '' : String(value);
-    return '"' + str.replace(/"/g, '""') + '"';
-  }
-
-  function exportTicketsCSV() {
-    const exportRows = getFilteredTickets();
-    if (!exportRows.length) {
-      alert('Nu există tichete de exportat.');
-      return;
-    }
-
-    const headers = [
-      'Număr tichet', 'Tip', 'Nume', 'Telefon', 'Email', 'Adresă',
-      'Descriere', 'Stare', 'Soluționat de', 'Ce s-a făcut', 'Trimis la', 'Soluționat la'
-    ];
-
-    const rows = exportRows.map(t => [
-      t.ticket_number,
-      t.type === 'Anunt accident' ? 'Accident' : 'Defect',
-      t.name,
-      t.phone,
-      t.email,
-      t.address,
-      t.description,
-      t.status === 'Terminat' ? 'Soluționat' : 'Activ',
-      t.resolved_by,
-      t.resolution_note,
-      fmtDate(t.submitted_on),
-      fmtDate(t.resolved_on)
-    ]);
-
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(csvEscape).join(','))
-      .join('\r\n');
-
-    // BOM prefix so Excel correctly reads UTF-8 diacritics (ă, â, î, ș, ț)
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const dateStr = new Date().toISOString().slice(0, 10);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `tichete-insta-grup-${dateStr}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  document.getElementById('exportBtn').addEventListener('click', exportTicketsCSV);
-
-  /* ============================================================
-     YEARLY EXCEL REPORT — generated directly in the admin with the
-     already-loaded SheetJS runtime. The workbook always includes:
-     1. a cover sheet with yearly stats
-     2. one sheet for every month (even if empty)
-
-     It deliberately ignores the currently selected UI chips and
-     exports every ticket from the chosen year.
+     EXCEL REPORT — month/all-month selection happens here in the
+     admin, while the actual .xlsx generation is delegated to the
+     bundled chart-capable exporter in yearly-report-bundle.js.
      ============================================================ */
   const REPORT_MONTHS = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie', 'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie'];
+  let yearlyReportBundleLoaded = false;
+
+  function loadYearlyReportBundle(){
+    if (yearlyReportBundleLoaded) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'yearly-report-bundle.js';
+      script.onload = () => { yearlyReportBundleLoaded = true; resolve(); };
+      script.onerror = () => reject(new Error('Nu s-a putut încărca modulul de raport Excel.'));
+      document.body.appendChild(script);
+    });
+  }
 
   function reportTicketType(ticket){
     return ticket.type === 'Anunt accident' ? 'Accident' : 'Defect';
@@ -2796,7 +2746,28 @@
     return ws;
   }
 
-  function buildYearlyWorkbookBinary(yearTickets, year){
+  function promptForReportMonthSelection(year){
+    const lines = [
+      `Export Excel pentru ${year}`,
+      '',
+      'Scrieți:',
+      '0 = toate lunile',
+    ];
+    REPORT_MONTHS.forEach((month, index) => {
+      lines.push(`${index + 1} = ${month}`);
+    });
+
+    const answer = window.prompt(lines.join('\n'), '0');
+    if (answer === null) return null;
+    const value = Number(String(answer).trim());
+    if (!Number.isInteger(value) || value < 0 || value > 12) {
+      alert('Alegeți 0 pentru toate lunile sau un număr între 1 și 12.');
+      return null;
+    }
+    return value === 0 ? 'all' : value - 1;
+  }
+
+  function buildYearlyWorkbookBinary(yearTickets, year, monthSelection){
     const workbook = XLSX.utils.book_new();
     const monthlyBuckets = Array.from({ length: 12 }, () => []);
 
@@ -2811,21 +2782,28 @@
       });
 
     const monthlyStats = monthlyBuckets.map((tickets, index) => buildMonthlyStats(tickets, index));
-    const activeCount = yearTickets.filter(ticket => reportTicketStatus(ticket) === 'Activ').length;
-    const resolvedCount = yearTickets.filter(ticket => reportTicketStatus(ticket) === 'Terminat').length;
-    const defectCount = yearTickets.filter(ticket => reportTicketType(ticket) === 'Defect').length;
-    const accidentCount = yearTickets.filter(ticket => reportTicketType(ticket) === 'Accident').length;
-    const avgHours = reportHoursToResolve(yearTickets);
-    const busiestMonth = monthlyStats.reduce((best, current) => current.total > best.total ? current : best, monthlyStats[0]);
-    const slowestMonth = monthlyStats.reduce((best, current) => current.avgHours > best.avgHours ? current : best, monthlyStats[0]);
+    const selectedMonths = monthSelection === 'all'
+      ? monthlyStats
+      : monthlyStats.filter(month => month.index === monthSelection);
+    const exportTickets = selectedMonths.flatMap(month => month.tickets);
+    const scopeLabel = monthSelection === 'all'
+      ? `toate lunile din ${year}`
+      : `${REPORT_MONTHS[monthSelection]} ${year}`;
+    const activeCount = exportTickets.filter(ticket => reportTicketStatus(ticket) === 'Activ').length;
+    const resolvedCount = exportTickets.filter(ticket => reportTicketStatus(ticket) === 'Terminat').length;
+    const defectCount = exportTickets.filter(ticket => reportTicketType(ticket) === 'Defect').length;
+    const accidentCount = exportTickets.filter(ticket => reportTicketType(ticket) === 'Accident').length;
+    const avgHours = reportHoursToResolve(exportTickets);
+    const busiestMonth = selectedMonths.reduce((best, current) => current.total > best.total ? current : best, selectedMonths[0]);
+    const slowestMonth = selectedMonths.reduce((best, current) => current.avgHours > best.avgHours ? current : best, selectedMonths[0]);
 
     const coverRows = [
-      [`Raport anual sesizări ${year}`],
+      [monthSelection === 'all' ? `Raport anual sesizări ${year}` : `Raport sesizări ${scopeLabel}`],
       ['Generat automat din panoul admin Insta Grup'],
       [],
       ['Indicator', 'Valoare'],
-      ['An raport', year],
-      ['Total sesizări', yearTickets.length],
+      ['Perioadă', scopeLabel],
+      ['Total sesizări', exportTickets.length],
       ['Sesizări active', activeCount],
       ['Sesizări soluționate', resolvedCount],
       ['Defecte', defectCount],
@@ -2837,7 +2815,7 @@
       ['Lună', 'Total', 'Active', 'Soluționate', 'Defecte', 'Accidente', 'Ore medii'],
     ];
 
-    monthlyStats.forEach(month => {
+    selectedMonths.forEach(month => {
       coverRows.push([
         month.name,
         month.total,
@@ -2854,7 +2832,7 @@
     autosizeWorksheet(coverSheet, coverRows);
     XLSX.utils.book_append_sheet(workbook, coverSheet, `Coperta ${year}`.slice(0, 31));
 
-    monthlyStats.forEach(month => {
+    selectedMonths.forEach(month => {
       const ws = makeMonthlyWorksheet(month, year);
       XLSX.utils.book_append_sheet(workbook, ws, `${month.name} ${year}`.slice(0, 31));
     });
@@ -2868,7 +2846,12 @@
     btn.disabled = true;
     btn.textContent = 'Se generează...';
     try {
+      await loadYearlyReportBundle();
+
       const year = ticketYearFilter === 'all' ? new Date().getFullYear() : Number(ticketYearFilter);
+      const monthSelection = promptForReportMonthSelection(year);
+      if (monthSelection === null) return;
+
       const yearTickets = allTickets.filter(t => {
         if (!t.submitted_on) return false;
         return new Date(t.submitted_on).getFullYear() === year;
@@ -2878,12 +2861,32 @@
         return;
       }
 
-      const bytes = buildYearlyWorkbookBinary(yearTickets, year);
+      if (monthSelection !== 'all') {
+        const hasTicketsInMonth = yearTickets.some(t => {
+          const submitted = new Date(t.submitted_on);
+          return !Number.isNaN(submitted.getTime()) && submitted.getMonth() === monthSelection;
+        });
+        if (!hasTicketsInMonth) {
+          alert(`Nu există sesizări pentru ${REPORT_MONTHS[monthSelection]} ${year}.`);
+          return;
+        }
+      }
+
+      const exportTickets = monthSelection === 'all'
+        ? yearTickets
+        : yearTickets.filter(t => {
+            const submitted = new Date(t.submitted_on);
+            return !Number.isNaN(submitted.getTime()) && submitted.getMonth() === monthSelection;
+          });
+
+      const bytes = await window.generateYearlyExcelReport(exportTickets, year);
       const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `raport-sesizari-${year}.xlsx`;
+      a.download = monthSelection === 'all'
+        ? `raport-sesizari-${year}.xlsx`
+        : `raport-sesizari-${year}-${String(monthSelection + 1).padStart(2, '0')}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
