@@ -621,7 +621,7 @@
      an otherwise clean, minimal row. */
   .report-pdf-hidden-input{display:none;}
   .report-pdf-dropzone{
-    width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:3px;
+    width:100%;height:38px;padding:9px 11px;border:1px solid var(--line-strong);border-radius:3px;
     font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-600);
     line-height:1.3;box-sizing:border-box;
     display:flex;align-items:center;gap:8px;cursor:pointer;
@@ -680,7 +680,7 @@
   .ctrl-field input, .ctrl-field select{
     width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:3px;
     font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-900);
-    line-height:1.3;
+    line-height:1.3;height:38px;box-sizing:border-box;
   }
   /* "Ce s-a făcut" grows downward as its text wraps onto more lines
      (see the .autogrow JS below), rather than staying a fixed single
@@ -694,7 +694,7 @@
     width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:3px;
     font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-900);
     resize:none;overflow:hidden;line-height:1.3;
-    display:block;
+    display:block;min-height:38px;box-sizing:border-box;
   }
   .ctrl-field input:focus, .ctrl-field select:focus, .ctrl-field textarea:focus{border-color:var(--copper-500);background:var(--paper-000);}
   .save-status{font-family:var(--mono);font-size:11.5px;color:var(--signal-green);margin-left:8px;opacity:0;transition:opacity .2s;}
@@ -1456,6 +1456,43 @@
       return;
     }
     window.open(data.signedUrl, '_blank', 'noopener');
+  }
+
+  /* ============================================================
+     STAFF NOTIFICATIONS — mirrors raportare.html's own email + push
+     notification calls exactly, so a ticket logged manually here (via
+     "+ Adaugă sesizare", e.g. for a phone call) alerts the rest of
+     the team the same way a citizen's own submission does. Missing
+     from this file before now — the public form has always sent
+     these, but nothing equivalent existed here, so an admin-created
+     ticket silently notified no one. Never blocks the actual ticket
+     creation if either call fails — same "don't let a notification
+     problem stop the real work" principle as the public form.
+     ============================================================ */
+  async function sendNotification(payload){
+    try {
+      const { error } = await supabaseClient.functions.invoke('bright-processor', {
+        body: payload,
+      });
+      if (error) console.error('send-email function failed:', error);
+    } catch (err) {
+      console.error('send-email call failed:', err);
+    }
+  }
+
+  async function sendPushNotification(payload){
+    try {
+      const { error } = await supabaseClient.functions.invoke('send-push', {
+        body: {
+          title: 'Sesizare nouă',
+          body: `${payload.ticket_number} — ${payload.address}`,
+          url: 'admin.html?ticket=' + encodeURIComponent(payload.ticket_number),
+        },
+      });
+      if (error) console.error('send-push failed:', error);
+    } catch (err) {
+      console.error('send-push call failed:', err);
+    }
   }
 
   async function checkSession(){
@@ -3066,6 +3103,25 @@
       alert('Eroare la salvare. Încercați din nou.');
       return;
     }
+
+    // Notify the rest of the team — same email + push notifications
+    // the public form sends after its own successful submission, so
+    // a ticket logged here doesn't silently go unnoticed by everyone
+    // else. Runs after the save already succeeded (matching the
+    // public form's own ordering), so a failed/unconfigured
+    // notification never affects the ticket itself.
+    const notifyPayload = {
+      type: 'ticket',
+      ticket_number: ticketNumber,
+      ticket_type: type === 'Anunt accident' ? 'Accident / urgență' : 'Defect',
+      name: name,
+      phone: phone,
+      email: email || '-',
+      address: address,
+      description: description || '-',
+    };
+    sendNotification(notifyPayload);
+    sendPushNotification(notifyPayload);
 
     // Only bother with the extra UPDATE call if the admin actually
     // picked a date — left blank, create_ticket's own default (now)
