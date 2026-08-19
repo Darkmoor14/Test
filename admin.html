@@ -605,8 +605,8 @@
      width just to force the wrap. */
   .ticket-save-row{margin-top:14px;}
   .ticket-save-row .btn{width:auto;}
-  .ctrl-field.resolved-date-field{min-width:240px;}
-  .ctrl-field.resnote-field{min-width:220px;}
+  .ctrl-field.resolved-date-field{min-width:190px;}
+  .ctrl-field.resnote-field{min-width:280px;}
   .ctrl-field.report-pdf-field{min-width:200px;}
   .report-pdf-row{display:flex;align-items:center;gap:8px;}
   .report-pdf-remove{
@@ -617,12 +617,19 @@
   }
   .report-pdf-remove:hover{border-color:var(--signal-red);color:var(--signal-red);}
   .report-pdf-remove:disabled{opacity:0.5;cursor:default;}
-  .resolved-datetime-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
-  /* Only a date input + "Astăzi" button now (time input removed) —
-     flex:1 1 Npx (not flex:none) lets the date input shrink a little
-     to stay on the same line as the button when space is tight. */
-  .resolved-datetime-row input[type="date"]{flex:1 1 140px;min-width:100px;}
-  .resolved-datetime-row .btn{padding:8px 12px;white-space:nowrap;flex:0 0 auto;}
+  /* Sits flush against the date input, styled as a small icon-only
+     square — browsers don't allow literally embedding a custom
+     button inside the native date picker itself, so this is the
+     closest achievable equivalent: a compact "today" shortcut that
+     reads as part of the same control rather than a separate,
+     spaced-out element, keeping the whole row meaningfully narrower
+     than a full text-labelled button did. */
+  .resolved-datetime-row{display:flex;gap:4px;align-items:center;}
+  .resolved-datetime-row input[type="date"]{flex:1 1 auto;min-width:90px;}
+  .today-icon-btn{
+    width:34px;height:34px;padding:0;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+  }
 
   @media(max-width:600px){
     /* .ticket-controls uses flex, not grid (unlike .pf-grid/
@@ -859,7 +866,9 @@
             <label>Data sesizării</label>
             <div class="resolved-datetime-row">
               <input type="date" id="tf-date">
-              <button type="button" class="btn" id="tfTodayBtn" title="Completează data curentă">Astăzi</button>
+              <button type="button" class="btn today-icon-btn" id="tfTodayBtn" title="Completează data curentă">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="15.5" r="1.6" fill="currentColor" stroke="none"/></svg>
+              </button>
             </div>
           </div>
           <div class="ctrl-field">
@@ -2146,7 +2155,9 @@
             <label>Data soluționării</label>
             <div class="resolved-datetime-row">
               <input type="date" class="f-resolved-date" value="${resolvedDateParts.date}" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>
-              <button type="button" class="btn f-resolved-today" title="Completează data curentă" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>Astăzi</button>
+              <button type="button" class="btn today-icon-btn f-resolved-today" title="Completează data curentă" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="15.5" r="1.6" fill="currentColor" stroke="none"/></svg>
+              </button>
             </div>
           </div>
           <div class="ctrl-field report-pdf-field">
