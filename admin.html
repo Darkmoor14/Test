@@ -2684,37 +2684,182 @@
   document.getElementById('exportBtn').addEventListener('click', exportTicketsCSV);
 
   /* ============================================================
-     YEARLY EXCEL REPORT — a real, native-chart .xlsx workbook (one
-     sheet per month with data, plus a summary sheet with the yearly
-     total and three charts: monthly volume, defect vs accident
-     split, average resolution time). Built with @office-kit/xlsx,
-     the only free library found that can write actual interactive
-     Excel charts — see the design discussion for why SheetJS
-     (already used for CSV export above) couldn't do this.
+     YEARLY EXCEL REPORT — generated directly in the admin with the
+     already-loaded SheetJS runtime. The workbook always includes:
+     1. a cover sheet with yearly stats
+     2. one sheet for every month (even if empty)
 
-     The generation code itself needed a build step (something this
-     otherwise plain, no-build-tools site has never had before), so
-     it's bundled separately into yearly-report-bundle.js rather than
-     written inline here like everything else. That bundle is ~160KB
-     — meaningful weight for a feature used maybe a few times a year
-     — so it's lazy-loaded only when this button is actually clicked,
-     not on every page load.
-
-     Pulls EVERY ticket for the selected year regardless of the
-     Active/Soluționate/Toate/Arhivate chip currently selected — a
-     yearly report should be a complete record, not limited by
-     whatever narrow view happens to be on screen at the time.
+     It deliberately ignores the currently selected UI chips and
+     exports every ticket from the chosen year.
      ============================================================ */
-  let yearlyReportBundleLoaded = false;
-  function loadYearlyReportBundle(){
-    if (yearlyReportBundleLoaded) return Promise.resolve();
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'yearly-report-bundle.js';
-      script.onload = () => { yearlyReportBundleLoaded = true; resolve(); };
-      script.onerror = () => reject(new Error('Nu s-a putut încărca modulul de raport Excel.'));
-      document.body.appendChild(script);
+  const REPORT_MONTHS = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie', 'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie'];
+
+  function reportTicketType(ticket){
+    return ticket.type === 'Anunt accident' ? 'Accident' : 'Defect';
+  }
+
+  function reportTicketStatus(ticket){
+    return ticket.status === 'Terminat' ? 'Terminat' : 'Activ';
+  }
+
+  function reportDateValue(value){
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : date;
+  }
+
+  function reportDateLabel(value){
+    const date = reportDateValue(value);
+    return date ? fmtDate(date) : '';
+  }
+
+  function reportHoursToResolve(tickets){
+    const resolved = tickets.filter(ticket => ticket.submitted_on && ticket.resolved_on);
+    if (resolved.length === 0) return 0;
+    const totalHours = resolved.reduce((sum, ticket) => {
+      return sum + ((new Date(ticket.resolved_on) - new Date(ticket.submitted_on)) / (1000 * 60 * 60));
+    }, 0);
+    return Math.round((totalHours / resolved.length) * 10) / 10;
+  }
+
+  function buildMonthlyStats(monthTickets, index){
+    const active = monthTickets.filter(ticket => reportTicketStatus(ticket) === 'Activ');
+    const resolved = monthTickets.filter(ticket => reportTicketStatus(ticket) === 'Terminat');
+    const defects = monthTickets.filter(ticket => reportTicketType(ticket) === 'Defect');
+    const accidents = monthTickets.filter(ticket => reportTicketType(ticket) === 'Accident');
+    return {
+      index,
+      name: REPORT_MONTHS[index],
+      tickets: monthTickets,
+      total: monthTickets.length,
+      active: active.length,
+      resolved: resolved.length,
+      defects: defects.length,
+      accidents: accidents.length,
+      avgHours: reportHoursToResolve(monthTickets),
+    };
+  }
+
+  function autosizeWorksheet(ws, rows){
+    const widths = [];
+    rows.forEach(row => {
+      row.forEach((value, index) => {
+        const text = value == null ? '' : String(value);
+        widths[index] = Math.max(widths[index] || 0, text.length);
+      });
     });
+    ws['!cols'] = widths.map(width => ({ wch: Math.min(Math.max(width + 2, 12), 40) }));
+  }
+
+  function makeMonthlyWorksheet(stats, year){
+    const rows = [
+      [`Sesizări ${stats.name} ${year}`],
+      [],
+      ['Indicator', 'Valoare'],
+      ['Total sesizări', stats.total],
+      ['Sesizări active', stats.active],
+      ['Sesizări soluționate', stats.resolved],
+      ['Defecte', stats.defects],
+      ['Accidente', stats.accidents],
+      ['Ore medii de soluționare', stats.avgHours],
+      [],
+      ['Nr. sesizare', 'Tip', 'Nume', 'Telefon', 'Email', 'Adresă', 'Descriere', 'Stare', 'Soluționat de', 'Ce s-a făcut', 'Trimis la', 'Soluționat la'],
+    ];
+
+    if (stats.tickets.length === 0) {
+      rows.push(['Nu există sesizări în această lună.']);
+    } else {
+      stats.tickets.forEach(ticket => {
+        rows.push([
+          ticket.ticket_number || '',
+          reportTicketType(ticket),
+          ticket.name || '',
+          ticket.phone || '',
+          ticket.email || '',
+          ticket.address || '',
+          ticket.description || '',
+          reportTicketStatus(ticket),
+          ticket.resolved_by || '',
+          ticket.resolution_note || '',
+          reportDateLabel(ticket.submitted_on),
+          reportDateLabel(ticket.resolved_on),
+        ]);
+      });
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!freeze'] = { xSplit: 0, ySplit: 11 };
+    if (stats.tickets.length > 0) {
+      ws['!autofilter'] = { ref: `A11:L${rows.length}` };
+    }
+    autosizeWorksheet(ws, rows);
+    return ws;
+  }
+
+  function buildYearlyWorkbookBinary(yearTickets, year){
+    const workbook = XLSX.utils.book_new();
+    const monthlyBuckets = Array.from({ length: 12 }, () => []);
+
+    yearTickets
+      .filter(ticket => ticket.submitted_on)
+      .sort((a, b) => new Date(a.submitted_on) - new Date(b.submitted_on))
+      .forEach(ticket => {
+        const submitted = new Date(ticket.submitted_on);
+        if (!Number.isNaN(submitted.getTime())) {
+          monthlyBuckets[submitted.getMonth()].push(ticket);
+        }
+      });
+
+    const monthlyStats = monthlyBuckets.map((tickets, index) => buildMonthlyStats(tickets, index));
+    const activeCount = yearTickets.filter(ticket => reportTicketStatus(ticket) === 'Activ').length;
+    const resolvedCount = yearTickets.filter(ticket => reportTicketStatus(ticket) === 'Terminat').length;
+    const defectCount = yearTickets.filter(ticket => reportTicketType(ticket) === 'Defect').length;
+    const accidentCount = yearTickets.filter(ticket => reportTicketType(ticket) === 'Accident').length;
+    const avgHours = reportHoursToResolve(yearTickets);
+    const busiestMonth = monthlyStats.reduce((best, current) => current.total > best.total ? current : best, monthlyStats[0]);
+    const slowestMonth = monthlyStats.reduce((best, current) => current.avgHours > best.avgHours ? current : best, monthlyStats[0]);
+
+    const coverRows = [
+      [`Raport anual sesizări ${year}`],
+      ['Generat automat din panoul admin Insta Grup'],
+      [],
+      ['Indicator', 'Valoare'],
+      ['An raport', year],
+      ['Total sesizări', yearTickets.length],
+      ['Sesizări active', activeCount],
+      ['Sesizări soluționate', resolvedCount],
+      ['Defecte', defectCount],
+      ['Accidente', accidentCount],
+      ['Ore medii de soluționare', avgHours],
+      ['Luna cu cele mai multe sesizări', `${busiestMonth.name} (${busiestMonth.total})`],
+      ['Luna cu timpul mediu cel mai mare', `${slowestMonth.name} (${slowestMonth.avgHours} ore)`],
+      [],
+      ['Lună', 'Total', 'Active', 'Soluționate', 'Defecte', 'Accidente', 'Ore medii'],
+    ];
+
+    monthlyStats.forEach(month => {
+      coverRows.push([
+        month.name,
+        month.total,
+        month.active,
+        month.resolved,
+        month.defects,
+        month.accidents,
+        month.avgHours,
+      ]);
+    });
+
+    const coverSheet = XLSX.utils.aoa_to_sheet(coverRows);
+    coverSheet['!freeze'] = { xSplit: 0, ySplit: 15 };
+    autosizeWorksheet(coverSheet, coverRows);
+    XLSX.utils.book_append_sheet(workbook, coverSheet, `Coperta ${year}`.slice(0, 31));
+
+    monthlyStats.forEach(month => {
+      const ws = makeMonthlyWorksheet(month, year);
+      XLSX.utils.book_append_sheet(workbook, ws, `${month.name} ${year}`.slice(0, 31));
+    });
+
+    return XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
   }
 
   document.getElementById('exportExcelBtn').addEventListener('click', async () => {
@@ -2723,8 +2868,6 @@
     btn.disabled = true;
     btn.textContent = 'Se generează...';
     try {
-      await loadYearlyReportBundle();
-
       const year = ticketYearFilter === 'all' ? new Date().getFullYear() : Number(ticketYearFilter);
       const yearTickets = allTickets.filter(t => {
         if (!t.submitted_on) return false;
@@ -2735,7 +2878,7 @@
         return;
       }
 
-      const bytes = await window.generateYearlyExcelReport(yearTickets, year);
+      const bytes = buildYearlyWorkbookBinary(yearTickets, year);
       const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
