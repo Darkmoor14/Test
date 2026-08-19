@@ -568,6 +568,16 @@
   .toolbar-mobile-actions,
   .toolbar-mobile-summary,
   .toolbar-mobile-only{display:none;}
+  @media(max-width:900px){
+    .toolbar-mobile-actions{display:flex;}
+    .toolbar-mobile-summary{display:flex;}
+    .toolbar-mobile-only{display:inline-flex;}
+  }
+  @media(min-width:901px){
+    .toolbar-mobile-actions,
+    .toolbar-mobile-summary,
+    .toolbar-mobile-only{display:none !important;}
+  }
   .mobile-sheet{
     position:fixed;inset:0;z-index:320;display:none;
   }
@@ -992,7 +1002,6 @@
         </div>
         <div class="toolbar-mobile-actions">
           <button class="btn toolbar-mobile-only" id="ticketFiltersMobileBtn" type="button">Filtre</button>
-          <button class="btn toolbar-mobile-only" id="exportExcelMobileBtn" type="button">Raport Excel</button>
         </div>
       </div>
       <div class="project-form" id="ticketAddForm" style="display:none;">
@@ -3166,8 +3175,6 @@
 
   const exportExcelBtn = document.getElementById('exportExcelBtn');
   if (exportExcelBtn) exportExcelBtn.addEventListener('click', () => handleExcelExport(exportExcelBtn));
-  const exportExcelMobileBtn = document.getElementById('exportExcelMobileBtn');
-  if (exportExcelMobileBtn) exportExcelMobileBtn.addEventListener('click', () => handleExcelExport(exportExcelMobileBtn));
 
   /* ============================================================
      ADMIN TABS — switch between "Sesizări" and "Proiecte curente"
@@ -4037,6 +4044,42 @@
     window.addEventListener('orientationchange', settleFixedBottomUI);
     syncKeyboardOpen();
   }
+
+  // Extra Safari/PWA fallback: some home-screen sessions do not fire
+  // visualViewport changes consistently for keyboard close, but they
+  // do still emit focus transitions on the actual form controls.
+  // Keeping the same kb-open / kb-settling classes in sync here gives
+  // the bottom tab bar a second path to hide/reappear correctly.
+  (function(){
+    const root = document.documentElement;
+    const focusSelector = 'input, textarea, select, [contenteditable="true"]';
+    let focusSettleTimer = null;
+
+    function isEditableTarget(target){
+      return !!(target && target.matches && target.matches(focusSelector));
+    }
+
+    function beginFocusSettle(){
+      root.classList.add('kb-settling');
+      if (focusSettleTimer) clearTimeout(focusSettleTimer);
+      focusSettleTimer = setTimeout(() => {
+        root.classList.remove('kb-open');
+        root.classList.remove('kb-settling');
+      }, 320);
+    }
+
+    document.addEventListener('focusin', (event) => {
+      if (!isEditableTarget(event.target)) return;
+      if (focusSettleTimer) clearTimeout(focusSettleTimer);
+      root.classList.remove('kb-settling');
+      root.classList.add('kb-open');
+    });
+
+    document.addEventListener('focusout', (event) => {
+      if (!isEditableTarget(event.target)) return;
+      beginFocusSettle();
+    });
+  })();
 </script>
 
 </body>
