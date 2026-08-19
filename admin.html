@@ -1905,7 +1905,7 @@
           <td class="overview-name-cell" title="${escapeHtml(t.name || '')}">${escapeHtml(t.name || '—')}</td>
           <td>${escapeHtml(t.phone || '—')}</td>
           <td class="overview-address-cell">${escapeHtml(t.address || '—')}</td>
-          <td><span class="status-pill ${isDone ? 'status-pill-done' : 'status-pill-active'}">${isDone ? 'Terminat' : 'În curs'}</span></td>
+          <td><span class="status-pill ${isDone ? 'status-pill-done' : 'status-pill-active'}">${isDone ? 'Soluționat' : 'În curs'}</span></td>
           <td>${isDone ? fmtDateOnly(t.resolved_on) : '—'}</td>
           <td>${resolutionHours !== null ? formatDurationDays(resolutionHours) : '—'}</td>
         </tr>
@@ -2265,7 +2265,7 @@
             <label>Stare</label>
             <select class="f-status" ${isArchived ? 'disabled' : ''}>
               <option value="Ongoing" ${t.status === 'Ongoing' ? 'selected' : ''}>Activ</option>
-              <option value="Terminat" ${t.status === 'Terminat' ? 'selected' : ''}>Terminat</option>
+              <option value="Terminat" ${t.status === 'Terminat' ? 'selected' : ''}>Soluționat</option>
             </select>
           </div>
           <div class="ctrl-field">
@@ -2481,7 +2481,7 @@
           // double-check, especially from a phone where a misclick is
           // easy.
           if (newStatus !== t.status) {
-            const statusLabel = newStatus === 'Terminat' ? 'Terminat (soluționat)' : 'Activ';
+            const statusLabel = newStatus === 'Terminat' ? 'Soluționat' : 'Activ';
             if (!confirm(`Schimbați starea tichetului ${t.ticket_number || ''} în "${statusLabel}"?`)) {
               return;
             }
@@ -2646,7 +2646,7 @@
       t.email,
       t.address,
       t.description,
-      t.status === 'Terminat' ? 'Terminat' : 'Activ',
+      t.status === 'Terminat' ? 'Soluționat' : 'Activ',
       t.resolved_by,
       t.resolution_note,
       fmtDate(t.submitted_on),
