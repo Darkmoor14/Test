@@ -75,7 +75,7 @@
 
     .mobile-tab-bar{
       display:flex;position:fixed;left:0;right:0;z-index:200;
-      bottom:var(--kb-offset, 0px);
+      bottom:0;
       background:var(--paper-000);
       border-top:1px solid var(--line-strong);
       padding-bottom:env(safe-area-inset-bottom, 0);
@@ -190,7 +190,7 @@
      mobile it sits just above the bottom tab bar rather than
      overlapping it. */
   .back-to-top{
-    position:fixed;right:20px;bottom:calc(24px + var(--kb-offset, 0px));z-index:150;
+    position:fixed;right:20px;bottom:24px;z-index:150;
     width:44px;height:44px;border-radius:50%;
     background:var(--paper-000);border:1px solid var(--line-strong);
     color:var(--ink-700);cursor:pointer;
@@ -202,7 +202,7 @@
   .back-to-top.show{opacity:1;pointer-events:auto;transform:translateY(0);}
   .back-to-top:hover{border-color:var(--copper-500);color:var(--copper-600);}
   @media(max-width:900px){
-    .back-to-top{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px + var(--kb-offset, 0px));}
+    .back-to-top{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px);}
   }
 
   /* ===== TOAST NOTIFICATION =====
@@ -210,7 +210,7 @@
      everything else including the mobile tab bar. Same offset trick
      as .back-to-top on mobile so it never overlaps that bar. */
   .toast{
-    position:fixed;left:50%;bottom:calc(24px + var(--kb-offset, 0px));z-index:250;
+    position:fixed;left:50%;bottom:24px;z-index:250;
     transform:translate(-50%,12px);
     background:var(--ink-900);color:#fff;
     padding:12px 20px;border-radius:6px;
@@ -222,7 +222,21 @@
   .toast.show{opacity:1;transform:translate(-50%,0);}
   .toast .toast-dot{width:7px;height:7px;border-radius:50%;background:var(--signal-green);flex-shrink:0;}
   @media(max-width:900px){
-    .toast{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px + var(--kb-offset, 0px));}
+    .toast{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px);}
+  }
+
+  /* Hides these four fixed-bottom elements entirely while the on-
+     screen keyboard is open (html.kb-open, toggled in JS via the
+     visualViewport API near the end of the page) — see the comment
+     there for why hiding is used instead of trying to calculate the
+     exact gap to sit flush above the keyboard. None of these are
+     things you need while actively typing into a field, and they
+     reappear immediately once the keyboard closes. */
+  html.kb-open .mobile-tab-bar,
+  html.kb-open .back-to-top,
+  html.kb-open .toast,
+  html.kb-open .archive-bar{
+    display:none !important;
   }
 
   .toolbar{padding:20px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
@@ -538,7 +552,7 @@
      regardless of scroll position. */
   .archive-bar{
     display:none;align-items:center;gap:14px;
-    position:fixed;left:50%;bottom:calc(24px + var(--kb-offset, 0px));z-index:250;
+    position:fixed;left:50%;bottom:24px;z-index:250;
     transform:translate(-50%,12px);
     padding:12px 18px;border-radius:8px;
     background:var(--paper-000);border:1px solid var(--line-strong);
@@ -549,7 +563,7 @@
   }
   .archive-bar.show{display:flex;opacity:1;pointer-events:auto;transform:translate(-50%,0);}
   @media(max-width:900px){
-    .archive-bar{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px + var(--kb-offset, 0px));}
+    .archive-bar{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px);}
   }
   .ticket-select{
     display:flex;align-items:flex-start;gap:10px;
@@ -3144,23 +3158,33 @@
   // keyboard dismisses — as if the keyboard were still partially
   // covering the screen — leaving a gap below them (the mobile tab
   // bar, back-to-top, toast, archive bar) until something forces a
-  // recalculation. Plain CSS position:fixed can't reliably fix this
-  // on iOS by itself; the visualViewport API is what actually reports
-  // the real, current visible area, so its resize event (which fires
-  // on both keyboard show AND hide) is used here to explicitly
-  // recompute and set how much extra space these elements need —
-  // zero once the keyboard is fully gone, correctly pulling them back
-  // flush with the bottom edge rather than leaving them floating.
+  // recalculation.
+  //
+  // An earlier version of this tried to precisely calculate the
+  // keyboard's height and shift these elements up to sit flush above
+  // it while typing. That introduced its own gap — window.innerHeight
+  // doesn't track visualViewport.height perfectly predictably in an
+  // installed PWA specifically, and without a way to test the exact
+  // numbers on a real device, tuning that further would just be
+  // guessing again. Hiding these elements entirely while the keyboard
+  // is open sidesteps the problem instead of trying to out-calculate
+  // it — there's no gap to get wrong if nothing is being positioned
+  // there in the first place, and none of them are things you need
+  // while actively typing into a field anyway. They reappear the
+  // moment the keyboard closes.
   if (window.visualViewport) {
-    const root = document.documentElement;
-    function syncKeyboardOffset(){
+    document.documentElement.classList.add('has-visual-viewport');
+    function syncKeyboardOpen(){
       const vv = window.visualViewport;
-      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      root.style.setProperty('--kb-offset', offset + 'px');
+      const covered = window.innerHeight - vv.height - vv.offsetTop;
+      // 80px threshold — comfortably larger than ordinary viewport
+      // jitter (browser chrome show/hide, minor rounding) so this
+      // only fires for an actual keyboard, not false positives.
+      document.documentElement.classList.toggle('kb-open', covered > 80);
     }
-    window.visualViewport.addEventListener('resize', syncKeyboardOffset);
-    window.visualViewport.addEventListener('scroll', syncKeyboardOffset);
-    syncKeyboardOffset();
+    window.visualViewport.addEventListener('resize', syncKeyboardOpen);
+    window.visualViewport.addEventListener('scroll', syncKeyboardOpen);
+    syncKeyboardOpen();
   }
 </script>
 
