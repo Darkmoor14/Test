@@ -102,7 +102,7 @@
        toolbar below — Excel import hidden, search collapsed — while
        "+ Adaugă proiect" stays, since adding a project is core
        functionality, not a desktop convenience like the other two. */
-    #exportBtn, #importExcelBtn{display:none;}
+    #exportBtn, #importExcelBtn, #exportExcelBtn{display:none;}
     .ticket-search-wrap{display:flex;align-items:center;position:relative;}
     .search-icon-btn{
       display:flex;align-items:center;justify-content:center;flex-shrink:0;
@@ -344,7 +344,7 @@
      two small charts. Editing still happens in the detailed cards
      below exactly as before; this section doesn't touch them. */
   .overview-year-bar{
-    display:flex;align-items:center;gap:10px;margin-top:20px;
+    display:flex;align-items:center;gap:10px;margin-top:20px;flex-wrap:wrap;
   }
   .overview-year-bar label{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-600);}
   .overview-year-bar select{
@@ -780,11 +780,15 @@
       <div class="overview-year-bar admin-tabs-row-year active" data-year-panel="overview">
         <label for="yearFilterSelectDesktop">An:</label>
         <select id="yearFilterSelectDesktop"></select>
+        <label for="monthFilterSelectDesktop">Lună:</label>
+        <select id="monthFilterSelectDesktop"></select>
         <span class="year-warning" id="yearWarningOverviewDesktop">⚠ Nu e anul curent</span>
       </div>
       <div class="overview-year-bar admin-tabs-row-year" data-year-panel="tickets">
         <label for="yearFilterSelectTicketsDesktop">An:</label>
         <select id="yearFilterSelectTicketsDesktop"></select>
+        <label for="monthFilterSelectTicketsDesktop">Lună:</label>
+        <select id="monthFilterSelectTicketsDesktop"></select>
         <span class="year-warning" id="yearWarningTicketsDesktop">⚠ Nu e anul curent</span>
       </div>
       <div class="overview-year-bar admin-tabs-row-year" data-year-panel="projects">
@@ -821,6 +825,8 @@
       <div class="overview-year-bar">
         <label for="yearFilterSelect">An:</label>
         <select id="yearFilterSelect"></select>
+        <label for="monthFilterSelect">Lună:</label>
+        <select id="monthFilterSelect"></select>
         <span class="year-warning" id="yearWarningOverview">⚠ Nu e anul curent</span>
       </div>
       <div class="overview-section">
@@ -873,6 +879,8 @@
           <div class="overview-year-bar" style="margin-top:0;">
             <label for="yearFilterSelectTickets">An:</label>
             <select id="yearFilterSelectTickets"></select>
+            <label for="monthFilterSelectTickets">Lună:</label>
+            <select id="monthFilterSelectTickets"></select>
             <span class="year-warning" id="yearWarningTickets">⚠ Nu e anul curent</span>
           </div>
           <div class="ticket-search-wrap" id="ticketSearchWrap">
@@ -884,6 +892,7 @@
           <div class="result-count" id="resultCount"></div>
           <button class="btn btn-primary" id="addTicketBtn" type="button">+ Adaugă sesizare</button>
           <button class="btn" id="exportBtn" type="button">⭳ Descarcă CSV</button>
+          <button class="btn" id="exportExcelBtn" type="button">⭳ Raport Excel (an)</button>
         </div>
       </div>
       <div class="project-form" id="ticketAddForm" style="display:none;">
@@ -1203,6 +1212,27 @@
 
   let ticketSearchQuery = '';
   let ticketYearFilter = 'all';
+  let ticketMonthFilter = 'all';
+
+  // A ticket's "effective" month/year for filtering purposes — NOT
+  // necessarily when it was actually submitted. Still-active tickets
+  // always count as belonging to the CURRENT real-world month,
+  // computed fresh every time this runs rather than stored anywhere,
+  // so a ticket opened in August that's still unresolved in September
+  // shows up under September (where someone checking "what's
+  // outstanding right now" would actually look), not buried back in
+  // August where it'd be easy to lose track of. Once a ticket is
+  // actually resolved, it settles permanently at its real submission
+  // month — this rollover is only ever for what's still open.
+  function getEffectiveMonthYear(t){
+    if (t.status !== 'Terminat') {
+      const now = new Date();
+      return { year: now.getFullYear(), month: now.getMonth() + 1 };
+    }
+    if (!t.submitted_on) return { year: null, month: null };
+    const d = new Date(t.submitted_on);
+    return { year: d.getFullYear(), month: d.getMonth() + 1 };
+  }
 
   function matchesSearch(t, query){
     if (!query) return true;
@@ -1213,8 +1243,14 @@
 
   function matchesYear(t, yearFilter){
     if (yearFilter === 'all') return true;
-    if (!t.submitted_on) return false;
-    return String(new Date(t.submitted_on).getFullYear()) === String(yearFilter);
+    const { year } = getEffectiveMonthYear(t);
+    return year !== null && String(year) === String(yearFilter);
+  }
+
+  function matchesMonth(t, monthFilter){
+    if (monthFilter === 'all') return true;
+    const { month } = getEffectiveMonthYear(t);
+    return month !== null && String(month) === String(monthFilter);
   }
 
   // Shared ordering used by both the overview table and the detailed
@@ -1263,7 +1299,7 @@
     } else {
       base = allTickets.filter(t => !t.archived && (activeFilter === 'Toate' || t.status === activeFilter));
     }
-    base = base.filter(t => matchesSearch(t, query) && matchesYear(t, ticketYearFilter));
+    base = base.filter(t => matchesSearch(t, query) && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
 
     // Extra narrowing applied when a priority card was clicked — see
     // clearNarrowFilter()/the priority card handlers further down.
@@ -1358,6 +1394,25 @@
       ['yearWarningOverview', 'yearWarningTickets', 'yearWarningOverviewDesktop', 'yearWarningTicketsDesktop'],
       ticketYearFilter
     );
+    renderTickets();
+    renderOverviewTable();
+    renderOverviewCharts();
+  }
+
+  // Months are fixed (always the same 12 + "all"), unlike years,
+  // which are derived from actual ticket data — so this only needs
+  // to run once, not every time tickets reload.
+  const MONTH_FILTER_NAMES = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
+  function populateMonthFilterSelects(){
+    const selects = document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop');
+    const optionsHtml = '<option value="all">Toate lunile</option>' +
+      MONTH_FILTER_NAMES.map((name, i) => `<option value="${i + 1}">${name}</option>`).join('');
+    selects.forEach(s => { s.innerHTML = optionsHtml; s.value = ticketMonthFilter; });
+  }
+
+  function setTicketMonthFilter(value){
+    ticketMonthFilter = value;
+    document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
@@ -1710,6 +1765,11 @@
     select.addEventListener('change', () => setTicketYearFilter(select.value));
   });
 
+  populateMonthFilterSelects();
+  document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(select => {
+    select.addEventListener('change', () => setTicketMonthFilter(select.value));
+  });
+
   const chipsWrap = document.getElementById('chipsWrap');
   chipDefs.forEach(c => {
     const chip = document.createElement('button');
@@ -1799,7 +1859,7 @@
   function renderOverviewTable(){
     const tbody = document.getElementById('overviewTableBody');
     const cardsWrap = document.getElementById('overviewCardsMobile');
-    let visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter));
+    let visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
 
     // All four priority cards describe a subset of ACTIVE tickets, so
     // any card filter first narrows to non-Terminat, then applies
@@ -2036,7 +2096,7 @@
   }
 
   function renderOverviewCharts(){
-    const visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter));
+    const visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
 
     const MONTH_NAMES = ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Noi','Dec'];
     // "Sesizări pe an" deliberately ignores the year filter above and
@@ -2612,6 +2672,78 @@
   }
 
   document.getElementById('exportBtn').addEventListener('click', exportTicketsCSV);
+
+  /* ============================================================
+     YEARLY EXCEL REPORT — a real, native-chart .xlsx workbook (one
+     sheet per month with data, plus a summary sheet with the yearly
+     total and three charts: monthly volume, defect vs accident
+     split, average resolution time). Built with @office-kit/xlsx,
+     the only free library found that can write actual interactive
+     Excel charts — see the design discussion for why SheetJS
+     (already used for CSV export above) couldn't do this.
+
+     The generation code itself needed a build step (something this
+     otherwise plain, no-build-tools site has never had before), so
+     it's bundled separately into yearly-report-bundle.js rather than
+     written inline here like everything else. That bundle is ~160KB
+     — meaningful weight for a feature used maybe a few times a year
+     — so it's lazy-loaded only when this button is actually clicked,
+     not on every page load.
+
+     Pulls EVERY ticket for the selected year regardless of the
+     Active/Rezolvate/Toate/Arhivate chip currently selected — a
+     yearly report should be a complete record, not limited by
+     whatever narrow view happens to be on screen at the time.
+     ============================================================ */
+  let yearlyReportBundleLoaded = false;
+  function loadYearlyReportBundle(){
+    if (yearlyReportBundleLoaded) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'yearly-report-bundle.js';
+      script.onload = () => { yearlyReportBundleLoaded = true; resolve(); };
+      script.onerror = () => reject(new Error('Nu s-a putut încărca modulul de raport Excel.'));
+      document.body.appendChild(script);
+    });
+  }
+
+  document.getElementById('exportExcelBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('exportExcelBtn');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Se generează...';
+    try {
+      await loadYearlyReportBundle();
+
+      const year = ticketYearFilter === 'all' ? new Date().getFullYear() : Number(ticketYearFilter);
+      const yearTickets = allTickets.filter(t => {
+        if (!t.submitted_on) return false;
+        return new Date(t.submitted_on).getFullYear() === year;
+      });
+      if (yearTickets.length === 0) {
+        alert(`Nu există sesizări pentru anul ${year}.`);
+        return;
+      }
+
+      const bytes = await window.generateYearlyExcelReport(yearTickets, year);
+      const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `raport-sesizari-${year}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Raportul pentru ${year} a fost descărcat.`);
+    } catch (err) {
+      console.error('Yearly Excel report failed:', err);
+      alert('Eroare la generarea raportului Excel: ' + (err && err.message ? err.message : 'motiv necunoscut'));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
 
   /* ============================================================
      ADMIN TABS — switch between "Sesizări" and "Proiecte curente"
