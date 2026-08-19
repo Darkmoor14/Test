@@ -620,11 +620,24 @@
      its siblings and looked like a generic HTML control dropped into
      an otherwise clean, minimal row. */
   .report-pdf-hidden-input{display:none;}
-  .report-pdf-dropzone{
+  /* .report-pdf-field label.report-pdf-dropzone (parent class +
+     element + own class) — not just "label.report-pdf-dropzone" alone,
+     which is only EQUAL specificity to ".ctrl-field label" (1 class +
+     1 element either way) and would still lose that tie to whichever
+     rule happens to sit later in the file. This element is a <label>,
+     and so is the plain field-title label right above it in the same
+     .ctrl-field ("Fișă raport (PDF)"); the generic ".ctrl-field
+     label" rule matches EITHER of them, and its display:block plus
+     margin-bottom:6px were silently overriding this element's
+     display:flex — exactly what was throwing off the vertical
+     alignment with its siblings. Including the parent's class here
+     genuinely outweighs that rule regardless of file order. */
+  .report-pdf-field label.report-pdf-dropzone{
     width:100%;height:38px;padding:9px 11px;border:1px solid var(--line-strong);border-radius:3px;
     font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-600);
-    line-height:1.3;box-sizing:border-box;
+    line-height:1.3;box-sizing:border-box;margin-bottom:0;
     display:flex;align-items:center;gap:8px;cursor:pointer;
+    text-transform:none;letter-spacing:normal;
   }
   .report-pdf-dropzone:hover{border-color:var(--copper-500);background:var(--paper-000);}
   .report-pdf-dropzone svg{flex-shrink:0;color:var(--ink-400);}
