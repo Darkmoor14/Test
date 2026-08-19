@@ -74,7 +74,8 @@
     header.scrolled .logo-img{display:block !important;}
 
     .mobile-tab-bar{
-      display:flex;position:fixed;left:0;right:0;bottom:0;z-index:200;
+      display:flex;position:fixed;left:0;right:0;z-index:200;
+      bottom:var(--kb-offset, 0px);
       background:var(--paper-000);
       border-top:1px solid var(--line-strong);
       padding-bottom:env(safe-area-inset-bottom, 0);
@@ -189,7 +190,7 @@
      mobile it sits just above the bottom tab bar rather than
      overlapping it. */
   .back-to-top{
-    position:fixed;right:20px;bottom:24px;z-index:150;
+    position:fixed;right:20px;bottom:calc(24px + var(--kb-offset, 0px));z-index:150;
     width:44px;height:44px;border-radius:50%;
     background:var(--paper-000);border:1px solid var(--line-strong);
     color:var(--ink-700);cursor:pointer;
@@ -201,7 +202,7 @@
   .back-to-top.show{opacity:1;pointer-events:auto;transform:translateY(0);}
   .back-to-top:hover{border-color:var(--copper-500);color:var(--copper-600);}
   @media(max-width:900px){
-    .back-to-top{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px);}
+    .back-to-top{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px + var(--kb-offset, 0px));}
   }
 
   /* ===== TOAST NOTIFICATION =====
@@ -209,7 +210,7 @@
      everything else including the mobile tab bar. Same offset trick
      as .back-to-top on mobile so it never overlaps that bar. */
   .toast{
-    position:fixed;left:50%;bottom:24px;z-index:250;
+    position:fixed;left:50%;bottom:calc(24px + var(--kb-offset, 0px));z-index:250;
     transform:translate(-50%,12px);
     background:var(--ink-900);color:#fff;
     padding:12px 20px;border-radius:6px;
@@ -221,7 +222,7 @@
   .toast.show{opacity:1;transform:translate(-50%,0);}
   .toast .toast-dot{width:7px;height:7px;border-radius:50%;background:var(--signal-green);flex-shrink:0;}
   @media(max-width:900px){
-    .toast{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px);}
+    .toast{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px + var(--kb-offset, 0px));}
   }
 
   .toolbar{padding:20px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
@@ -537,7 +538,7 @@
      regardless of scroll position. */
   .archive-bar{
     display:none;align-items:center;gap:14px;
-    position:fixed;left:50%;bottom:24px;z-index:250;
+    position:fixed;left:50%;bottom:calc(24px + var(--kb-offset, 0px));z-index:250;
     transform:translate(-50%,12px);
     padding:12px 18px;border-radius:8px;
     background:var(--paper-000);border:1px solid var(--line-strong);
@@ -548,7 +549,7 @@
   }
   .archive-bar.show{display:flex;opacity:1;pointer-events:auto;transform:translate(-50%,0);}
   @media(max-width:900px){
-    .archive-bar{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px);}
+    .archive-bar{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px + var(--kb-offset, 0px));}
   }
   .ticket-select{
     display:flex;align-items:flex-start;gap:10px;
@@ -3136,6 +3137,30 @@
     toast.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+  }
+
+  // Known iOS Safari/WKWebView bug: fixed-position elements can end up
+  // stuck referencing a stale viewport height after the on-screen
+  // keyboard dismisses — as if the keyboard were still partially
+  // covering the screen — leaving a gap below them (the mobile tab
+  // bar, back-to-top, toast, archive bar) until something forces a
+  // recalculation. Plain CSS position:fixed can't reliably fix this
+  // on iOS by itself; the visualViewport API is what actually reports
+  // the real, current visible area, so its resize event (which fires
+  // on both keyboard show AND hide) is used here to explicitly
+  // recompute and set how much extra space these elements need —
+  // zero once the keyboard is fully gone, correctly pulling them back
+  // flush with the bottom edge rather than leaving them floating.
+  if (window.visualViewport) {
+    const root = document.documentElement;
+    function syncKeyboardOffset(){
+      const vv = window.visualViewport;
+      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      root.style.setProperty('--kb-offset', offset + 'px');
+    }
+    window.visualViewport.addEventListener('resize', syncKeyboardOffset);
+    window.visualViewport.addEventListener('scroll', syncKeyboardOffset);
+    syncKeyboardOffset();
   }
 </script>
 
