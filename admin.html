@@ -605,18 +605,13 @@
      width just to force the wrap. */
   .ticket-save-row{margin-top:14px;}
   .ticket-save-row .btn{width:auto;}
-  .ctrl-field.resolved-date-field{min-width:300px;}
+  .ctrl-field.resolved-date-field{min-width:240px;}
   .ctrl-field.resnote-field{min-width:220px;}
   .resolved-datetime-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
-  /* flex:1 1 Npx (not flex:none) — these can shrink a little to stay
-     on one line together when space is tight, rather than the rigid
-     fixed-width version, which had no middle ground between
-     overflowing past the card's edge and — once wrap was added to
-     fix that overflow — instead cascading onto three separate lines
-     the moment the row was even slightly short on room. Genuinely
-     flexible sizing avoids both failure modes at once. */
-  .resolved-datetime-row input[type="date"]{flex:1 1 118px;min-width:100px;}
-  .resolved-datetime-row input[type="time"]{flex:1 1 82px;min-width:70px;}
+  /* Only a date input + "Astăzi" button now (time input removed) —
+     flex:1 1 Npx (not flex:none) lets the date input shrink a little
+     to stay on the same line as the button when space is tight. */
+  .resolved-datetime-row input[type="date"]{flex:1 1 140px;min-width:100px;}
   .resolved-datetime-row .btn{padding:8px 12px;white-space:nowrap;flex:0 0 auto;}
 
   @media(max-width:600px){
@@ -632,17 +627,16 @@
        field widths against each other. */
     .ticket-controls .ctrl-field{flex:1 1 100%;width:100%;min-width:0;}
 
-    /* The min-width above (and the row's own fixed-width date/time
-       inputs) were sized for desktop and don't fit a narrow phone's
-       actual available width after page + card padding — same
-       overflow pattern caught and fixed elsewhere in this file.
-       Below 600px: the field can shrink freely, and its date/time
-       inputs shrink to fit rather than staying a fixed desktop width
-       (wrapping itself is already handled above, universally). */
+    /* The min-width above (and the row's own fixed-width date input)
+       were sized for desktop and don't fit a narrow phone's actual
+       available width after page + card padding — same overflow
+       pattern caught and fixed elsewhere in this file. Below 600px:
+       the field can shrink freely, and the date input shrinks to fit
+       rather than staying a fixed desktop width (wrapping itself is
+       already handled above, universally). */
     .ctrl-field.resolved-date-field{min-width:0;width:100%;}
     .ctrl-field.resnote-field{min-width:0;width:100%;}
-    .resolved-datetime-row input[type="date"],
-    .resolved-datetime-row input[type="time"]{width:auto;flex:1 1 110px;min-width:0;}
+    .resolved-datetime-row input[type="date"]{width:auto;flex:1 1 140px;min-width:0;}
 
     /* .pf-grid and .ticket-body are display:grid (not flex), so unlike
        .toolbar/.ticket-controls they can't wrap — a 1fr track still
@@ -852,11 +846,10 @@
             </select>
           </div>
           <div class="ctrl-field resolved-date-field">
-            <label>Data și ora sesizării</label>
+            <label>Data sesizării</label>
             <div class="resolved-datetime-row">
               <input type="date" id="tf-date">
-              <input type="time" id="tf-time">
-              <button type="button" class="btn" id="tfTodayBtn" title="Completează data și ora curentă">Astăzi</button>
+              <button type="button" class="btn" id="tfTodayBtn" title="Completează data curentă">Astăzi</button>
             </div>
           </div>
           <div class="ctrl-field">
@@ -1369,9 +1362,17 @@
   // now" case; it only still matters if someone wants a genuinely
   // backdated timestamp AND the trigger doesn't respect an explicit
   // value (worth checking, but no longer blocking for typical use).
+  // timeStr is no longer collected from any form (the time input was
+  // removed, date-only now) — defaults to the current time-of-day
+  // rather than midnight specifically. That matters for the "resolved
+  // before submitted" check just below: a ticket submitted earlier
+  // today, then resolved today, would otherwise falsely look
+  // "resolved before it was submitted" if resolved_on defaulted to
+  // 00:00 instead of whatever time it actually is right now.
   function combineDateTimeToISO(dateStr, timeStr){
     if (!dateStr) return new Date().toISOString();
-    const d = new Date(`${dateStr}T${timeStr || '00:00'}`);
+    const nowTime = timeStr || `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
+    const d = new Date(`${dateStr}T${nowTime}`);
     if (isNaN(d.getTime())) return new Date().toISOString();
     return d.toISOString();
   }
@@ -2088,8 +2089,7 @@
             <label>Data soluționării</label>
             <div class="resolved-datetime-row">
               <input type="date" class="f-resolved-date" value="${resolvedDateParts.date}" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>
-              <input type="time" class="f-resolved-time" value="${resolvedDateParts.time}" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>
-              <button type="button" class="btn f-resolved-today" title="Completează data și ora curentă" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>Astăzi</button>
+              <button type="button" class="btn f-resolved-today" title="Completează data curentă" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>Astăzi</button>
             </div>
           </div>
         </div>
@@ -2117,7 +2117,6 @@
         statusSelect.addEventListener('change', () => {
           const nowTerminat = statusSelect.value === 'Terminat';
           card.querySelector('.f-resolved-date').disabled = !nowTerminat;
-          card.querySelector('.f-resolved-time').disabled = !nowTerminat;
           card.querySelector('.f-resolved-today').disabled = !nowTerminat;
         });
       }
@@ -2157,8 +2156,7 @@
           let resolvedOnISO;
           if (newStatus === 'Terminat') {
             const resolvedDateVal = card.querySelector('.f-resolved-date').value;
-            const resolvedTimeVal = card.querySelector('.f-resolved-time').value;
-            resolvedOnISO = combineDateTimeToISO(resolvedDateVal, resolvedTimeVal);
+            resolvedOnISO = combineDateTimeToISO(resolvedDateVal);
 
             // A resolution can't have happened before the issue was
             // even reported — most likely a typo in the date/time
@@ -2242,16 +2240,15 @@
         });
       }
 
-      // "Astăzi" — fills the resolution date/time fields with the
-      // current moment, so closing out a ticket right now doesn't
-      // require manually typing the date. Doesn't save by itself;
-      // still requires pressing "Salvează" like any other edit here.
+      // "Astăzi" — fills the resolution date field with today's date,
+      // so closing out a ticket right now doesn't require manually
+      // typing it. Doesn't save by itself; still requires pressing
+      // "Salvează" like any other edit here.
       const todayBtn = card.querySelector('.f-resolved-today');
       if (todayBtn) {
         todayBtn.addEventListener('click', () => {
           const nowParts = toDateTimeInputParts(new Date().toISOString());
           card.querySelector('.f-resolved-date').value = nowParts.date;
-          card.querySelector('.f-resolved-time').value = nowParts.time;
         });
       }
 
@@ -2830,7 +2827,6 @@
   function openTicketAddForm(){
     document.getElementById('tf-type').value = 'Sesizare functionala';
     document.getElementById('tf-date').value = '';
-    document.getElementById('tf-time').value = '';
     document.getElementById('tf-name').value = '';
     document.getElementById('tf-phone').value = '';
     document.getElementById('tf-email').value = '';
@@ -2847,13 +2843,11 @@
   document.getElementById('tfTodayBtn').addEventListener('click', () => {
     const nowParts = toDateTimeInputParts(new Date().toISOString());
     document.getElementById('tf-date').value = nowParts.date;
-    document.getElementById('tf-time').value = nowParts.time;
   });
 
   document.getElementById('tfSaveBtn').addEventListener('click', async () => {
     const type = document.getElementById('tf-type').value;
     const dateVal = document.getElementById('tf-date').value;
-    const timeVal = document.getElementById('tf-time').value;
     const name = document.getElementById('tf-name').value.trim();
     const phone = document.getElementById('tf-phone').value.trim();
     const email = document.getElementById('tf-email').value.trim();
@@ -2890,7 +2884,7 @@
     // picked a date — left blank, create_ticket's own default (now)
     // is already accurate, no follow-up needed.
     if (dateVal) {
-      const customSubmittedOn = combineDateTimeToISO(dateVal, timeVal);
+      const customSubmittedOn = combineDateTimeToISO(dateVal);
       const { error: dateError } = await supabaseClient
         .from('tickets')
         .update({ submitted_on: customSubmittedOn })
