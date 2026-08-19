@@ -93,16 +93,17 @@
     /* leaves room so the fixed bar never covers the last bit of content */
     .dash{padding-bottom:82px;}
 
-    /* Sesizări toolbar on mobile: export/import actions are not worth
-       the space here — hidden entirely. The search box collapses to
-       just a magnifying-glass button, and
-       expands into the real input only once tapped, rather than
-       permanently taking up room with a full-width text field and its
-       long placeholder. Same treatment applied to Proiecte curente's
-       toolbar below — Excel import hidden, search collapsed — while
-       "+ Adaugă proiect" stays, since adding a project is core
-       functionality, not a desktop convenience like the other ones. */
+    /* Mobile toolbars keep the inline desktop controls trimmed down:
+       the year/month selects move into sheet-style drawers, the
+       desktop Excel buttons stay hidden, and search collapses to just
+       a magnifying-glass button until tapped. Export is still
+       available on phone, just via the dedicated mobile action row
+       below rather than crammed into the main toolbar line. */
     #importExcelBtn, #exportExcelBtn{display:none;}
+    .toolbar-mobile-actions{display:flex;}
+    .toolbar-mobile-summary{display:flex;}
+    .toolbar-mobile-only{display:inline-flex;}
+    .toolbar .overview-year-bar.mobile-hidden{display:none;}
     .ticket-search-wrap{display:flex;align-items:center;position:relative;}
     .search-icon-btn{
       display:flex;align-items:center;justify-content:center;flex-shrink:0;
@@ -115,6 +116,15 @@
     .ticket-search-wrap.expanded #ticketSearchBox,
     .ticket-search-wrap.expanded #projectSearchBox{display:block;width:100%;margin-left:8px;}
     .ticket-search-wrap.expanded .search-icon-btn{display:none;}
+    .toolbar-mobile-actions{
+      width:100%;gap:10px;order:3;
+    }
+    .toolbar-mobile-actions .btn{flex:1;justify-content:center;}
+    .toolbar-mobile-summary{
+      width:100%;justify-content:space-between;align-items:center;
+      font-family:var(--mono);font-size:12px;color:var(--ink-600);
+      order:2;
+    }
   }
   .nav-right{display:flex;align-items:center;gap:16px;}
   .nav-tag{font-family:var(--mono);font-size:12px;color:var(--ink-400);}
@@ -555,6 +565,66 @@
   .chip:hover{border-color:var(--copper-500);color:var(--copper-600);}
   .chip.active{background:var(--copper-500);border-color:var(--copper-500);color:#fff;}
   .result-count{font-family:var(--mono);font-size:12.5px;color:var(--ink-400);}
+  .toolbar-mobile-actions,
+  .toolbar-mobile-summary,
+  .toolbar-mobile-only{display:none;}
+  .mobile-sheet{
+    position:fixed;inset:0;z-index:320;display:none;
+  }
+  .mobile-sheet.show{display:block;}
+  .mobile-sheet-backdrop{
+    position:absolute;inset:0;background:rgba(20,24,29,0.48);
+  }
+  .mobile-sheet-panel{
+    position:absolute;left:0;right:0;bottom:0;
+    background:var(--paper-000);
+    border-radius:22px 22px 0 0;
+    padding:18px 20px calc(22px + env(safe-area-inset-bottom, 0));
+    box-shadow:0 -16px 40px rgba(20,24,29,0.18);
+    max-height:min(78vh, 680px);overflow:auto;
+  }
+  .sheet-handle{
+    width:44px;height:5px;border-radius:999px;background:var(--line-strong);
+    margin:0 auto 16px;
+  }
+  .sheet-head{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+    margin-bottom:16px;
+  }
+  .sheet-head h3{font-size:20px;}
+  .sheet-head p{font-size:13px;color:var(--ink-600);margin-top:4px;}
+  .sheet-close{
+    width:36px;height:36px;border-radius:50%;
+    border:1px solid var(--line-strong);background:var(--paper-000);cursor:pointer;
+    font-size:18px;color:var(--ink-600);flex-shrink:0;
+  }
+  .sheet-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;
+  }
+  .sheet-actions{
+    display:flex;gap:10px;justify-content:flex-end;margin-top:18px;
+  }
+  .month-picker-list{
+    display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;
+  }
+  .month-picker-option{
+    display:flex;align-items:center;gap:10px;
+    border:1px solid var(--line-strong);border-radius:10px;
+    padding:12px 14px;background:var(--paper-050);
+  }
+  .month-picker-option input{accent-color:var(--copper-500);width:16px;height:16px;flex-shrink:0;}
+  .month-picker-option span{font-size:13.5px;color:var(--ink-900);}
+  .month-picker-all{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    border:1px solid var(--line-strong);border-radius:12px;
+    padding:14px 16px;background:var(--paper-000);
+  }
+  .month-picker-all p{font-size:13px;color:var(--ink-600);margin-top:4px;}
+  @media(max-width:640px){
+    .sheet-grid, .month-picker-list{grid-template-columns:1fr;}
+    .sheet-actions{flex-direction:column-reverse;}
+    .sheet-actions .btn{width:100%;justify-content:center;}
+  }
 
   /* Floats in a fixed position (bottom of the screen, same pattern as
      .back-to-top and .toast) rather than sitting inline in the page
@@ -899,7 +969,7 @@
       <div class="toolbar">
         <div class="chips" id="chipsWrap"></div>
         <div style="display:flex; align-items:center; gap:14px;">
-          <div class="overview-year-bar" style="margin-top:0;">
+          <div class="overview-year-bar mobile-hidden" style="margin-top:0;">
             <label for="yearFilterSelectTickets">An:</label>
             <select id="yearFilterSelectTickets"></select>
             <label for="monthFilterSelectTickets">Lună:</label>
@@ -915,6 +985,14 @@
           <div class="result-count" id="resultCount"></div>
           <button class="btn btn-primary" id="addTicketBtn" type="button">+ Adaugă sesizare</button>
           <button class="btn" id="exportExcelBtn" type="button">⭳ Raport Excel</button>
+        </div>
+        <div class="toolbar-mobile-summary">
+          <span id="resultCountMobile">0 tichete</span>
+          <span id="ticketFilterHintMobile">Folosește filtrele sau căutarea</span>
+        </div>
+        <div class="toolbar-mobile-actions">
+          <button class="btn toolbar-mobile-only" id="ticketFiltersMobileBtn" type="button">Filtre</button>
+          <button class="btn toolbar-mobile-only" id="exportExcelMobileBtn" type="button">Raport Excel</button>
         </div>
       </div>
       <div class="project-form" id="ticketAddForm" style="display:none;">
@@ -980,7 +1058,7 @@
       <div class="toolbar">
         <div class="chips" id="projectsChipsWrap"></div>
         <div style="display:flex; align-items:center; gap:14px;">
-          <div class="overview-year-bar" style="margin-top:0;">
+          <div class="overview-year-bar mobile-hidden" style="margin-top:0;">
             <label for="projectYearFilterSelect">An:</label>
             <select id="projectYearFilterSelect"></select>
             <span class="year-warning" id="yearWarningProjects">⚠ Nu e anul curent</span>
@@ -995,6 +1073,13 @@
           <input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none;">
           <button class="btn" id="importExcelBtn" type="button">⭳ Importă din Excel</button>
           <button class="btn btn-primary" id="addProjectBtn" type="button">+ Adaugă proiect</button>
+        </div>
+        <div class="toolbar-mobile-summary">
+          <span id="projectsCountMobile">0 proiecte</span>
+          <span id="projectFilterHintMobile">Filtrează lista rapid</span>
+        </div>
+        <div class="toolbar-mobile-actions">
+          <button class="btn toolbar-mobile-only" id="projectFiltersMobileBtn" type="button">Filtre proiecte</button>
         </div>
       </div>
       <div class="archive-bar" id="projectsArchiveBar">
@@ -1043,6 +1128,82 @@
       </div>
 
       <div class="project-list" id="projectList"></div>
+    </div>
+</div>
+</div>
+
+<div class="mobile-sheet" id="ticketFiltersSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="ticketFiltersSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="ticketFiltersSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h3 id="ticketFiltersSheetTitle">Filtre sesizări</h3>
+        <p>Controlezi rapid anul și luna fără să aglomerezi bara de sus pe telefon.</p>
+      </div>
+      <button type="button" class="sheet-close" data-close-sheet="ticketFiltersSheet" aria-label="Închide">×</button>
+    </div>
+    <div class="sheet-grid">
+      <div class="ctrl-field">
+        <label for="yearFilterSelectTicketsMobile">An</label>
+        <select id="yearFilterSelectTicketsMobile"></select>
+      </div>
+      <div class="ctrl-field">
+        <label for="monthFilterSelectTicketsMobile">Lună</label>
+        <select id="monthFilterSelectTicketsMobile"></select>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-primary" data-close-sheet="ticketFiltersSheet">Aplică</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="projectFiltersSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="projectFiltersSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="projectFiltersSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h3 id="projectFiltersSheetTitle">Filtre proiecte</h3>
+        <p>Am lăsat doar selecția de an aici, fiind filtrul care contează cel mai mult pe mobil.</p>
+      </div>
+      <button type="button" class="sheet-close" data-close-sheet="projectFiltersSheet" aria-label="Închide">×</button>
+    </div>
+    <div class="sheet-grid">
+      <div class="ctrl-field">
+        <label for="projectYearFilterSelectMobile">An</label>
+        <select id="projectYearFilterSelectMobile"></select>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-primary" data-close-sheet="projectFiltersSheet">Aplică</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="reportMonthSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="reportMonthSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h3 id="reportMonthSheetTitle">Raport Excel</h3>
+        <p id="reportMonthSheetLead">Alege luna sau lunile pe care vrei să le incluzi în export.</p>
+      </div>
+      <button type="button" class="sheet-close" id="reportMonthCloseBtn" aria-label="Închide">×</button>
+    </div>
+    <label class="month-picker-all">
+      <div>
+        <strong>Toate lunile</strong>
+        <p>Generează un raport complet pentru anul selectat.</p>
+      </div>
+      <input type="checkbox" id="reportMonthAllToggle">
+    </label>
+    <div class="month-picker-list" id="reportMonthList"></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="reportMonthCancelBtn">Anulează</button>
+      <button type="button" class="btn btn-primary" id="reportMonthConfirmBtn">Descarcă Excel</button>
     </div>
   </div>
 </div>
@@ -1373,6 +1534,7 @@
     const selects = [
       document.getElementById('yearFilterSelect'),
       document.getElementById('yearFilterSelectTickets'),
+      document.getElementById('yearFilterSelectTicketsMobile'),
       document.getElementById('yearFilterSelectDesktop'),
       document.getElementById('yearFilterSelectTicketsDesktop'),
     ].filter(Boolean);
@@ -1402,7 +1564,7 @@
 
     selects.forEach(s => { s.value = ticketYearFilter; });
     updateYearWarning(
-      ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
+      ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectTicketsMobile', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
       ['yearWarningOverview', 'yearWarningTickets', 'yearWarningOverviewDesktop', 'yearWarningTicketsDesktop'],
       ticketYearFilter
     );
@@ -1410,9 +1572,9 @@
 
   function setTicketYearFilter(value){
     ticketYearFilter = value;
-    document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
+    document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
     updateYearWarning(
-      ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
+      ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectTicketsMobile', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
       ['yearWarningOverview', 'yearWarningTickets', 'yearWarningOverviewDesktop', 'yearWarningTicketsDesktop'],
       ticketYearFilter
     );
@@ -1426,7 +1588,7 @@
   // to run once, not every time tickets reload.
   const MONTH_FILTER_NAMES = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
   function populateMonthFilterSelects(){
-    const selects = document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop');
+    const selects = document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop');
     const optionsHtml = '<option value="all">Toate lunile</option>' +
       MONTH_FILTER_NAMES.map((name, i) => `<option value="${i + 1}">${name}</option>`).join('');
     selects.forEach(s => { s.innerHTML = optionsHtml; s.value = ticketMonthFilter; });
@@ -1434,7 +1596,7 @@
 
   function setTicketMonthFilter(value){
     ticketMonthFilter = value;
-    document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
+    document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
@@ -1783,14 +1945,19 @@
     });
   }
 
-  document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(select => {
+  document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(select => {
     select.addEventListener('change', () => setTicketYearFilter(select.value));
   });
 
   populateMonthFilterSelects();
-  document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(select => {
+  document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(select => {
     select.addEventListener('change', () => setTicketMonthFilter(select.value));
   });
+
+  const ticketFiltersMobileBtn = document.getElementById('ticketFiltersMobileBtn');
+  if (ticketFiltersMobileBtn) {
+    ticketFiltersMobileBtn.addEventListener('click', () => setSheetOpen('ticketFiltersSheet', true));
+  }
 
   const chipsWrap = document.getElementById('chipsWrap');
   chipDefs.forEach(c => {
@@ -2216,6 +2383,14 @@
     const list = document.getElementById('ticketList');
     const filtered = sortTicketsForDisplay(getFilteredTickets());
     document.getElementById('resultCount').textContent = filtered.length + ' din ' + allTickets.length + ' tichete';
+    const resultCountMobile = document.getElementById('resultCountMobile');
+    if (resultCountMobile) resultCountMobile.textContent = filtered.length + ' din ' + allTickets.length + ' tichete';
+    const ticketFilterHintMobile = document.getElementById('ticketFilterHintMobile');
+    if (ticketFilterHintMobile) {
+      ticketFilterHintMobile.textContent = ticketYearFilter === 'all' && ticketMonthFilter === 'all'
+        ? 'Folosește filtrele sau căutarea'
+        : `Filtru: ${ticketYearFilter === 'all' ? 'toți anii' : ticketYearFilter}, ${ticketMonthFilter === 'all' ? 'toate lunile' : MONTH_FILTER_NAMES[Number(ticketMonthFilter) - 1]}`;
+    }
 
     if (filtered.length === 0) {
       list.innerHTML = '<div class="no-results">Niciun tichet în această categorie.</div>';
@@ -2759,43 +2934,97 @@
     return ws;
   }
 
-  function promptForReportMonthSelection(year){
-    const lines = [
-      `Export Excel pentru ${year}`,
-      '',
-      'Scrieți:',
-      '0 = toate lunile',
-      'sau o listă separată prin virgulă, ex: 3,4,5',
-    ];
-    REPORT_MONTHS.forEach((month, index) => {
-      lines.push(`${index + 1} = ${month}`);
+  function setSheetOpen(sheetId, open){
+    const sheet = document.getElementById(sheetId);
+    if (!sheet) return;
+    sheet.classList.toggle('show', open);
+    sheet.setAttribute('aria-hidden', open ? 'false' : 'true');
+    document.body.style.overflow = open ? 'hidden' : '';
+  }
+
+  document.querySelectorAll('[data-close-sheet]').forEach(btn => {
+    btn.addEventListener('click', () => setSheetOpen(btn.dataset.closeSheet, false));
+  });
+
+  function openReportMonthSelection(year){
+    const sheet = document.getElementById('reportMonthSheet');
+    const lead = document.getElementById('reportMonthSheetLead');
+    const list = document.getElementById('reportMonthList');
+    const allToggle = document.getElementById('reportMonthAllToggle');
+    const confirmBtn = document.getElementById('reportMonthConfirmBtn');
+    const cancelBtn = document.getElementById('reportMonthCancelBtn');
+    const closeBtn = document.getElementById('reportMonthCloseBtn');
+    const backdrop = sheet ? sheet.querySelector('.mobile-sheet-backdrop') : null;
+    if (!sheet || !lead || !list || !allToggle || !confirmBtn || !cancelBtn || !closeBtn || !backdrop) {
+      return Promise.resolve('all');
+    }
+
+    lead.textContent = `Alege luna sau lunile pentru raportul ${year}.`;
+    list.innerHTML = REPORT_MONTHS.map((month, index) => `
+      <label class="month-picker-option">
+        <input type="checkbox" value="${index}" class="report-month-checkbox">
+        <span>${month}</span>
+      </label>
+    `).join('');
+    allToggle.checked = true;
+    list.querySelectorAll('.report-month-checkbox').forEach(box => { box.disabled = true; box.checked = false; });
+    setSheetOpen('reportMonthSheet', true);
+
+    return new Promise(resolve => {
+      let settled = false;
+      const boxes = () => Array.from(list.querySelectorAll('.report-month-checkbox'));
+
+      const cleanup = (result) => {
+        if (settled) return;
+        settled = true;
+        setSheetOpen('reportMonthSheet', false);
+        allToggle.removeEventListener('change', handleAllToggle);
+        boxes().forEach(box => box.removeEventListener('change', handleBoxChange));
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', handleCancel);
+        closeBtn.removeEventListener('click', handleCancel);
+        backdrop.removeEventListener('click', handleCancel);
+        document.removeEventListener('keydown', handleKeydown);
+        resolve(result);
+      };
+
+      const handleAllToggle = () => {
+        boxes().forEach(box => {
+          box.disabled = allToggle.checked;
+          if (allToggle.checked) box.checked = false;
+        });
+      };
+      const handleBoxChange = () => {
+        if (boxes().some(box => box.checked)) allToggle.checked = false;
+      };
+      const handleConfirm = () => {
+        if (allToggle.checked) {
+          cleanup('all');
+          return;
+        }
+        const selected = boxes()
+          .filter(box => box.checked)
+          .map(box => Number(box.value))
+          .sort((a, b) => a - b);
+        if (!selected.length) {
+          alert('Alegeți cel puțin o lună sau bifați "Toate lunile".');
+          return;
+        }
+        cleanup(selected);
+      };
+      const handleCancel = () => cleanup(null);
+      const handleKeydown = (event) => {
+        if (event.key === 'Escape') handleCancel();
+      };
+
+      allToggle.addEventListener('change', handleAllToggle);
+      boxes().forEach(box => box.addEventListener('change', handleBoxChange));
+      confirmBtn.addEventListener('click', handleConfirm);
+      cancelBtn.addEventListener('click', handleCancel);
+      closeBtn.addEventListener('click', handleCancel);
+      backdrop.addEventListener('click', handleCancel);
+      document.addEventListener('keydown', handleKeydown);
     });
-
-    const answer = window.prompt(lines.join('\n'), '0');
-    if (answer === null) return null;
-    const raw = String(answer).trim();
-    if (!raw) {
-      alert('Alegeți 0 pentru toate lunile sau una ori mai multe luni între 1 și 12.');
-      return null;
-    }
-    if (raw === '0') return 'all';
-
-    const parts = raw.split(',').map(part => part.trim()).filter(Boolean);
-    const parsed = [];
-    for (const part of parts) {
-      const value = Number(part);
-      if (!Number.isInteger(value) || value < 1 || value > 12) {
-        alert('Folosiți 0 pentru toate lunile sau o listă ca 1,3,12.');
-        return null;
-      }
-      const monthIndex = value - 1;
-      if (!parsed.includes(monthIndex)) parsed.push(monthIndex);
-    }
-    if (!parsed.length) {
-      alert('Alegeți cel puțin o lună.');
-      return null;
-    }
-    return parsed.sort((a, b) => a - b);
   }
 
   function buildYearlyWorkbookBinary(yearTickets, year, monthSelection){
@@ -2871,8 +3100,9 @@
     return XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
   }
 
-  document.getElementById('exportExcelBtn').addEventListener('click', async () => {
-    const btn = document.getElementById('exportExcelBtn');
+  async function handleExcelExport(triggerButton){
+    const btn = triggerButton || document.getElementById('exportExcelBtn');
+    if (!btn) return;
     const originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Se generează...';
@@ -2880,7 +3110,7 @@
       await loadYearlyReportBundle();
 
       const year = ticketYearFilter === 'all' ? new Date().getFullYear() : Number(ticketYearFilter);
-      const monthSelection = promptForReportMonthSelection(year);
+      const monthSelection = await openReportMonthSelection(year);
       if (monthSelection === null) return;
 
       const yearTickets = allTickets.filter(t => {
@@ -2932,7 +3162,12 @@
       btn.disabled = false;
       btn.textContent = originalText;
     }
-  });
+  }
+
+  const exportExcelBtn = document.getElementById('exportExcelBtn');
+  if (exportExcelBtn) exportExcelBtn.addEventListener('click', () => handleExcelExport(exportExcelBtn));
+  const exportExcelMobileBtn = document.getElementById('exportExcelMobileBtn');
+  if (exportExcelMobileBtn) exportExcelMobileBtn.addEventListener('click', () => handleExcelExport(exportExcelMobileBtn));
 
   /* ============================================================
      ADMIN TABS — switch between "Sesizări" and "Proiecte curente"
@@ -3119,6 +3354,7 @@
   function populateProjectYearFilterSelect(){
     const selects = [
       document.getElementById('projectYearFilterSelect'),
+      document.getElementById('projectYearFilterSelectMobile'),
       document.getElementById('projectYearFilterSelectDesktop'),
     ].filter(Boolean);
     if (selects.length === 0) return;
@@ -3143,7 +3379,7 @@
 
     selects.forEach(s => { s.value = projectYearFilter; });
     updateYearWarning(
-      ['projectYearFilterSelect', 'projectYearFilterSelectDesktop'],
+      ['projectYearFilterSelect', 'projectYearFilterSelectMobile', 'projectYearFilterSelectDesktop'],
       ['yearWarningProjects', 'yearWarningProjectsDesktop'],
       projectYearFilter
     );
@@ -3196,12 +3432,17 @@
     });
   }
 
-  document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectDesktop').forEach(select => {
+  const projectFiltersMobileBtn = document.getElementById('projectFiltersMobileBtn');
+  if (projectFiltersMobileBtn) {
+    projectFiltersMobileBtn.addEventListener('click', () => setSheetOpen('projectFiltersSheet', true));
+  }
+
+  document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectMobile, #projectYearFilterSelectDesktop').forEach(select => {
     select.addEventListener('change', () => {
       projectYearFilter = select.value;
-      document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectDesktop').forEach(s => { s.value = projectYearFilter; });
+      document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectMobile, #projectYearFilterSelectDesktop').forEach(s => { s.value = projectYearFilter; });
       updateYearWarning(
-        ['projectYearFilterSelect', 'projectYearFilterSelectDesktop'],
+        ['projectYearFilterSelect', 'projectYearFilterSelectMobile', 'projectYearFilterSelectDesktop'],
         ['yearWarningProjects', 'yearWarningProjectsDesktop'],
         projectYearFilter
       );
@@ -3245,6 +3486,14 @@
     const list = document.getElementById('projectList');
     const filtered = getFilteredProjects();
     document.getElementById('projectsCount').textContent = filtered.length + ' din ' + allProjects.length + ' proiecte';
+    const projectsCountMobile = document.getElementById('projectsCountMobile');
+    if (projectsCountMobile) projectsCountMobile.textContent = filtered.length + ' din ' + allProjects.length + ' proiecte';
+    const projectFilterHintMobile = document.getElementById('projectFilterHintMobile');
+    if (projectFilterHintMobile) {
+      projectFilterHintMobile.textContent = projectYearFilter === 'all'
+        ? 'Filtrează lista rapid'
+        : `An selectat: ${projectYearFilter}`;
+    }
 
     if (filtered.length === 0) {
       list.innerHTML = '<div class="no-results" style="padding:40px 0;text-align:center;color:var(--ink-400);">Niciun proiect în această categorie.</div>';
