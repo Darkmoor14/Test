@@ -239,6 +239,19 @@
     display:none !important;
   }
 
+  /* Safari in a bookmarked/home-screen web app can briefly report the
+     keyboard as "closed" before the visual viewport has actually
+     snapped back into place, which makes fixed bottom UI reappear a
+     little too early and look like it's floating. Keeping the same
+     elements hidden for one short settling beat after close avoids
+     that jump. */
+  html.kb-settling .mobile-tab-bar,
+  html.kb-settling .back-to-top,
+  html.kb-settling .toast,
+  html.kb-settling .archive-bar{
+    display:none !important;
+  }
+
   .toolbar{padding:20px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
   /* Desktop default: the wrapper adds no box of its own (children lay
      out directly in the toolbar's flex row, unchanged from before),
@@ -2752,6 +2765,7 @@
       '',
       'Scrieți:',
       '0 = toate lunile',
+      'sau o listă separată prin virgulă, ex: 3,4,5',
     ];
     REPORT_MONTHS.forEach((month, index) => {
       lines.push(`${index + 1} = ${month}`);
@@ -2759,12 +2773,29 @@
 
     const answer = window.prompt(lines.join('\n'), '0');
     if (answer === null) return null;
-    const value = Number(String(answer).trim());
-    if (!Number.isInteger(value) || value < 0 || value > 12) {
-      alert('Alegeți 0 pentru toate lunile sau un număr între 1 și 12.');
+    const raw = String(answer).trim();
+    if (!raw) {
+      alert('Alegeți 0 pentru toate lunile sau una ori mai multe luni între 1 și 12.');
       return null;
     }
-    return value === 0 ? 'all' : value - 1;
+    if (raw === '0') return 'all';
+
+    const parts = raw.split(',').map(part => part.trim()).filter(Boolean);
+    const parsed = [];
+    for (const part of parts) {
+      const value = Number(part);
+      if (!Number.isInteger(value) || value < 1 || value > 12) {
+        alert('Folosiți 0 pentru toate lunile sau o listă ca 1,3,12.');
+        return null;
+      }
+      const monthIndex = value - 1;
+      if (!parsed.includes(monthIndex)) parsed.push(monthIndex);
+    }
+    if (!parsed.length) {
+      alert('Alegeți cel puțin o lună.');
+      return null;
+    }
+    return parsed.sort((a, b) => a - b);
   }
 
   function buildYearlyWorkbookBinary(yearTickets, year, monthSelection){
@@ -2784,11 +2815,11 @@
     const monthlyStats = monthlyBuckets.map((tickets, index) => buildMonthlyStats(tickets, index));
     const selectedMonths = monthSelection === 'all'
       ? monthlyStats
-      : monthlyStats.filter(month => month.index === monthSelection);
+      : monthlyStats.filter(month => monthSelection.includes(month.index));
     const exportTickets = selectedMonths.flatMap(month => month.tickets);
     const scopeLabel = monthSelection === 'all'
       ? `toate lunile din ${year}`
-      : `${REPORT_MONTHS[monthSelection]} ${year}`;
+      : selectedMonths.map(month => month.name).join(', ') + ` ${year}`;
     const activeCount = exportTickets.filter(ticket => reportTicketStatus(ticket) === 'Activ').length;
     const resolvedCount = exportTickets.filter(ticket => reportTicketStatus(ticket) === 'Terminat').length;
     const defectCount = exportTickets.filter(ticket => reportTicketType(ticket) === 'Defect').length;
@@ -2862,12 +2893,14 @@
       }
 
       if (monthSelection !== 'all') {
-        const hasTicketsInMonth = yearTickets.some(t => {
+        const selectedMonthSet = new Set(monthSelection);
+        const hasTicketsInSelection = yearTickets.some(t => {
           const submitted = new Date(t.submitted_on);
-          return !Number.isNaN(submitted.getTime()) && submitted.getMonth() === monthSelection;
+          return !Number.isNaN(submitted.getTime()) && selectedMonthSet.has(submitted.getMonth());
         });
-        if (!hasTicketsInMonth) {
-          alert(`Nu există sesizări pentru ${REPORT_MONTHS[monthSelection]} ${year}.`);
+        if (!hasTicketsInSelection) {
+          const selectedMonthNames = monthSelection.map(index => REPORT_MONTHS[index]).join(', ');
+          alert(`Nu există sesizări pentru ${selectedMonthNames} ${year}.`);
           return;
         }
       }
@@ -2876,7 +2909,7 @@
         ? yearTickets
         : yearTickets.filter(t => {
             const submitted = new Date(t.submitted_on);
-            return !Number.isNaN(submitted.getTime()) && submitted.getMonth() === monthSelection;
+            return !Number.isNaN(submitted.getTime()) && monthSelection.includes(submitted.getMonth());
           });
 
       const bytes = await window.generateYearlyExcelReport(exportTickets, year);
@@ -2886,7 +2919,7 @@
       a.href = url;
       a.download = monthSelection === 'all'
         ? `raport-sesizari-${year}.xlsx`
-        : `raport-sesizari-${year}-${String(monthSelection + 1).padStart(2, '0')}.xlsx`;
+        : `raport-sesizari-${year}-${monthSelection.map(index => String(index + 1).padStart(2, '0')).join('-')}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -3718,16 +3751,41 @@
   // moment the keyboard closes.
   if (window.visualViewport) {
     document.documentElement.classList.add('has-visual-viewport');
+    let keyboardWasOpen = false;
+    let keyboardSettleTimer = null;
+
+    function settleFixedBottomUI(){
+      const root = document.documentElement;
+      root.classList.add('kb-settling');
+      if (keyboardSettleTimer) clearTimeout(keyboardSettleTimer);
+
+      // Force a fresh layout pass on iOS Safari / installed PWAs after
+      // the keyboard closes; otherwise fixed bottom elements can keep
+      // using the stale pre-dismiss viewport for a moment.
+      requestAnimationFrame(() => {
+        window.scrollTo(window.scrollX, window.scrollY);
+        requestAnimationFrame(() => {
+          keyboardSettleTimer = setTimeout(() => {
+            root.classList.remove('kb-settling');
+          }, 260);
+        });
+      });
+    }
+
     function syncKeyboardOpen(){
       const vv = window.visualViewport;
       const covered = window.innerHeight - vv.height - vv.offsetTop;
       // 80px threshold — comfortably larger than ordinary viewport
       // jitter (browser chrome show/hide, minor rounding) so this
       // only fires for an actual keyboard, not false positives.
-      document.documentElement.classList.toggle('kb-open', covered > 80);
+      const isOpen = covered > 80;
+      document.documentElement.classList.toggle('kb-open', isOpen);
+      if (keyboardWasOpen && !isOpen) settleFixedBottomUI();
+      keyboardWasOpen = isOpen;
     }
     window.visualViewport.addEventListener('resize', syncKeyboardOpen);
     window.visualViewport.addEventListener('scroll', syncKeyboardOpen);
+    window.addEventListener('orientationchange', settleFixedBottomUI);
     syncKeyboardOpen();
   }
 </script>
