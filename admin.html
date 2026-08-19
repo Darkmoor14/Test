@@ -576,6 +576,8 @@
   .chip:hover{border-color:var(--copper-500);color:var(--copper-600);}
   .chip.active{background:var(--copper-500);border-color:var(--copper-500);color:#fff;}
   .result-count{font-family:var(--mono);font-size:12.5px;color:var(--ink-400);}
+  .overview-mobile-status-filter{display:none;}
+  .overview-mobile-status-filter .chips{gap:10px;}
   .filter-inline-group{
     display:flex;align-items:center;gap:14px;flex-wrap:wrap;
   }
@@ -598,6 +600,7 @@
     .toolbar-mobile-only{display:inline-flex;}
     #chipsWrap{display:none;}
     .filter-inline-group{width:100%;}
+    .overview-mobile-status-filter{display:block;}
   }
   @media(min-width:901px){
     .toolbar-mobile-actions,
@@ -898,14 +901,7 @@
         <button class="admin-tab" type="button" data-tab="tickets">Sesizări</button>
         <button class="admin-tab" type="button" data-tab="projects">Proiecte curente</button>
       </div>
-      <!-- Desktop-only — a separate set of year-selects, kept in sync
-           with the originals still living inside each panel below
-           (used on mobile), rather than moving those originals here.
-           Duplicating rather than moving means mobile's layout is
-           genuinely 100% unchanged, not just visually similar — the
-           elements mobile renders are literally the same ones as
-           before, in the same place, untouched by any of this. Only
-           the one matching the current tab is shown at a time. -->
+      <!-- Desktop-only year/month shortcuts for the first two panels. -->
       <div class="overview-year-bar admin-tabs-row-year active" data-year-panel="overview">
         <label for="yearFilterSelectDesktop">An:</label>
         <select id="yearFilterSelectDesktop"></select>
@@ -951,6 +947,9 @@
         </button>
       </div>
 
+      <div class="overview-mobile-status-filter">
+        <div class="chips" id="overviewStatusChipsMobile"></div>
+      </div>
       <div class="overview-year-bar">
         <label for="yearFilterSelect">An:</label>
         <select id="yearFilterSelect"></select>
@@ -1174,7 +1173,7 @@
     <div class="sheet-head">
       <div>
         <h3 id="ticketFiltersSheetTitle">Filtre sesizări</h3>
-        <p>Controlezi rapid anul și luna fără să aglomerezi bara de sus pe telefon.</p>
+        <p>Controlezi rapid anul, luna și starea listei fără să aglomerezi bara de sus pe telefon.</p>
       </div>
       <button type="button" class="sheet-close" data-close-sheet="ticketFiltersSheet" aria-label="Închide">×</button>
     </div>
@@ -1205,7 +1204,7 @@
     <div class="sheet-head">
       <div>
         <h3 id="projectFiltersSheetTitle">Filtre proiecte</h3>
-        <p>Am lăsat doar selecția de an aici, fiind filtrul care contează cel mai mult pe mobil.</p>
+        <p>Păstrezi filtrarea pe an într-un panou separat, fără să încarci bara principală pe telefon.</p>
       </div>
       <button type="button" class="sheet-close" data-close-sheet="projectFiltersSheet" aria-label="Închide">×</button>
     </div>
@@ -1435,6 +1434,7 @@
   let ticketSearchQuery = '';
   let ticketYearFilter = 'all';
   let ticketMonthFilter = 'all';
+  let overviewStatusFilter = 'all';
 
   // A ticket's "effective" month/year for filtering purposes — NOT
   // necessarily when it was actually submitted. Still-active tickets
@@ -1538,11 +1538,6 @@
     return base;
   }
 
-  // Populates the "An" (Year) dropdown from whatever years actually
-  // appear in the data — nothing hardcoded, so it naturally grows as
-  // tickets accumulate in future years with no further code changes.
-  // Defaults to the current calendar year if it has any tickets yet,
-  // otherwise falls back to "Toate anii" (all years).
   let ticketYearFilterInitialized = false;
 
   // Highlights a year selector (and shows an explicit text warning
@@ -1581,7 +1576,8 @@
 
     const years = new Set();
     allTickets.forEach(t => {
-      if (t.submitted_on) years.add(new Date(t.submitted_on).getFullYear());
+      const { year } = getEffectiveMonthYear(t);
+      if (year) years.add(year);
     });
     const sortedYears = [...years].sort((a, b) => b - a);
     const optionsHtml =
@@ -1590,14 +1586,10 @@
     selects.forEach(s => { s.innerHTML = optionsHtml; });
 
     if (!ticketYearFilterInitialized) {
-      // First load: default to the current calendar year if it has
-      // any tickets yet, otherwise fall back to showing everything.
       const currentYear = new Date().getFullYear();
       ticketYearFilter = sortedYears.includes(currentYear) ? String(currentYear) : 'all';
       ticketYearFilterInitialized = true;
     } else if (ticketYearFilter !== 'all' && !sortedYears.some(y => String(y) === ticketYearFilter)) {
-      // The previously-selected year no longer has any tickets (rare,
-      // but possible) — fall back rather than pointing at nothing.
       ticketYearFilter = 'all';
     }
 
@@ -1891,6 +1883,7 @@
     typeOnlyFilter = null;
     ticketYearFilter = 'all';
     projectYearFilter = 'all';
+    overviewStatusFilter = 'all';
     ticketYearFilterInitialized = false;
     projectYearFilterInitialized = false;
     currentAdminTab = 'overview';
@@ -2012,6 +2005,33 @@
     });
   });
 
+  const overviewStatusChipDefs = [
+    { key: 'all', label: 'Toate' },
+    { key: 'active', label: 'Active' },
+    { key: 'done', label: 'Soluționate' },
+  ];
+
+  function setOverviewStatusFilter(filterKey){
+    overviewStatusFilter = filterKey;
+    document.querySelectorAll('#overviewStatusChipsMobile .chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.key === filterKey);
+    });
+    renderOverviewTable();
+  }
+
+  const overviewStatusChipsMobile = document.getElementById('overviewStatusChipsMobile');
+  if (overviewStatusChipsMobile) {
+    overviewStatusChipDefs.forEach(c => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip' + (c.key === overviewStatusFilter ? ' active' : '');
+      chip.textContent = c.label;
+      chip.dataset.key = c.key;
+      chip.addEventListener('click', () => setOverviewStatusFilter(c.key));
+      overviewStatusChipsMobile.appendChild(chip);
+    });
+  }
+
   async function loadTickets(silent){
     const list = document.getElementById('ticketList');
     if (!silent) list.innerHTML = '<div class="no-results">Se încarcă...</div>';
@@ -2091,6 +2111,12 @@
     const tbody = document.getElementById('overviewTableBody');
     const cardsWrap = document.getElementById('overviewCardsMobile');
     let visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
+
+    if (overviewStatusFilter === 'active') {
+      visible = visible.filter(t => t.status !== 'Terminat');
+    } else if (overviewStatusFilter === 'done') {
+      visible = visible.filter(t => t.status === 'Terminat');
+    }
 
     // All four priority cards describe a subset of ACTIVE tickets, so
     // any card filter first narrows to non-Terminat, then applies
