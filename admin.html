@@ -180,14 +180,23 @@
        so it can't leave any stray gap/margin behind. */
     .admin-tabs-row{display:none !important;}
     .dash-head{
-      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
       /* header is gone on mobile, so this is now the top of the page —
          padding-top keeps it clear of the status bar / notch area,
          which viewport-fit=cover now lets content render behind */
-      padding-top:calc(36px + env(safe-area-inset-top, 0));
+      padding-top:calc(18px + env(safe-area-inset-top, 0));
+      padding-bottom:14px;
+    }
+    .dash-head h1{
+      font-size:20px;
+      margin-bottom:0;
+      line-height:1.1;
+    }
+    .dash-head p{
+      display:none;
     }
     .mobile-logout-link{
-      display:inline-block;flex-shrink:0;margin-top:36px;
+      display:inline-block;flex-shrink:0;margin-top:0;
       font-family:var(--mono);font-size:12px;color:var(--ink-600);
       background:none;border:1px solid var(--line-strong);border-radius:3px;
       padding:6px 10px;cursor:pointer;
@@ -344,7 +353,7 @@
   .priority-card.warn .num{color:var(--signal-orange);}
   .priority-card .sub{font-size:12px;color:var(--ink-600);margin-top:6px;}
   @media(max-width:900px){
-    .priority-grid{grid-template-columns:repeat(2,1fr);}
+    .priority-grid{display:none;}
   }
   @media(max-width:560px){
     .priority-grid{grid-template-columns:1fr;}
@@ -510,7 +519,9 @@
   @media(max-width:900px){
     .overview-table-wrap{display:none;}
     .overview-cards-mobile{display:flex;}
-    .overview-sidebar{flex-direction:column;}
+    .overview-sidebar{display:none;}
+    .overview-section{gap:14px;}
+    .priority-grid{margin-bottom:18px;}
   }
   .admin-panel.active{display:block;}
 
@@ -565,6 +576,19 @@
   .chip:hover{border-color:var(--copper-500);color:var(--copper-600);}
   .chip.active{background:var(--copper-500);border-color:var(--copper-500);color:#fff;}
   .result-count{font-family:var(--mono);font-size:12.5px;color:var(--ink-400);}
+  .filter-inline-group{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  }
+  .filter-inline-group .chips{align-items:center;}
+  .sheet-filter-status{
+    margin-top:16px;
+  }
+  .sheet-filter-status .chips{
+    gap:10px;
+  }
+  .sheet-filter-status .chip{
+    text-align:center;
+  }
   .toolbar-mobile-actions,
   .toolbar-mobile-summary,
   .toolbar-mobile-only{display:none;}
@@ -572,6 +596,8 @@
     .toolbar-mobile-actions{display:flex;}
     .toolbar-mobile-summary{display:flex;}
     .toolbar-mobile-only{display:inline-flex;}
+    #chipsWrap{display:none;}
+    .filter-inline-group{width:100%;}
   }
   @media(min-width:901px){
     .toolbar-mobile-actions,
@@ -977,8 +1003,7 @@
 
     <div class="admin-panel" id="panel-tickets">
       <div class="toolbar">
-        <div class="chips" id="chipsWrap"></div>
-        <div style="display:flex; align-items:center; gap:14px;">
+        <div class="filter-inline-group">
           <div class="overview-year-bar mobile-hidden" style="margin-top:0;">
             <label for="yearFilterSelectTickets">An:</label>
             <select id="yearFilterSelectTickets"></select>
@@ -986,6 +1011,7 @@
             <select id="monthFilterSelectTickets"></select>
             <span class="year-warning" id="yearWarningTickets">⚠ Nu e anul curent</span>
           </div>
+          <div class="chips" id="chipsWrap"></div>
           <div class="ticket-search-wrap" id="ticketSearchWrap">
             <button type="button" class="search-icon-btn" id="searchToggleBtn" aria-label="Căutare">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1161,6 +1187,10 @@
         <label for="monthFilterSelectTicketsMobile">Lună</label>
         <select id="monthFilterSelectTicketsMobile"></select>
       </div>
+    </div>
+    <div class="sheet-filter-status">
+      <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Stare listă</label>
+      <div class="chips" id="ticketStatusChipsMobile"></div>
     </div>
     <div class="sheet-actions">
       <button type="button" class="btn btn-primary" data-close-sheet="ticketFiltersSheet">Aplică</button>
@@ -1968,15 +1998,18 @@
     ticketFiltersMobileBtn.addEventListener('click', () => setSheetOpen('ticketFiltersSheet', true));
   }
 
-  const chipsWrap = document.getElementById('chipsWrap');
-  chipDefs.forEach(c => {
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'chip' + (c.key === activeFilter ? ' active' : '');
-    chip.textContent = c.label;
-    chip.dataset.key = c.key;
-    chip.addEventListener('click', () => setTicketFilter(c.key));
-    chipsWrap.appendChild(chip);
+  ['chipsWrap', 'ticketStatusChipsMobile'].forEach(wrapId => {
+    const wrap = document.getElementById(wrapId);
+    if (!wrap) return;
+    chipDefs.forEach(c => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip' + (c.key === activeFilter ? ' active' : '');
+      chip.textContent = c.label;
+      chip.dataset.key = c.key;
+      chip.addEventListener('click', () => setTicketFilter(c.key));
+      wrap.appendChild(chip);
+    });
   });
 
   async function loadTickets(silent){
@@ -2199,7 +2232,7 @@
     activeFilter = filterKey;
     selectedIds.clear();
     updateArchiveBar();
-    document.querySelectorAll('#chipsWrap .chip').forEach(chip => {
+    document.querySelectorAll('#chipsWrap .chip, #ticketStatusChipsMobile .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
     renderTickets();
