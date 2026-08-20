@@ -2662,6 +2662,16 @@
         if (checkbox.checked) selectedIds.add(t.id);
         else selectedIds.delete(t.id);
         updateArchiveBar();
+        // Browser quirk (desktop-width specifically, confirmed via
+        // screenshots — works instantly at mobile widths): the
+        // archive bar's opacity transition sometimes doesn't
+        // repaint correctly while the checkbox that triggered it
+        // still holds focus, and only actually appears once
+        // something else forces a reflow — clicking elsewhere on the
+        // page fixes it manually. Blurring immediately here forces
+        // that same reflow automatically, instead of requiring the
+        // extra click every time.
+        checkbox.blur();
       });
 
       // Resolution date/time only ever gets saved when actually
