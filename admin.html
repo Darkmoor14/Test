@@ -2222,7 +2222,11 @@
       // isn't that yet, so it stays visually normal here even though
       // isDone itself (used below for the status pill, resolved date,
       // etc.) correctly still reflects the real stored status.
-      const isFullyComplete = isDone && !!t.resolution_note;
+      // Report-completion status isn't relevant to a limited-role
+      // account (they can't act on it either way), so every Terminat
+      // ticket fades uniformly for them — only 'full' accounts see
+      // the awaiting-report distinction called out visually.
+      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !!t.resolution_note);
       const isUrgent = t.type === 'Anunt accident';
       const daysOpen = t.submitted_on ? (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
       const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
@@ -2252,7 +2256,11 @@
     if (cardsWrap) {
       cardsWrap.innerHTML = ordered.map(t => {
         const isDone = t.status === 'Terminat';
-        const isFullyComplete = isDone && !!t.resolution_note;
+        // Report-completion status isn't relevant to a limited-role
+      // account (they can't act on it either way), so every Terminat
+      // ticket fades uniformly for them — only 'full' accounts see
+      // the awaiting-report distinction called out visually.
+      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !!t.resolution_note);
         const isUrgent = t.type === 'Anunt accident';
         const daysOpen = t.submitted_on ? (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
         const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
@@ -2545,7 +2553,11 @@
     filtered.forEach(t => {
       const isUrgent = t.type === 'Anunt accident';
       const isDone = t.status === 'Terminat';
-      const isFullyComplete = isDone && !!t.resolution_note;
+      // Report-completion status isn't relevant to a limited-role
+      // account (they can't act on it either way), so every Terminat
+      // ticket fades uniformly for them — only 'full' accounts see
+      // the awaiting-report distinction called out visually.
+      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !!t.resolution_note);
       const isArchived = !!t.archived;
       const card = document.createElement('div');
       card.id = 'ticket-card-' + t.id;
