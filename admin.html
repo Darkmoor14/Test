@@ -4069,7 +4069,18 @@
   // there in the first place, and none of them are things you need
   // while actively typing into a field anyway. They reappear the
   // moment the keyboard closes.
-  if (window.visualViewport) {
+  // Restricted to genuinely touch/mobile contexts specifically —
+  // window.visualViewport exists on desktop browsers too, and without
+  // this guard, resizing or opening browser dev tools (common during
+  // active testing) shrinks the visual viewport the exact same way a
+  // real mobile keyboard would, incorrectly triggering kb-open and
+  // hiding the archive bar / tab bar / toast / back-to-top via
+  // !important — on desktop, where there's no keyboard at all to be
+  // reacting to. Real virtual keyboards only exist on touch devices,
+  // so restricting this there entirely removes that whole failure
+  // mode rather than trying to tune the detection threshold further.
+  const isTouchPrimaryDevice = window.matchMedia('(pointer: coarse)').matches;
+  if (window.visualViewport && isTouchPrimaryDevice) {
     document.documentElement.classList.add('has-visual-viewport');
     let keyboardWasOpen = false;
     let keyboardSettleTimer = null;
