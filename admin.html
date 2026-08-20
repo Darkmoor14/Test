@@ -2683,6 +2683,24 @@
           ${t.resolved_on ? `<div class="full"><span class="k">Soluționat</span>${fmtDate(t.resolved_on)}</div>` : ''}
         </div>
         <div class="ticket-controls">
+          ${(isDone && !isEditing) ? `
+          <div class="ctrl-field stare-field">
+            <label>Stare</label>
+            <div class="resnote-readonly">Soluționat</div>
+          </div>
+          <div class="ctrl-field">
+            <label>Soluționat de</label>
+            <div class="resnote-readonly">${safeResolvedBy || '—'}</div>
+          </div>
+          <div class="ctrl-field resnote-field">
+            <label>Ce s-a făcut</label>
+            <div class="resnote-readonly">${escapeHtml(t.resolution_note || '—')}</div>
+          </div>
+          <div class="ctrl-field resolved-date-field">
+            <label>Data soluționării</label>
+            <div class="resnote-readonly">${resolvedDateParts.date ? escapeHtml(resolvedDateParts.date) : '—'}</div>
+          </div>
+          ` : `
           <div class="ctrl-field stare-field">
             <label>Stare</label>
             <select class="f-status" ${isArchived ? 'disabled' : ''}>
@@ -2711,11 +2729,14 @@
             <label>Data soluționării</label>
             <input type="date" class="f-resolved-date" value="${resolvedDateParts.date}" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>
           </div>
+          `}
         </div>
         <div class="ticket-save-row">
           ${isArchived
             ? `<button class="btn f-restore">Dezarhivează</button>`
-            : `<button class="btn btn-primary f-save">Salvează<span class="save-status">✓ Salvat</span></button>`
+            : (isDone && !isEditing)
+              ? `<div class="resnote-readonly">Pentru modificări, selectează tichetul și apasă Editează.</div>`
+              : `<button class="btn btn-primary f-save">Salvează<span class="save-status">✓ Salvat</span></button>`
           }
         </div>
       `;
