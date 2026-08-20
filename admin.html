@@ -328,6 +328,8 @@
      login) — the priority cards describe a different kind of
      at-a-glance triage that doesn't apply to that dedicated context. */
   html.report-focused-view .priority-grid{display:none;}
+  .report-focused-chips{display:none;margin-bottom:16px;}
+  html.report-focused-view .report-focused-chips{display:flex;}
   /* Desktop only — on mobile, .admin-tabs-row (the tabs this spacing
      is meant to separate from) is hidden entirely, replaced by the
      bottom tab bar, so this specific relationship doesn't apply
@@ -747,51 +749,6 @@
   .ctrl-field.stare-field{min-width:190px;}
   .ctrl-field.resolved-date-field{min-width:150px;}
   .ctrl-field.resnote-field{min-width:320px;}
-  .ctrl-field.report-pdf-field{min-width:200px;}
-  /* Real browser file inputs mostly ignore CSS styling for their
-     internal "Choose File" button and filename text — the standard,
-     reliable fix is hiding the actual input entirely and using a
-     <label for="..."> as the visible trigger instead, which natively
-     opens the file picker on click with zero JS needed for that
-     part. Styled here as a single box matching the exact look of the
-     other inputs in this row (same padding/border/background/font),
-     rather than a separate bordered button sitting above its own
-     stray line of text — that combination was visibly taller than
-     its siblings and looked like a generic HTML control dropped into
-     an otherwise clean, minimal row. */
-  .report-pdf-hidden-input{display:none;}
-  /* .report-pdf-field label.report-pdf-dropzone (parent class +
-     element + own class) — not just "label.report-pdf-dropzone" alone,
-     which is only EQUAL specificity to ".ctrl-field label" (1 class +
-     1 element either way) and would still lose that tie to whichever
-     rule happens to sit later in the file. This element is a <label>,
-     and so is the plain field-title label right above it in the same
-     .ctrl-field ("Fișă raport (PDF)"); the generic ".ctrl-field
-     label" rule matches EITHER of them, and its display:block plus
-     margin-bottom:6px were silently overriding this element's
-     display:flex — exactly what was throwing off the vertical
-     alignment with its siblings. Including the parent's class here
-     genuinely outweighs that rule regardless of file order. */
-  .report-pdf-field label.report-pdf-dropzone{
-    width:100%;height:38px;padding:9px 11px;border:1px solid var(--line-strong);border-radius:3px;
-    font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-600);
-    line-height:1.3;box-sizing:border-box;margin-bottom:0;
-    display:flex;align-items:center;gap:8px;cursor:pointer;
-    text-transform:none;letter-spacing:normal;
-  }
-  .report-pdf-dropzone:hover{border-color:var(--copper-500);background:var(--paper-000);}
-  .report-pdf-dropzone svg{flex-shrink:0;color:var(--ink-400);}
-  .report-pdf-filename{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .report-pdf-filename.chosen{color:var(--ink-900);}
-  .report-pdf-row{display:flex;align-items:center;gap:8px;}
-  .report-pdf-remove{
-    width:32px;height:32px;flex-shrink:0;border-radius:50%;
-    border:1px solid var(--line-strong);background:var(--paper-000);
-    color:var(--ink-600);cursor:pointer;font-size:14px;line-height:1;
-    display:flex;align-items:center;justify-content:center;
-  }
-  .report-pdf-remove:hover{border-color:var(--signal-red);color:var(--signal-red);}
-  .report-pdf-remove:disabled{opacity:0.5;cursor:default;}
 
   @media(max-width:600px){
     /* .ticket-controls uses flex, not grid (unlike .pf-grid/
@@ -848,6 +805,17 @@
     font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-900);
     resize:none;overflow:hidden;line-height:1.3;
     display:block;min-height:38px;box-sizing:border-box;
+  }
+  /* Read-only "Ce s-a făcut" for a 'limited'-role account — only
+     rendered at all once there's actual content to show (an empty/
+     pending report shows nothing here rather than a placeholder
+     message). Plain text, no input-style border/background, so it
+     doesn't look like something clickable — matches the textarea's
+     own padding/sizing so the row still lines up with its siblings. */
+  .resnote-readonly{
+    width:100%;padding:9px 11px;min-height:38px;box-sizing:border-box;
+    font-family:var(--body);font-size:13.5px;line-height:1.3;color:var(--ink-900);
+    display:flex;align-items:center;
   }
   .ctrl-field input:focus, .ctrl-field select:focus, .ctrl-field textarea:focus{border-color:var(--copper-500);background:var(--paper-000);}
   .save-status{font-family:var(--mono);font-size:11.5px;color:var(--signal-green);margin-left:8px;opacity:0;transition:opacity .2s;}
@@ -970,6 +938,7 @@
           <span id="overviewNarrowFilterLabel"></span>
           <button type="button" id="clearOverviewNarrowFilterBtn">✕ Elimină acest filtru</button>
         </div>
+        <div class="chips report-focused-chips" id="overviewStatusChipsDesktop"></div>
         <div class="overview-table-wrap">
           <table class="overview-table" id="overviewTable">
             <colgroup>
@@ -1760,53 +1729,6 @@
   }
 
   /* ============================================================
-     REPORT CARD PDF — admin-only attachment (a scanned form or
-     external document, uploaded when resolving a ticket). Unlike the
-     old resolution-photo bucket (public, plain URLs), this one is
-     deliberately kept PRIVATE: the "tickets" table only stores the
-     file's storage PATH, not a permanent public URL, and viewing it
-     requires generating a short-lived signed URL on demand via an
-     authenticated request. That's a real access-control boundary,
-     not just "nobody happens to guess the URL" — the file genuinely
-     cannot be opened by anyone who isn't signed in as staff.
-     Requires a PRIVATE "ticket-reports" bucket in Supabase Storage —
-     see the SQL/setup notes provided alongside this feature.
-     ============================================================ */
-  function sanitizePathSegment(value){
-    return String(value ?? '')
-      .trim()
-      .replace(/[^a-zA-Z0-9_-]+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-  }
-
-  async function uploadReportPdf(ticket, file){
-    const folder = sanitizePathSegment(ticket.ticket_number) || ticket.id;
-    const path = `${folder}/report-${Date.now()}.pdf`;
-    const { error } = await supabaseClient.storage
-      .from('ticket-reports')
-      .upload(path, file, { upsert: false, contentType: 'application/pdf' });
-    if (error) throw error;
-    return path;
-  }
-
-  // Signed URLs are short-lived on purpose (5 minutes) — plenty of
-  // time to open/download the file right after clicking, without
-  // leaving a long-lived link sitting around that could be shared or
-  // reused later.
-  async function openReportPdf(path){
-    const { data, error } = await supabaseClient.storage
-      .from('ticket-reports')
-      .createSignedUrl(path, 300);
-    if (error || !data) {
-      console.error(error);
-      alert('Eroare la deschiderea fișierului.');
-      return;
-    }
-    window.open(data.signedUrl, '_blank', 'noopener');
-  }
-
-  /* ============================================================
      STAFF NOTIFICATIONS — mirrors raportare.html's own email + push
      notification calls exactly, so a ticket logged manually here (via
      "+ Adaugă sesizare", e.g. for a phone call) alerts the rest of
@@ -2096,9 +2018,24 @@
     { key: 'done', label: 'Soluționate' },
   ];
 
+  // Separate, desktop-only chip set — specifically for vlasbogdan@'s
+  // report-focused Overview (see isReportFocusedView()). Deliberately
+  // NOT added to overviewStatusChipDefs above: that list feeds the
+  // mobile sheet used by every account, and "Așteaptă raport" only
+  // makes sense in this one dedicated context. Both sets drive the
+  // same underlying overviewStatusFilter variable, so nothing about
+  // the mobile chips' own behavior changes — they simply never offer
+  // a value that produces this third state.
+  const reportFocusedChipDefs = [
+    { key: 'all', label: 'Toate' },
+    { key: 'active', label: 'Active' },
+    { key: 'done', label: 'Soluționate' },
+    { key: 'awaiting_report', label: 'Așteaptă raport' },
+  ];
+
   function setOverviewStatusFilter(filterKey){
     overviewStatusFilter = filterKey;
-    document.querySelectorAll('#overviewStatusChipsMobile .chip').forEach(chip => {
+    document.querySelectorAll('#overviewStatusChipsMobile .chip, #overviewStatusChipsDesktop .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
     renderOverviewTable();
@@ -2114,6 +2051,19 @@
       chip.dataset.key = c.key;
       chip.addEventListener('click', () => setOverviewStatusFilter(c.key));
       overviewStatusChipsMobile.appendChild(chip);
+    });
+  }
+
+  const overviewStatusChipsDesktop = document.getElementById('overviewStatusChipsDesktop');
+  if (overviewStatusChipsDesktop) {
+    reportFocusedChipDefs.forEach(c => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip' + (c.key === overviewStatusFilter ? ' active' : '');
+      chip.textContent = c.label;
+      chip.dataset.key = c.key;
+      chip.addEventListener('click', () => setOverviewStatusFilter(c.key));
+      overviewStatusChipsDesktop.appendChild(chip);
     });
   }
 
@@ -2198,13 +2148,22 @@
     let visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
 
     // vlasbogdan@'s Overview is a dedicated "what needs my report"
-    // view — the priority cards are hidden for this account (see the
-    // CSS), and the table itself only ever shows tickets actually
-    // awaiting a report, skipping the normal status/card filters
-    // entirely below since they don't apply to this dedicated
-    // context (nothing in the UI even offers them in this mode).
+    // table — priority cards/charts are hidden for this account (see
+    // the CSS), and a separate 3-way chip row (reportFocusedChipDefs
+    // above) replaces the normal priority-card narrowing entirely,
+    // since those don't apply to this dedicated context. "Soluționate"
+    // here specifically means truly complete (Terminat AND has a
+    // report) — consistent with "Așteaptă raport" meaning the other
+    // Terminat tickets, so every ticket falls into exactly one of the
+    // three states, none left out and none double-counted.
     if (isReportFocusedView()) {
-      visible = visible.filter(t => t.status === 'Terminat' && !t.resolution_note);
+      if (overviewStatusFilter === 'active') {
+        visible = visible.filter(t => t.status !== 'Terminat');
+      } else if (overviewStatusFilter === 'done') {
+        visible = visible.filter(t => t.status === 'Terminat' && !!t.resolution_note);
+      } else if (overviewStatusFilter === 'awaiting_report') {
+        visible = visible.filter(t => t.status === 'Terminat' && !t.resolution_note);
+      }
     } else {
       if (overviewStatusFilter === 'active') {
         visible = visible.filter(t => t.status !== 'Terminat');
@@ -2640,30 +2599,22 @@
             <label>Soluționat de</label>
             <input type="text" class="f-resolver" placeholder="Nume angajat" value="${safeResolvedBy}" ${isArchived ? 'disabled' : ''}>
           </div>
-          ${currentUserRole === 'limited' ? '' : `
+          ${currentUserRole === 'limited'
+            ? (t.resolution_note ? `
+          <div class="ctrl-field resnote-field">
+            <label>Ce s-a făcut</label>
+            <div class="resnote-readonly">${escapeHtml(t.resolution_note)}</div>
+          </div>
+            ` : '')
+            : `
           <div class="ctrl-field resnote-field">
             <label>Ce s-a făcut (opțional)</label>
             <textarea class="f-resnote autogrow" rows="1" placeholder="ex: Bec înlocuit" ${isArchived ? 'disabled' : ''}>${escapeHtml(t.resolution_note || '')}</textarea>
           </div>
-          `}
+            `}
           <div class="ctrl-field resolved-date-field">
             <label>Data soluționării</label>
             <input type="date" class="f-resolved-date" value="${resolvedDateParts.date}" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>
-          </div>
-          <div class="ctrl-field report-pdf-field">
-            <label>Fișă raport (PDF)</label>
-            ${t.report_pdf_path ? `
-            <div class="report-pdf-row">
-              <button type="button" class="btn f-view-pdf" data-path="${escapeHtml(t.report_pdf_path)}">📄 Vezi fișierul</button>
-              <button type="button" class="report-pdf-remove f-remove-pdf" title="Șterge fișierul" ${isArchived ? 'disabled' : ''}>✕</button>
-            </div>
-            ` : `
-            <label class="report-pdf-dropzone" for="report-pdf-input-${t.id}">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-              <span class="report-pdf-filename">Alege fișier PDF…</span>
-            </label>
-            <input type="file" id="report-pdf-input-${t.id}" class="f-report-pdf report-pdf-hidden-input" accept="application/pdf" ${isArchived ? 'disabled' : ''}>
-            `}
           </div>
         </div>
         <div class="ticket-save-row">
@@ -2716,58 +2667,6 @@
         statusSelect.addEventListener('change', () => {
           const nowTerminat = statusSelect.value === 'Terminat';
           card.querySelector('.f-resolved-date').disabled = !nowTerminat;
-        });
-      }
-
-      const viewPdfBtn = card.querySelector('.f-view-pdf');
-      if (viewPdfBtn) {
-        viewPdfBtn.addEventListener('click', () => openReportPdf(viewPdfBtn.dataset.path));
-      }
-
-      // Shows the chosen file's name inside the dropzone box once
-      // picked, since the hidden native input can't display that
-      // itself anymore — the styled label replacing it has no way to
-      // reflect the selection on its own. Also darkens the text from
-      // its muted placeholder color to normal ink once a real file
-      // name is showing, rather than leaving it looking like an
-      // unfilled placeholder even after something's been chosen.
-      const pdfInputEl = card.querySelector('.f-report-pdf');
-      const pdfFilenameEl = card.querySelector('.report-pdf-filename');
-      if (pdfInputEl && pdfFilenameEl) {
-        pdfInputEl.addEventListener('change', () => {
-          const file = pdfInputEl.files[0];
-          pdfFilenameEl.textContent = file ? file.name : 'Alege fișier PDF…';
-          pdfFilenameEl.classList.toggle('chosen', !!file);
-        });
-      }
-
-      // Deletes the attached PDF — clears the DB reference AND removes
-      // the actual file from the private "ticket-reports" bucket, so
-      // it doesn't linger there unreferenced once nothing points to
-      // it anymore.
-      const removePdfBtn = card.querySelector('.f-remove-pdf');
-      if (removePdfBtn) {
-        removePdfBtn.addEventListener('click', async () => {
-          if (!confirm('Ștergeți definitiv acest fișier PDF?')) return;
-          removePdfBtn.disabled = true;
-          const path = t.report_pdf_path;
-          if (path) {
-            const { error: removeErr } = await supabaseClient.storage
-              .from('ticket-reports')
-              .remove([path]);
-            if (removeErr) console.warn('Could not remove storage file (continuing anyway):', removeErr);
-          }
-          const { error } = await supabaseClient
-            .from('tickets')
-            .update({ report_pdf_path: null })
-            .eq('id', t.id);
-          if (error) {
-            console.error(error);
-            removePdfBtn.disabled = false;
-            alert('Eroare la ștergerea fișierului. Încercați din nou.');
-            return;
-          }
-          loadTickets();
         });
       }
 
@@ -2831,19 +2730,6 @@
             return;
           }
 
-          const pdfFileInput = card.querySelector('.f-report-pdf');
-          const pdfFile = pdfFileInput ? pdfFileInput.files[0] : null;
-          if (pdfFile) {
-            if (pdfFile.type !== 'application/pdf') {
-              alert('Fișierul trebuie să fie de tip PDF.');
-              return;
-            }
-            if (pdfFile.size > 15 * 1024 * 1024) {
-              alert('Fișierul este prea mare (limită 15MB).');
-              return;
-            }
-          }
-
           // Only ask for confirmation when the status is actually
           // changing — a routine save (adding a note, adjusting the
           // resolution date) shouldn't be interrupted, but closing out
@@ -2858,25 +2744,6 @@
           }
 
           saveBtn.disabled = true;
-          saveBtn.textContent = 'Se salvează...';
-
-          // Uploads a newly selected PDF before the rest of the save —
-          // if this fails, nothing else about the ticket gets touched,
-          // so a failed upload never leaves the ticket half-saved.
-          let reportPdfPath = t.report_pdf_path || null;
-          if (pdfFile) {
-            try {
-              reportPdfPath = await uploadReportPdf(t, pdfFile);
-            } catch (uploadErr) {
-              console.error(uploadErr);
-              saveBtn.disabled = false;
-              saveBtn.innerHTML = 'Salvează<span class="save-status">✓ Salvat</span>';
-              const reason = uploadErr && uploadErr.message ? uploadErr.message : 'motiv necunoscut';
-              alert('Eroare la încărcarea fișierului PDF: ' + reason);
-              return;
-            }
-          }
-
           saveBtn.textContent = 'Se salvează...';
           const resolver = card.querySelector('.f-resolver').value.trim();
           // No .f-resnote element exists for a limited-role user (see
@@ -2900,7 +2767,6 @@
             email: emailVal || null,
             address: addressVal,
             description: descriptionVal || null,
-            report_pdf_path: reportPdfPath,
           };
           // Terminat → resolvedOnISO (computed above). Anything else
           // → explicitly cleared to null, not just left untouched —
