@@ -328,8 +328,17 @@
      login) — the priority cards describe a different kind of
      at-a-glance triage that doesn't apply to that dedicated context. */
   html.report-focused-view .priority-grid{display:none;}
-  .report-focused-chips{display:none;margin-bottom:16px;}
-  html.report-focused-view .report-focused-chips{display:flex;}
+  /* .chips.report-focused-chips (compound, not the bare class alone)
+     — the generic .chips{display:flex;...} rule further down the file
+     is EQUAL specificity to a bare ".report-focused-chips", and being
+     later in the file, was silently winning and forcing this visible
+     for every account regardless of the report-focused-view class —
+     the exact reason it was showing up for sesizari@ too. Compounding
+     both classes together here genuinely outweighs the bare .chips
+     rule regardless of file order, same fix pattern as elsewhere in
+     this file after being bitten by this more than once already. */
+  .chips.report-focused-chips{display:none;margin-bottom:16px;}
+  html.report-focused-view .chips.report-focused-chips{display:flex;}
   /* Desktop only — on mobile, .admin-tabs-row (the tabs this spacing
      is meant to separate from) is hidden entirely, replaced by the
      bottom tab bar, so this specific relationship doesn't apply
