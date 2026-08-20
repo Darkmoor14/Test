@@ -1861,6 +1861,12 @@
         document.querySelectorAll('[data-key="AwaitingReport"]').forEach(el => {
           el.style.display = 'none';
         });
+        // The mobile Overview status filter (Toate/Active/Soluționate)
+        // is scoped to vlasbogdan@ only — sesizari@ works from the
+        // full, unfiltered table on Overview instead.
+        document.querySelectorAll('.overview-mobile-status-filter').forEach(el => {
+          el.style.display = 'none';
+        });
       }
       runAutoArchiveSweep().finally(() => {
         loadTickets();
