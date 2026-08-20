@@ -338,7 +338,24 @@
      rule regardless of file order, same fix pattern as elsewhere in
      this file after being bitten by this more than once already. */
   .chips.report-focused-chips{display:none;margin-bottom:16px;}
-  html.report-focused-view .chips.report-focused-chips{display:flex;}
+  /* Desktop only — this is genuinely why the duplicate-row bug
+     happened: this rule had no width restriction at all, so on
+     mobile it showed alongside .overview-mobile-status-filter (the
+     existing mobile chip row) AND the year/month bar, stacking three
+     redundant filter rows on top of each other. Below 900px, all
+     three of those are replaced by a single "Filtre" button opening
+     a sheet instead — same pattern already used on Sesizări. */
+  @media(min-width:901px){
+    html.report-focused-view .chips.report-focused-chips{display:flex;}
+  }
+  @media(max-width:900px){
+    html.report-focused-view .overview-mobile-status-filter,
+    html.report-focused-view .overview-year-bar{display:none;}
+  }
+  .report-focused-filters-btn{display:none;}
+  @media(max-width:900px){
+    html.report-focused-view .report-focused-filters-btn{display:inline-flex;}
+  }
   /* Desktop only — on mobile, .admin-tabs-row (the tabs this spacing
      is meant to separate from) is hidden entirely, replaced by the
      bottom tab bar, so this specific relationship doesn't apply
@@ -935,6 +952,7 @@
       <div class="overview-mobile-status-filter">
         <div class="chips" id="overviewStatusChipsMobile"></div>
       </div>
+      <button class="btn toolbar-mobile-only report-focused-filters-btn" id="overviewFiltersMobileBtn" type="button">Filtre</button>
       <div class="overview-year-bar">
         <label for="yearFilterSelect">An:</label>
         <select id="yearFilterSelect"></select>
@@ -1150,6 +1168,37 @@
       <div class="project-list" id="projectList"></div>
     </div>
 </div>
+</div>
+
+<div class="mobile-sheet" id="overviewFiltersSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="overviewFiltersSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="overviewFiltersSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h3 id="overviewFiltersSheetTitle">Filtre prezentare generală</h3>
+        <p>Controlezi rapid anul, luna și starea listei fără să aglomerezi bara de sus pe telefon.</p>
+      </div>
+      <button type="button" class="sheet-close" data-close-sheet="overviewFiltersSheet" aria-label="Închide">×</button>
+    </div>
+    <div class="sheet-grid">
+      <div class="ctrl-field">
+        <label for="yearFilterSelectOverviewMobile">An</label>
+        <select id="yearFilterSelectOverviewMobile"></select>
+      </div>
+      <div class="ctrl-field">
+        <label for="monthFilterSelectOverviewMobile">Lună</label>
+        <select id="monthFilterSelectOverviewMobile"></select>
+      </div>
+    </div>
+    <div class="sheet-filter-status">
+      <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Stare listă</label>
+      <div class="chips" id="overviewStatusChipsSheet"></div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-primary" data-close-sheet="overviewFiltersSheet">Aplică</button>
+    </div>
+  </div>
 </div>
 
 <div class="mobile-sheet" id="ticketFiltersSheet" aria-hidden="true">
@@ -1612,6 +1661,7 @@
       document.getElementById('yearFilterSelect'),
       document.getElementById('yearFilterSelectTickets'),
       document.getElementById('yearFilterSelectTicketsMobile'),
+      document.getElementById('yearFilterSelectOverviewMobile'),
       document.getElementById('yearFilterSelectDesktop'),
       document.getElementById('yearFilterSelectTicketsDesktop'),
     ].filter(Boolean);
@@ -1638,7 +1688,7 @@
 
     selects.forEach(s => { s.value = ticketYearFilter; });
     updateYearWarning(
-      ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectTicketsMobile', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
+      ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectTicketsMobile', 'yearFilterSelectOverviewMobile', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
       ['yearWarningOverview', 'yearWarningTickets', 'yearWarningOverviewDesktop', 'yearWarningTicketsDesktop'],
       ticketYearFilter
     );
@@ -1646,9 +1696,9 @@
 
   function setTicketYearFilter(value){
     ticketYearFilter = value;
-    document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
+    document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
     updateYearWarning(
-      ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectTicketsMobile', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
+      ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectTicketsMobile', 'yearFilterSelectOverviewMobile', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
       ['yearWarningOverview', 'yearWarningTickets', 'yearWarningOverviewDesktop', 'yearWarningTicketsDesktop'],
       ticketYearFilter
     );
@@ -1662,7 +1712,7 @@
   // to run once, not every time tickets reload.
   const MONTH_FILTER_NAMES = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
   function populateMonthFilterSelects(){
-    const selects = document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop');
+    const selects = document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop');
     const optionsHtml = '<option value="all">Toate lunile</option>' +
       MONTH_FILTER_NAMES.map((name, i) => `<option value="${i + 1}">${name}</option>`).join('');
     selects.forEach(s => { s.innerHTML = optionsHtml; s.value = ticketMonthFilter; });
@@ -1670,7 +1720,7 @@
 
   function setTicketMonthFilter(value){
     ticketMonthFilter = value;
-    document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
+    document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
@@ -1999,18 +2049,23 @@
     });
   }
 
-  document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(select => {
+  document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(select => {
     select.addEventListener('change', () => setTicketYearFilter(select.value));
   });
 
   populateMonthFilterSelects();
-  document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(select => {
+  document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(select => {
     select.addEventListener('change', () => setTicketMonthFilter(select.value));
   });
 
   const ticketFiltersMobileBtn = document.getElementById('ticketFiltersMobileBtn');
   if (ticketFiltersMobileBtn) {
     ticketFiltersMobileBtn.addEventListener('click', () => setSheetOpen('ticketFiltersSheet', true));
+  }
+
+  const overviewFiltersMobileBtn = document.getElementById('overviewFiltersMobileBtn');
+  if (overviewFiltersMobileBtn) {
+    overviewFiltersMobileBtn.addEventListener('click', () => setSheetOpen('overviewFiltersSheet', true));
   }
 
   ['chipsWrap', 'ticketStatusChipsMobile'].forEach(wrapId => {
@@ -2050,7 +2105,7 @@
 
   function setOverviewStatusFilter(filterKey){
     overviewStatusFilter = filterKey;
-    document.querySelectorAll('#overviewStatusChipsMobile .chip, #overviewStatusChipsDesktop .chip').forEach(chip => {
+    document.querySelectorAll('#overviewStatusChipsMobile .chip, #overviewStatusChipsDesktop .chip, #overviewStatusChipsSheet .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
     renderOverviewTable();
@@ -2079,6 +2134,19 @@
       chip.dataset.key = c.key;
       chip.addEventListener('click', () => setOverviewStatusFilter(c.key));
       overviewStatusChipsDesktop.appendChild(chip);
+    });
+  }
+
+  const overviewStatusChipsSheet = document.getElementById('overviewStatusChipsSheet');
+  if (overviewStatusChipsSheet) {
+    reportFocusedChipDefs.forEach(c => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip' + (c.key === overviewStatusFilter ? ' active' : '');
+      chip.textContent = c.label;
+      chip.dataset.key = c.key;
+      chip.addEventListener('click', () => setOverviewStatusFilter(c.key));
+      overviewStatusChipsSheet.appendChild(chip);
     });
   }
 
