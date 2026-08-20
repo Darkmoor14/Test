@@ -841,6 +841,17 @@
     resize:none;overflow:hidden;line-height:1.3;
     display:block;min-height:38px;box-sizing:border-box;
   }
+  /* Read-only "Ce s-a făcut" shown to a 'limited'-role account —
+     matches the textarea's own resting size/padding so it doesn't
+     visually jump around next to its siblings, but styled clearly as
+     plain text (no input-style background/border) so it doesn't
+     look like something you could click into and type in. */
+  .resnote-readonly{
+    width:100%;padding:9px 11px;min-height:38px;box-sizing:border-box;
+    font-family:var(--body);font-size:13.5px;line-height:1.3;color:var(--ink-900);
+    display:flex;align-items:center;
+  }
+  .resnote-readonly.resnote-pending{color:var(--signal-orange);font-style:italic;}
   .ctrl-field input:focus, .ctrl-field select:focus, .ctrl-field textarea:focus{border-color:var(--copper-500);background:var(--paper-000);}
   .save-status{font-family:var(--mono);font-size:11.5px;color:var(--signal-green);margin-left:8px;opacity:0;transition:opacity .2s;}
   .save-status.show{opacity:1;}
@@ -1315,6 +1326,37 @@
 
   let swRegistration = null;
   let currentSessionEmail = null;
+
+  /* ============================================================
+     STAFF ROLES — 'full' (default, unrestricted) or 'limited'
+     (sesizari@insta-grup.ro specifically — can close a ticket but
+     can never write resolution_note, "Ce s-a făcut"). The real
+     enforcement lives in a Postgres trigger (see
+     staff-roles-setup.sql) that rejects the write outright at the
+     database level, regardless of what this page does — everything
+     here is just about giving a 'limited' account a clean UI that
+     doesn't even show a field they can't use, rather than letting
+     them fill it in and then discovering a save error.
+     ============================================================ */
+  let currentUserRole = 'full';
+  async function fetchCurrentUserRole(email){
+    try {
+      const { data, error } = await supabaseClient
+        .from('staff_roles')
+        .select('role')
+        .eq('email', email)
+        .maybeSingle();
+      if (error || !data) {
+        currentUserRole = 'full'; // unknown accounts default to full, matching staff-roles-setup.sql's own default
+        return;
+      }
+      currentUserRole = data.role;
+    } catch (err) {
+      console.error('Could not fetch staff role (defaulting to full):', err);
+      currentUserRole = 'full';
+    }
+  }
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')
       .then(reg => {
@@ -1518,8 +1560,24 @@
     let base;
     if (activeFilter === 'Archived') {
       base = allTickets.filter(t => t.archived);
+    } else if (activeFilter === 'AwaitingReport') {
+      // Not a real status of its own — a Terminat ticket with no
+      // resolution_note yet. Derived on the fly rather than stored,
+      // per the "flag on top of the existing status" approach.
+      base = allTickets.filter(t => !t.archived && t.status === 'Terminat' && !t.resolution_note);
     } else {
-      base = allTickets.filter(t => !t.archived && (activeFilter === 'Toate' || t.status === activeFilter));
+      // "Soluționate" specifically means truly complete — Terminat
+      // AND the report is filled in. A Terminat ticket missing its
+      // report lives only in "Așteaptă raport" above, not both —
+      // matches "the ticket should move to a new section" rather
+      // than just also appearing there.
+      base = allTickets.filter(t => !t.archived && (
+        activeFilter === 'Toate'
+          ? true
+          : activeFilter === 'Terminat'
+            ? (t.status === 'Terminat' && !!t.resolution_note)
+            : t.status === activeFilter
+      ));
     }
     base = base.filter(t => matchesSearch(t, query) && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
 
@@ -1857,9 +1915,14 @@
     logoutBtn.style.display = 'inline-flex';
     maybeAutoPromptForNotifications();
     userTag.textContent = email;
-    runAutoArchiveSweep().finally(() => {
-      loadTickets();
-      loadProjects();
+    // Role must be known before the first render, so tickets don't
+    // briefly flash the "Ce s-a făcut" field for a limited-access
+    // account before it gets hidden a moment later.
+    fetchCurrentUserRole(email).then(() => {
+      runAutoArchiveSweep().finally(() => {
+        loadTickets();
+        loadProjects();
+      });
     });
   }
 
@@ -1945,6 +2008,7 @@
   const chipDefs = [
     { key: 'Ongoing', label: 'Active' },
     { key: 'Terminat', label: 'Soluționate' },
+    { key: 'AwaitingReport', label: 'Așteaptă raport' },
     { key: 'Toate', label: 'Toate' },
     { key: 'Archived', label: 'Arhivate' },
   ];
@@ -2538,8 +2602,13 @@
             <input type="text" class="f-resolver" placeholder="Nume angajat" value="${safeResolvedBy}" ${isArchived ? 'disabled' : ''}>
           </div>
           <div class="ctrl-field resnote-field">
-            <label>Ce s-a făcut (opțional)</label>
-            <textarea class="f-resnote autogrow" rows="1" placeholder="ex: Bec înlocuit" ${isArchived ? 'disabled' : ''}>${escapeHtml(t.resolution_note || '')}</textarea>
+            <label>Ce s-a făcut${currentUserRole === 'limited' ? '' : ' (opțional)'}</label>
+            ${currentUserRole === 'limited'
+              ? (t.resolution_note
+                  ? `<div class="resnote-readonly">${escapeHtml(t.resolution_note)}</div>`
+                  : `<div class="resnote-readonly resnote-pending">Așteaptă raport de la vlasbogdan@insta-grup.ro</div>`)
+              : `<textarea class="f-resnote autogrow" rows="1" placeholder="ex: Bec înlocuit" ${isArchived ? 'disabled' : ''}>${escapeHtml(t.resolution_note || '')}</textarea>`
+            }
           </div>
           <div class="ctrl-field resolved-date-field">
             <label>Data soluționării</label>
@@ -2774,7 +2843,15 @@
 
           saveBtn.textContent = 'Se salvează...';
           const resolver = card.querySelector('.f-resolver').value.trim();
-          const resNote = card.querySelector('.f-resnote').value.trim();
+          // No .f-resnote element exists for a limited-role user (see
+          // the read-only rendering above) — keep whatever the
+          // ticket's current value already is rather than reading a
+          // field that isn't there. The database trigger would reject
+          // an actual change anyway, but this avoids even attempting
+          // one, and avoids a null-reference error on the missing
+          // element.
+          const resnoteEl = card.querySelector('.f-resnote');
+          const resNote = resnoteEl ? resnoteEl.value.trim() : (t.resolution_note || '');
           const emailVal = isEditing ? card.querySelector('.f-email').value.trim() : (t.email || '');
           const descriptionVal = isEditing ? card.querySelector('.f-description').value.trim() : (t.description || '');
 
@@ -2813,6 +2890,26 @@
             return;
           }
           if (editingTicketId === t.id) editingTicketId = null;
+
+          // Fires an email to vlasbogdan@ the moment a ticket actually
+          // ENTERS the "awaiting report" state — Terminat with no
+          // resolution_note — not on every subsequent save of a
+          // ticket already sitting in that state. Compares the state
+          // just written against what it was before this save to
+          // catch the real transition specifically.
+          const wasAwaitingReport = t.status === 'Terminat' && !t.resolution_note;
+          const isNowAwaitingReport = newStatus === 'Terminat' && !resNote;
+          if (isNowAwaitingReport && !wasAwaitingReport) {
+            sendNotification({
+              type: 'report_needed',
+              to: 'vlasbogdan@insta-grup.ro',
+              ticket_number: t.ticket_number,
+              address: addressVal,
+              closed_by: resolver || '(nespecificat)',
+              closed_on: fmtDate(payload.resolved_on),
+            });
+          }
+
           showToast(`Tichetul ${t.ticket_number || ''} a fost salvat.`);
           loadTickets();
         });
