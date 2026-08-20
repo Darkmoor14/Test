@@ -323,6 +323,11 @@
     display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
     margin-bottom:28px;
   }
+  /* vlasbogdan@'s Overview is a dedicated "what needs my report"
+     table (see isReportFocusedView() / the JS toggling this class on
+     login) — the priority cards describe a different kind of
+     at-a-glance triage that doesn't apply to that dedicated context. */
+  html.report-focused-view .priority-grid{display:none;}
   /* Desktop only — on mobile, .admin-tabs-row (the tabs this spacing
      is meant to separate from) is hidden entirely, replaced by the
      bottom tab bar, so this specific relationship doesn't apply
@@ -473,6 +478,9 @@
   }
   .ticket-card.jump-highlight{animation:ticket-jump-highlight 1.8s ease-out;}
   .overview-sidebar{display:flex;flex-direction:row;gap:16px;}
+  /* "Just leave the table" — the charts describe trends over time,
+     which isn't what this dedicated report-focused view is for. */
+  html.report-focused-view .overview-sidebar{display:none;}
   .overview-sidebar .chart-card{flex:1;}
   .chart-card{border:1px solid var(--line-strong);border-radius:4px;padding:16px;background:var(--paper-000);}
   .chart-card h4{font-size:12.5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.03em;color:var(--ink-600);margin-bottom:14px;font-weight:500;}
@@ -841,17 +849,6 @@
     resize:none;overflow:hidden;line-height:1.3;
     display:block;min-height:38px;box-sizing:border-box;
   }
-  /* Read-only "Ce s-a făcut" shown to a 'limited'-role account —
-     matches the textarea's own resting size/padding so it doesn't
-     visually jump around next to its siblings, but styled clearly as
-     plain text (no input-style background/border) so it doesn't
-     look like something you could click into and type in. */
-  .resnote-readonly{
-    width:100%;padding:9px 11px;min-height:38px;box-sizing:border-box;
-    font-family:var(--body);font-size:13.5px;line-height:1.3;color:var(--ink-900);
-    display:flex;align-items:center;
-  }
-  .resnote-readonly.resnote-pending{color:var(--signal-orange);font-style:italic;}
   .ctrl-field input:focus, .ctrl-field select:focus, .ctrl-field textarea:focus{border-color:var(--copper-500);background:var(--paper-000);}
   .save-status{font-family:var(--mono);font-size:11.5px;color:var(--signal-green);margin-left:8px;opacity:0;transition:opacity .2s;}
   .save-status.show{opacity:1;}
@@ -1355,6 +1352,16 @@
       console.error('Could not fetch staff role (defaulting to full):', err);
       currentUserRole = 'full';
     }
+  }
+
+  // Deliberately keyed to this one specific account, not the 'full'
+  // role generically — the "Prezentare generală" tab here becomes a
+  // dedicated "what needs my report" view, which is a workflow
+  // preference for this person specifically. Any OTHER 'full'-role
+  // account (there may be more than just these two staff logins)
+  // keeps the normal Overview tab with priority cards untouched.
+  function isReportFocusedView(){
+    return currentSessionEmail === 'vlasbogdan@insta-grup.ro';
   }
 
   if ('serviceWorker' in navigator) {
@@ -1919,6 +1926,20 @@
     // briefly flash the "Ce s-a făcut" field for a limited-access
     // account before it gets hidden a moment later.
     fetchCurrentUserRole(email).then(() => {
+      document.documentElement.classList.toggle('report-focused-view', isReportFocusedView());
+      // "Așteaptă raport" isn't relevant for a limited-role account —
+      // they can't fill the report, so a chip dedicated to "here's
+      // what's missing one" has nothing useful to offer them. The
+      // ticket itself still shows up under "Toate" either way; only
+      // this specific dedicated view is hidden. Chips render once at
+      // script-load time before login (and therefore before the role
+      // is known), so this hides the one in question after the fact
+      // rather than restructuring that earlier initialization.
+      if (currentUserRole === 'limited') {
+        document.querySelectorAll('[data-key="AwaitingReport"]').forEach(el => {
+          el.style.display = 'none';
+        });
+      }
       runAutoArchiveSweep().finally(() => {
         loadTickets();
         loadProjects();
@@ -2176,30 +2197,40 @@
     const cardsWrap = document.getElementById('overviewCardsMobile');
     let visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
 
-    if (overviewStatusFilter === 'active') {
-      visible = visible.filter(t => t.status !== 'Terminat');
-    } else if (overviewStatusFilter === 'done') {
-      visible = visible.filter(t => t.status === 'Terminat');
-    }
-
-    // All four priority cards describe a subset of ACTIVE tickets, so
-    // any card filter first narrows to non-Terminat, then applies
-    // whatever further narrowing that specific card represents.
-    if (overviewCardFilter) {
-      visible = visible.filter(t => t.status !== 'Terminat');
-      if (overviewCardFilter === 'aging') {
-        visible = visible.filter(t => {
-          if (!t.submitted_on) return false;
-          const daysOpen = (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24);
-          return daysOpen > AGING_THRESHOLD_DAYS;
-        });
-      } else if (overviewCardFilter === 'functional') {
-        visible = visible.filter(t => t.type !== 'Anunt accident');
-      } else if (overviewCardFilter === 'accident') {
-        visible = visible.filter(t => t.type === 'Anunt accident');
+    // vlasbogdan@'s Overview is a dedicated "what needs my report"
+    // view — the priority cards are hidden for this account (see the
+    // CSS), and the table itself only ever shows tickets actually
+    // awaiting a report, skipping the normal status/card filters
+    // entirely below since they don't apply to this dedicated
+    // context (nothing in the UI even offers them in this mode).
+    if (isReportFocusedView()) {
+      visible = visible.filter(t => t.status === 'Terminat' && !t.resolution_note);
+    } else {
+      if (overviewStatusFilter === 'active') {
+        visible = visible.filter(t => t.status !== 'Terminat');
+      } else if (overviewStatusFilter === 'done') {
+        visible = visible.filter(t => t.status === 'Terminat');
       }
-      // 'active' needs nothing further — the status filter above
-      // already covers exactly what that card represents.
+
+      // All four priority cards describe a subset of ACTIVE tickets, so
+      // any card filter first narrows to non-Terminat, then applies
+      // whatever further narrowing that specific card represents.
+      if (overviewCardFilter) {
+        visible = visible.filter(t => t.status !== 'Terminat');
+        if (overviewCardFilter === 'aging') {
+          visible = visible.filter(t => {
+            if (!t.submitted_on) return false;
+            const daysOpen = (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24);
+            return daysOpen > AGING_THRESHOLD_DAYS;
+          });
+        } else if (overviewCardFilter === 'functional') {
+          visible = visible.filter(t => t.type !== 'Anunt accident');
+        } else if (overviewCardFilter === 'accident') {
+          visible = visible.filter(t => t.type === 'Anunt accident');
+        }
+        // 'active' needs nothing further — the status filter above
+        // already covers exactly what that card represents.
+      }
     }
 
     if (visible.length === 0) {
@@ -2212,6 +2243,12 @@
 
     tbody.innerHTML = ordered.map(t => {
       const isDone = t.status === 'Terminat';
+      // Fading (done-row) specifically means "truly finished, nothing
+      // left to do" — a Terminat ticket still missing its report
+      // isn't that yet, so it stays visually normal here even though
+      // isDone itself (used below for the status pill, resolved date,
+      // etc.) correctly still reflects the real stored status.
+      const isFullyComplete = isDone && !!t.resolution_note;
       const isUrgent = t.type === 'Anunt accident';
       const daysOpen = t.submitted_on ? (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
       const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
@@ -2219,7 +2256,7 @@
         ? (new Date(t.resolved_on) - new Date(t.submitted_on)) / (1000 * 60 * 60)
         : null;
       return `
-        <tr class="${isDone ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''}">
+        <tr class="${isFullyComplete ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''}">
           <td class="overview-ticket-num"><a href="#" class="ticket-link" data-ticket-id="${t.id}">${escapeHtml(t.ticket_number || '—')}</a></td>
           <td class="${isAging ? 'aging-date' : ''}" title="${isAging ? 'Deschis de peste ' + AGING_THRESHOLD_DAYS + ' zile' : ''}">${isAging ? '⚠ ' : ''}${fmtDateOnly(t.submitted_on)}</td>
           <td>${isUrgent ? 'Accident' : 'Defect'}</td>
@@ -2241,11 +2278,12 @@
     if (cardsWrap) {
       cardsWrap.innerHTML = ordered.map(t => {
         const isDone = t.status === 'Terminat';
+        const isFullyComplete = isDone && !!t.resolution_note;
         const isUrgent = t.type === 'Anunt accident';
         const daysOpen = t.submitted_on ? (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
         const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
         return `
-          <button type="button" class="ov-card ${isDone ? 'done' : ''} ${isUrgent && !isDone ? 'urgent' : ''}" data-ticket-id="${t.id}">
+          <button type="button" class="ov-card ${isFullyComplete ? 'done' : ''} ${isUrgent && !isDone ? 'urgent' : ''}" data-ticket-id="${t.id}">
             <div class="ov-card-top">
               <span class="status-bubble ${isDone ? 'done' : 'active'}"></span>
               <span class="ov-card-type">${isUrgent ? 'Accident' : 'Defect'}</span>
@@ -2533,10 +2571,11 @@
     filtered.forEach(t => {
       const isUrgent = t.type === 'Anunt accident';
       const isDone = t.status === 'Terminat';
+      const isFullyComplete = isDone && !!t.resolution_note;
       const isArchived = !!t.archived;
       const card = document.createElement('div');
       card.id = 'ticket-card-' + t.id;
-      card.className = 'ticket-card' + (isUrgent && !isDone ? ' urgent' : '') + (isDone ? ' done' : '') + (isArchived ? ' archived' : '');
+      card.className = 'ticket-card' + (isUrgent && !isDone ? ' urgent' : '') + (isFullyComplete ? ' done' : '') + (isArchived ? ' archived' : '');
       const safeTicketNumber = escapeHtml(t.ticket_number || '—');
       const safeName = escapeHtml(t.name || '');
       const safePhone = escapeHtml(t.phone || '');
@@ -2601,15 +2640,12 @@
             <label>Soluționat de</label>
             <input type="text" class="f-resolver" placeholder="Nume angajat" value="${safeResolvedBy}" ${isArchived ? 'disabled' : ''}>
           </div>
+          ${currentUserRole === 'limited' ? '' : `
           <div class="ctrl-field resnote-field">
-            <label>Ce s-a făcut${currentUserRole === 'limited' ? '' : ' (opțional)'}</label>
-            ${currentUserRole === 'limited'
-              ? (t.resolution_note
-                  ? `<div class="resnote-readonly">${escapeHtml(t.resolution_note)}</div>`
-                  : `<div class="resnote-readonly resnote-pending">Așteaptă raport de la vlasbogdan@insta-grup.ro</div>`)
-              : `<textarea class="f-resnote autogrow" rows="1" placeholder="ex: Bec înlocuit" ${isArchived ? 'disabled' : ''}>${escapeHtml(t.resolution_note || '')}</textarea>`
-            }
+            <label>Ce s-a făcut (opțional)</label>
+            <textarea class="f-resnote autogrow" rows="1" placeholder="ex: Bec înlocuit" ${isArchived ? 'disabled' : ''}>${escapeHtml(t.resolution_note || '')}</textarea>
           </div>
+          `}
           <div class="ctrl-field resolved-date-field">
             <label>Data soluționării</label>
             <input type="date" class="f-resolved-date" value="${resolvedDateParts.date}" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>
