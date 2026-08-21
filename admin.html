@@ -2298,8 +2298,8 @@
       const isUrgent = t.type === 'Anunt accident';
       const daysOpen = t.submitted_on ? (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
       const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
-      const resolutionHours = (isDone && t.resolved_on && t.submitted_on)
-        ? (new Date(t.resolved_on) - new Date(t.submitted_on)) / (1000 * 60 * 60)
+      const resolutionDays = (isDone && t.resolved_on && t.submitted_on)
+        ? calendarDaysBetween(t.submitted_on, t.resolved_on)
         : null;
       return `
         <tr class="${isFullyComplete ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''}">
@@ -2311,7 +2311,7 @@
           <td class="overview-address-cell">${escapeHtml(t.address || '—')}</td>
           <td><span class="status-pill ${isDone ? 'status-pill-done' : 'status-pill-active'}">${isDone ? 'Soluționat' : 'În curs'}</span></td>
           <td>${isDone ? fmtDateOnly(t.resolved_on) : '—'}</td>
-          <td>${resolutionHours !== null ? formatDurationDays(resolutionHours) : '—'}</td>
+          <td>${resolutionDays !== null ? formatDurationDays(resolutionDays) : '—'}</td>
         </tr>
       `;
     }).join('');
@@ -2483,24 +2483,37 @@
   let ticketVolumeChartInstance = null;
   let resolutionTimeChartInstance = null;
 
-  function formatDuration(hours){
-    if (!isFinite(hours) || hours < 0) return '—';
-    if (hours < 1) return Math.round(hours * 60) + ' min';
-    if (hours < 24) return hours.toFixed(1) + ' ore';
-    const days = Math.floor(hours / 24);
-    const remHours = Math.round(hours % 24);
-    return days + ' zile' + (remHours ? ' ' + remHours + ' ore' : '');
+  // Counts CALENDAR DAYS, inclusive — reported and resolved on the
+  // same calendar date = 1 day, resolved the next calendar date = 2
+  // days, and so on. Deliberately NOT an hour-precise 24h duration:
+  // a ticket reported at 23:50 and resolved at 00:10 the next day is
+  // barely 20 minutes of actual work, but should still read as "2
+  // days" here since it spans two different calendar dates — this is
+  // meant to answer "how many calendar days did this take," not "how
+  // many hours elapsed."
+  function calendarDaysBetween(submittedISO, resolvedISO){
+    const submitted = new Date(submittedISO);
+    const resolved = new Date(resolvedISO);
+    const submittedDateOnly = new Date(submitted.getFullYear(), submitted.getMonth(), submitted.getDate());
+    const resolvedDateOnly = new Date(resolved.getFullYear(), resolved.getMonth(), resolved.getDate());
+    const diffDays = Math.round((resolvedDateOnly - submittedDateOnly) / (1000 * 60 * 60 * 24));
+    return diffDays + 1;
+  }
+
+  function formatDays(days){
+    if (!isFinite(days)) return '—';
+    const rounded = Math.round(days * 10) / 10;
+    return (Number.isInteger(rounded) ? rounded : rounded.toFixed(1)) + (rounded === 1 ? ' zi' : ' zile');
   }
 
   // Used specifically for the "Timp de soluționare" table column —
-  // whole days only, rounded UP: anything under 24h counts as 1 day,
-  // under 48h as 2 days, and so on. Deliberately separate from
-  // formatDuration() above, which stays hours-precise for the
-  // "average resolution time" chart stat, where fractional precision
-  // is actually useful for an average.
-  function formatDurationDays(hours){
-    if (!isFinite(hours) || hours < 0) return '—';
-    const days = Math.max(1, Math.ceil(hours / 24));
+  // a whole calendar-day count (see calendarDaysBetween above), never
+  // fractional, since a single ticket's own resolution time is always
+  // a whole number of calendar days by definition. Deliberately
+  // separate from formatDays() above, which allows fractional output
+  // for an average across several tickets.
+  function formatDurationDays(days){
+    if (!isFinite(days) || days < 1) return '—';
     return days === 1 ? '1 zi' : days + ' zile';
   }
 
@@ -2559,8 +2572,8 @@
     // Average resolution time — overall stat, plus a bar chart
     // breaking it down by ticket type (functional vs. accident/urgent).
     const resolved = visible.filter(t => t.status === 'Terminat' && t.resolved_on && t.submitted_on);
-    const hoursFor = (t) => (new Date(t.resolved_on) - new Date(t.submitted_on)) / (1000 * 60 * 60);
-    const avg = (arr) => arr.length ? arr.reduce((sum, t) => sum + hoursFor(t), 0) / arr.length : NaN;
+    const daysFor = (t) => calendarDaysBetween(t.submitted_on, t.resolved_on);
+    const avg = (arr) => arr.length ? arr.reduce((sum, t) => sum + daysFor(t), 0) / arr.length : NaN;
 
     const funcResolved = resolved.filter(t => t.type !== 'Anunt accident');
     const accResolved = resolved.filter(t => t.type === 'Anunt accident');
@@ -2568,7 +2581,7 @@
 
     const statEl = document.getElementById('avgResolutionStat');
     if (statEl) {
-      statEl.textContent = resolved.length ? formatDuration(overallAvg) + ' (medie)' : 'Fără date încă';
+      statEl.textContent = resolved.length ? formatDays(overallAvg) + ' (medie)' : 'Fără date încă';
     }
 
     const barCanvas = document.getElementById('resolutionTimeChart');
@@ -2591,7 +2604,7 @@
           responsive: true,
           plugins: { legend: { display: false } },
           scales: {
-            y: { beginAtZero: true, title: { display: true, text: 'ore', font: { size: 10 } }, ticks: { font: { size: 10 } } },
+            y: { beginAtZero: true, title: { display: true, text: 'zile', font: { size: 10 } }, ticks: { font: { size: 10 } } },
             x: { ticks: { font: { size: 11 } } },
           },
         },
@@ -2834,11 +2847,19 @@
             resolvedOnISO = combineDateTimeToISO(resolvedDateVal);
 
             // A resolution can't have happened before the issue was
-            // even reported — most likely a typo in the date/time
-            // fields, so this blocks the save rather than silently
-            // storing a nonsensical timestamp.
-            if (t.submitted_on && new Date(resolvedOnISO) < new Date(t.submitted_on)) {
-              alert(`Data soluționării (${fmtDate(resolvedOnISO)}) nu poate fi înainte de data sesizării (${fmtDate(t.submitted_on)}).`);
+            // even reported — most likely a typo in the date fields,
+            // so this blocks the save rather than silently storing a
+            // nonsensical timestamp. Compared as calendar dates only,
+            // ignoring the hour entirely — the UI only ever shows a
+            // date picker (no time input), but the underlying
+            // timestamps still carry an implicit current-time-of-day
+            // hour, which was incorrectly blocking same-day
+            // resolutions whenever the ticket happened to be
+            // submitted later in the day than the current time.
+            const submittedDateOnly = t.submitted_on ? new Date(t.submitted_on).toDateString() : null;
+            const resolvedDateOnly = new Date(resolvedOnISO).toDateString();
+            if (submittedDateOnly && new Date(resolvedDateOnly) < new Date(submittedDateOnly)) {
+              alert(`Data soluționării (${fmtDateOnly(resolvedOnISO)}) nu poate fi înainte de data sesizării (${fmtDateOnly(t.submitted_on)}).`);
               return;
             }
           }
