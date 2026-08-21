@@ -523,11 +523,11 @@
         body: payload,
       });
       if (error) {
-        console.error('send-email function failed:', error);
+        console.error('bright-processor (email) function failed:', error);
         if (!allowFailure) throw error;
       }
     } catch (err) {
-      console.error('send-email call failed:', err);
+      console.error('bright-processor (email) call failed:', err);
       if (!allowFailure) throw err;
     }
   }

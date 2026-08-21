@@ -1803,9 +1803,9 @@
       const { error } = await supabaseClient.functions.invoke('bright-processor', {
         body: payload,
       });
-      if (error) console.error('send-email function failed:', error);
+      if (error) console.error('bright-processor (email) function failed:', error);
     } catch (err) {
-      console.error('send-email call failed:', err);
+      console.error('bright-processor (email) call failed:', err);
     }
   }
 
