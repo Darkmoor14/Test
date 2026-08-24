@@ -3048,6 +3048,30 @@
     });
   }
 
+  // Same whitelist matching used server-side for the public site's
+  // public_name column (see public-tickets-name-whitelist.sql) —
+  // kept as a separate JS implementation here since this Excel
+  // export runs entirely client-side against tickets already loaded
+  // in memory, not a fresh database query. Diacritic mapping is
+  // deliberately identical to the SQL version (handles both "ș/ț"
+  // with comma-below and "ş/ţ" with cedilla), so a name matches or
+  // doesn't the same way in both places.
+  function normalizeRomanianText(value){
+    return String(value || '')
+      .toLowerCase()
+      .replace(/[ăâ]/g, 'a')
+      .replace(/î/g, 'i')
+      .replace(/[șş]/g, 's')
+      .replace(/[țţ]/g, 't');
+  }
+  function isWhitelistedReporterName(name){
+    const normalized = normalizeRomanianText(name);
+    if (normalized.includes('politia') && normalized.includes('locala')) return true;
+    if (normalized.includes('birou') && normalized.includes('energetic')) return true;
+    if (normalized.includes('autosesizare')) return true;
+    return false;
+  }
+
   function reportTicketType(ticket){
     return ticket.type === 'Anunt accident' ? 'Accident' : 'Defect';
   }
@@ -3302,6 +3326,29 @@
         month.avgHours,
       ]);
     });
+
+    // Sesizări de la instituții — tickets whose reporter name matches
+    // the whitelist (Poliția locală / Biroul energetic / Autosesizare).
+    // Only these three specifically are ever named here; every other
+    // ticket's real reporter name stays out of this export entirely,
+    // matching the same restriction already enforced for the public
+    // website (see public-tickets-name-whitelist.sql).
+    const institutionalTickets = exportTickets.filter(ticket => isWhitelistedReporterName(ticket.name));
+    coverRows.push([]);
+    coverRows.push(['Sesizări de la instituții']);
+    coverRows.push(['Nr. sesizare', 'Raportat de', 'Adresă', 'Data']);
+    if (institutionalTickets.length === 0) {
+      coverRows.push(['Nicio sesizare de la instituții în această perioadă.']);
+    } else {
+      institutionalTickets.forEach(ticket => {
+        coverRows.push([
+          ticket.ticket_number || '',
+          ticket.name || '',
+          ticket.address || '',
+          reportDateLabel(ticket.submitted_on),
+        ]);
+      });
+    }
 
     const coverSheet = XLSX.utils.aoa_to_sheet(coverRows);
     coverSheet['!freeze'] = { xSplit: 0, ySplit: 15 };

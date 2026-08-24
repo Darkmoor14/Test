@@ -702,6 +702,7 @@
         <div class="ticket-body">
           <div><span class="k">${t('public_k_date')}</span>${fmtDate(tk.submitted_on)}</div>
           <div><span class="k">${t('public_k_address')}</span>${escapeHtml(tk.address || '—')}</div>
+          ${tk.public_name ? `<div><span class="k">${t('public_k_name')}</span>${escapeHtml(tk.public_name)}</div>` : ''}
           ${tk.description ? `<div class="full"><span class="k">${t('public_k_desc')}</span>${escapeHtml(tk.description)}</div>` : ''}
           ${isDone ? `<div class="full"><span class="k">${t('public_k_resolved')}</span>${fmtDate(tk.resolved_on)}</div>` : ''}
         </div>
