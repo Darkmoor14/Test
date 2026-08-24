@@ -320,7 +320,7 @@
      for something else would break that convention rather than
      reinforce it. */
   .priority-grid{
-    display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
+    display:grid;grid-template-columns:repeat(5,1fr);gap:14px;
     margin-bottom:28px;
   }
   /* vlasbogdan@'s Overview is a dedicated "what needs my report"
@@ -374,6 +374,7 @@
   .priority-card:hover{border-color:var(--copper-500);transform:translateY(-1px);}
   .priority-card.danger{border-color:rgba(181,80,47,0.3);background:var(--signal-red-bg);}
   .priority-card.warn{border-color:rgba(181,121,47,0.3);background:var(--signal-orange-bg);}
+  .priority-card.done{border-color:rgba(30,158,90,0.3);background:var(--signal-green-bright-bg);}
   .priority-card .k{
     display:flex;align-items:center;gap:6px;
     font-family:var(--mono);font-size:11px;letter-spacing:0.04em;text-transform:uppercase;
@@ -381,9 +382,11 @@
   }
   .priority-card.danger .k{color:var(--signal-red);}
   .priority-card.warn .k{color:var(--signal-orange);}
+  .priority-card.done .k{color:var(--signal-green-bright);}
   .priority-card .num{font-family:var(--display);font-weight:700;font-size:32px;line-height:1;color:var(--ink-900);}
   .priority-card.danger .num{color:var(--signal-red);}
   .priority-card.warn .num{color:var(--signal-orange);}
+  .priority-card.done .num{color:var(--signal-green-bright);}
   .priority-card .sub{font-size:12px;color:var(--ink-600);margin-top:6px;}
   @media(max-width:900px){
     .priority-grid{display:none;}
@@ -946,6 +949,11 @@
           <span class="k">⛔ Accidente</span>
           <div class="num" id="prioAccidentCount">0</div>
           <div class="sub">Urgențe active — pericol iminent</div>
+        </button>
+        <button type="button" class="priority-card done" id="prioSolvedCard">
+          <span class="k">✓ Soluționate</span>
+          <div class="num" id="prioSolvedCount">0</div>
+          <div class="sub">Sesizări soluționate, cu sau fără raport</div>
         </button>
       </div>
 
@@ -2186,6 +2194,11 @@
     }).length;
     const accidentCount = active.filter(t => t.type === 'Anunt accident').length;
     const funcCount = active.length - accidentCount;
+    // Every resolved ticket, report written or not — deliberately
+    // NOT the "isFullyComplete" (has-report) distinction used
+    // elsewhere for fading/vlasbogdan@'s dedicated view; this card
+    // means "closed," full stop.
+    const solvedCount = allTickets.filter(t => !t.archived && t.status === 'Terminat').length;
 
     const setText = (id, value) => {
       const el = document.getElementById(id);
@@ -2195,6 +2208,7 @@
     setText('prioAgingCount', agingCount);
     setText('prioFuncCount', funcCount);
     setText('prioAccidentCount', accidentCount);
+    setText('prioSolvedCount', solvedCount);
   }
 
   // If the admin panel was just opened fresh (e.g. tapping a push
@@ -2254,10 +2268,16 @@
         visible = visible.filter(t => t.status === 'Terminat');
       }
 
-      // All four priority cards describe a subset of ACTIVE tickets, so
-      // any card filter first narrows to non-Terminat, then applies
-      // whatever further narrowing that specific card represents.
-      if (overviewCardFilter) {
+      // Four of the five priority cards describe a subset of ACTIVE
+      // tickets, so any of those first narrows to non-Terminat, then
+      // applies whatever further narrowing that specific card
+      // represents. "solved" is the one exception — the opposite
+      // scope entirely (every Terminat ticket, report written or
+      // not), so it's branched separately rather than forced into
+      // the active-first narrowing the other four share.
+      if (overviewCardFilter === 'solved') {
+        visible = visible.filter(t => t.status === 'Terminat');
+      } else if (overviewCardFilter) {
         visible = visible.filter(t => t.status !== 'Terminat');
         if (overviewCardFilter === 'aging') {
           visible = visible.filter(t => {
@@ -3480,6 +3500,7 @@
       aging: 'Filtru activ: doar sesizări deschise de peste ' + AGING_THRESHOLD_DAYS + ' zile',
       functional: 'Filtru activ: doar sesizări cu defect',
       accident: 'Filtru activ: doar accidente',
+      solved: 'Filtru activ: doar sesizări soluționate',
     };
     label.textContent = overviewCardFilter ? labels[overviewCardFilter] : '';
     wrap.classList.toggle('show', !!overviewCardFilter);
@@ -3504,6 +3525,9 @@
 
   const prioAccidentCard = document.getElementById('prioAccidentCard');
   if (prioAccidentCard) prioAccidentCard.addEventListener('click', () => applyOverviewCardFilter('accident'));
+
+  const prioSolvedCard = document.getElementById('prioSolvedCard');
+  if (prioSolvedCard) prioSolvedCard.addEventListener('click', () => applyOverviewCardFilter('solved'));
 
 
   /* ============================================================
