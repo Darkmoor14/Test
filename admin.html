@@ -1049,12 +1049,18 @@
       </div>
       <div class="project-form" id="ticketAddForm" style="display:none;">
         <div class="pf-grid">
-          <div class="ctrl-field">
-            <label>Tip sesizare</label>
-            <select id="tf-type">
-              <option value="Sesizare functionala">Defect</option>
-              <option value="Anunt accident">Accident</option>
-            </select>
+          <div class="ctrl-field-stack">
+            <div class="ctrl-field">
+              <label>Tip sesizare</label>
+              <select id="tf-type">
+                <option value="Sesizare functionala">Defect</option>
+                <option value="Anunt accident">Accident</option>
+              </select>
+            </div>
+            <div class="ctrl-field">
+              <label>Nume reclamant</label>
+              <input type="text" id="tf-name" placeholder="ex: Ion Popescu">
+            </div>
           </div>
           <div class="ctrl-field-stack">
             <div class="ctrl-field resolved-date-field">
@@ -1065,10 +1071,6 @@
               <label>Data soluționării (opțional)</label>
               <input type="date" id="tf-resolved-date">
             </div>
-          </div>
-          <div class="ctrl-field">
-            <label>Nume reclamant</label>
-            <input type="text" id="tf-name" placeholder="ex: Ion Popescu">
           </div>
           <div class="ctrl-field">
             <label>Telefon</label>
