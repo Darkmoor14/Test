@@ -1054,6 +1054,10 @@
             <label>Data sesizării</label>
             <input type="date" id="tf-date">
           </div>
+          <div class="ctrl-field resolved-date-field">
+            <label>Data soluționării (opțional)</label>
+            <input type="date" id="tf-resolved-date">
+          </div>
           <div class="ctrl-field">
             <label>Nume reclamant</label>
             <input type="text" id="tf-name" placeholder="ex: Ion Popescu">
@@ -2538,19 +2542,24 @@
   }
 
   function renderOverviewCharts(){
-    const visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
+    // Charts intentionally include archived tickets too — they're
+    // meant to reflect the full historical picture, not just what's
+    // currently showing in the table (which defaults to hiding
+    // archived tickets for day-to-day work). A ticket being archived
+    // doesn't mean it stopped happening.
+    const visible = allTickets.filter(t => matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
 
     const MONTH_NAMES = ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Noi','Dec'];
     // "Sesizări pe an" deliberately ignores the year filter above and
-    // uses every non-archived ticket regardless of year — it's meant
-    // to show the full history across however many years of data
-    // exist, not just whichever single year happens to be selected
-    // in the dropdown. Months with zero tickets are skipped entirely
-    // rather than shown as empty bars, so e.g. 2026 (if that's when
-    // this system started being used) correctly starts at whichever
-    // month actually has its first ticket, instead of padding out
-    // several meaningless zero-bars before that.
-    const volumeSource = allTickets.filter(t => !t.archived);
+    // uses every ticket (including archived) regardless of year —
+    // it's meant to show the full history across however many years
+    // of data exist, not just whichever single year happens to be
+    // selected in the dropdown. Months with zero tickets are skipped
+    // entirely rather than shown as empty bars, so e.g. 2026 (if
+    // that's when this system started being used) correctly starts
+    // at whichever month actually has its first ticket, instead of
+    // padding out several meaningless zero-bars before that.
+    const volumeSource = allTickets;
     const monthCounts = {}; // 'YYYY-MM' -> count
     volumeSource.forEach(t => {
       if (!t.submitted_on) return;
@@ -3921,6 +3930,7 @@
   function openTicketAddForm(){
     document.getElementById('tf-type').value = 'Sesizare functionala';
     document.getElementById('tf-date').value = '';
+    document.getElementById('tf-resolved-date').value = '';
     document.getElementById('tf-name').value = '';
     document.getElementById('tf-phone').value = '';
     document.getElementById('tf-email').value = '';
@@ -3938,6 +3948,7 @@
   document.getElementById('tfSaveBtn').addEventListener('click', async () => {
     const type = document.getElementById('tf-type').value;
     const dateVal = document.getElementById('tf-date').value;
+    const resolvedDateVal = document.getElementById('tf-resolved-date').value;
     const name = document.getElementById('tf-name').value.trim();
     const phone = document.getElementById('tf-phone').value.trim();
     const email = document.getElementById('tf-email').value.trim();
@@ -3976,6 +3987,15 @@
     // else. Runs after the save already succeeded (matching the
     // public form's own ordering), so a failed/unconfigured
     // notification never affects the ticket itself.
+    //
+    // Email always sends regardless of whether a resolution date was
+    // given. Push notification is deliberately skipped when a
+    // resolution date IS given — that field being filled in means
+    // this ticket is a retroactive/historical record of work already
+    // done (e.g. logging a phone call from weeks ago), not something
+    // that just happened, so an "active ticket needs attention" push
+    // alert would be misleading. Per explicit request, this
+    // suppression is important — do not remove without re-confirming.
     const notifyPayload = {
       type: 'ticket',
       ticket_number: ticketNumber,
@@ -3987,21 +4007,34 @@
       description: description || '-',
     };
     sendNotification(notifyPayload);
-    sendPushNotification(notifyPayload);
+    if (!resolvedDateVal) {
+      sendPushNotification(notifyPayload);
+    }
 
-    // Only bother with the extra UPDATE call if the admin actually
-    // picked a date — left blank, create_ticket's own default (now)
-    // is already accurate, no follow-up needed.
-    if (dateVal) {
-      const customSubmittedOn = combineDateTimeToISO(dateVal);
+    // Only bother with a follow-up UPDATE if the admin actually picked
+    // a submission date and/or a resolution date — create_ticket's own
+    // defaults (submitted_on = now, status = Ongoing) are already
+    // correct otherwise, no follow-up needed. A resolution date being
+    // set also marks the ticket Terminat — entering one implies the
+    // work is already done, so leaving the ticket "active" alongside
+    // an already-filled resolution date would be inconsistent
+    // everywhere else this data shows up (Overview, resolution-time
+    // stats, etc.).
+    if (dateVal || resolvedDateVal) {
+      const updatePayload = {};
+      if (dateVal) updatePayload.submitted_on = combineDateTimeToISO(dateVal);
+      if (resolvedDateVal) {
+        updatePayload.resolved_on = combineDateTimeToISO(resolvedDateVal);
+        updatePayload.status = 'Terminat';
+      }
       const { error: dateError } = await supabaseClient
         .from('tickets')
-        .update({ submitted_on: customSubmittedOn })
+        .update(updatePayload)
         .eq('ticket_number', ticketNumber);
       if (dateError) {
         console.error(dateError);
         // The ticket itself was already created successfully at this
-        // point — only the custom date failed to apply — so this
+        // point — only the custom date(s) failed to apply — so this
         // warns rather than treating it as a full failure.
         alert(`Sesizarea ${ticketNumber} a fost creată, dar data personalizată nu a putut fi salvată. Editați data direct pe tichet dacă e nevoie.`);
       }
