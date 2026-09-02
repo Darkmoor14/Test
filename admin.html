@@ -569,6 +569,12 @@
     padding:22px 24px;margin-top:16px;
   }
   .pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;}
+  /* Stacks two ctrl-field children vertically inside a single pf-grid
+     cell — used to keep "Data soluționării" directly under "Data
+     sesizării" rather than letting it flow into the next grid cell
+     over (which is what happens by default in a 2-column grid, since
+     items just fill left-to-right, top-to-bottom in HTML order). */
+  .ctrl-field-stack{display:flex;flex-direction:column;gap:16px;}
   .pf-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
 
   .project-list{padding:20px 0 60px;display:flex;flex-direction:column;gap:12px;}
@@ -1050,13 +1056,15 @@
               <option value="Anunt accident">Accident</option>
             </select>
           </div>
-          <div class="ctrl-field resolved-date-field">
-            <label>Data sesizării</label>
-            <input type="date" id="tf-date">
-          </div>
-          <div class="ctrl-field resolved-date-field">
-            <label>Data soluționării (opțional)</label>
-            <input type="date" id="tf-resolved-date">
+          <div class="ctrl-field-stack">
+            <div class="ctrl-field resolved-date-field">
+              <label>Data sesizării</label>
+              <input type="date" id="tf-date">
+            </div>
+            <div class="ctrl-field resolved-date-field">
+              <label>Data soluționării (opțional)</label>
+              <input type="date" id="tf-resolved-date">
+            </div>
           </div>
           <div class="ctrl-field">
             <label>Nume reclamant</label>
@@ -2564,7 +2572,34 @@
     volumeSource.forEach(t => {
       if (!t.submitted_on) return;
       const d = new Date(t.submitted_on);
-      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      if (isNaN(d.getTime())) {
+        console.warn('Skipping ticket with unparseable submitted_on in chart:', t.ticket_number, t.submitted_on);
+        return;
+      }
+      let year = d.getFullYear();
+      // A genuinely unparseable date (caught above) turned out NOT to
+      // be the actual cause of the "August appears twice" bug — it
+      // persisted after that fix. The real cause: some submitted_on
+      // value is apparently being parsed with a two-digit year,
+      // giving year=26 (literally the year 26 AD, not 2026) instead
+      // of year=2026 — a perfectly VALID Date to JavaScript, so the
+      // isNaN check above never catches it. Concatenating that into
+      // the key below produces "26-08" instead of "2026-08", and
+      // "26-08" sorts AFTER "2026-08"/"2026-09" as plain text (since
+      // comparing character by character, '6' > '0'), which is
+      // exactly why the phantom bar always lands at the far right —
+      // and its label loses the year entirely, because slicing the
+      // last two characters off a string that's already only two
+      // characters long ("26") returns nothing, matching the "Aug"
+      // with no year suffix seen in the screenshot precisely.
+      // Correcting rather than skipping — this is real, countable
+      // ticket data, just parsed with the wrong century, and every
+      // ticket here should genuinely be from the 2000s.
+      if (year < 100) {
+        console.warn('Correcting suspicious 2-digit year parsed from submitted_on in chart:', t.ticket_number, t.submitted_on, '-> treating year', year, 'as', year + 2000);
+        year += 2000;
+      }
+      const key = year + '-' + String(d.getMonth() + 1).padStart(2, '0');
       monthCounts[key] = (monthCounts[key] || 0) + 1;
     });
     const sortedKeys = Object.keys(monthCounts).sort();
