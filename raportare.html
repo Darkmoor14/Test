@@ -307,17 +307,58 @@
 </header>
 
 <section class="report" id="raportare">
-  <svg class="section-trace" viewBox="0 0 1180 620" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-    <g stroke="#D3D4CE" stroke-width="1.4" fill="none">
-      <path d="M 1200 -20 V 100 H 940" />
-      <path d="M -20 640 V 520 H 260" />
+  <svg class="section-trace" viewBox="0 0 1180 640" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <!-- City skyline silhouette, right background -->
+    <g stroke="#D3D4CE" stroke-width="1.4" fill="none" opacity="0.85">
+      <path d="M 700 500 V 380 H 730 V 340 H 760 V 500" />
+      <path d="M 780 500 V 300 L 800 270 L 820 300 V 500" />
+      <path d="M 840 500 V 420 H 880 V 500" />
+      <!-- cathedral spire, recognizable Targu-Mures silhouette -->
+      <path d="M 900 500 V 260 L 915 230 L 930 260 V 500" />
+      <path d="M 915 230 V 200" />
+      <path d="M 945 500 V 360 H 990 V 500" />
+      <path d="M 1010 500 V 400 H 1030 V 370 H 1050 V 500" />
     </g>
-    <g stroke="#D11F24" stroke-width="1.6" fill="none" class="flow">
-      <path d="M 1200 -20 V 100 H 940" />
+    <!-- Power pylon, far right -->
+    <g stroke="#D3D4CE" stroke-width="1.4" fill="none" opacity="0.9">
+      <path d="M 1080 500 L 1100 260 L 1120 500" />
+      <path d="M 1085 460 H 1115" />
+      <path d="M 1088 400 H 1112" />
+      <path d="M 1091 340 H 1109" />
+      <path d="M 1060 290 H 1140" />
+      <path d="M 1100 260 V 240" />
+    </g>
+    <!-- Underground/utility transformer box -->
+    <g stroke="#D3D4CE" stroke-width="1.4" fill="none">
+      <rect x="560" y="440" width="90" height="70" rx="2" />
+      <line x1="560" y1="465" x2="650" y2="465" />
+      <line x1="575" y1="440" x2="575" y2="465" />
+      <line x1="595" y1="440" x2="595" y2="465" />
+      <line x1="615" y1="440" x2="615" y2="465" />
+      <line x1="635" y1="440" x2="635" y2="465" />
+    </g>
+    <!-- Streetlight pole, foreground left -->
+    <g stroke="#2B333B" stroke-width="2" fill="none">
+      <path d="M 260 500 V 220" />
+      <path d="M 260 220 C 260 200 270 190 300 188" />
+      <ellipse cx="300" cy="188" rx="26" ry="10" fill="#2B333B" stroke="none" />
+      <path d="M 274 188 Q 300 205 326 188" fill="none" />
+    </g>
+    <circle cx="300" cy="188" r="34" fill="#D11F24" opacity="0.08" />
+    <path d="M -20 500 H 1200" stroke="#D3D4CE" stroke-width="1.4" fill="none" />
+    <!-- Red circuit connector — routes through every element above -->
+    <g stroke="#D11F24" stroke-width="1.8" fill="none" class="flow">
+      <path d="M -20 500 H 260" />
+      <path d="M 300 188 V 500" />
+      <path d="M 260 500 H 605 V 440" />
+      <path d="M 605 500 H 1100 V 500 L 1100 260" />
+      <path d="M 780 500 V 470 H 915 V 500" />
     </g>
     <g fill="#D11F24">
-      <circle cx="940" cy="100" r="3"/>
-      <circle cx="260" cy="520" r="3"/>
+      <circle cx="300" cy="500" r="4" />
+      <circle cx="605" cy="440" r="4" />
+      <circle cx="1100" cy="260" r="4" />
+      <circle cx="915" cy="470" r="4" />
     </g>
   </svg>
   <div class="wrap">

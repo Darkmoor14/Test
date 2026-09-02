@@ -62,6 +62,8 @@ ro: {
   stat_2_label: "proiecte finalizate în județul Mureș",
   stat_3_label: "atestări și certificări ISO / ANRE / ANRSC",
   stat_4_label: "clienți parteneri pe termen lung",
+  photoband_eyebrow: "PROIECTARE · EXECUȚIE · MENTENANȚĂ",
+  photoband_h2: "Rețele care alimentează viitorul.",
 
   // About
   about_eyebrow: "Despre noi",
@@ -294,6 +296,8 @@ en: {
   stat_2_label: "completed projects in Mureș County",
   stat_3_label: "ISO / ANRE / ANRSC attestations and certifications",
   stat_4_label: "long-term partner clients",
+  photoband_eyebrow: "DESIGN · EXECUTION · MAINTENANCE",
+  photoband_h2: "Networks that power the future.",
 
   about_eyebrow: "About us",
   about_h2: "25 years of projects delivered",
@@ -516,6 +520,8 @@ hu: {
   stat_2_label: "befejezett projekt Maros megyében",
   stat_3_label: "ISO / ANRE / ANRSC tanúsítvány",
   stat_4_label: "hosszú távú partner ügyfél",
+  photoband_eyebrow: "TERVEZÉS · KIVITELEZÉS · KARBANTARTÁS",
+  photoband_h2: "Hálózatok, amelyek a jövőt táplálják.",
 
   about_eyebrow: "Rólunk",
   about_h2: "25 év sikeresen lezárt projekt",

@@ -267,6 +267,36 @@
     .stat{border-bottom:1px solid var(--line);}
   }
 
+  /* ===== PHOTO BAND ===== */
+  .photo-band{background:var(--panel-dark);padding:56px 0;}
+  .photo-band-inner{display:flex;flex-direction:column;gap:32px;}
+  .photo-band-eyebrow{
+    font-family:var(--mono);font-size:12px;letter-spacing:0.14em;
+    color:var(--copper-300);display:block;margin-bottom:10px;
+  }
+  .photo-band-label h2{
+    font-family:var(--display);color:var(--paper-000);
+    font-size:clamp(24px,2.6vw,32px);font-weight:600;max-width:520px;
+  }
+  .photo-strip{display:flex;gap:2px;height:220px;}
+  .photo-slot{
+    flex:1;position:relative;
+    background:
+      repeating-linear-gradient(135deg, var(--panel-dark-2) 0 14px, #1E2A36 14px 28px);
+    clip-path:polygon(0 0, 100% 0, 94% 100%, 0% 100%);
+  }
+  .photo-slot:first-child{clip-path:polygon(6% 0, 100% 0, 100% 100%, 0% 100%);}
+  .photo-slot:last-child{clip-path:polygon(6% 0, 100% 0, 94% 100%, 0% 100%);}
+  .photo-slot span{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    font-family:var(--mono);font-size:11px;color:var(--ink-400);
+    text-align:center;width:80%;line-height:1.4;pointer-events:none;
+  }
+  @media(max-width:760px){
+    .photo-strip{flex-direction:column;height:auto;}
+    .photo-slot{height:120px;clip-path:none !important;}
+  }
+
   /* ===== ABOUT ===== */
   .about{background:var(--paper-000);position:relative;overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
   .about-grid{display:grid;grid-template-columns:0.95fr 1.05fr;gap:64px;align-items:stretch;}
@@ -618,24 +648,58 @@
 
 <!-- ===== HERO ===== -->
 <section class="hero">
-  <svg class="hero-trace" viewBox="0 0 1180 640" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-    <g stroke="#D3D4CE" stroke-width="1.4" fill="none" opacity="0.9">
-      <path d="M -20 120 H 340 V 40 H 900" />
-      <path d="M -20 260 H 220 V 340 H 640 V 220 H 1200" />
-      <path d="M -20 460 H 480 V 520 H 1200" />
-      <path d="M 760 40 V 200 H 1200" />
-      <path d="M 300 40 V -20" />
+  <svg class="hero-trace" viewBox="0 0 1180 640" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <!-- City skyline silhouette, right background -->
+    <g stroke="#D3D4CE" stroke-width="1.4" fill="none" opacity="0.85">
+      <path d="M 700 500 V 380 H 730 V 340 H 760 V 500" />
+      <path d="M 780 500 V 300 L 800 270 L 820 300 V 500" />
+      <path d="M 840 500 V 420 H 880 V 500" />
+      <!-- cathedral spire, recognizable Targu-Mures silhouette -->
+      <path d="M 900 500 V 260 L 915 230 L 930 260 V 500" />
+      <path d="M 915 230 V 200" />
+      <path d="M 945 500 V 360 H 990 V 500" />
+      <path d="M 1010 500 V 400 H 1030 V 370 H 1050 V 500" />
     </g>
-    <g stroke="#D11F24" stroke-width="1.6" fill="none" class="flow">
-      <path d="M -20 120 H 340 V 40 H 900" />
-      <path d="M -20 260 H 220 V 340 H 640 V 220 H 1200" />
-      <path d="M -20 460 H 480 V 520 H 1200" />
+    <!-- Power pylon, far right -->
+    <g stroke="#D3D4CE" stroke-width="1.4" fill="none" opacity="0.9">
+      <path d="M 1080 500 L 1100 260 L 1120 500" />
+      <path d="M 1085 460 H 1115" />
+      <path d="M 1088 400 H 1112" />
+      <path d="M 1091 340 H 1109" />
+      <path d="M 1060 290 H 1140" />
+      <path d="M 1100 260 V 240" />
+    </g>
+    <!-- Underground/utility transformer box -->
+    <g stroke="#D3D4CE" stroke-width="1.4" fill="none">
+      <rect x="560" y="440" width="90" height="70" rx="2" />
+      <line x1="560" y1="465" x2="650" y2="465" />
+      <line x1="575" y1="440" x2="575" y2="465" />
+      <line x1="595" y1="440" x2="595" y2="465" />
+      <line x1="615" y1="440" x2="615" y2="465" />
+      <line x1="635" y1="440" x2="635" y2="465" />
+    </g>
+    <!-- Streetlight pole, foreground left -->
+    <g stroke="#2B333B" stroke-width="2" fill="none">
+      <path d="M 260 500 V 220" />
+      <path d="M 260 220 C 260 200 270 190 300 188" />
+      <ellipse cx="300" cy="188" rx="26" ry="10" fill="#2B333B" stroke="none" />
+      <path d="M 274 188 Q 300 205 326 188" fill="none" />
+    </g>
+    <circle cx="300" cy="188" r="34" fill="#D11F24" opacity="0.08" />
+    <path d="M -20 500 H 1200" stroke="#D3D4CE" stroke-width="1.4" fill="none" />
+    <!-- Red circuit connector — routes through every element above -->
+    <g stroke="#D11F24" stroke-width="1.8" fill="none" class="flow">
+      <path d="M -20 500 H 260" />
+      <path d="M 300 188 V 500" />
+      <path d="M 260 500 H 605 V 440" />
+      <path d="M 605 500 H 1100 V 500 L 1100 260" />
+      <path d="M 780 500 V 470 H 915 V 500" />
     </g>
     <g fill="#D11F24">
-      <circle cx="340" cy="120" r="3.5"/>
-      <circle cx="640" cy="340" r="3.5"/>
-      <circle cx="480" cy="460" r="3.5"/>
-      <circle cx="900" cy="40" r="3.5"/>
+      <circle cx="300" cy="500" r="4" />
+      <circle cx="605" cy="440" r="4" />
+      <circle cx="1100" cy="260" r="4" />
+      <circle cx="915" cy="470" r="4" />
     </g>
   </svg>
   <div class="hero-wordmark" aria-hidden="true">INSTA<br>GRUP</div>
@@ -656,6 +720,21 @@
   </div>
 </div>
 
+<!-- ===== PHOTO BAND ===== -->
+<section class="photo-band">
+  <div class="wrap photo-band-inner">
+    <div class="photo-band-label">
+      <span class="photo-band-eyebrow" data-i18n="photoband_eyebrow">PROIECTARE · EXECUȚIE · MENTENANȚĂ</span>
+      <h2 data-i18n="photoband_h2">Rețele care alimentează viitorul.</h2>
+    </div>
+    <div class="photo-strip">
+      <div class="photo-slot"><span>Foto proiect — de adăugat</span></div>
+      <div class="photo-slot"><span>Foto proiect — de adăugat</span></div>
+      <div class="photo-slot"><span>Foto proiect — de adăugat</span></div>
+      <div class="photo-slot"><span>Foto proiect — de adăugat</span></div>
+    </div>
+  </div>
+</section>
 
 <!-- ===== SERVICES ===== -->
 <section class="services" id="servicii">
