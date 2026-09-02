@@ -2400,6 +2400,47 @@
   // selected), then scrolling to and briefly highlighting it.
   let currentAdminTab = 'overview';
 
+  /* ============================================================
+     AUTOREFRESH — deliberately event-driven, not a timer polling
+     every N minutes. Two triggers:
+       1. Switching between admin's own tabs (Prezentare generală /
+          Sesizări / Proiecte curente) — someone else may have closed
+          a ticket or added a project while this tab was open on a
+          different view.
+       2. Returning to this browser tab after it sat unfocused/hidden
+          for 5+ minutes — long enough that the data on screen is
+          reasonably likely to be stale, without refetching on every
+          brief alt-tab.
+     Both call the same silent refresh — "silent" meaning no loading
+     spinner/flash, since this happens in the background rather than
+     in response to someone explicitly asking to reload. Saving,
+     archiving, editing, etc. already each call loadTickets() directly
+     at their own point of success (see the individual handlers) —
+     this section is only about the two additional triggers above,
+     not a replacement for that existing behavior.
+     ============================================================ */
+  function refreshAllAdminData(){
+    loadTickets(true);
+    loadProjects();
+  }
+
+  let tabHiddenAt = null;
+  const STALE_TAB_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      tabHiddenAt = Date.now();
+      return;
+    }
+    // Becoming visible again — only refresh if it was actually hidden
+    // long enough to matter. tabHiddenAt stays null if the page never
+    // went hidden yet this session (e.g. very first load), so nothing
+    // fires then either.
+    if (tabHiddenAt && (Date.now() - tabHiddenAt) >= STALE_TAB_THRESHOLD_MS) {
+      refreshAllAdminData();
+    }
+    tabHiddenAt = null;
+  });
+
   function openAdminTab(tabKey, fromPopState){
     document.querySelectorAll('.admin-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.tab === tabKey);
@@ -2427,6 +2468,17 @@
     // not push yet another entry on top of that.
     if (!fromPopState && tabKey !== currentAdminTab) {
       history.pushState({ adminTab: tabKey }, '', '#' + tabKey);
+    }
+    // Refresh whenever actually moving to a different tab — someone
+    // else may have closed a ticket or added a project while this tab
+    // sat open on a different view. Not gated on fromPopState: using
+    // the browser's own back/forward buttons is still "moving between
+    // tabs" from the person's perspective. Skips the very first call
+    // (tabKey === currentAdminTab, since both start as 'overview'),
+    // so this doesn't duplicate the load that showDashboard() already
+    // does on login.
+    if (tabKey !== currentAdminTab) {
+      refreshAllAdminData();
     }
     currentAdminTab = tabKey;
   }
