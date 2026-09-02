@@ -1071,6 +1071,10 @@
               <label>Data soluționării (opțional)</label>
               <input type="date" id="tf-resolved-date">
             </div>
+            <div class="ctrl-field" id="tf-resolved-by-field" style="display:none;">
+              <label>Soluționat de</label>
+              <input type="text" id="tf-resolved-by" placeholder="ex: Bogdan Vlas">
+            </div>
           </div>
           <div class="ctrl-field">
             <label>Telefon</label>
@@ -4020,6 +4024,8 @@
     document.getElementById('tf-type').value = 'Sesizare functionala';
     document.getElementById('tf-date').value = '';
     document.getElementById('tf-resolved-date').value = '';
+    document.getElementById('tf-resolved-by').value = '';
+    document.getElementById('tf-resolved-by-field').style.display = 'none';
     document.getElementById('tf-name').value = '';
     document.getElementById('tf-phone').value = '';
     document.getElementById('tf-email').value = '';
@@ -4028,6 +4034,15 @@
     ticketAddForm.style.display = 'block';
     ticketAddForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+
+  // "Soluționat de" only makes sense once a resolution date has
+  // actually been entered — hidden the rest of the time so the form
+  // doesn't ask for a name to attach to a resolution that hasn't
+  // happened yet.
+  document.getElementById('tf-resolved-date').addEventListener('input', () => {
+    const hasDate = !!document.getElementById('tf-resolved-date').value;
+    document.getElementById('tf-resolved-by-field').style.display = hasDate ? 'block' : 'none';
+  });
 
   document.getElementById('addTicketBtn').addEventListener('click', openTicketAddForm);
   document.getElementById('tfCancelBtn').addEventListener('click', () => {
@@ -4038,6 +4053,7 @@
     const type = document.getElementById('tf-type').value;
     const dateVal = document.getElementById('tf-date').value;
     const resolvedDateVal = document.getElementById('tf-resolved-date').value;
+    const resolvedByVal = document.getElementById('tf-resolved-by').value.trim();
     const name = document.getElementById('tf-name').value.trim();
     const phone = document.getElementById('tf-phone').value.trim();
     const email = document.getElementById('tf-email').value.trim();
@@ -4115,6 +4131,7 @@
       if (resolvedDateVal) {
         updatePayload.resolved_on = combineDateTimeToISO(resolvedDateVal);
         updatePayload.status = 'Terminat';
+        if (resolvedByVal) updatePayload.resolved_by = resolvedByVal;
       }
       const { error: dateError } = await supabaseClient
         .from('tickets')
@@ -4127,6 +4144,28 @@
         // warns rather than treating it as a full failure.
         alert(`Sesizarea ${ticketNumber} a fost creată, dar data personalizată nu a putut fi salvată. Editați data direct pe tichet dacă e nevoie.`);
       }
+    }
+
+    // A ticket created here with a resolution date but no "Ce s-a
+    // făcut" — this form has no such field at all — lands directly in
+    // the "awaiting report" state the moment it's created, the same
+    // state a normal ticket only reaches after being edited and
+    // closed without a report. That existing state change already
+    // notifies vlasbogdan@ elsewhere in this file (see the edit-save
+    // handler above) — this is the equivalent trigger for tickets
+    // that arrive in that state immediately, at creation, rather than
+    // transitioning into it later. Without this, a retroactively-
+    // logged, already-resolved ticket would silently need a report
+    // forever with no one ever being told.
+    if (resolvedDateVal) {
+      sendNotification({
+        type: 'report_needed',
+        to: 'vlasbogdan@insta-grup.ro',
+        ticket_number: ticketNumber,
+        address: address,
+        closed_by: resolvedByVal || '(nespecificat)',
+        closed_on: fmtDate(combineDateTimeToISO(resolvedDateVal)),
+      });
     }
 
     saveBtn.disabled = false;
