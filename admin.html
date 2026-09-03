@@ -1246,6 +1246,7 @@
 
     <div class="admin-panel" id="panel-backlog">
       <div class="toolbar">
+        <div class="chips" id="backlogChipsWrap"></div>
         <div class="ticket-search-wrap" id="backlogSearchWrap">
           <button type="button" class="search-icon-btn" id="backlogSearchToggleBtn" aria-label="Căutare">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -4333,12 +4334,14 @@
      mandatory-right-now. Deliberately simpler than "Proiecte curente"
      above (no due date, no progress bar, no archiving, no Excel
      import) since these fields don't apply to work with no near-term
-     deadline. "Zile de la data începerii" is never stored — it's
+     deadline. Completed work stays in the same table and is moved to
+     its own "Soluționate" filter instead of being deleted. "Zile de la data începerii" is never stored — it's
      computed at render time from start_date, same spirit as
      calcProjectProgress() above for current_projects.
      ============================================================ */
   let allBacklogProjects = [];
   let backlogSearchQuery = '';
+  let backlogFilter = 'Ongoing';
 
   async function loadBacklogProjects(){
     const { data, error } = await supabaseClient
@@ -4369,12 +4372,33 @@
 
   function getFilteredBacklogProjects(){
     const q = backlogSearchQuery.trim().toLowerCase();
-    if (!q) return allBacklogProjects;
     return allBacklogProjects.filter(p => {
-      return [p.title, p.address, p.employee_name, p.company, p.description]
+      const statusMatches = backlogFilter === 'Toate' || (p.status || 'Ongoing') === backlogFilter;
+      const searchMatches = !q || [p.title, p.address, p.employee_name, p.company, p.description]
         .some(field => (field || '').toLowerCase().includes(q));
+      return statusMatches && searchMatches;
     });
   }
+
+  const backlogChipDefs = [
+    { key: 'Ongoing', label: 'Active' },
+    { key: 'Terminat', label: 'Soluționate' },
+    { key: 'Toate', label: 'Toate' },
+  ];
+  const backlogChipsWrap = document.getElementById('backlogChipsWrap');
+  backlogChipDefs.forEach(c => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip' + (c.key === backlogFilter ? ' active' : '');
+    chip.textContent = c.label;
+    chip.addEventListener('click', () => {
+      backlogFilter = c.key;
+      backlogChipsWrap.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+      chip.classList.add('active');
+      renderBacklogProjects();
+    });
+    backlogChipsWrap.appendChild(chip);
+  });
 
   function renderBacklogProjects(){
     const list = document.getElementById('backlogList');
@@ -4392,29 +4416,38 @@
     list.innerHTML = '';
     filtered.forEach(p => {
       const days = daysSince(p.start_date);
+      const isDone = (p.status || 'Ongoing') === 'Terminat';
       const ageClass = days >= 90 ? 'age-stale' : days >= 30 ? 'age-aging' : 'age-fresh';
       const row = document.createElement('div');
-      row.className = 'backlog-row ' + ageClass;
+      row.className = 'backlog-row ' + ageClass + (isDone ? ' done' : '');
       row.innerHTML = `
         <div class="backlog-main">
           <div class="backlog-title-line">
             <span class="backlog-title">${escapeHtml(p.title)}</span>
             ${p.company ? `<span class="backlog-tag">${escapeHtml(p.company)}</span>` : ''}
+            ${isDone ? '<span class="backlog-tag">Soluționat</span>' : ''}
             <span class="backlog-days">${days} ${days === 1 ? 'zi' : 'zile'}</span>
           </div>
           <div class="backlog-meta-line">${escapeHtml(p.address)}${p.employee_name ? ' · ' + escapeHtml(p.employee_name) : ''}${p.description ? ' · ' + escapeHtml(p.description) : ''}</div>
         </div>
         <div class="backlog-actions">
           <button class="btn bl-edit">Editează</button>
-          <button class="btn bl-delete">Șterge</button>
+          <button class="btn ${isDone ? '' : 'btn-primary'} bl-status">${isDone ? 'Reactivează' : 'Soluționat'}</button>
         </div>
       `;
 
       row.querySelector('.bl-edit').addEventListener('click', () => openBacklogForm(p));
-      row.querySelector('.bl-delete').addEventListener('click', async () => {
-        if (!confirm(`Ștergeți lucrarea "${p.title}"? Această acțiune este permanentă.`)) return;
-        const { error } = await supabaseClient.from('backlog_projects').delete().eq('id', p.id);
-        if (error) { console.error(error); alert('Eroare la ștergere.'); return; }
+      row.querySelector('.bl-status').addEventListener('click', async () => {
+        const nextStatus = isDone ? 'Ongoing' : 'Terminat';
+        const question = isDone
+          ? `Reactivați lucrarea "${p.title}"?`
+          : `Marcați lucrarea "${p.title}" ca soluționată? Va fi mutată în tab-ul „Soluționate”.`;
+        if (!confirm(question)) return;
+        const { error } = await supabaseClient
+          .from('backlog_projects')
+          .update({ status: nextStatus, resolved_on: isDone ? null : new Date().toISOString() })
+          .eq('id', p.id);
+        if (error) { console.error(error); alert('Eroare la actualizarea lucrării. Încercați din nou.'); return; }
         loadBacklogProjects();
       });
 
@@ -4775,6 +4808,7 @@
   // Keeping the same kb-open / kb-settling classes in sync here gives
   // the bottom tab bar a second path to hide/reappear correctly.
   (function(){
+    if (!isTouchPrimaryDevice) return;
     const root = document.documentElement;
     const focusSelector = 'input, textarea, select, [contenteditable="true"]';
     let focusSettleTimer = null;
