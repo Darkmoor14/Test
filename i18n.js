@@ -125,6 +125,11 @@ ro: {
   showcase_more_lucrari: "Vezi toate lucrările →",
   showcase_produse_tag: "Produs",
   showcase_servicii_tag: "Serviciu",
+  enq_svc_eyebrow: "Solicitare servicii",
+  enq_svc_h2: "Aveți nevoie de unul din aceste servicii?",
+  enq_svc_lede: "Spuneți-ne de ce aveți nevoie — vă răspundem cu disponibilitate și estimare de cost în cel mai scurt timp.",
+  ef_service_label: "Serviciu de interes (opțional)",
+  ef_svc_message_ph: "Descrieți pe scurt situația și termenul dorit...",
 
   // Projects map section
   proj_eyebrow: "Lucrări de referință",
@@ -363,6 +368,11 @@ en: {
   showcase_more_lucrari: "See all works →",
   showcase_produse_tag: "Product",
   showcase_servicii_tag: "Service",
+  enq_svc_eyebrow: "Service enquiry",
+  enq_svc_h2: "Need one of these services?",
+  enq_svc_lede: "Tell us what you need — we'll get back to you with availability and a cost estimate as soon as possible.",
+  ef_service_label: "Service of interest (optional)",
+  ef_svc_message_ph: "Briefly describe the situation and desired timeline...",
 
   proj_eyebrow: "Reference works",
   proj_h2: "Projects completed in Mureș County",
@@ -594,6 +604,11 @@ hu: {
   showcase_more_lucrari: "Összes munka →",
   showcase_produse_tag: "Termék",
   showcase_servicii_tag: "Szolgáltatás",
+  enq_svc_eyebrow: "Szolgáltatás érdeklődés",
+  enq_svc_h2: "Szüksége van valamelyik szolgáltatásra?",
+  enq_svc_lede: "Mondja el, mire van szüksége — hamarosan válaszolunk elérhetőséggel és költségbecsléssel.",
+  ef_service_label: "Érdeklődés tárgya (opcionális)",
+  ef_svc_message_ph: "Írja le röviden a helyzetet és a kívánt határidőt...",
 
   proj_eyebrow: "Referenciamunkák",
   proj_h2: "Maros megyében megvalósított projektek",
