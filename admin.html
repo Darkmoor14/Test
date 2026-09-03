@@ -4356,18 +4356,15 @@
     renderBacklogProjects();
   }
 
-  function daysSince(dateStr){
+  function daysSince(dateStr, endDateStr){
     if (!dateStr) return 0;
     const start = new Date(dateStr);
-    const now = new Date();
-    // Compares calendar dates only (both stripped to local midnight),
-    // not a raw millisecond diff — otherwise a project started
-    // earlier today would show as "0 zile" one moment and "1 zi" a
-    // few hours later purely from time-of-day drift, not an actual
-    // day boundary being crossed.
+    const end = endDateStr ? new Date(endDateStr) : new Date();
+    // Count calendar days inclusively: a project started and solved
+    // today is 1 day, and each new calendar day adds one more.
     start.setHours(0,0,0,0);
-    now.setHours(0,0,0,0);
-    return Math.max(0, Math.round((now - start) / 86400000));
+    end.setHours(0,0,0,0);
+    return Math.max(1, Math.round((end - start) / 86400000) + 1);
   }
 
   function getFilteredBacklogProjects(){
@@ -4415,8 +4412,10 @@
 
     list.innerHTML = '';
     filtered.forEach(p => {
-      const days = daysSince(p.start_date);
       const isDone = (p.status || 'Ongoing') === 'Terminat';
+      // Solved work keeps its duration at the completion date;
+      // active work continues counting through today.
+      const days = daysSince(p.start_date, isDone ? p.resolved_on : null);
       const ageClass = days >= 90 ? 'age-stale' : days >= 30 ? 'age-aging' : 'age-fresh';
       const row = document.createElement('div');
       row.className = 'backlog-row ' + ageClass + (isDone ? ' done' : '');
