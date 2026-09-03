@@ -157,7 +157,7 @@
     position:relative;
     background:var(--paper-000);
     color:var(--ink-900);
-    padding:176px 0 110px;
+    padding:196px 0 190px;
     overflow:hidden;
     border-bottom:1px solid var(--line);
   }
@@ -167,14 +167,17 @@
      unlike "cover", which fills the box by cropping whatever doesn't
      fit. This can leave empty space within the box rather than
      filling it edge-to-edge, which is the deliberate tradeoff for
-     guaranteeing nothing is ever cut off. */
+     guaranteeing nothing is ever cut off. Sized larger and nudged
+     down from the top of the section (rather than starting flush at
+     top:0) so it reads as a bigger, more grounded visual within the
+     now-taller hero. */
   .hero-illustration{
-    position:absolute;top:0;right:0;height:100%;width:74%;
-    max-width:1100px;object-fit:contain;object-position:right center;
+    position:absolute;top:70px;right:0;height:calc(100% - 70px);width:88%;
+    max-width:1320px;object-fit:contain;object-position:right center;
     opacity:0.92;pointer-events:none;z-index:0;
   }
   @media(max-width:900px){
-    .hero-illustration{opacity:0.35;width:100%;max-width:none;}
+    .hero-illustration{opacity:0.35;width:100%;max-width:none;top:0;height:100%;}
   }
   /* Reusable version of the hero's circuit-trace decoration, reused across
      other sections (About, Services, Report, Contact) so the same visual
@@ -304,54 +307,61 @@
     background:var(--paper-050);
   }
 
-  /* ===== SERVICES ===== */
-  .services{background:var(--paper-000);border-top:1px solid var(--line);border-bottom:1px solid var(--line);position:relative;overflow:hidden;}
-  .services .section-head p{color:var(--ink-900);}
-  .services .section-head h2{color:var(--ink-900);}
-  .svc-grid{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:0;
-    border-top:1px solid var(--line);border-left:1px solid var(--line);
-    align-items:start;
+  /* ===== SHOWCASE (Siemens-style Produse/Servicii/Lucrări slider) ===== */
+  .showcase{background:var(--paper-000);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:90px 0 60px;overflow:hidden;}
+  .showcase-grid{display:grid;grid-template-columns:280px 1fr;gap:56px;align-items:start;}
+  .showcase-nav h2{font-size:clamp(24px,2.4vw,30px);color:var(--ink-900);margin-bottom:28px;}
+  .showcase-tabs{list-style:none;display:flex;flex-direction:column;}
+  .showcase-tab{
+    width:100%;display:flex;align-items:center;justify-content:space-between;
+    font-family:var(--body);font-size:16px;font-weight:500;color:var(--ink-600);
+    background:none;border:none;border-top:1px solid var(--line);
+    padding:15px 2px;cursor:pointer;text-align:left;transition:color .2s;
   }
-  .svc-card{
-    background:var(--paper-000);
-    padding:30px 30px;
-    cursor:pointer;
-    transition:background .25s;
-    position:relative;
-    border-right:1px solid var(--line);
-    border-bottom:1px solid var(--line);
+  .showcase-tabs li:last-child .showcase-tab{border-bottom:1px solid var(--line);}
+  .showcase-tab svg{width:16px;height:16px;flex-shrink:0;opacity:0;transform:translateX(-4px);transition:opacity .2s,transform .2s;}
+  .showcase-tab:hover{color:var(--ink-900);}
+  .showcase-tab.active{color:var(--copper-600);font-weight:600;}
+  .showcase-tab.active svg{opacity:1;transform:translateX(0);}
+  .showcase-more{
+    display:inline-flex;margin-top:28px;font-size:14px;padding:11px 22px;
   }
-  .svc-card:hover,.svc-card.active{background:var(--copper-050);}
-  .svc-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
-  .svc-icon{width:34px;height:34px;color:var(--copper-600);margin-bottom:20px;}
-  @keyframes svc-icon-bounce{
-    0%,100%{transform:translateY(0);}
-    30%{transform:translateY(-5px);}
-    50%{transform:translateY(0);}
-    70%{transform:translateY(-2px);}
+  .showcase-slider{overflow:hidden;}
+  .showcase-track{display:flex;gap:16px;transition:transform .45s cubic-bezier(.65,0,.35,1);}
+  .showcase-slide{
+    flex:0 0 clamp(220px,26vw,300px);height:400px;position:relative;
+    border-radius:2px;overflow:hidden;
+    background:linear-gradient(135deg,var(--panel-dark) 0%,var(--panel-dark-2) 100%);
   }
-  .svc-card:hover .svc-icon,.svc-card.active .svc-icon{animation:svc-icon-bounce .6s ease;}
-  .svc-chevron{
-    width:18px;height:18px;color:var(--ink-400);flex-shrink:0;margin-top:4px;
-    transition:transform .25s ease,color .2s;
+  .showcase-slide-icon{
+    position:absolute;top:36px;left:28px;width:44px;height:44px;color:var(--copper-300);opacity:0.85;
   }
-  .svc-card.active .svc-chevron{transform:rotate(180deg);color:var(--copper-600);}
-  .svc-card h3{font-size:15.5px;color:var(--ink-900);margin-bottom:6px;font-weight:600;}
-  .svc-card .svc-sub{font-family:var(--mono);font-size:11px;color:var(--copper-600);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;}
-  .svc-expand{
-    max-height:0;overflow:hidden;transition:max-height .3s ease;
+  .showcase-slide-overlay{
+    position:absolute;left:0;right:0;bottom:0;padding:22px 24px 26px;
+    background:linear-gradient(to top,rgba(16,24,32,0.92) 20%,rgba(16,24,32,0) 100%);
   }
-  .svc-card.active .svc-expand{max-height:260px;margin-top:6px;}
-  .svc-list{list-style:none;font-size:13px;color:var(--ink-900);}
-  .svc-list li{padding:5px 0;border-top:1px solid var(--line);}
-  .svc-list li:first-child{border-top:none;}
-  .svc-hint{
-    font-family:var(--mono);font-size:10.5px;letter-spacing:0.05em;
-    color:var(--ink-900);text-transform:uppercase;margin-top:2px;
+  .showcase-slide-tag{
+    font-family:var(--mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;
+    color:var(--copper-300);margin-bottom:8px;display:block;
   }
-  .svc-card.active .svc-hint{display:none;}
-  @media(max-width:900px){.svc-grid{grid-template-columns:1fr;}}
+  .showcase-slide-title{color:#fff;font-size:19px;font-weight:600;line-height:1.28;}
+  .showcase-controls-wrap{margin-top:32px;}
+  .showcase-controls{display:flex;align-items:center;gap:28px;max-width:calc(100% - 296px);margin-left:auto;}
+  .showcase-progress{flex:1;height:2px;background:var(--line-strong);position:relative;}
+  .showcase-progress-bar{position:absolute;left:0;top:0;height:100%;background:var(--copper-500);transition:width .3s ease;}
+  .showcase-arrows{display:flex;gap:10px;flex-shrink:0;}
+  .showcase-arrows button{
+    width:36px;height:36px;border-radius:50%;border:1px solid var(--line-strong);
+    background:var(--paper-000);color:var(--ink-900);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:border-color .2s,color .2s;
+  }
+  .showcase-arrows button svg{width:16px;height:16px;}
+  .showcase-arrows button:hover:not(:disabled){border-color:var(--copper-500);color:var(--copper-600);}
+  .showcase-arrows button:disabled{opacity:0.35;cursor:default;}
+  @media(max-width:900px){
+    .showcase-grid{grid-template-columns:1fr;gap:32px;}
+    .showcase-controls{max-width:100%;}
+  }
 
   /* ===== PROJECTS MAP ===== */
   .projects{background:var(--paper-050);}
@@ -619,28 +629,31 @@
 </div>
 
 <!-- ===== SERVICES ===== -->
-<section class="services" id="servicii">
-  <svg class="section-trace" viewBox="0 0 1180 700" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-    <g stroke="#D3D4CE" stroke-width="1.4" fill="none">
-      <path d="M 1200 -20 V 100 H 940" />
-      <path d="M -20 720 V 600 H 260" />
-    </g>
-    <g stroke="#D11F24" stroke-width="1.6" fill="none" class="flow">
-      <path d="M 1200 -20 V 100 H 940" />
-    </g>
-    <g fill="#D11F24">
-      <circle cx="940" cy="100" r="3"/>
-      <circle cx="260" cy="600" r="3"/>
-    </g>
-  </svg>
-  <div class="wrap">
-    <div class="section-head">
-      <div class="eyebrow" data-i18n="svc_eyebrow">Servicii oferite</div>
-      <h2 data-i18n="svc_h2">Opt domenii, o singură echipă</h2>
-      <p data-i18n="svc_lede">De la proiectare la execuție și mentenanță — acoperim întregul ciclu al lucrărilor de infrastructură electrică și utilități.</p>
+<!-- ===== SHOWCASE (Produse / Servicii / Lucrări) ===== -->
+<section class="showcase" id="showcase">
+  <div class="wrap showcase-grid">
+    <div class="showcase-nav">
+      <h2 data-i18n="showcase_h2">Produse și servicii</h2>
+      <ul class="showcase-tabs" id="showcaseTabs">
+        <li><button type="button" class="showcase-tab active" data-tab="produse"><span data-i18n="showcase_tab_produse">Produse</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></button></li>
+        <li><button type="button" class="showcase-tab" data-tab="servicii"><span data-i18n="showcase_tab_servicii">Servicii</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></button></li>
+        <li><button type="button" class="showcase-tab" data-tab="lucrari"><span data-i18n="showcase_tab_lucrari">Lucrări</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></button></li>
+      </ul>
+      <a href="produse.html" class="btn btn-ghost showcase-more" id="showcaseMoreBtn" data-i18n="showcase_more">Vezi toate produsele →</a>
     </div>
-    <div class="svc-grid" id="svcGrid">
-      <!-- cards injected by JS -->
+    <div class="showcase-slider">
+      <div class="showcase-track" id="showcaseTrack">
+        <!-- slides injected by JS -->
+      </div>
+    </div>
+  </div>
+  <div class="wrap showcase-controls-wrap">
+    <div class="showcase-controls">
+      <div class="showcase-progress"><div class="showcase-progress-bar" id="showcaseProgressBar"></div></div>
+      <div class="showcase-arrows">
+        <button type="button" id="showcasePrev" aria-label="Anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <button type="button" id="showcaseNext" aria-label="Următor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
     </div>
   </div>
 </section>
@@ -1057,42 +1070,118 @@
     resetTimer();
   })();
 
-  const services = [
-    {tagKey:"svc1_tag", titleKey:"svc1_title", itemKeys:["svc1_i1","svc1_i2","svc1_i3"], icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2v6M6 8h12l-3 5H9l-3 5h12"/><circle cx="12" cy="8" r="1.4" fill="currentColor" stroke="none"/></svg>'},
-    {tagKey:"svc2_tag", titleKey:"svc2_title", itemKeys:["svc2_i1","svc2_i2","svc2_i3"], icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="16" height="10" rx="1"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg>'},
-    {tagKey:"svc3_tag", titleKey:"svc3_title", itemKeys:["svc3_i1","svc3_i2","svc3_i3"], icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2a5 5 0 0 0-3 9v2h6v-2a5 5 0 0 0-3-9z"/><path d="M10 17h4M11 20h2"/></svg>'},
-    {tagKey:"svc4_tag", titleKey:"svc4_title", itemKeys:["svc4_i1","svc4_i2"], icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>'},
-    {tagKey:"svc5_tag", titleKey:"svc5_title", itemKeys:["svc5_i1","svc5_i2","svc5_i3"], icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h4l2-3 3 6 2-4h7"/></svg>'},
-    {tagKey:"svc6_tag", titleKey:"svc6_title", itemKeys:["svc6_i1","svc6_i2"], icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12h16M4 8h10M4 16h13"/></svg>'},
-    {tagKey:"svc7_tag", titleKey:"svc7_title", itemKeys:["svc7_i1","svc7_i2","svc7_i3"], icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>'},
-    {tagKey:"svc8_tag", titleKey:"svc8_title", itemKeys:["svc8_i1","svc8_i2"], icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.5 5.5l13 13M18.5 5.5l-13 13"/></svg>'},
-  ];
+  /* ============================================================
+     SHOWCASE (Siemens-style "Produse / Servicii / Lucrări" slider)
+     — three tabs, each with its own horizontal card track. Product
+     icons are the exact same set used on produse.html, kept in sync
+     manually since there's no shared JS module between the two
+     pages. "Lucrări" reuses the existing mp1..mp6 project map data
+     (same i18n keys the map tooltips already use) rather than
+     inventing separate placeholder project names.
+     ============================================================ */
+  const showcaseData = {
+    produse: {
+      href: 'produse.html', moreKey: 'showcase_more_produse',
+      slides: [
+        { tagKey: 'showcase_produse_tag', titleKey: 'prod1_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="8" width="16" height="12" rx="1"/><path d="M4 8l8-5 8 5"/></svg>' },
+        { tagKey: 'showcase_produse_tag', titleKey: 'prod2_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><ellipse cx="12" cy="7" rx="8" ry="3"/><path d="M4 7v3c0 1.66 3.58 3 8 3s8-1.34 8-3V7"/></svg>' },
+        { tagKey: 'showcase_produse_tag', titleKey: 'prod3_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/></svg>' },
+        { tagKey: 'showcase_produse_tag', titleKey: 'prod4_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="3" width="12" height="18" rx="1"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>' },
+        { tagKey: 'showcase_produse_tag', titleKey: 'prod5_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7h6M9 11h6M9 15h6"/></svg>' },
+        { tagKey: 'showcase_produse_tag', titleKey: 'prod6_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="7" y="4" width="10" height="16" rx="1"/><path d="M10 8h4M10 12h4"/></svg>' },
+        { tagKey: 'showcase_produse_tag', titleKey: 'prod7_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20V6M20 20V6M4 10h16M4 15h16"/></svg>' },
+        { tagKey: 'showcase_produse_tag', titleKey: 'prod8_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2 1 21h22L12 2z"/><path d="M12 9v5M12 17h.01"/></svg>' },
+      ]
+    },
+    servicii: {
+      href: 'servicii.html', moreKey: 'showcase_more_servicii',
+      slides: [
+        { tagKey: 'showcase_servicii_tag', titleKey: 'svc1_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/><path d="M17 8l2 2 4-4"/></svg>' },
+        { tagKey: 'showcase_servicii_tag', titleKey: 'svc2_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4l-5.6 5.6a1.5 1.5 0 0 0 2.1 2.1l5.6-5.6a4 4 0 0 1 5.4-5.4l-2.6 2.6-1.7-1.7z"/></svg>' },
+        { tagKey: 'showcase_servicii_tag', titleKey: 'svc3_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2v6M6 8h12l-3 5H9l-3 5h12"/><circle cx="12" cy="8" r="1.4" fill="currentColor" stroke="none"/></svg>' },
+        { tagKey: 'showcase_servicii_tag', titleKey: 'svc4_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>' },
+        { tagKey: 'showcase_servicii_tag', titleKey: 'svc5_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="16" height="10" rx="1"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg>' },
+      ]
+    },
+    lucrari: {
+      href: 'proiecte.html', moreKey: 'showcase_more_lucrari',
+      slides: [
+        { tagKey: 'mp1_tag', titleKey: 'mp1_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21c-4.5-4.2-7-7.6-7-11a7 7 0 0 1 14 0c0 3.4-2.5 6.8-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>' },
+        { tagKey: 'mp2_tag', titleKey: 'mp2_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21c-4.5-4.2-7-7.6-7-11a7 7 0 0 1 14 0c0 3.4-2.5 6.8-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>' },
+        { tagKey: 'mp3_tag', titleKey: 'mp3_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21c-4.5-4.2-7-7.6-7-11a7 7 0 0 1 14 0c0 3.4-2.5 6.8-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>' },
+        { tagKey: 'mp4_tag', titleKey: 'mp4_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21c-4.5-4.2-7-7.6-7-11a7 7 0 0 1 14 0c0 3.4-2.5 6.8-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>' },
+        { tagKey: 'mp5_tag', titleKey: 'mp5_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21c-4.5-4.2-7-7.6-7-11a7 7 0 0 1 14 0c0 3.4-2.5 6.8-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>' },
+        { tagKey: 'mp6_tag', titleKey: 'mp6_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21c-4.5-4.2-7-7.6-7-11a7 7 0 0 1 14 0c0 3.4-2.5 6.8-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>' },
+      ]
+    }
+  };
 
-  const grid = document.getElementById('svcGrid');
-  function renderServices(){
-    const wasActive = Array.from(grid.querySelectorAll('.svc-card')).map(c => c.classList.contains('active'));
-    grid.innerHTML = '';
-    services.forEach((s,i)=>{
-      const card = document.createElement('div');
-      card.className = 'svc-card' + (wasActive[i] ? ' active' : '');
-      card.innerHTML = `
-        <div class="svc-card-top">
-          <div class="svc-icon">${s.icon}</div>
-          <svg class="svc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div class="svc-sub">${t(s.tagKey)}</div>
-        <h3>${t(s.titleKey)}</h3>
-        <div class="svc-hint">${t('svc_hint')}</div>
-        <div class="svc-expand">
-          <ul class="svc-list">${s.itemKeys.map(k=>`<li>${t(k)}</li>`).join('')}</ul>
-        </div>
-      `;
-      card.addEventListener('click', ()=>card.classList.toggle('active'));
-      grid.appendChild(card);
-    });
+  let showcaseTab = 'produse';
+  let showcaseIndex = 0;
+
+  const showcaseTrack = document.getElementById('showcaseTrack');
+  const showcaseTabButtons = document.querySelectorAll('.showcase-tab');
+  const showcaseMoreBtn = document.getElementById('showcaseMoreBtn');
+  const showcasePrevBtn = document.getElementById('showcasePrev');
+  const showcaseNextBtn = document.getElementById('showcaseNext');
+  const showcaseProgressBar = document.getElementById('showcaseProgressBar');
+
+  // How many slides fit fully in the visible slider width at once —
+  // recalculated on render/resize since it depends on actual
+  // rendered card width, not a fixed assumption.
+  function showcaseVisibleCount(){
+    const slider = document.querySelector('.showcase-slider');
+    const slide = showcaseTrack.querySelector('.showcase-slide');
+    if (!slider || !slide) return 1;
+    const slideWidth = slide.getBoundingClientRect().width + 16; // + track gap
+    return Math.max(1, Math.floor(slider.getBoundingClientRect().width / slideWidth));
   }
-  renderServices();
-  window.addEventListener('langchange', renderServices);
+
+  function updateShowcasePosition(){
+    const slide = showcaseTrack.querySelector('.showcase-slide');
+    if (!slide) return;
+    const slideWidth = slide.getBoundingClientRect().width + 16;
+    const total = showcaseData[showcaseTab].slides.length;
+    const maxIndex = Math.max(0, total - showcaseVisibleCount());
+    showcaseIndex = Math.max(0, Math.min(showcaseIndex, maxIndex));
+    showcaseTrack.style.transform = `translateX(-${showcaseIndex * slideWidth}px)`;
+    showcaseProgressBar.style.width = (maxIndex > 0 ? (showcaseIndex / maxIndex) * 100 : 100) + '%';
+    showcasePrevBtn.disabled = showcaseIndex === 0;
+    showcaseNextBtn.disabled = showcaseIndex >= maxIndex;
+  }
+
+  function renderShowcase(){
+    const data = showcaseData[showcaseTab];
+    showcaseTrack.innerHTML = data.slides.map(s => `
+      <div class="showcase-slide">
+        <div class="showcase-slide-icon">${s.icon}</div>
+        <div class="showcase-slide-overlay">
+          <span class="showcase-slide-tag">${t(s.tagKey)}</span>
+          <div class="showcase-slide-title">${t(s.titleKey)}</div>
+        </div>
+      </div>
+    `).join('');
+    showcaseMoreBtn.href = data.href;
+    showcaseMoreBtn.textContent = t(data.moreKey);
+    updateShowcasePosition();
+  }
+
+  showcaseTabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.tab === showcaseTab) return;
+      showcaseTabButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      showcaseTab = btn.dataset.tab;
+      showcaseIndex = 0;
+      renderShowcase();
+    });
+  });
+  showcasePrevBtn.addEventListener('click', () => { showcaseIndex--; updateShowcasePosition(); });
+  showcaseNextBtn.addEventListener('click', () => { showcaseIndex++; updateShowcasePosition(); });
+
+  renderShowcase();
+  window.addEventListener('langchange', renderShowcase);
+  window.addEventListener('resize', updateShowcasePosition);
 
   const projects = [
     {x:12, y:49, i18n:"mp1"},
