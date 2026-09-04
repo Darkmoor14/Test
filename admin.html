@@ -104,7 +104,18 @@
       padding:20px 20px 16px;border-bottom:1px solid var(--line);flex-shrink:0;
     }
     .mobile-sidebar-head span{font-family:var(--display);font-weight:600;font-size:16px;color:var(--ink-900);}
-    .mobile-sidebar-nav{flex:1;overflow-y:auto;padding:10px 0;}
+    /* Explicitly overriding display/flex-direction/justify-content/
+       height here, not just adding flex:1 — this is a <nav> element,
+       and the page's generic tag-based `nav{display:flex;...}` rule
+       (built for the desktop header bar) was otherwise leaking
+       through and laying these buttons out in a horizontal row
+       instead of stacked, which is why they need to be undone
+       explicitly rather than just adding what's missing. */
+    .mobile-sidebar-nav{
+      display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
+      height:auto;max-width:none;margin:0;padding:10px 0;
+      flex:1;overflow-y:auto;
+    }
     .mobile-tab-btn{
       display:flex;align-items:center;width:100%;text-align:left;
       padding:15px 20px;background:none;border:none;border-left:3px solid transparent;
@@ -376,8 +387,10 @@
        sheet with year/month selects instead, for all admins, not just
        that one account. Status chips stay as they were: report-focused
        still gets its 3-way split inside the sheet, everyone else keeps
-       their own separate inline chip row untouched. */
-    .overview-year-bar{display:none;}
+       their own separate inline chip row untouched. The actual
+       display:none for .overview-year-bar itself lives further down,
+       right after its base rule — see the comment there for why it
+       has to sit there specifically rather than here. */
   }
   /* The sheet's own status-chip section is populated with the
      report-focused role's specific 3-way split (see the JS that
@@ -454,6 +467,17 @@
   .overview-year-bar select.not-current-year{
     border-color:var(--signal-orange);background:var(--signal-orange-bg);
     color:var(--signal-orange);font-weight:600;
+  }
+  /* This has to come AFTER the base .overview-year-bar rule above,
+     not just be wrapped in a media query — a media query doesn't add
+     specificity, so with an identical single-class selector on both
+     sides, plain source order decides the tie, and the earlier
+     mobile-hide rule that used to sit up near the top of the file
+     was silently losing to this one. Moving the override to after
+     its target, not just adding a rule with the same selector
+     somewhere convenient, is what actually makes it win. */
+  @media(max-width:900px){
+    .overview-year-bar{display:none;}
   }
   .year-warning{
     display:none;
