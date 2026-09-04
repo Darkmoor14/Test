@@ -719,6 +719,20 @@
   .chip:hover{border-color:var(--copper-500);color:var(--copper-600);}
   .chip.active{background:var(--copper-500);border-color:var(--copper-500);color:#fff;}
   .result-count{font-family:var(--mono);font-size:12.5px;color:var(--ink-400);}
+  /* Placed immediately after its own base rule, not just wrapped in a
+     media query somewhere else convenient — same reasoning as the
+     other display:none overrides elsewhere in this file (see
+     .overview-year-bar and .overview-mobile-status-filter): a media
+     query alone doesn't win a same-specificity tie against a rule
+     that simply appears later in the stylesheet, only source order
+     does. This one was actually missing entirely before (not just
+     mis-ordered) — .result-count had no mobile-hide rule at all, so
+     it sat alongside .toolbar-mobile-summary's own count the whole
+     time, showing the same "X din Y" text twice, side by side, on
+     Sesizări/Proiecte curente/Avarii rețele. */
+  @media(max-width:900px){
+    .result-count{display:none;}
+  }
   .overview-mobile-status-filter{display:none;}
   .overview-mobile-status-filter .chips{gap:10px;}
   .filter-inline-group{
@@ -1694,7 +1708,17 @@
   let ticketSearchQuery = '';
   let ticketYearFilter = 'all';
   let ticketMonthFilter = 'all';
-  let overviewStatusFilter = 'all';
+  // Defaults to "Active" on phone specifically — a phone screen is
+  // small enough that "everything, including tickets already closed"
+  // isn't a useful first view the way it can be on a wider desktop
+  // table; someone checking Overview on their phone is almost always
+  // asking "what still needs attention," not doing a full audit.
+  // Desktop keeps its original "Toate" default untouched. Checked
+  // once at load (matches the same 900px breakpoint the rest of the
+  // site's mobile/desktop split uses) — this is an initial default,
+  // not something that needs to react to the window being resized
+  // afterward.
+  let overviewStatusFilter = window.matchMedia('(max-width: 900px)').matches ? 'active' : 'all';
 
   // A ticket's "effective" month/year for filtering purposes — NOT
   // necessarily when it was actually submitted. Still-active tickets
