@@ -4397,6 +4397,11 @@
   function renderBacklogProjects(){
     const list = document.getElementById('backlogList');
     const filtered = getFilteredBacklogProjects();
+    // Export only makes sense as a full-list dump, so it's only shown
+    // on the "Toate" chip — on "Active"/"Soluționate" it'd just be a
+    // confusing partial export of whichever filter happens to be on.
+    const exportBtn = document.getElementById('exportBacklogExcelBtn');
+    if (exportBtn) exportBtn.style.display = backlogFilter === 'Toate' ? '' : 'none';
     const countEl = document.getElementById('backlogCount');
     if (countEl) countEl.textContent = filtered.length + ' din ' + allBacklogProjects.length + ' lucrări';
     const countMobileEl = document.getElementById('backlogCountMobile');
