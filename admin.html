@@ -380,27 +380,22 @@
   @media(min-width:901px){
     html.report-focused-view .chips.report-focused-chips{display:flex;}
   }
-  @media(max-width:900px){
-    html.report-focused-view .overview-mobile-status-filter{display:none;}
-    /* Year/month bar hidden on mobile for everyone now (not just the
-       report-focused role) — the "Filtre" button below opens the same
-       sheet with year/month selects instead, for all admins, not just
-       that one account. Status chips stay as they were: report-focused
-       still gets its 3-way split inside the sheet, everyone else keeps
-       their own separate inline chip row untouched. The actual
-       display:none for .overview-year-bar itself lives further down,
-       right after its base rule — see the comment there for why it
-       has to sit there specifically rather than here. */
-  }
-  /* The sheet's own status-chip section is populated with the
-     report-focused role's specific 3-way split (see the JS that
-     fills #overviewStatusChipsSheet) — showing it to regular admins
-     would be showing them chips for a workflow that isn't theirs.
-     They keep using their existing separate inline chip row
-     (.overview-mobile-status-filter, untouched above) instead; the
-     sheet for them is year/month only. */
-  #overviewSheetStatusSection{display:none;}
-  html.report-focused-view #overviewSheetStatusSection{display:block;}
+  /* Status filtering now lives inside the "Filtre" sheet for every
+     mobile admin (see #overviewSheetStatusSection below), not just
+     report-focused — this separate inline chip row is redundant with
+     that and hidden unconditionally now instead of only for one
+     role. The actual display:none for it lives further down, right
+     after its own base rule (same reason .overview-year-bar's
+     override has to sit right after its base rule too — a media
+     query alone doesn't win a same-specificity tie against a rule
+     that simply comes later in the file). Year/month bar hidden the
+     same way, for the same reason. */
+  /* Sheet's status-chip section — shown to every mobile admin now.
+     Chips themselves are populated with the standard 3-option set at
+     script-load time; the report-focused role's extra 4th option
+     ("Așteaptă raport") gets appended separately once login resolves
+     who's actually logged in (see fetchCurrentUserRole's .then()). */
+  #overviewSheetStatusSection{display:block;}
   /* Desktop only — on mobile, .admin-tabs-row (the tabs this spacing
      is meant to separate from) is hidden entirely, replaced by the
      bottom tab bar, so this specific relationship doesn't apply
@@ -749,6 +744,14 @@
     #chipsWrap{display:none;}
     .filter-inline-group{width:100%;}
     .overview-mobile-status-filter{display:block;}
+  }
+  /* Has to come after the display:block rule right above, not just be
+     wrapped in its own media query — see the comment near this
+     element's other reference higher up in the file for why a media
+     query alone doesn't win a same-specificity tie against a rule
+     that simply appears later in the stylesheet. */
+  @media(max-width:900px){
+    .overview-mobile-status-filter{display:none;}
   }
   @media(min-width:901px){
     .toolbar-mobile-actions,
@@ -2126,6 +2129,20 @@
     // account before it gets hidden a moment later.
     fetchCurrentUserRole(email).then(() => {
       document.documentElement.classList.toggle('report-focused-view', isReportFocusedView());
+      // The sheet's status chips render with the standard 3-option
+      // set at script-load time (role isn't known yet then) — this
+      // adds the 4th "Așteaptă raport" option specifically for the
+      // report-focused role, once we actually know who's logged in.
+      if (isReportFocusedView() && overviewStatusChipsSheet && !overviewStatusChipsSheet.querySelector('[data-key="awaiting_report"]')) {
+        const awaitingDef = reportFocusedChipDefs.find(c => c.key === 'awaiting_report');
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip' + (awaitingDef.key === overviewStatusFilter ? ' active' : '');
+        chip.textContent = awaitingDef.label;
+        chip.dataset.key = awaitingDef.key;
+        chip.addEventListener('click', () => setOverviewStatusFilter(awaitingDef.key));
+        overviewStatusChipsSheet.appendChild(chip);
+      }
       // "Așteaptă raport" isn't relevant for a limited-role account —
       // they can't fill the report, so a chip dedicated to "here's
       // what's missing one" has nothing useful to offer them. The
@@ -2357,7 +2374,13 @@
 
   const overviewStatusChipsSheet = document.getElementById('overviewStatusChipsSheet');
   if (overviewStatusChipsSheet) {
-    reportFocusedChipDefs.forEach(c => {
+    // Standard 3-option set here, not reportFocusedChipDefs — this
+    // sheet is now the year/month/status filter for every mobile
+    // admin, not just the report-focused role, and "Așteaptă raport"
+    // only makes sense for that one account. Added separately, after
+    // login, for that role specifically — see fetchCurrentUserRole's
+    // .then() below.
+    overviewStatusChipDefs.forEach(c => {
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'chip' + (c.key === overviewStatusFilter ? ' active' : '');
