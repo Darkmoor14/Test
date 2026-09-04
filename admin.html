@@ -99,7 +99,7 @@
        a magnifying-glass button until tapped. Export is still
        available on phone, just via the dedicated mobile action row
        below rather than crammed into the main toolbar line. */
-    #importExcelBtn, #exportExcelBtn{display:none;}
+    #importExcelBtn, #exportExcelBtn, #exportBacklogExcelBtn{display:none;}
     .toolbar-mobile-actions{display:flex;}
     .toolbar-mobile-summary{display:flex;}
     .toolbar-mobile-only{display:inline-flex;}
@@ -916,7 +916,7 @@
         <button type="button" class="header-tab-btn" data-tab="overview">Prezentare generală</button>
         <button type="button" class="header-tab-btn" data-tab="tickets">Sesizări</button>
         <button type="button" class="header-tab-btn" data-tab="projects">Proiecte curente</button>
-        <button type="button" class="header-tab-btn" data-tab="backlog">Backlog lucrări</button>
+        <button type="button" class="header-tab-btn" data-tab="backlog">Avarii rețele</button>
       </div>
     </div>
     <div class="nav-right">
@@ -960,7 +960,7 @@
         <button class="admin-tab active" type="button" data-tab="overview">Prezentare generală</button>
         <button class="admin-tab" type="button" data-tab="tickets">Sesizări</button>
         <button class="admin-tab" type="button" data-tab="projects">Proiecte curente</button>
-        <button class="admin-tab" type="button" data-tab="backlog">Backlog lucrări</button>
+        <button class="admin-tab" type="button" data-tab="backlog">Avarii rețele</button>
       </div>
       <!-- Desktop-only year/month shortcuts for the first two panels. -->
       <div class="overview-year-bar admin-tabs-row-year active" data-year-panel="overview">
@@ -1251,9 +1251,10 @@
           <button type="button" class="search-icon-btn" id="backlogSearchToggleBtn" aria-label="Căutare">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </button>
-          <input type="search" id="backlogSearchBox" placeholder="Caută titlu, adresă, angajat, firmă…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:220px;">
+          <input type="search" id="backlogSearchBox" placeholder="Caută titlu, adresă, angajat…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:220px;">
         </div>
         <div class="result-count" id="backlogCount"></div>
+        <button class="btn" id="exportBacklogExcelBtn" type="button">⭳ Exportă Excel</button>
         <button class="btn btn-primary" id="addBacklogBtn" type="button">+ Adaugă lucrare</button>
         <div class="toolbar-mobile-summary">
           <span id="backlogCountMobile">0 lucrări</span>
@@ -1276,12 +1277,8 @@
             <input type="text" id="bf-employee" placeholder="ex: Ionel Ghiurchi">
           </div>
           <div class="ctrl-field">
-            <label>Data începerii</label>
+            <label>Data înregistrării</label>
             <input type="date" id="bf-start">
-          </div>
-          <div class="ctrl-field">
-            <label>Firma</label>
-            <input type="text" id="bf-company" placeholder="ex: Insta Grup S.A.">
           </div>
           <div class="ctrl-field" style="grid-column:1/-1;">
             <label>Descriere</label>
@@ -4335,7 +4332,7 @@
      above (no due date, no progress bar, no archiving, no Excel
      import) since these fields don't apply to work with no near-term
      deadline. Completed work stays in the same table and is moved to
-     its own "Soluționate" filter instead of being deleted. "Zile de la data începerii" is never stored — it's
+     its own "Soluționate" filter instead of being deleted. "Zile de la data înregistrării" is never stored — it's
      computed at render time from start_date, same spirit as
      calcProjectProgress() above for current_projects.
      ============================================================ */
@@ -4371,7 +4368,7 @@
     const q = backlogSearchQuery.trim().toLowerCase();
     return allBacklogProjects.filter(p => {
       const statusMatches = backlogFilter === 'Toate' || (p.status || 'Ongoing') === backlogFilter;
-      const searchMatches = !q || [p.title, p.address, p.employee_name, p.company, p.description]
+      const searchMatches = !q || [p.title, p.address, p.employee_name, p.description]
         .some(field => (field || '').toLowerCase().includes(q));
       return statusMatches && searchMatches;
     });
@@ -4423,7 +4420,6 @@
         <div class="backlog-main">
           <div class="backlog-title-line">
             <span class="backlog-title">${escapeHtml(p.title)}</span>
-            ${p.company ? `<span class="backlog-tag">${escapeHtml(p.company)}</span>` : ''}
             ${isDone ? '<span class="backlog-tag">Soluționat</span>' : ''}
             <span class="backlog-days">${days} ${days === 1 ? 'zi' : 'zile'}</span>
           </div>
@@ -4462,7 +4458,6 @@
     document.getElementById('bf-address').value = project ? project.address : '';
     document.getElementById('bf-employee').value = project ? (project.employee_name || '') : '';
     document.getElementById('bf-start').value = project ? project.start_date : '';
-    document.getElementById('bf-company').value = project ? (project.company || '') : '';
     document.getElementById('bf-description').value = project ? (project.description || '') : '';
     backlogForm.style.display = 'block';
     backlogForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -4479,18 +4474,16 @@
     const address = document.getElementById('bf-address').value.trim();
     const employee_name = document.getElementById('bf-employee').value.trim();
     const start = document.getElementById('bf-start').value;
-    const company = document.getElementById('bf-company').value.trim();
     const description = document.getElementById('bf-description').value.trim();
 
     if (!title || !address || !start) {
-      alert('Completați tipul lucrării, adresa și data începerii.');
+      alert('Completați tipul lucrării, adresa și data înregistrării.');
       return;
     }
 
     const payload = {
       title, address, start_date: start,
       employee_name: employee_name || null,
-      company: company || null,
       description: description || null,
     };
     const { error } = id
@@ -4527,6 +4520,53 @@
       }
     });
   }
+
+  /* ============================================================
+     EXCEL EXPORT — same client-side XLSX mechanism as the "Raport
+     Excel" button on Sesizări (build a sheet with XLSX.utils, get
+     bytes via XLSX.write, wrap in a Blob, trigger via a throwaway
+     <a download>). Single flat sheet rather than a year/month-split
+     workbook, since backlog items aren't organized by submission
+     month the way tickets are — exports whatever the current filter
+     and search show, so what's on screen is what's in the file.
+     ============================================================ */
+  function exportBacklogToExcel(){
+    const rows = getFilteredBacklogProjects();
+    const header = ['Tipul lucrării', 'Adresă', 'Nume angajat', 'Data înregistrării', 'Descriere', 'Stare', 'Zile', 'Data soluționării'];
+    const aoa = [header];
+    rows.forEach(p => {
+      const isDone = (p.status || 'Ongoing') === 'Terminat';
+      const days = daysSince(p.start_date, isDone ? p.resolved_on : null);
+      aoa.push([
+        p.title || '',
+        p.address || '',
+        p.employee_name || '',
+        p.start_date || '',
+        p.description || '',
+        isDone ? 'Soluționat' : 'Activ',
+        days,
+        isDone && p.resolved_on ? p.resolved_on.slice(0, 10) : '',
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, ws, 'Avarii rețele'.slice(0, 31));
+    const bytes = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const today = new Date().toISOString().slice(0, 10);
+    a.download = `avarii-retele-${today}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Fișierul Excel a fost descărcat.');
+  }
+  const exportBacklogExcelBtn = document.getElementById('exportBacklogExcelBtn');
+  if (exportBacklogExcelBtn) exportBacklogExcelBtn.addEventListener('click', exportBacklogToExcel);
 
   /* ============================================================
      EXCEL BULK IMPORT — parses an uploaded .xlsx/.xls/.csv client-side
@@ -4692,7 +4732,7 @@
   </button>
   <button type="button" class="mobile-tab-btn" data-tab="backlog">
     <span class="mtb-dash"></span>
-    <span>Backlog</span>
+    <span>Avarii</span>
   </button>
 </div>
 
