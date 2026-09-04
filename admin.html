@@ -3588,6 +3588,22 @@
 
   document.querySelectorAll('[data-close-sheet]').forEach(btn => {
     btn.addEventListener('click', () => setSheetOpen(btn.dataset.closeSheet, false));
+    // Backdrops specifically (not the × / "Aplică" buttons, which
+    // are working fine as plain click targets) also get an explicit
+    // touchstart handler with preventDefault() — a plain click
+    // listener alone depends on the browser correctly synthesizing a
+    // click from a tap, which isn't reliable enough on every real
+    // phone to be the only path, even though it tests fine in
+    // simulation (the sidebar's own backdrop had this exact same gap
+    // between "works in a headless browser" and "works on an actual
+    // phone" — see its own handler further down for the fuller
+    // writeup of why).
+    if (btn.classList.contains('mobile-sheet-backdrop')) {
+      btn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        setSheetOpen(btn.dataset.closeSheet, false);
+      }, { passive: false });
+    }
   });
 
   function openReportMonthSelection(year){
