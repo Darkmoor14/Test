@@ -89,6 +89,11 @@
       opacity:0;pointer-events:none;transition:opacity .25s;
     }
     .mobile-sidebar-backdrop.open{opacity:1;pointer-events:auto;}
+    /* Stays interactive (though invisible, opacity already back to 0
+       via .open being removed) for a short buffer after closing —
+       see setMobileSidebarOpen()'s JS comment for why this needs to
+       be a separate class rather than tied to .open itself. */
+    .mobile-sidebar-backdrop.closing-guard{pointer-events:auto;}
     .mobile-sidebar{
       display:flex;flex-direction:column;
       position:fixed;top:0;left:0;bottom:0;width:78%;max-width:300px;z-index:300;
@@ -4941,23 +4946,43 @@
   const mobileSidebarCloseBtn = document.getElementById('mobileSidebarCloseBtn');
   const mobileSidebarLogoutBtn = document.getElementById('mobileSidebarLogoutBtn');
 
+  // Closing needs to keep the backdrop physically absorbing taps for
+  // a brief moment AFTER it starts visually fading out, not just
+  // instantly become inert — a "suppress the next click via a JS
+  // flag" approach was tried first and failed for a plain mouse
+  // click landing directly on the backdrop: the flag gets set inside
+  // the backdrop's own click handler, but a capturing document-level
+  // listener runs earlier in that exact same event's capture phase,
+  // before the flag is set, so it can't catch it. Physically keeping
+  // the backdrop interactive (pointer-events:auto via this separate
+  // .closing-guard class, decoupled from the .open class driving the
+  // fade) sidesteps that timing problem entirely — any stray
+  // touch/click landing in that area during the buffer window hits
+  // the backdrop itself (whose handler just closes an already-closed
+  // sidebar, a harmless no-op) instead of whatever ticket or link
+  // happens to be underneath.
+  let sidebarClosingGuardTimeout = null;
   function setMobileSidebarOpen(open){
     mobileSidebar.classList.toggle('open', open);
-    mobileSidebarBackdrop.classList.toggle('open', open);
     mobileSidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
     if (mobileMenuBtn) mobileMenuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    clearTimeout(sidebarClosingGuardTimeout);
+    if (open) {
+      mobileSidebarBackdrop.classList.add('open');
+      mobileSidebarBackdrop.classList.remove('closing-guard');
+    } else {
+      mobileSidebarBackdrop.classList.remove('open');
+      mobileSidebarBackdrop.classList.add('closing-guard');
+      sidebarClosingGuardTimeout = setTimeout(() => {
+        mobileSidebarBackdrop.classList.remove('closing-guard');
+      }, 400);
+    }
   }
   if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', () => setMobileSidebarOpen(true));
   if (mobileSidebarCloseBtn) mobileSidebarCloseBtn.addEventListener('click', () => setMobileSidebarOpen(false));
-  // Both click and touchstart — some mobile browsers can be slow or
-  // inconsistent synthesizing a click event from a tap on a fixed
-  // overlay backdrop, so touchstart is the more reliable signal on
-  // an actual phone even though click alone was enough in desktop
-  // testing. passive:true since nothing here needs to block the
-  // browser's default touch handling (no scrolling to prevent).
   if (mobileSidebarBackdrop) {
-    mobileSidebarBackdrop.addEventListener('click', () => setMobileSidebarOpen(false));
-    mobileSidebarBackdrop.addEventListener('touchstart', () => setMobileSidebarOpen(false), { passive: true });
+    mobileSidebarBackdrop.addEventListener('click', (e) => { e.preventDefault(); setMobileSidebarOpen(false); });
+    mobileSidebarBackdrop.addEventListener('touchstart', (e) => { e.preventDefault(); setMobileSidebarOpen(false); }, { passive: false });
   }
   if (mobileSidebarLogoutBtn) mobileSidebarLogoutBtn.addEventListener('click', () => {
     setMobileSidebarOpen(false);
