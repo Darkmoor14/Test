@@ -57,41 +57,68 @@
   .header-tab-btn:hover{color:var(--ink-900);background:var(--paper-100);}
   .header-tab-btn.active{color:var(--copper-600);background:var(--copper-050);}
 
-  /* ===== MOBILE BOTTOM TAB BAR =====
-     The top header's logo-swap-to-tabs trick doesn't hold up on a
-     phone — three Romanian tab labels have to fight the logo *and*
-     the user tag/notif/logout buttons for space in one ~76px row,
-     and something always loses. Below 900px, that swap is disabled
-     entirely (logo just stays put) and this bar takes over instead:
-     fixed to the bottom of the screen, where it has the full width
-     to itself and isn't competing with anything. Same underlying
-     need — jump between tabs from anywhere without scrolling back up
-     — solved with a pattern that's actually native to phones instead
-     of borrowed from desktop. */
-  .mobile-tab-bar{display:none;}
+  /* ===== MOBILE HAMBURGER MENU + SIDEBAR =====
+     Replaces the old fixed bottom tab bar with a slide-in sidebar,
+     opened via a hamburger button in the now-mostly-empty mobile
+     header (the "Insta Grup Admin" title and the standalone logout
+     link both moved out of that header entirely — logout now lives
+     at the bottom of this same sidebar instead of floating on its
+     own). Tab buttons inside the sidebar reuse the .mobile-tab-btn
+     class name (not a new one) purely so openAdminTab()'s existing
+     `document.querySelectorAll('.mobile-tab-btn')` active-state
+     toggling keeps working unmodified — the layout below is
+     otherwise a full rewrite from the old horizontal bar style. */
+  .mobile-menu-btn{display:none;}
+  .mobile-sidebar-backdrop{display:none;}
+  .mobile-sidebar{display:none;}
   @media(max-width:900px){
     .nav-header-tabs{display:none !important;}
     header.scrolled .logo-img{display:block !important;}
 
-    .mobile-tab-bar{
-      display:flex;position:fixed;left:0;right:0;z-index:200;
-      bottom:0;
+    .mobile-menu-btn{
+      display:flex;flex-direction:column;justify-content:center;gap:5px;
+      width:36px;height:36px;flex-shrink:0;
+      background:none;border:none;cursor:pointer;padding:0;
+    }
+    .mobile-menu-btn span{
+      display:block;width:22px;height:2px;background:var(--ink-900);border-radius:1px;
+    }
+
+    .mobile-sidebar-backdrop{
+      display:block;position:fixed;inset:0;background:rgba(20,24,29,0.45);z-index:299;
+      opacity:0;pointer-events:none;transition:opacity .25s;
+    }
+    .mobile-sidebar-backdrop.open{opacity:1;pointer-events:auto;}
+    .mobile-sidebar{
+      display:flex;flex-direction:column;
+      position:fixed;top:0;left:0;bottom:0;width:78%;max-width:300px;z-index:300;
       background:var(--paper-000);
-      border-top:1px solid var(--line-strong);
+      transform:translateX(-100%);transition:transform .25s ease;
+      box-shadow:2px 0 28px rgba(20,24,29,0.18);
+      padding-top:env(safe-area-inset-top, 0);
       padding-bottom:env(safe-area-inset-bottom, 0);
     }
+    .mobile-sidebar.open{transform:translateX(0);}
+    .mobile-sidebar-head{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:20px 20px 16px;border-bottom:1px solid var(--line);flex-shrink:0;
+    }
+    .mobile-sidebar-head span{font-family:var(--display);font-weight:600;font-size:16px;color:var(--ink-900);}
+    .mobile-sidebar-nav{flex:1;overflow-y:auto;padding:10px 0;}
     .mobile-tab-btn{
-      flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-      gap:4px;padding:18px 4px 16px;background:none;border:none;cursor:pointer;
-      font-family:var(--mono);font-size:11px;color:var(--ink-600);
+      display:flex;align-items:center;width:100%;text-align:left;
+      padding:15px 20px;background:none;border:none;border-left:3px solid transparent;
+      cursor:pointer;font-family:var(--body);font-size:15.5px;color:var(--ink-900);
     }
-    .mobile-tab-btn .mtb-dash{
-      width:20px;height:2px;background:transparent;border-radius:1px;
+    .mobile-tab-btn .mtb-dash{display:none;}
+    .mobile-tab-btn.active{
+      color:var(--copper-600);border-left-color:var(--copper-500);
+      background:var(--copper-050);font-weight:600;
     }
-    .mobile-tab-btn.active{color:var(--copper-600);}
-    .mobile-tab-btn.active .mtb-dash{background:var(--copper-500);}
-    /* leaves room so the fixed bar never covers the last bit of content */
-    .dash{padding-bottom:82px;}
+    .mobile-sidebar-foot{padding:16px 20px;border-top:1px solid var(--line);flex-shrink:0;}
+    .mobile-sidebar-foot .btn{width:100%;justify-content:center;}
+    /* No more fixed bottom bar to reserve space for now that
+       navigation moved into the sidebar — back to normal padding. */
 
     /* Mobile toolbars keep the inline desktop controls trimmed down:
        the year/month selects move into sheet-style drawers, the
@@ -189,26 +216,22 @@
       padding-bottom:14px;
     }
     .dash-head h1{
-      font-size:20px;
-      margin-bottom:0;
-      line-height:1.1;
+      display:none;
     }
     .dash-head p{
       display:none;
     }
     .mobile-logout-link{
-      display:inline-block;flex-shrink:0;margin-top:0;
-      font-family:var(--mono);font-size:12px;color:var(--ink-600);
-      background:none;border:1px solid var(--line-strong);border-radius:3px;
-      padding:6px 10px;cursor:pointer;
+      display:none;
     }
   }
 
   /* ===== BACK TO TOP =====
      Same small floating button on both desktop and mobile — appears
-     once you've scrolled down a bit, fades out near the top. On
-     mobile it sits just above the bottom tab bar rather than
-     overlapping it. */
+     once you've scrolled down a bit, fades out near the top. Used to
+     need extra bottom offset on mobile to clear the old fixed bottom
+     tab bar; that bar is gone now (navigation moved into the
+     sidebar), so it just uses the same default position everywhere. */
   .back-to-top{
     position:fixed;right:20px;bottom:24px;z-index:150;
     width:44px;height:44px;border-radius:50%;
@@ -221,14 +244,12 @@
   }
   .back-to-top.show{opacity:1;pointer-events:auto;transform:translateY(0);}
   .back-to-top:hover{border-color:var(--copper-500);color:var(--copper-600);}
-  @media(max-width:900px){
-    .back-to-top{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px);}
-  }
 
   /* ===== TOAST NOTIFICATION =====
      Small confirmation box after a save — bottom-center, above
-     everything else including the mobile tab bar. Same offset trick
-     as .back-to-top on mobile so it never overlaps that bar. */
+     everything else. Used to need the same bottom-bar-clearing
+     offset as .back-to-top on mobile; no longer necessary now that
+     the bottom tab bar is gone. */
   .toast{
     position:fixed;left:50%;bottom:24px;z-index:250;
     transform:translate(-50%,12px);
@@ -241,9 +262,6 @@
   }
   .toast.show{opacity:1;transform:translate(-50%,0);}
   .toast .toast-dot{width:7px;height:7px;border-radius:50%;background:var(--signal-green);flex-shrink:0;}
-  @media(max-width:900px){
-    .toast{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px);}
-  }
 
   /* Hides these four fixed-bottom elements entirely while the on-
      screen keyboard is open (html.kb-open, toggled in JS via the
@@ -252,7 +270,8 @@
      exact gap to sit flush above the keyboard. None of these are
      things you need while actively typing into a field, and they
      reappear immediately once the keyboard closes. */
-  html.kb-open .mobile-tab-bar,
+  html.kb-open .mobile-sidebar-backdrop,
+  html.kb-open .mobile-sidebar,
   html.kb-open .back-to-top,
   html.kb-open .toast,
   html.kb-open .archive-bar{
@@ -265,7 +284,8 @@
      little too early and look like it's floating. Keeping the same
      elements hidden for one short settling beat after close avoids
      that jump. */
-  html.kb-settling .mobile-tab-bar,
+  html.kb-settling .mobile-sidebar-backdrop,
+  html.kb-settling .mobile-sidebar,
   html.kb-settling .back-to-top,
   html.kb-settling .toast,
   html.kb-settling .archive-bar{
@@ -350,13 +370,24 @@
     html.report-focused-view .chips.report-focused-chips{display:flex;}
   }
   @media(max-width:900px){
-    html.report-focused-view .overview-mobile-status-filter,
-    html.report-focused-view .overview-year-bar{display:none;}
+    html.report-focused-view .overview-mobile-status-filter{display:none;}
+    /* Year/month bar hidden on mobile for everyone now (not just the
+       report-focused role) — the "Filtre" button below opens the same
+       sheet with year/month selects instead, for all admins, not just
+       that one account. Status chips stay as they were: report-focused
+       still gets its 3-way split inside the sheet, everyone else keeps
+       their own separate inline chip row untouched. */
+    .overview-year-bar{display:none;}
   }
-  .report-focused-filters-btn{display:none;}
-  @media(max-width:900px){
-    html.report-focused-view .report-focused-filters-btn{display:inline-flex;}
-  }
+  /* The sheet's own status-chip section is populated with the
+     report-focused role's specific 3-way split (see the JS that
+     fills #overviewStatusChipsSheet) — showing it to regular admins
+     would be showing them chips for a workflow that isn't theirs.
+     They keep using their existing separate inline chip row
+     (.overview-mobile-status-filter, untouched above) instead; the
+     sheet for them is year/month only. */
+  #overviewSheetStatusSection{display:none;}
+  html.report-focused-view #overviewSheetStatusSection{display:block;}
   /* Desktop only — on mobile, .admin-tabs-row (the tabs this spacing
      is meant to separate from) is hidden entirely, replaced by the
      bottom tab bar, so this specific relationship doesn't apply
@@ -777,9 +808,6 @@
     max-width:92vw;flex-wrap:wrap;justify-content:center;
   }
   .archive-bar.show{display:flex;opacity:1;pointer-events:auto;transform:translate(-50%,0);}
-  @media(max-width:900px){
-    .archive-bar{bottom:calc(82px + env(safe-area-inset-bottom, 0) + 16px);}
-  }
   .ticket-select{
     display:flex;align-items:flex-start;gap:10px;
   }
@@ -948,6 +976,9 @@
 <div class="dash" id="dash">
   <div class="wrap">
     <div class="dash-head">
+      <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Meniu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
       <div>
         <h1>Insta Grup Admin</h1>
         <p>Gestionați tichetele primite prin formularul de pe site și proiectele afișate public.</p>
@@ -1016,7 +1047,7 @@
       <div class="overview-mobile-status-filter">
         <div class="chips" id="overviewStatusChipsMobile"></div>
       </div>
-      <button class="btn toolbar-mobile-only report-focused-filters-btn" id="overviewFiltersMobileBtn" type="button">Filtre</button>
+      <button class="btn toolbar-mobile-only" id="overviewFiltersMobileBtn" type="button">Filtre</button>
       <div class="overview-year-bar">
         <label for="yearFilterSelect">An:</label>
         <select id="yearFilterSelect"></select>
@@ -1317,7 +1348,7 @@
         <select id="monthFilterSelectOverviewMobile"></select>
       </div>
     </div>
-    <div class="sheet-filter-status">
+    <div class="sheet-filter-status" id="overviewSheetStatusSection">
       <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Stare listă</label>
       <div class="chips" id="overviewStatusChipsSheet"></div>
     </div>
@@ -2533,6 +2564,15 @@
           </button>
         `;
       }).join('');
+    }
+
+    // Shows the active year/month right on the button face — you'd
+    // otherwise have to open the sheet just to check what's currently
+    // filtered, which defeats the point of a quick-glance button.
+    if (overviewFiltersMobileBtn) {
+      overviewFiltersMobileBtn.textContent = (ticketYearFilter === 'all' && ticketMonthFilter === 'all')
+        ? 'Filtre'
+        : `Filtre · ${ticketYearFilter === 'all' ? 'toți anii' : ticketYearFilter}${ticketMonthFilter === 'all' ? '' : ', ' + MONTH_FILTER_NAMES[Number(ticketMonthFilter) - 1].slice(0, 3)}`;
     }
   }
 
@@ -4794,29 +4834,60 @@
   <span id="toastMessage"></span>
 </div>
 
-<div class="mobile-tab-bar" id="mobileTabBar">
-  <button type="button" class="mobile-tab-btn active" data-tab="overview">
-    <span class="mtb-dash"></span>
-    <span>Prezentare</span>
-  </button>
-  <button type="button" class="mobile-tab-btn" data-tab="tickets">
-    <span class="mtb-dash"></span>
-    <span>Sesizări</span>
-  </button>
-  <button type="button" class="mobile-tab-btn" data-tab="projects">
-    <span class="mtb-dash"></span>
-    <span>Proiecte</span>
-  </button>
-  <button type="button" class="mobile-tab-btn" data-tab="backlog">
-    <span class="mtb-dash"></span>
-    <span>Avarii</span>
-  </button>
+<div class="mobile-sidebar-backdrop" id="mobileSidebarBackdrop"></div>
+<div class="mobile-sidebar" id="mobileSidebar" aria-hidden="true">
+  <div class="mobile-sidebar-head">
+    <span>Meniu</span>
+    <button type="button" class="sheet-close" id="mobileSidebarCloseBtn" aria-label="Închide">×</button>
+  </div>
+  <nav class="mobile-sidebar-nav">
+    <button type="button" class="mobile-tab-btn active" data-tab="overview">
+      <span class="mtb-dash"></span>
+      <span>Prezentare generală</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="tickets">
+      <span class="mtb-dash"></span>
+      <span>Sesizări</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="projects">
+      <span class="mtb-dash"></span>
+      <span>Proiecte curente</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="backlog">
+      <span class="mtb-dash"></span>
+      <span>Avarii rețele</span>
+    </button>
+  </nav>
+  <div class="mobile-sidebar-foot">
+    <button type="button" class="btn" id="mobileSidebarLogoutBtn">Deconectare</button>
+  </div>
 </div>
 
 <script>
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const mobileSidebar = document.getElementById('mobileSidebar');
+  const mobileSidebarBackdrop = document.getElementById('mobileSidebarBackdrop');
+  const mobileSidebarCloseBtn = document.getElementById('mobileSidebarCloseBtn');
+  const mobileSidebarLogoutBtn = document.getElementById('mobileSidebarLogoutBtn');
+
+  function setMobileSidebarOpen(open){
+    mobileSidebar.classList.toggle('open', open);
+    mobileSidebarBackdrop.classList.toggle('open', open);
+    mobileSidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
+    if (mobileMenuBtn) mobileMenuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', () => setMobileSidebarOpen(true));
+  if (mobileSidebarCloseBtn) mobileSidebarCloseBtn.addEventListener('click', () => setMobileSidebarOpen(false));
+  if (mobileSidebarBackdrop) mobileSidebarBackdrop.addEventListener('click', () => setMobileSidebarOpen(false));
+  if (mobileSidebarLogoutBtn) mobileSidebarLogoutBtn.addEventListener('click', () => {
+    setMobileSidebarOpen(false);
+    performLogout();
+  });
+
   document.querySelectorAll('.mobile-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       openAdminTab(btn.dataset.tab);
+      setMobileSidebarOpen(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   });
