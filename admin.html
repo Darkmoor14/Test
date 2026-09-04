@@ -1696,10 +1696,11 @@
   // instead of by date, since with archived tickets now mixed back
   // in alongside active ones, a date-sorted table put them in a
   // confusing, hard-to-scan order. Numeric-aware comparison so
-  // "SES-2026-2" sorts before "SES-2026-10", not after it.
+  // "SES-2026-10" sorts above "SES-2026-2", not below it. Descending
+  // — newest (highest) ticket number first.
   function sortTicketsByNumber(tickets){
     return [...tickets].sort((a, b) =>
-      (a.ticket_number || '').localeCompare(b.ticket_number || '', undefined, { numeric: true })
+      (b.ticket_number || '').localeCompare(a.ticket_number || '', undefined, { numeric: true })
     );
   }
 
