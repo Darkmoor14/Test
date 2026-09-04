@@ -2139,11 +2139,11 @@
           el.style.display = 'none';
         });
         // The mobile Overview status filter (Toate/Active/Soluționate)
-        // is scoped to vlasbogdan@ only — sesizari@ works from the
-        // full, unfiltered table on Overview instead.
-        document.querySelectorAll('.overview-mobile-status-filter').forEach(el => {
-          el.style.display = 'none';
-        });
+        // used to be hidden here, on the theory that sesizari@ should
+        // just work from the full, unfiltered table on Overview —
+        // but that meant this account's phone view had year/month
+        // filtering only, with no way to narrow by status at all.
+        // Now enabled for this role too, same chips full admins get.
       }
       runAutoArchiveSweep().finally(() => {
         loadTickets();
@@ -4902,7 +4902,16 @@
   }
   if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', () => setMobileSidebarOpen(true));
   if (mobileSidebarCloseBtn) mobileSidebarCloseBtn.addEventListener('click', () => setMobileSidebarOpen(false));
-  if (mobileSidebarBackdrop) mobileSidebarBackdrop.addEventListener('click', () => setMobileSidebarOpen(false));
+  // Both click and touchstart — some mobile browsers can be slow or
+  // inconsistent synthesizing a click event from a tap on a fixed
+  // overlay backdrop, so touchstart is the more reliable signal on
+  // an actual phone even though click alone was enough in desktop
+  // testing. passive:true since nothing here needs to block the
+  // browser's default touch handling (no scrolling to prevent).
+  if (mobileSidebarBackdrop) {
+    mobileSidebarBackdrop.addEventListener('click', () => setMobileSidebarOpen(false));
+    mobileSidebarBackdrop.addEventListener('touchstart', () => setMobileSidebarOpen(false), { passive: true });
+  }
   if (mobileSidebarLogoutBtn) mobileSidebarLogoutBtn.addEventListener('click', () => {
     setMobileSidebarOpen(false);
     performLogout();
