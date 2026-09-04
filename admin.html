@@ -737,6 +737,14 @@
      Sesizări/Proiecte curente/Avarii rețele. */
   @media(max-width:900px){
     .result-count{display:none;}
+    /* Status chips move into the "Filtre" sheet on mobile now,
+       same consolidation as Overview/Sesizări — ID selectors here
+       (not the shared .chips class), so specificity alone keeps
+       these hidden regardless of source order, unlike the
+       class-vs-class rules elsewhere in this file that needed
+       careful placement. */
+    #projectsChipsWrap{display:none;}
+    #backlogChipsWrap{display:none;}
   }
   .overview-mobile-status-filter{display:none;}
   .overview-mobile-status-filter .chips{gap:10px;}
@@ -1336,6 +1344,9 @@
         <div class="toolbar-mobile-summary">
           <span id="backlogCountMobile">0 lucrări</span>
         </div>
+        <div class="toolbar-mobile-actions">
+          <button class="btn toolbar-mobile-only" id="backlogFiltersMobileBtn" type="button">Filtre</button>
+        </div>
       </div>
 
       <div class="project-form" id="backlogForm" style="display:none;">
@@ -1442,7 +1453,7 @@
     <div class="sheet-head">
       <div>
         <h3 id="projectFiltersSheetTitle">Filtre proiecte</h3>
-        <p>Păstrezi filtrarea pe an într-un panou separat, fără să încarci bara principală pe telefon.</p>
+        <p>Controlezi rapid anul și starea listei fără să aglomerezi bara de sus pe telefon.</p>
       </div>
       <button type="button" class="sheet-close" data-close-sheet="projectFiltersSheet" aria-label="Închide">×</button>
     </div>
@@ -1452,8 +1463,33 @@
         <select id="projectYearFilterSelectMobile"></select>
       </div>
     </div>
+    <div class="sheet-filter-status">
+      <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Stare listă</label>
+      <div class="chips" id="projectsChipsWrapSheet"></div>
+    </div>
     <div class="sheet-actions">
       <button type="button" class="btn btn-primary" data-close-sheet="projectFiltersSheet">Aplică</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="backlogFiltersSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="backlogFiltersSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="backlogFiltersSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h3 id="backlogFiltersSheetTitle">Filtre avarii rețele</h3>
+        <p>Controlezi rapid starea listei fără să aglomerezi bara de sus pe telefon.</p>
+      </div>
+      <button type="button" class="sheet-close" data-close-sheet="backlogFiltersSheet" aria-label="Închide">×</button>
+    </div>
+    <div class="sheet-filter-status">
+      <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Stare listă</label>
+      <div class="chips" id="backlogChipsWrapSheet"></div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-primary" data-close-sheet="backlogFiltersSheet">Aplică</button>
     </div>
   </div>
 </div>
@@ -4134,7 +4170,8 @@
   });
 
   const projectsChipsWrap = document.getElementById('projectsChipsWrap');
-  projectChipDefs.forEach(c => {
+  const projectsChipsWrapSheet = document.getElementById('projectsChipsWrapSheet');
+  function buildProjectChip(c, container){
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'chip' + (c.key === projectsFilter ? ' active' : '');
@@ -4144,11 +4181,15 @@
       projectsFilter = c.key;
       projectSelectedIds.clear();
       updateProjectsArchiveBar();
-      document.querySelectorAll('#projectsChipsWrap .chip').forEach(x => x.classList.remove('active'));
-      chip.classList.add('active');
+      document.querySelectorAll('#projectsChipsWrap .chip, #projectsChipsWrapSheet .chip').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll(`#projectsChipsWrap [data-key="${c.key}"], #projectsChipsWrapSheet [data-key="${c.key}"]`).forEach(x => x.classList.add('active'));
       renderProjects();
     });
-    projectsChipsWrap.appendChild(chip);
+    container.appendChild(chip);
+  }
+  projectChipDefs.forEach(c => {
+    buildProjectChip(c, projectsChipsWrap);
+    if (projectsChipsWrapSheet) buildProjectChip(c, projectsChipsWrapSheet);
   });
 
   async function loadProjects(){
@@ -4584,19 +4625,30 @@
     { key: 'Toate', label: 'Toate' },
   ];
   const backlogChipsWrap = document.getElementById('backlogChipsWrap');
-  backlogChipDefs.forEach(c => {
+  const backlogChipsWrapSheet = document.getElementById('backlogChipsWrapSheet');
+  function buildBacklogChip(c, container){
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'chip' + (c.key === backlogFilter ? ' active' : '');
     chip.textContent = c.label;
+    chip.dataset.key = c.key;
     chip.addEventListener('click', () => {
       backlogFilter = c.key;
-      backlogChipsWrap.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
-      chip.classList.add('active');
+      document.querySelectorAll('#backlogChipsWrap .chip, #backlogChipsWrapSheet .chip').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll(`#backlogChipsWrap [data-key="${c.key}"], #backlogChipsWrapSheet [data-key="${c.key}"]`).forEach(x => x.classList.add('active'));
       renderBacklogProjects();
     });
-    backlogChipsWrap.appendChild(chip);
+    container.appendChild(chip);
+  }
+  backlogChipDefs.forEach(c => {
+    buildBacklogChip(c, backlogChipsWrap);
+    if (backlogChipsWrapSheet) buildBacklogChip(c, backlogChipsWrapSheet);
   });
+
+  const backlogFiltersMobileBtn = document.getElementById('backlogFiltersMobileBtn');
+  if (backlogFiltersMobileBtn) {
+    backlogFiltersMobileBtn.addEventListener('click', () => setSheetOpen('backlogFiltersSheet', true));
+  }
 
   function renderBacklogProjects(){
     const list = document.getElementById('backlogList');
