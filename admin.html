@@ -1654,7 +1654,7 @@
       return { year: now.getFullYear(), month: now.getMonth() + 1 };
     }
     if (!t.submitted_on) return { year: null, month: null };
-    const d = new Date(t.submitted_on);
+    const d = parseTicketDate(t.submitted_on);
     return { year: d.getFullYear(), month: d.getMonth() + 1 };
   }
 
@@ -1684,23 +1684,23 @@
   // with resolved tickets sinking to the bottom as before.
   function sortTicketsForDisplay(tickets){
     const urgentActive = tickets.filter(t => t.type === 'Anunt accident' && t.status !== 'Terminat')
-      .sort((a, b) => new Date(b.submitted_on) - new Date(a.submitted_on));
+      .sort((a, b) => parseTicketDate(b.submitted_on) - parseTicketDate(a.submitted_on));
     const regularActive = tickets.filter(t => t.type !== 'Anunt accident' && t.status !== 'Terminat')
-      .sort((a, b) => new Date(b.submitted_on) - new Date(a.submitted_on));
+      .sort((a, b) => parseTicketDate(b.submitted_on) - parseTicketDate(a.submitted_on));
     const done = tickets.filter(t => t.status === 'Terminat')
-      .sort((a, b) => new Date(b.resolved_on || b.submitted_on) - new Date(a.resolved_on || a.submitted_on));
+      .sort((a, b) => parseTicketDate(b.resolved_on || b.submitted_on) - parseTicketDate(a.resolved_on || a.submitted_on));
     return [...urgentActive, ...regularActive, ...done];
   }
 
-  // Used specifically by the overview table/cards — pure chronological
-  // order by submission date, newest first, regardless of status.
-  // sortTicketsForDisplay() above (still used on the Sesizări tab
-  // itself) intentionally groups urgent-first for triage purposes;
-  // the overview table is more of a straightforward activity log, so
-  // resolved tickets shouldn't get pushed out of their actual place
-  // in the timeline.
-  function sortTicketsChronological(tickets){
-    return [...tickets].sort((a, b) => new Date(b.submitted_on) - new Date(a.submitted_on));
+  // Used by the overview table specifically — ticket number order
+  // instead of by date, since with archived tickets now mixed back
+  // in alongside active ones, a date-sorted table put them in a
+  // confusing, hard-to-scan order. Numeric-aware comparison so
+  // "SES-2026-2" sorts before "SES-2026-10", not after it.
+  function sortTicketsByNumber(tickets){
+    return [...tickets].sort((a, b) =>
+      (a.ticket_number || '').localeCompare(b.ticket_number || '', undefined, { numeric: true })
+    );
   }
 
   let agingOnlyFilter = false;
@@ -1726,17 +1726,20 @@
       // per the "flag on top of the existing status" approach.
       base = allTickets.filter(t => !t.archived && t.status === 'Terminat' && !t.resolution_note);
     } else {
-      // "Soluționate" specifically means truly complete — Terminat
-      // AND the report is filled in. A Terminat ticket missing its
-      // report lives only in "Așteaptă raport" above, not both —
-      // matches "the ticket should move to a new section" rather
-      // than just also appearing there.
+      // Previously "Terminat" required a filled-in resolution_note
+      // too, splitting finished-but-unreported tickets off into
+      // "AwaitingReport" only — meaning a resolved ticket without
+      // "Ce s-a făcut" text never showed under "Terminat" itself.
+      // That's wrong: ticket status and report-writing are two
+      // separate things, and a ticket being done shouldn't depend on
+      // whether someone has gotten around to writing up what was
+      // done. "Terminat" now means exactly that — status is
+      // Terminat, full stop. "AwaitingReport" still exists below as
+      // a useful additional lens (which Terminat tickets still need
+      // a report written), it just no longer controls whether the
+      // ticket appears under "Terminat" itself.
       base = allTickets.filter(t => !t.archived && (
-        activeFilter === 'Toate'
-          ? true
-          : activeFilter === 'Terminat'
-            ? (t.status === 'Terminat' && !!t.resolution_note)
-            : t.status === activeFilter
+        activeFilter === 'Toate' ? true : t.status === activeFilter
       ));
     }
     base = base.filter(t => matchesSearch(t, query) && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
@@ -1746,7 +1749,7 @@
     if (agingOnlyFilter) {
       base = base.filter(t => {
         if (t.status === 'Terminat' || !t.submitted_on) return false;
-        const daysOpen = (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24);
+        const daysOpen = (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24);
         return daysOpen > AGING_THRESHOLD_DAYS;
       });
     }
@@ -1858,15 +1861,48 @@
   // fmtDateOnly(), since that's a much smaller, lower-risk change and
   // every existing caller keeps working exactly as before, just
   // without the time.
+  // Some historical tickets have submitted_on/resolved_on stored with
+  // a 2-digit year (e.g. someone typed "26" instead of "2026" into a
+  // date field) — a perfectly VALID JavaScript Date (literally the
+  // year 26 AD), so it never trips an isNaN check, but it sorts and
+  // filters nowhere near where it should: string/numeric comparisons
+  // put "year 26" before every real year, year-filter chips never
+  // match it since no chip says "26", and aging calculations turn
+  // into nonsense multi-century numbers. Every ticket in this system
+  // is genuinely from the 2000s, so correcting a sub-100 year by
+  // adding 2000 is safe rather than guessing — this is the one shared
+  // place that correction happens, used everywhere a ticket date gets
+  // parsed (filtering, sorting, aging, charts, exports, display) so
+  // the fix can't drift out of sync between call sites again the way
+  // it did when only the chart had this fix.
+  function parseTicketDate(dateStr){
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return d;
+    if (d.getFullYear() < 100) d.setFullYear(d.getFullYear() + 2000);
+    return d;
+  }
+
+  // Guards against exactly the bug that caused mis-sorted/invisible
+  // tickets elsewhere: a native date input's value should always be
+  // a full 4-digit year, but a browser that lets an incomplete typed
+  // year through (e.g. "26" before finishing "2026") can hand back
+  // something like "0026-08-15". Catching it at entry (both when
+  // creating a ticket and when editing one) is better than relying
+  // solely on parseTicketDate() to paper over it everywhere downstream.
+  function hasSuspiciousYear(val){
+    const m = /^(\d{4})-\d{2}-\d{2}$/.exec(val || '');
+    return !!(m && parseInt(m[1], 10) < 1900);
+  }
+
   function fmtDate(iso){
     if(!iso) return '—';
-    const d = new Date(iso);
+    const d = parseTicketDate(iso);
     return d.toLocaleDateString('ro-RO', {day:'2-digit', month:'2-digit', year:'numeric'});
   }
 
   function fmtDateOnly(iso){
     if(!iso) return '—';
-    const d = new Date(iso);
+    const d = parseTicketDate(iso);
     return d.toLocaleDateString('ro-RO', {day:'2-digit', month:'2-digit', year:'numeric'});
   }
 
@@ -1877,7 +1913,7 @@
   // displayed date/time, confusing anyone editing it near midnight).
   function toDateTimeInputParts(iso){
     if (!iso) return { date: '', time: '' };
-    const d = new Date(iso);
+    const d = parseTicketDate(iso);
     if (isNaN(d.getTime())) return { date: '', time: '' };
     const pad = (n) => String(n).padStart(2, '0');
     return {
@@ -2307,16 +2343,18 @@
     const active = allTickets.filter(t => !t.archived && t.status !== 'Terminat');
     const agingCount = active.filter(t => {
       if (!t.submitted_on) return false;
-      const daysOpen = (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24);
+      const daysOpen = (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24);
       return daysOpen > AGING_THRESHOLD_DAYS;
     }).length;
     const accidentCount = active.filter(t => t.type === 'Anunt accident').length;
     const funcCount = active.length - accidentCount;
-    // Every resolved ticket, report written or not — deliberately
-    // NOT the "isFullyComplete" (has-report) distinction used
-    // elsewhere for fading/vlasbogdan@'s dedicated view; this card
-    // means "closed," full stop.
-    const solvedCount = allTickets.filter(t => !t.archived && t.status === 'Terminat').length;
+    // Every resolved ticket, report written or not, archived or not
+    // — deliberately NOT the "isFullyComplete" (has-report)
+    // distinction used elsewhere for fading/vlasbogdan@'s dedicated
+    // view; this card means "closed," full stop, matching the
+    // overview table below now also including archived Terminat
+    // tickets rather than hiding them.
+    const solvedCount = allTickets.filter(t => t.status === 'Terminat').length;
 
     const setText = (id, value) => {
       const el = document.getElementById(id);
@@ -2360,7 +2398,15 @@
   function renderOverviewTable(){
     const tbody = document.getElementById('overviewTableBody');
     const cardsWrap = document.getElementById('overviewCardsMobile');
-    let visible = allTickets.filter(t => !t.archived && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
+    // Archived tickets are deliberately included here (unlike the
+    // Sesizări tab's own "Soluționate" filter, which still excludes
+    // them via getFilteredTickets()'s own !t.archived check, and
+    // unlike the public site, which never sees archived tickets at
+    // all) — archiving only hides a solved ticket from clutter, it
+    // doesn't erase it from this overview, and a ticket's actual
+    // status (virtually always Terminat by the time it's archived)
+    // still drives its green/done styling below exactly as before.
+    let visible = allTickets.filter(t => matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
 
     // vlasbogdan@'s Overview is a dedicated "what needs my report"
     // table — priority cards/charts are hidden for this account (see
@@ -2400,7 +2446,7 @@
         if (overviewCardFilter === 'aging') {
           visible = visible.filter(t => {
             if (!t.submitted_on) return false;
-            const daysOpen = (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24);
+            const daysOpen = (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24);
             return daysOpen > AGING_THRESHOLD_DAYS;
           });
         } else if (overviewCardFilter === 'functional') {
@@ -2419,7 +2465,7 @@
       return;
     }
 
-    const ordered = sortTicketsChronological(visible);
+    const ordered = sortTicketsByNumber(visible);
 
     tbody.innerHTML = ordered.map(t => {
       const isDone = t.status === 'Terminat';
@@ -2434,7 +2480,7 @@
       // the awaiting-report distinction called out visually.
       const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !!t.resolution_note);
       const isUrgent = t.type === 'Anunt accident';
-      const daysOpen = t.submitted_on ? (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
+      const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
       const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
       const resolutionDays = (isDone && t.resolved_on && t.submitted_on)
         ? calendarDaysBetween(t.submitted_on, t.resolved_on)
@@ -2468,7 +2514,7 @@
       // the awaiting-report distinction called out visually.
       const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !!t.resolution_note);
         const isUrgent = t.type === 'Anunt accident';
-        const daysOpen = t.submitted_on ? (Date.now() - new Date(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
+        const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
         const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
         return `
           <button type="button" class="ov-card ${isFullyComplete ? 'done' : ''} ${isUrgent && !isDone ? 'urgent' : ''}" data-ticket-id="${t.id}">
@@ -2683,8 +2729,8 @@
   // meant to answer "how many calendar days did this take," not "how
   // many hours elapsed."
   function calendarDaysBetween(submittedISO, resolvedISO){
-    const submitted = new Date(submittedISO);
-    const resolved = new Date(resolvedISO);
+    const submitted = parseTicketDate(submittedISO);
+    const resolved = parseTicketDate(resolvedISO);
     const submittedDateOnly = new Date(submitted.getFullYear(), submitted.getMonth(), submitted.getDate());
     const resolvedDateOnly = new Date(resolved.getFullYear(), resolved.getMonth(), resolved.getDate());
     const diffDays = Math.round((resolvedDateOnly - submittedDateOnly) / (1000 * 60 * 60 * 24));
@@ -2730,34 +2776,17 @@
     const monthCounts = {}; // 'YYYY-MM' -> count
     volumeSource.forEach(t => {
       if (!t.submitted_on) return;
-      const d = new Date(t.submitted_on);
+      // The 2-digit-year correction that used to live inline here
+      // (the "August appears twice" bug — see git history/older
+      // comments if curious) now happens once, centrally, in
+      // parseTicketDate() — every call site gets the fix instead of
+      // just this chart.
+      const d = parseTicketDate(t.submitted_on);
       if (isNaN(d.getTime())) {
         console.warn('Skipping ticket with unparseable submitted_on in chart:', t.ticket_number, t.submitted_on);
         return;
       }
-      let year = d.getFullYear();
-      // A genuinely unparseable date (caught above) turned out NOT to
-      // be the actual cause of the "August appears twice" bug — it
-      // persisted after that fix. The real cause: some submitted_on
-      // value is apparently being parsed with a two-digit year,
-      // giving year=26 (literally the year 26 AD, not 2026) instead
-      // of year=2026 — a perfectly VALID Date to JavaScript, so the
-      // isNaN check above never catches it. Concatenating that into
-      // the key below produces "26-08" instead of "2026-08", and
-      // "26-08" sorts AFTER "2026-08"/"2026-09" as plain text (since
-      // comparing character by character, '6' > '0'), which is
-      // exactly why the phantom bar always lands at the far right —
-      // and its label loses the year entirely, because slicing the
-      // last two characters off a string that's already only two
-      // characters long ("26") returns nothing, matching the "Aug"
-      // with no year suffix seen in the screenshot precisely.
-      // Correcting rather than skipping — this is real, countable
-      // ticket data, just parsed with the wrong century, and every
-      // ticket here should genuinely be from the 2000s.
-      if (year < 100) {
-        console.warn('Correcting suspicious 2-digit year parsed from submitted_on in chart:', t.ticket_number, t.submitted_on, '-> treating year', year, 'as', year + 2000);
-        year += 2000;
-      }
+      const year = d.getFullYear();
       const key = year + '-' + String(d.getMonth() + 1).padStart(2, '0');
       monthCounts[key] = (monthCounts[key] || 0) + 1;
     });
@@ -2874,6 +2903,7 @@
       const safeDescription = escapeHtml(t.description || '');
       const safeResolvedBy = escapeHtml(t.resolved_by || '');
       const resolvedDateParts = toDateTimeInputParts(t.resolved_on);
+      const submittedDateParts = toDateTimeInputParts(t.submitted_on);
       const isEditing = (t.id === editingTicketId);
       card.innerHTML = `
         <div class="ticket-top">
@@ -2904,6 +2934,10 @@
           <div class="ctrl-field">
             <label>Adresă identificare loc defect</label>
             <input type="text" class="f-address" value="${safeAddress}" ${isArchived ? 'disabled' : ''}>
+          </div>
+          <div class="ctrl-field">
+            <label>Data trimiterii</label>
+            <input type="date" class="f-submitted-date" value="${submittedDateParts.date}" ${isArchived ? 'disabled' : ''}>
           </div>
           <div class="ctrl-field full">
             <label>Descriere</label>
@@ -3064,9 +3098,38 @@
           // it with the current time anyway. Left as undefined here,
           // it's simply omitted from the payload below, so the
           // column isn't touched at all for a ticket staying Ongoing.
+          // Editable specifically so a mistyped year (someone typing
+          // "26" instead of "2026" when the ticket was first logged)
+          // can actually be corrected here rather than living wrong
+          // forever — previously "Trimis la" was pure display text
+          // with no way to fix it. Only recomputed when the date
+          // field's value actually changed from what it loaded with;
+          // an unrelated edit (fixing a phone number, say) shouldn't
+          // silently reset the time-of-day portion of submitted_on
+          // just because this field re-rendered alongside it.
+          // Computed before the resolved-date check below, since that
+          // check needs to compare against this (possibly just-
+          // corrected) value, not the stale original.
+          const submittedDateVal = isEditing ? card.querySelector('.f-submitted-date').value : null;
+          if (isEditing && !submittedDateVal) {
+            alert('Data trimiterii nu poate fi golită.');
+            return;
+          }
+          if (isEditing && hasSuspiciousYear(submittedDateVal)) {
+            alert('Anul din data trimiterii pare greșit (verificați să fie scris complet, ex: 2026, nu 26).');
+            return;
+          }
+          const submittedOnISO = (isEditing && submittedDateVal !== submittedDateParts.date)
+            ? combineDateTimeToISO(submittedDateVal)
+            : t.submitted_on;
+
           let resolvedOnISO;
           if (newStatus === 'Terminat') {
             const resolvedDateVal = card.querySelector('.f-resolved-date').value;
+            if (hasSuspiciousYear(resolvedDateVal)) {
+              alert('Anul din data soluționării pare greșit (verificați să fie scris complet, ex: 2026, nu 26).');
+              return;
+            }
             resolvedOnISO = combineDateTimeToISO(resolvedDateVal);
 
             // A resolution can't have happened before the issue was
@@ -3079,10 +3142,10 @@
             // hour, which was incorrectly blocking same-day
             // resolutions whenever the ticket happened to be
             // submitted later in the day than the current time.
-            const submittedDateOnly = t.submitted_on ? new Date(t.submitted_on).toDateString() : null;
+            const submittedDateOnly = submittedOnISO ? parseTicketDate(submittedOnISO).toDateString() : null;
             const resolvedDateOnly = new Date(resolvedOnISO).toDateString();
             if (submittedDateOnly && new Date(resolvedDateOnly) < new Date(submittedDateOnly)) {
-              alert(`Data soluționării (${fmtDateOnly(resolvedOnISO)}) nu poate fi înainte de data sesizării (${fmtDateOnly(t.submitted_on)}).`);
+              alert(`Data soluționării (${fmtDateOnly(resolvedOnISO)}) nu poate fi înainte de data sesizării (${fmtDateOnly(submittedOnISO)}).`);
               return;
             }
           }
@@ -3137,6 +3200,7 @@
             email: emailVal || null,
             address: addressVal,
             description: descriptionVal || null,
+            submitted_on: submittedOnISO,
           };
           // Terminat → resolvedOnISO (computed above). Anything else
           // → explicitly cleared to null, not just left untouched —
@@ -3318,7 +3382,7 @@
     const resolved = tickets.filter(ticket => ticket.submitted_on && ticket.resolved_on);
     if (resolved.length === 0) return 0;
     const totalHours = resolved.reduce((sum, ticket) => {
-      return sum + ((new Date(ticket.resolved_on) - new Date(ticket.submitted_on)) / (1000 * 60 * 60));
+      return sum + ((parseTicketDate(ticket.resolved_on) - parseTicketDate(ticket.submitted_on)) / (1000 * 60 * 60));
     }, 0);
     return Math.round((totalHours / resolved.length) * 10) / 10;
   }
@@ -3496,9 +3560,9 @@
 
     yearTickets
       .filter(ticket => ticket.submitted_on)
-      .sort((a, b) => new Date(a.submitted_on) - new Date(b.submitted_on))
+      .sort((a, b) => parseTicketDate(a.submitted_on) - parseTicketDate(b.submitted_on))
       .forEach(ticket => {
-        const submitted = new Date(ticket.submitted_on);
+        const submitted = parseTicketDate(ticket.submitted_on);
         if (!Number.isNaN(submitted.getTime())) {
           monthlyBuckets[submitted.getMonth()].push(ticket);
         }
@@ -3599,7 +3663,7 @@
 
       const yearTickets = allTickets.filter(t => {
         if (!t.submitted_on) return false;
-        return new Date(t.submitted_on).getFullYear() === year;
+        return parseTicketDate(t.submitted_on).getFullYear() === year;
       });
       if (yearTickets.length === 0) {
         alert(`Nu există sesizări pentru anul ${year}.`);
@@ -3609,7 +3673,7 @@
       if (monthSelection !== 'all') {
         const selectedMonthSet = new Set(monthSelection);
         const hasTicketsInSelection = yearTickets.some(t => {
-          const submitted = new Date(t.submitted_on);
+          const submitted = parseTicketDate(t.submitted_on);
           return !Number.isNaN(submitted.getTime()) && selectedMonthSet.has(submitted.getMonth());
         });
         if (!hasTicketsInSelection) {
@@ -3622,7 +3686,7 @@
       const exportTickets = monthSelection === 'all'
         ? yearTickets
         : yearTickets.filter(t => {
-            const submitted = new Date(t.submitted_on);
+            const submitted = parseTicketDate(t.submitted_on);
             return !Number.isNaN(submitted.getTime()) && monthSelection.includes(submitted.getMonth());
           });
 
@@ -4163,6 +4227,13 @@
 
     if (!name || !phone || !address) {
       alert('Completați nume, telefon și adresă.');
+      return;
+    }
+
+    // Guards against exactly the bug that caused mis-sorted/invisible
+    // tickets elsewhere — see hasSuspiciousYear() near the top.
+    if (hasSuspiciousYear(dateVal) || hasSuspiciousYear(resolvedDateVal)) {
+      alert('Anul introdus într-una dintre date pare greșit (verificați să fie scris complet, ex: 2026, nu 26).');
       return;
     }
 
