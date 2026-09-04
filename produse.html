@@ -71,7 +71,14 @@
   }
 
   .section-head{max-width:640px;margin-bottom:56px;}
-  .section-head p{color:var(--ink-900);font-size:17.5px;margin-top:14px;}
+  .section-head p{color:var(--ink-900);font-size:18.5px;margin-top:14px;}
+  /* This page's title functions as the page's "hero" the same way
+     index/relatii-publice/proiecte's h1 does, even though it's
+     markup-wise an h2 inside .section-head — so it's sized to match
+     that h1 (clamp(38px,5.4vw,64px)) instead of the smaller default
+     h2 size used for secondary headings elsewhere on this page (like
+     the enquiry section below), which stays untouched. */
+  .products .section-head h2{font-size:clamp(38px,5.4vw,64px);}
 
   /* ===== PRODUCTS ===== */
   .products{padding:120px 0 80px;}
@@ -85,7 +92,7 @@
   }
   .section-head-row .section-head{flex:1 1 420px;min-width:0;}
   .section-head-illustration{
-    flex:1 1 520px;max-width:700px;width:100%;height:auto;
+    flex:1 1 600px;max-width:850px;width:100%;height:auto;
     border-radius:4px;object-fit:contain;
   }
   .illustration-caption{
