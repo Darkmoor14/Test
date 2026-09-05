@@ -356,6 +356,43 @@
      already reserved site-wide to mean "resolved" — reusing it here
      for something else would break that convention rather than
      reinforce it. */
+  /* ===== HOME (vlasbogdan@ only) =====
+     A workflow-relevant landing screen instead of dropping straight
+     into a specific tab after login — leads with the one number that
+     matters most for this report-writing role (tickets awaiting a
+     report), then a row of secondary cards for the other three tabs,
+     each with its own live count so this screen is useful at a
+     glance, not just a navigation menu. */
+  .home-eyebrow{
+    font-family:var(--mono);font-size:12.5px;text-transform:uppercase;
+    letter-spacing:0.06em;color:var(--copper-600);
+  }
+  .home-hero-card{
+    background:var(--copper-050);border:1px solid var(--copper-500);
+    border-radius:8px;padding:28px 32px;margin:24px 0 28px;
+    display:flex;align-items:center;gap:24px;flex-wrap:wrap;
+  }
+  .home-hero-label{font-size:15px;color:var(--ink-700);flex:1 1 220px;}
+  .home-hero-count{
+    font-family:var(--mono);font-size:42px;font-weight:700;color:var(--copper-600);
+    line-height:1;
+  }
+  .home-grid{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
+  }
+  .home-card{
+    background:var(--paper-000);border:1px solid var(--line-strong);
+    border-radius:8px;padding:20px;cursor:pointer;text-align:left;
+    transition:border-color .15s,box-shadow .15s;
+  }
+  .home-card:hover{border-color:var(--copper-500);box-shadow:0 2px 10px rgba(20,24,29,0.08);}
+  .home-card-label{font-size:13.5px;color:var(--ink-700);margin-bottom:8px;}
+  .home-card-count{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--ink-900);}
+  .home-card-sub{font-size:11.5px;color:var(--ink-400);margin-top:4px;}
+  @media(max-width:900px){
+    .home-grid{grid-template-columns:repeat(2,1fr);}
+  }
+
   .priority-grid{
     display:grid;grid-template-columns:repeat(5,1fr);gap:14px;
     margin-bottom:28px;
@@ -365,6 +402,18 @@
      login) — the priority cards describe a different kind of
      at-a-glance triage that doesn't apply to that dedicated context. */
   html.report-focused-view .priority-grid{display:none;}
+  /* Home icon/tab only exist for vlasbogdan@ — the workflow-relevant
+     landing screen (see panel-home, renderHomePanel()) is built
+     specifically around what this one report-writing role needs to
+     see first, and wouldn't mean anything to a general admin login. */
+  .home-icon-btn{display:none;}
+  html.report-focused-view .home-icon-btn{display:inline-flex;}
+  /* Overrides the generic rule above specifically inside the mobile
+     sidebar list, where sibling .mobile-tab-btn entries use plain
+     flex (not inline-flex) for their row layout — matching that
+     exactly rather than leaving this one entry subtly
+     inconsistent with the others next to it. */
+  html.report-focused-view .mobile-sidebar-nav .home-icon-btn{display:flex;}
   /* .chips.report-focused-chips (compound, not the bare class alone)
      — the generic .chips{display:flex;...} rule further down the file
      is EQUAL specificity to a bare ".report-focused-chips", and being
@@ -1002,6 +1051,7 @@
       </div>
     </div>
     <div class="nav-right">
+      <button class="btn home-icon-btn" type="button" id="homeIconBtn" data-tab="home" title="Acasă">⌂ Acasă</button>
       <span class="nav-tag" id="userTag"></span>
       <button class="btn" id="logoutBtn" style="display:none;">Deconectare</button>
     </div>
@@ -1069,6 +1119,39 @@
       </div>
     </div>
 
+    <div class="admin-panel" id="panel-home">
+        <div style="margin-bottom:24px;">
+          <div class="home-eyebrow">Acasă</div>
+          <h2 style="margin:6px 0 0;">Ce ai de făcut azi</h2>
+        </div>
+        <div class="home-hero-card" id="homeHeroCard">
+          <div class="home-hero-label">Tichete ce așteaptă raport</div>
+          <div class="home-hero-count" id="homeAwaitingCount">–</div>
+          <button type="button" class="btn btn-primary" id="homeGoAwaitingBtn">Deschide sesizările →</button>
+        </div>
+        <div class="home-grid">
+          <button type="button" class="home-card" data-tab="overview">
+            <div class="home-card-label">Prezentare generală</div>
+            <div class="home-card-count" id="homeOverviewCount">–</div>
+            <div class="home-card-sub">tichete urgente (peste 7 zile)</div>
+          </button>
+          <button type="button" class="home-card" data-tab="tickets">
+            <div class="home-card-label">Sesizări</div>
+            <div class="home-card-count" id="homeTicketsCount">–</div>
+            <div class="home-card-sub">tichete active</div>
+          </button>
+          <button type="button" class="home-card" data-tab="projects">
+            <div class="home-card-label">Proiecte curente</div>
+            <div class="home-card-count" id="homeProjectsCount">–</div>
+            <div class="home-card-sub">proiecte active</div>
+          </button>
+          <button type="button" class="home-card" data-tab="backlog">
+            <div class="home-card-label">Avarii rețele</div>
+            <div class="home-card-count" id="homeBacklogCount">–</div>
+            <div class="home-card-sub">lucrări active</div>
+          </button>
+        </div>
+    </div>
     <div class="admin-panel active" id="panel-overview">
       <div class="priority-grid">
         <button type="button" class="priority-card" id="prioActiveCard">
@@ -2194,6 +2277,16 @@
     // account before it gets hidden a moment later.
     fetchCurrentUserRole(email).then(() => {
       document.documentElement.classList.toggle('report-focused-view', isReportFocusedView());
+      // Lands on the workflow-relevant home screen instead of
+      // Overview specifically for this one role — everyone else's
+      // login flow is completely unchanged. Runs once per fresh
+      // login (showDashboard's own early-return above already
+      // prevents this whole .then() from firing again for a session
+      // that's already showing), so this doesn't fight with the
+      // person navigating away from Acasă on their own afterward.
+      if (isReportFocusedView()) {
+        openAdminTab('home', true);
+      }
       // The sheet's status chips render with the standard 3-option
       // set at script-load time (role isn't known yet then) — this
       // adds the 4th "Așteaptă raport" option specifically for the
@@ -2304,6 +2397,8 @@
   logoutBtn.addEventListener('click', performLogout);
   const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
   if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', performLogout);
+  const homeIconBtn = document.getElementById('homeIconBtn');
+  if (homeIconBtn) homeIconBtn.addEventListener('click', () => openAdminTab('home'));
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
     if (session) {
@@ -2476,6 +2571,7 @@
     renderOverviewCharts();
     renderPrioritySummary();
     handlePendingTicketUrlParam();
+    renderHomePanel();
   }
 
   // The 4 cards at the top of "Prezentare generală" — deliberately
@@ -2726,6 +2822,51 @@
     loadTickets(true);
     loadProjects();
     loadBacklogProjects();
+  }
+
+  // Home panel (vlasbogdan@ only) — reads whatever's currently in the
+  // three data arrays and updates its counts. Called from the end of
+  // renderOverviewTable()/renderProjects()/renderBacklogProjects()
+  // rather than awaited as one batch, since those three loads are
+  // independent async calls — this way the home screen fills in
+  // progressively as each one resolves instead of needing all three
+  // to coordinate before anything shows.
+  function renderHomePanel(){
+    const homeHeroCard = document.getElementById('homeHeroCard');
+    if (!homeHeroCard) return;
+
+    const awaitingCount = allTickets.filter(t => !t.archived && t.status === 'Terminat' && !t.resolution_note).length;
+    const urgentCount = allTickets.filter(t => {
+      if (t.archived || t.status === 'Terminat') return false;
+      const daysOpen = (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24);
+      return daysOpen > AGING_THRESHOLD_DAYS;
+    }).length;
+    const activeTicketsCount = allTickets.filter(t => !t.archived && t.status !== 'Terminat').length;
+    const activeProjectsCount = (typeof allProjects !== 'undefined' ? allProjects : [])
+      .filter(p => p.status !== 'Terminat' && p.status !== 'Archived').length;
+    const activeBacklogCount = (typeof allBacklogProjects !== 'undefined' ? allBacklogProjects : [])
+      .filter(p => (p.status || 'Ongoing') !== 'Terminat').length;
+
+    document.getElementById('homeAwaitingCount').textContent = awaitingCount;
+    document.getElementById('homeOverviewCount').textContent = urgentCount;
+    document.getElementById('homeTicketsCount').textContent = activeTicketsCount;
+    document.getElementById('homeProjectsCount').textContent = activeProjectsCount;
+    document.getElementById('homeBacklogCount').textContent = activeBacklogCount;
+  }
+
+  document.querySelectorAll('.home-card[data-tab]').forEach(card => {
+    card.addEventListener('click', () => openAdminTab(card.dataset.tab));
+  });
+  const homeGoAwaitingBtn = document.getElementById('homeGoAwaitingBtn');
+  if (homeGoAwaitingBtn) {
+    homeGoAwaitingBtn.addEventListener('click', () => {
+      openAdminTab('tickets');
+      // Jumps straight into the specific filtered view this button
+      // promises, not just the tab in general — setTicketFilter
+      // already exists and does exactly this for the Sesizări tab's
+      // own chips, reused here rather than duplicating that logic.
+      setTicketFilter('AwaitingReport');
+    });
   }
 
   let tabHiddenAt = null;
@@ -4204,6 +4345,7 @@
     allProjects = data || [];
     populateProjectYearFilterSelect();
     renderProjects();
+    renderHomePanel();
   }
 
   function renderProjects(){
@@ -4596,6 +4738,7 @@
     }
     allBacklogProjects = data || [];
     renderBacklogProjects();
+    renderHomePanel();
   }
 
   function daysSince(dateStr, endDateStr){
@@ -4985,6 +5128,10 @@
     <button type="button" class="sheet-close" id="mobileSidebarCloseBtn" aria-label="Închide">×</button>
   </div>
   <nav class="mobile-sidebar-nav">
+    <button type="button" class="mobile-tab-btn home-icon-btn" data-tab="home">
+      <span class="mtb-dash"></span>
+      <span>Acasă</span>
+    </button>
     <button type="button" class="mobile-tab-btn active" data-tab="overview">
       <span class="mtb-dash"></span>
       <span>Prezentare generală</span>
