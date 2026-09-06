@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Insta Grup Admin</title>
 <meta name="robots" content="noindex, nofollow">
-<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#D11F24">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -363,45 +362,85 @@
      report), then a row of secondary cards for the other three tabs,
      each with its own live count so this screen is useful at a
      glance, not just a navigation menu. */
+  /* vlasbogdan@ uses the menu below as the single navigation system,
+     so the old desktop tab strip never competes with the focused view. */
+  html.report-focused-view .admin-tabs-row{display:none;}
+  html:not(.report-focused-view) #panel-home{display:none!important;}
+  .dash.home-active .dash-head{border-bottom:none;padding-bottom:16px;}
+  html.report-focused-view header.scrolled .nav-header-tabs{display:none;}
+  html.report-focused-view header.scrolled .logo-img{display:block;}
+  .dash-head{position:relative;}
+  .report-nav-wrap{display:none;}
+  html.report-focused-view .report-nav-wrap{display:block;position:absolute;right:0;top:31px;}
+  .report-nav-btn{min-width:112px;justify-content:center;}
+  .report-nav-menu{display:none;position:absolute;right:0;top:calc(100% + 8px);z-index:80;min-width:220px;padding:6px;background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;box-shadow:0 10px 24px rgba(20,24,29,.14);}
+  .report-nav-menu.show{display:block;}
+  .report-nav-link{display:block;width:100%;padding:10px 12px;text-align:left;border:0;background:none;color:var(--ink-900);font:inherit;font-size:14px;cursor:pointer;border-radius:3px;}
+  .report-nav-link:hover{background:var(--paper-050);color:var(--copper-600);}
   .home-eyebrow{
     font-family:var(--mono);font-size:12.5px;text-transform:uppercase;
     letter-spacing:0.06em;color:var(--copper-600);
   }
-  .home-hero-card{
-    background:var(--copper-050);border:1px solid var(--copper-500);
-    border-radius:8px;padding:28px 32px;margin:24px 0 28px;
-    display:flex;align-items:center;gap:24px;flex-wrap:wrap;
-  }
-  .home-hero-label{font-size:15px;color:var(--ink-700);flex:1 1 220px;}
-  .home-hero-count{
-    font-family:var(--mono);font-size:42px;font-weight:700;color:var(--copper-600);
-    line-height:1;
-  }
-  .home-grid{
-    display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
-  }
-  .home-card{
-    background:var(--paper-000);border:1px solid var(--line-strong);
-    border-radius:8px;padding:20px;cursor:pointer;text-align:left;
-    transition:border-color .15s,box-shadow .15s;
-  }
-  .home-card:hover{border-color:var(--copper-500);box-shadow:0 2px 10px rgba(20,24,29,0.08);}
-  .home-card-label{font-size:13.5px;color:var(--ink-700);margin-bottom:8px;}
-  .home-card-count{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--ink-900);}
-  .home-card-sub{font-size:11.5px;color:var(--ink-400);margin-top:4px;}
+  .home-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:22px;}
+  .home-intro h2{margin:6px 0 0;}
+  .home-intro-copy{margin:0;color:var(--ink-600);font-size:14px;max-width:430px;text-align:right;}
+  .home-priority-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0;}
+  .home-metric{background:var(--paper-000);border:1px solid var(--line-strong);border-radius:7px;padding:16px;text-align:left;font:inherit;color:var(--ink-900);}
+  button.home-metric{width:100%;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .15s;}
+  button.home-metric:hover{border-color:var(--copper-500);box-shadow:0 2px 10px rgba(20,24,29,.08);transform:translateY(-1px);}
+  button.home-metric:focus-visible,.report-nav-link:focus-visible{outline:2px solid var(--copper-500);outline-offset:2px;}
+  .home-metric.alert{border-color:rgba(181,121,47,.4);background:var(--signal-orange-bg);}
+  .home-metric-label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-600);}
+  .home-metric-count{font-family:var(--display);font-size:30px;font-weight:700;line-height:1;margin:10px 0 5px;color:var(--ink-900);}
+  .home-metric-sub{font-size:12px;color:var(--ink-600);}
+  .home-work-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(250px,1fr);gap:18px;align-items:start;}
+  .home-section-card{background:var(--paper-000);border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;}
+  .home-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 18px;border-bottom:1px solid var(--line);}
+  .home-section-head h3{font-size:16px;margin:0;}
+  .home-section-head span{font-family:var(--mono);font-size:12px;color:var(--ink-600);}
+  .home-queue{display:flex;flex-direction:column;}
+  .home-queue-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:14px 18px;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);cursor:pointer;color:var(--ink-900);font:inherit;}
+  .home-queue-item:last-child{border-bottom:0;}
+  .home-queue-item:hover{background:var(--paper-050);}
+  .home-ticket-number{font-family:var(--mono);font-size:12px;color:var(--copper-600);}
+  .home-ticket-address{display:block;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .home-ticket-meta{display:block;font-size:12px;color:var(--ink-600);margin-top:3px;}
+  .home-ticket-action{font-family:var(--mono);font-size:11px;color:var(--copper-600);white-space:nowrap;}
+  .home-empty{padding:32px 18px;color:var(--ink-600);font-size:14px;}
+  .home-side-stack{display:grid;gap:18px;}
+  .home-activity{padding:4px 18px 10px;}
+  .home-activity-item{padding:12px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-700);}
+  .home-activity-item:last-child{border-bottom:0;}
+  .home-activity-item strong{color:var(--ink-900);}
+  .home-activity-time{display:block;font-size:11.5px;color:var(--ink-400);margin-top:3px;}
+  .home-tools-card{margin-top:18px;}
+  .home-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);}
+  .home-tool{display:flex;flex-direction:column;gap:5px;min-height:126px;padding:18px;background:var(--paper-000);color:var(--ink-900);text-decoration:none;transition:background .15s,color .15s;}
+  .home-tool:hover{background:var(--paper-050);color:var(--copper-600);}
+  .home-tool:focus-visible{outline:2px solid var(--copper-500);outline-offset:-2px;}
+  .home-tool-kind{font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--copper-600);}
+  .home-tool strong{font-size:16px;}
+  .home-tool small{margin-top:auto;font-size:12.5px;color:var(--ink-600);}
+  .home-tools-local-note{margin:0;padding:10px 18px;background:var(--signal-orange-bg);border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-700);}
   @media(max-width:900px){
-    .home-grid{grid-template-columns:repeat(2,1fr);}
+    .home-intro{align-items:flex-start;margin-top:8px;}
+    .home-intro-copy{display:none;}
+    html.report-focused-view .report-nav-wrap{display:none;}
+    .home-priority-grid{grid-template-columns:repeat(2,1fr);}
+    .home-work-grid{grid-template-columns:1fr;}
+    .home-tools{grid-template-columns:1fr;}
+    .home-tool{min-height:0;}
+  }
+  @media(max-width:480px){
+    .home-queue-item{grid-template-columns:auto minmax(0,1fr);padding:14px;}
+    .home-ticket-action{grid-column:2;}
   }
 
   .priority-grid{
     display:grid;grid-template-columns:repeat(5,1fr);gap:14px;
     margin-bottom:28px;
   }
-  /* vlasbogdan@'s Overview is a dedicated "what needs my report"
-     table (see isReportFocusedView() / the JS toggling this class on
-     login) — the priority cards describe a different kind of
-     at-a-glance triage that doesn't apply to that dedicated context. */
-  html.report-focused-view .priority-grid{display:none;}
+  html.report-focused-view .overview-sidebar{display:none;}
   /* Home icon/tab only exist for vlasbogdan@ — the workflow-relevant
      landing screen (see panel-home, renderHomePanel()) is built
      specifically around what this one report-writing role needs to
@@ -931,6 +970,7 @@
   .ticket-card.urgent{border-color:rgba(181,80,47,0.4);background:var(--signal-red-bg);}
   .ticket-card.done{opacity:0.6;}
   .ticket-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
+  .ticket-return-row{margin:-2px 0 16px;}
   .ticket-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .ticket-num{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink-900);}
   .ticket-tag{
@@ -1087,6 +1127,15 @@
         <h1>Insta Grup Admin</h1>
         <p>Gestionați tichetele primite prin formularul de pe site și proiectele afișate public.</p>
       </div>
+      <div class="report-nav-wrap">
+        <button type="button" class="btn report-nav-btn" id="reportNavBtn" aria-expanded="false" aria-controls="reportNavMenu">☰ Meniu</button>
+        <div class="report-nav-menu" id="reportNavMenu">
+          <button type="button" class="report-nav-link" data-home-action="home">Acasă</button>
+          <button type="button" class="report-nav-link" data-home-action="tickets">Sesizări active</button>
+          <button type="button" class="report-nav-link" data-home-action="projects">Proiecte în lucru</button>
+          <button type="button" class="report-nav-link" data-home-action="backlog">Avarii deschise</button>
+        </div>
+      </div>
       <button type="button" class="mobile-logout-link" id="mobileLogoutBtn">Deconectare</button>
     </div>
 
@@ -1120,37 +1169,42 @@
     </div>
 
     <div class="admin-panel" id="panel-home">
-        <div style="margin-bottom:24px;">
-          <div class="home-eyebrow">Acasă</div>
-          <h2 style="margin:6px 0 0;">Ce ai de făcut azi</h2>
+      <div class="home-intro">
+        <div><div class="home-eyebrow">Acasă</div><h2>Ce ai de făcut azi</h2></div>
+      </div>
+      <div class="home-priority-grid">
+        <button type="button" class="home-metric" data-home-action="tickets"><div class="home-metric-label">Sesizări active</div><div class="home-metric-count" id="homeTicketsCount">–</div><div class="home-metric-sub">vezi sesizările în lucru</div></button>
+        <button type="button" class="home-metric" data-home-action="projects"><div class="home-metric-label">Proiecte în lucru</div><div class="home-metric-count" id="homeProjectsCount">–</div><div class="home-metric-sub">vezi proiectele active</div></button>
+        <button type="button" class="home-metric" data-home-action="backlog"><div class="home-metric-label">Avarii deschise</div><div class="home-metric-count" id="homeBacklogCount">–</div><div class="home-metric-sub">vezi lucrările active</div></button>
+        <button type="button" class="home-metric alert" data-home-action="reports"><div class="home-metric-label">De făcut azi</div><div class="home-metric-count" id="homeAwaitingMetricCount">–</div><div class="home-metric-sub">rapoarte de completat</div></button>
+      </div>
+      <div class="home-work-grid">
+        <section class="home-section-card"><div class="home-section-head"><h3>Rapoarte de completat</h3><span id="homeQueueCount">– în așteptare</span></div><div class="home-queue" id="homeQueue"></div></section>
+        <div class="home-side-stack">
+          <section class="home-section-card"><div class="home-section-head"><h3>Activitate recentă</h3></div><div class="home-activity" id="homeRecentActivity"></div></section>
         </div>
-        <div class="home-hero-card" id="homeHeroCard">
-          <div class="home-hero-label">Tichete ce așteaptă raport</div>
-          <div class="home-hero-count" id="homeAwaitingCount">–</div>
-          <button type="button" class="btn btn-primary" id="homeGoAwaitingBtn">Deschide sesizările →</button>
+      </div>
+      <section class="home-section-card home-tools-card">
+        <div class="home-section-head"><h3>Instrumente proiect</h3><span>modele Excel Insta Grup</span></div>
+        <p class="home-tools-local-note" id="homeToolsLocalNote" hidden>Previzualizarea locală nu poate descărca fișiere. Deschide panoul prin site-ul public pentru a descărca modelele Excel.</p>
+        <div class="home-tools">
+          <a class="home-tool" href="gantt-chart.xlsx" download>
+            <span class="home-tool-kind">Planificare</span>
+            <strong>Grafic Gantt</strong>
+            <small>Descarcă modelul pentru planificarea proiectelor.</small>
+          </a>
+          <a class="home-tool" href="agile-kanban-board.xlsx" download>
+            <span class="home-tool-kind">Flux de lucru</span>
+            <strong>Panou Kanban</strong>
+            <small>Descarcă modelul pentru organizarea sarcinilor.</small>
+          </a>
+          <a class="home-tool" href="to-do-list.xlsx" download>
+            <span class="home-tool-kind">Sarcini</span>
+            <strong>Listă de activități</strong>
+            <small>Descarcă modelul pentru urmărirea activităților.</small>
+          </a>
         </div>
-        <div class="home-grid">
-          <button type="button" class="home-card" data-tab="overview">
-            <div class="home-card-label">Prezentare generală</div>
-            <div class="home-card-count" id="homeOverviewCount">–</div>
-            <div class="home-card-sub">tichete urgente (peste 7 zile)</div>
-          </button>
-          <button type="button" class="home-card" data-tab="tickets">
-            <div class="home-card-label">Sesizări</div>
-            <div class="home-card-count" id="homeTicketsCount">–</div>
-            <div class="home-card-sub">tichete active</div>
-          </button>
-          <button type="button" class="home-card" data-tab="projects">
-            <div class="home-card-label">Proiecte curente</div>
-            <div class="home-card-count" id="homeProjectsCount">–</div>
-            <div class="home-card-sub">proiecte active</div>
-          </button>
-          <button type="button" class="home-card" data-tab="backlog">
-            <div class="home-card-label">Avarii rețele</div>
-            <div class="home-card-count" id="homeBacklogCount">–</div>
-            <div class="home-card-sub">lucrări active</div>
-          </button>
-        </div>
+      </section>
     </div>
     <div class="admin-panel active" id="panel-overview">
       <div class="priority-grid">
@@ -1713,7 +1767,19 @@
     return currentSessionEmail === 'vlasbogdan@insta-grup.ro';
   }
 
-  if ('serviceWorker' in navigator) {
+  // Browser security gives every file:// page a unique origin. Keep local
+  // preview usable, but enable PWA features only from a served website.
+  const isWebOrigin = window.location.protocol === 'https:' || window.location.protocol === 'http:';
+  if (isWebOrigin) {
+    const manifest = document.createElement('link');
+    manifest.rel = 'manifest';
+    manifest.href = 'manifest.json';
+    document.head.append(manifest);
+  }
+  const homeToolsLocalNote = document.getElementById('homeToolsLocalNote');
+  if (homeToolsLocalNote && !isWebOrigin) homeToolsLocalNote.hidden = false;
+
+  if (isWebOrigin && 'serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')
       .then(reg => {
         swRegistration = reg;
@@ -2262,31 +2328,39 @@
   }
 
   function showDashboard(email){
-    if (dash.classList.contains('show') && currentSessionEmail === email) {
+    // Supabase normally returns a lowercase address, but email local
+    // parts are case-insensitive for this account. Normalize once so
+    // the vlasbogdan@ landing screen cannot disappear on a casing or
+    // whitespace difference returned by a session.
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    if (dash.classList.contains('show') && currentSessionEmail === normalizedEmail) {
       maybeAutoPromptForNotifications();
       return;
     }
-    currentSessionEmail = email;
+    currentSessionEmail = normalizedEmail;
+    // This account is identified by its authenticated email, not by
+    // the optional staff_roles lookup below. Switch its initial panel
+    // before revealing the dashboard so the default Overview never
+    // flashes for a frame while that lookup is still in flight.
+    const isReportAccount = isReportFocusedView();
+    document.documentElement.classList.toggle('report-focused-view', isReportAccount);
+    if (isReportAccount) {
+      openAdminTab('home', true);
+      history.replaceState({ adminTab: 'home' }, '', window.location.pathname + window.location.search + '#home');
+    }
     loginWrap.style.display = 'none';
     dash.classList.add('show');
     logoutBtn.style.display = 'inline-flex';
     maybeAutoPromptForNotifications();
-    userTag.textContent = email;
+    userTag.textContent = normalizedEmail;
     // Role must be known before the first render, so tickets don't
     // briefly flash the "Ce s-a făcut" field for a limited-access
     // account before it gets hidden a moment later.
-    fetchCurrentUserRole(email).then(() => {
+    fetchCurrentUserRole(normalizedEmail).then(() => {
+      // A sign-out or account switch may happen before the request
+      // resolves. Never let that stale response change the new view.
+      if (currentSessionEmail !== normalizedEmail) return;
       document.documentElement.classList.toggle('report-focused-view', isReportFocusedView());
-      // Lands on the workflow-relevant home screen instead of
-      // Overview specifically for this one role — everyone else's
-      // login flow is completely unchanged. Runs once per fresh
-      // login (showDashboard's own early-return above already
-      // prevents this whole .then() from firing again for a session
-      // that's already showing), so this doesn't fight with the
-      // person navigating away from Acasă on their own afterward.
-      if (isReportFocusedView()) {
-        openAdminTab('home', true);
-      }
       // The sheet's status chips render with the standard 3-option
       // set at script-load time (role isn't known yet then) — this
       // adds the 4th "Așteaptă raport" option specifically for the
@@ -2323,12 +2397,14 @@
       runAutoArchiveSweep().finally(() => {
         loadTickets();
         loadProjects();
+        loadBacklogProjects();
       });
     });
   }
 
   function showLogin(){
     currentSessionEmail = null;
+    document.documentElement.classList.remove('report-focused-view');
     loginWrap.style.display = 'flex';
     dash.classList.remove('show');
     logoutBtn.style.display = 'none';
@@ -2648,54 +2724,33 @@
     // still drives its green/done styling below exactly as before.
     let visible = allTickets.filter(t => matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
 
-    // vlasbogdan@'s Overview is a dedicated "what needs my report"
-    // table — priority cards/charts are hidden for this account (see
-    // the CSS), and a separate 3-way chip row (reportFocusedChipDefs
-    // above) replaces the normal priority-card narrowing entirely,
-    // since those don't apply to this dedicated context. "Soluționate"
-    // here specifically means truly complete (Terminat AND has a
-    // report) — consistent with "Așteaptă raport" meaning the other
-    // Terminat tickets, so every ticket falls into exactly one of the
-    // three states, none left out and none double-counted.
-    if (isReportFocusedView()) {
-      if (overviewStatusFilter === 'active') {
-        visible = visible.filter(t => t.status !== 'Terminat');
-      } else if (overviewStatusFilter === 'done') {
-        visible = visible.filter(t => t.status === 'Terminat' && !!t.resolution_note);
-      } else if (overviewStatusFilter === 'awaiting_report') {
-        visible = visible.filter(t => t.status === 'Terminat' && !t.resolution_note);
-      }
-    } else {
-      if (overviewStatusFilter === 'active') {
-        visible = visible.filter(t => t.status !== 'Terminat');
-      } else if (overviewStatusFilter === 'done') {
-        visible = visible.filter(t => t.status === 'Terminat');
-      }
+    // Every account uses the same Overview logic. vlasbogdan@ only
+    // gains one extra filter: solved tickets that still need a report.
+    if (overviewStatusFilter === 'active') {
+      visible = visible.filter(t => t.status !== 'Terminat');
+    } else if (overviewStatusFilter === 'done') {
+      visible = visible.filter(t => t.status === 'Terminat');
+    } else if (isReportFocusedView() && overviewStatusFilter === 'awaiting_report') {
+      visible = visible.filter(t => t.status === 'Terminat' && !t.resolution_note);
+    }
 
-      // Four of the five priority cards describe a subset of ACTIVE
-      // tickets, so any of those first narrows to non-Terminat, then
-      // applies whatever further narrowing that specific card
-      // represents. "solved" is the one exception — the opposite
-      // scope entirely (every Terminat ticket, report written or
-      // not), so it's branched separately rather than forced into
-      // the active-first narrowing the other four share.
-      if (overviewCardFilter === 'solved') {
-        visible = visible.filter(t => t.status === 'Terminat');
-      } else if (overviewCardFilter) {
-        visible = visible.filter(t => t.status !== 'Terminat');
-        if (overviewCardFilter === 'aging') {
-          visible = visible.filter(t => {
-            if (!t.submitted_on) return false;
-            const daysOpen = (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24);
-            return daysOpen > AGING_THRESHOLD_DAYS;
-          });
-        } else if (overviewCardFilter === 'functional') {
-          visible = visible.filter(t => t.type !== 'Anunt accident');
-        } else if (overviewCardFilter === 'accident') {
-          visible = visible.filter(t => t.type === 'Anunt accident');
-        }
-        // 'active' needs nothing further — the status filter above
-        // already covers exactly what that card represents.
+    // Four of the five priority cards describe a subset of ACTIVE
+    // tickets, so any of those first narrows to non-Terminat, then
+    // applies whatever further narrowing that specific card represents.
+    if (overviewCardFilter === 'solved') {
+      visible = visible.filter(t => t.status === 'Terminat');
+    } else if (overviewCardFilter) {
+      visible = visible.filter(t => t.status !== 'Terminat');
+      if (overviewCardFilter === 'aging') {
+        visible = visible.filter(t => {
+          if (!t.submitted_on) return false;
+          const daysOpen = (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24);
+          return daysOpen > AGING_THRESHOLD_DAYS;
+        });
+      } else if (overviewCardFilter === 'functional') {
+        visible = visible.filter(t => t.type !== 'Anunt accident');
+      } else if (overviewCardFilter === 'accident') {
+        visible = visible.filter(t => t.type === 'Anunt accident');
       }
     }
 
@@ -2714,11 +2769,9 @@
       // isn't that yet, so it stays visually normal here even though
       // isDone itself (used below for the status pill, resolved date,
       // etc.) correctly still reflects the real stored status.
-      // Report-completion status isn't relevant to a limited-role
-      // account (they can't act on it either way), so every Terminat
-      // ticket fades uniformly for them — only 'full' accounts see
-      // the awaiting-report distinction called out visually.
-      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !!t.resolution_note);
+      const isFullyComplete = (currentUserRole === 'limited' || isReportFocusedView())
+        ? isDone
+        : (isDone && !!t.resolution_note);
       const isUrgent = t.type === 'Anunt accident';
       const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
       const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
@@ -2748,11 +2801,9 @@
     if (cardsWrap) {
       cardsWrap.innerHTML = ordered.map(t => {
         const isDone = t.status === 'Terminat';
-        // Report-completion status isn't relevant to a limited-role
-      // account (they can't act on it either way), so every Terminat
-      // ticket fades uniformly for them — only 'full' accounts see
-      // the awaiting-report distinction called out visually.
-      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !!t.resolution_note);
+        const isFullyComplete = (currentUserRole === 'limited' || isReportFocusedView())
+          ? isDone
+          : (isDone && !!t.resolution_note);
         const isUrgent = t.type === 'Anunt accident';
         const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
         const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
@@ -2798,6 +2849,7 @@
   // actually be rendered regardless of which filter was previously
   // selected), then scrolling to and briefly highlighting it.
   let currentAdminTab = 'overview';
+  let overviewReturnState = null;
 
   /* ============================================================
      AUTOREFRESH — deliberately event-driven, not a timer polling
@@ -2832,42 +2884,136 @@
   // progressively as each one resolves instead of needing all three
   // to coordinate before anything shows.
   function renderHomePanel(){
-    const homeHeroCard = document.getElementById('homeHeroCard');
-    if (!homeHeroCard) return;
+    const homePanel = document.getElementById('panel-home');
+    if (!homePanel) return;
 
-    const awaitingCount = allTickets.filter(t => !t.archived && t.status === 'Terminat' && !t.resolution_note).length;
-    const urgentCount = allTickets.filter(t => {
-      if (t.archived || t.status === 'Terminat') return false;
-      const daysOpen = (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24);
-      return daysOpen > AGING_THRESHOLD_DAYS;
-    }).length;
+    const reportQueue = allTickets
+      .filter(t => !t.archived && t.status === 'Terminat' && !t.resolution_note)
+      .sort((a, b) => parseTicketDate(a.resolved_on || a.submitted_on) - parseTicketDate(b.resolved_on || b.submitted_on));
+    const awaitingCount = reportQueue.length;
     const activeTicketsCount = allTickets.filter(t => !t.archived && t.status !== 'Terminat').length;
+    // Keep these totals aligned with the actual project tabs: completed
+    // projects are calculated from their due date, and archived rows
+    // are excluded from the active workload.
     const activeProjectsCount = (typeof allProjects !== 'undefined' ? allProjects : [])
-      .filter(p => p.status !== 'Terminat' && p.status !== 'Archived').length;
+      .filter(p => !p.archived && getProjectStatusFilterKey(p) === 'Ongoing').length;
     const activeBacklogCount = (typeof allBacklogProjects !== 'undefined' ? allBacklogProjects : [])
-      .filter(p => (p.status || 'Ongoing') !== 'Terminat').length;
+      .filter(p => !p.archived && (p.status || 'Ongoing') !== 'Terminat').length;
 
-    document.getElementById('homeAwaitingCount').textContent = awaitingCount;
-    document.getElementById('homeOverviewCount').textContent = urgentCount;
+    document.getElementById('homeAwaitingMetricCount').textContent = awaitingCount;
     document.getElementById('homeTicketsCount').textContent = activeTicketsCount;
     document.getElementById('homeProjectsCount').textContent = activeProjectsCount;
     document.getElementById('homeBacklogCount').textContent = activeBacklogCount;
+
+    const homeQueue = document.getElementById('homeQueue');
+    const homeQueueCount = document.getElementById('homeQueueCount');
+    if (homeQueue) {
+      homeQueue.innerHTML = reportQueue.length
+        ? reportQueue.slice(0, 5).map(t => `
+          <button type="button" class="home-queue-item" data-ticket-id="${escapeHtml(t.id)}">
+            <span class="home-ticket-number">${escapeHtml(t.ticket_number || '—')}</span>
+            <span><span class="home-ticket-address">${escapeHtml(t.address || 'Adresă nespecificată')}</span><span class="home-ticket-meta">Soluționată ${fmtDateOnly(t.resolved_on)}${t.resolved_by ? ' · ' + escapeHtml(t.resolved_by) : ''}</span></span>
+            <span class="home-ticket-action">Completează raportul</span>
+          </button>
+        `).join('')
+        : '<div class="home-empty">Nu există rapoarte de completat. Toate tichetele soluționate sunt actualizate.</div>';
+    }
+    if (homeQueueCount) homeQueueCount.textContent = awaitingCount ? `${awaitingCount} în așteptare` : 'totul este actualizat';
+
+    const homeRecentActivity = document.getElementById('homeRecentActivity');
+    if (homeRecentActivity) {
+      const recentReports = allTickets
+        .filter(t => !t.archived && t.status === 'Terminat' && t.resolution_note && t.resolved_on)
+        .sort((a, b) => parseTicketDate(b.resolved_on) - parseTicketDate(a.resolved_on))
+        .slice(0, 4);
+      homeRecentActivity.innerHTML = recentReports.length
+        ? recentReports.map(t => `<div class="home-activity-item"><strong>${escapeHtml(t.ticket_number || 'Tichet')}</strong> · raport completat${t.resolved_by ? ' de ' + escapeHtml(t.resolved_by) : ''}<span class="home-activity-time">${fmtDateOnly(t.resolved_on)} · ${escapeHtml(t.address || 'Adresă nespecificată')}</span></div>`).join('')
+        : '<div class="home-empty">Încă nu există rapoarte finalizate.</div>';
+    }
   }
 
-  document.querySelectorAll('.home-card[data-tab]').forEach(card => {
-    card.addEventListener('click', () => openAdminTab(card.dataset.tab));
+  function setHomeTabFilter(tabKey){
+    if (tabKey === 'tickets') {
+      editingTicketId = null;
+      if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
+      setTicketYearFilter('all');
+      setTicketMonthFilter('all');
+      overviewCardFilter = null;
+      updateOverviewNarrowFilterUI();
+      setOverviewStatusFilter('active');
+      tabKey = 'overview';
+    } else if (tabKey === 'projects') {
+      projectsFilter = 'Ongoing';
+      projectSearchQuery = '';
+      if (projectSearchBox) projectSearchBox.value = '';
+      projectYearFilter = 'all';
+      document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectMobile, #projectYearFilterSelectDesktop').forEach(select => { select.value = 'all'; });
+      document.querySelectorAll('#projectsChipsWrap .chip, #projectsChipsWrapSheet .chip').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.key === projectsFilter);
+      });
+      renderProjects();
+    } else if (tabKey === 'backlog') {
+      backlogFilter = 'Ongoing';
+      backlogSearchQuery = '';
+      if (backlogSearchBox) backlogSearchBox.value = '';
+      document.querySelectorAll('#backlogChipsWrap .chip, #backlogChipsWrapSheet .chip').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.key === backlogFilter);
+      });
+      renderBacklogProjects();
+    } else if (tabKey === 'reports') {
+      editingTicketId = null;
+      if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
+      setTicketYearFilter('all');
+      setTicketMonthFilter('all');
+      overviewCardFilter = null;
+      updateOverviewNarrowFilterUI();
+      setOverviewStatusFilter('awaiting_report');
+      tabKey = 'overview';
+    } else if (tabKey === 'home') {
+      tabKey = 'home';
+    }
+    openAdminTab(tabKey);
+  }
+
+  document.querySelectorAll('.home-metric[data-home-action]').forEach(card => {
+    card.addEventListener('click', () => setHomeTabFilter(card.dataset.homeAction));
   });
-  const homeGoAwaitingBtn = document.getElementById('homeGoAwaitingBtn');
-  if (homeGoAwaitingBtn) {
-    homeGoAwaitingBtn.addEventListener('click', () => {
-      openAdminTab('tickets');
-      // Jumps straight into the specific filtered view this button
-      // promises, not just the tab in general — setTicketFilter
-      // already exists and does exactly this for the Sesizări tab's
-      // own chips, reused here rather than duplicating that logic.
-      setTicketFilter('AwaitingReport');
+  const reportNavBtn = document.getElementById('reportNavBtn');
+  const reportNavMenu = document.getElementById('reportNavMenu');
+  if (reportNavBtn && reportNavMenu) {
+    reportNavBtn.addEventListener('click', () => {
+      const isOpen = reportNavMenu.classList.toggle('show');
+      reportNavBtn.setAttribute('aria-expanded', String(isOpen));
+    });
+    reportNavMenu.querySelectorAll('[data-home-action]').forEach(item => {
+      item.addEventListener('click', () => {
+        reportNavMenu.classList.remove('show');
+        reportNavBtn.setAttribute('aria-expanded', 'false');
+        setHomeTabFilter(item.dataset.homeAction);
+      });
+    });
+    document.addEventListener('click', event => {
+      if (!event.target.closest('.report-nav-wrap')) {
+        reportNavMenu.classList.remove('show');
+        reportNavBtn.setAttribute('aria-expanded', 'false');
+      }
     });
   }
+  document.getElementById('homeQueue').addEventListener('click', (event) => {
+    const ticket = event.target.closest('.home-queue-item');
+    if (!ticket) return;
+    // The queue is specifically for report work, so open the selected
+    // solved ticket directly in its existing edit form rather than
+    // making the person find it again in the full ticket list.
+    editingTicketId = ticket.dataset.ticketId;
+    if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
+    setTicketFilter('AwaitingReport');
+    openAdminTab('tickets');
+    requestAnimationFrame(() => {
+      const card = document.getElementById('ticket-card-' + ticket.dataset.ticketId);
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
 
   let tabHiddenAt = null;
   const STALE_TAB_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
@@ -2887,6 +3033,9 @@
   });
 
   function openAdminTab(tabKey, fromPopState){
+    const isHome = tabKey === 'home' && isReportFocusedView();
+    dash.classList.toggle('home-active', isHome);
+    document.documentElement.classList.toggle('home-active', isHome);
     document.querySelectorAll('.admin-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.tab === tabKey);
     });
@@ -2970,11 +3119,29 @@
   if (clearNarrowFilterBtn) clearNarrowFilterBtn.addEventListener('click', clearNarrowFilter);
 
   function goToTicket(ticketId){
+    const targetTicket = allTickets.find(ticket => ticket.id === ticketId);
+    if (!targetTicket) return;
+    // Preserve the exact table state so a ticket opened from Overview
+    // can return to the same table, filter, year, and month.
+    overviewReturnState = currentAdminTab === 'overview'
+      ? {
+          status: overviewStatusFilter,
+          priority: overviewCardFilter,
+          year: ticketYearFilter,
+          month: ticketMonthFilter,
+          ticketId,
+        }
+      : null;
     agingOnlyFilter = false;
     typeOnlyFilter = null;
     updateActiveNarrowFilterUI();
     if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
-    setTicketFilter('Toate');
+    // Archived tickets are not part of the regular ticket filters.
+    // Send them to their real home instead of silently leaving the
+    // selected card out of the rendered list.
+    setTicketYearFilter('all');
+    setTicketMonthFilter('all');
+    setTicketFilter(targetTicket.archived ? 'Archived' : 'Toate');
     openAdminTab('tickets');
 
     requestAnimationFrame(() => {
@@ -2985,6 +3152,23 @@
         setTimeout(() => card.classList.remove('jump-highlight'), 1800);
       }
     });
+  }
+
+  function returnToOverviewTable(){
+    const state = overviewReturnState;
+    overviewReturnState = null;
+    if (!state) {
+      openAdminTab('overview');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    setTicketYearFilter(state.year);
+    setTicketMonthFilter(state.month);
+    overviewCardFilter = state.priority;
+    updateOverviewNarrowFilterUI();
+    setOverviewStatusFilter(state.status);
+    openAdminTab('overview');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   document.getElementById('overviewTableBody').addEventListener('click', (e) => {
@@ -3211,6 +3395,7 @@
           </div>
           <span class="ticket-date">Trimis: ${fmtDate(t.submitted_on)}</span>
         </div>
+        ${overviewReturnState && overviewReturnState.ticketId === t.id ? '<div class="ticket-return-row"><button type="button" class="btn ticket-return-overview">← Înapoi la tabel</button></div>' : ''}
         <div class="ticket-body">
           ${isEditing ? `
           <div class="ctrl-field">
@@ -3332,6 +3517,10 @@
       }
 
       const checkbox = card.querySelector('.f-select');
+      const returnOverviewBtn = card.querySelector('.ticket-return-overview');
+      if (returnOverviewBtn) {
+        returnOverviewBtn.addEventListener('click', returnToOverviewTable);
+      }
       checkbox.addEventListener('change', () => {
         if (checkbox.checked) selectedIds.add(t.id);
         else selectedIds.delete(t.id);
