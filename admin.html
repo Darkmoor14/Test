@@ -315,50 +315,6 @@
      mobile-only affordance, added below in the 900px breakpoint. */
   .ticket-search-wrap{display:contents;}
   .search-icon-btn{display:none;}
-  /* sesizari@'s Sesizări toolbar gets the same compact icon-toggle
-     treatment on desktop that everyone already gets on mobile — a
-     plain always-visible search box and year/month selects felt
-     cluttered for this one account's day-to-day use, request was to
-     tuck both behind small icons instead. Reuses the exact same
-     .expanded-class-toggle mechanism the mobile version already
-     uses (see searchToggleBtn's own JS below) — nothing new to wire
-     up there, just extending where the matching CSS applies. */
-  html.limited-view .ticket-search-wrap{display:flex;align-items:center;position:relative;}
-  html.limited-view .search-icon-btn{
-    display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    width:38px;height:38px;border-radius:50%;
-    border:1px solid var(--line-strong);background:var(--paper-000);
-    color:var(--ink-600);cursor:pointer;
-  }
-  html.limited-view .search-icon-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
-  html.limited-view #ticketSearchBox{display:none;width:0;}
-  html.limited-view .ticket-search-wrap.expanded #ticketSearchBox{display:block;width:230px;margin-left:8px;}
-  html.limited-view .ticket-search-wrap.expanded .search-icon-btn{display:none;}
-
-  /* Same idea for year/month — a small calendar icon opens a popover
-     with the same two selects, instead of them sitting inline and
-     always visible. Desktop only (min-width:901px) — mobile already
-     has its own "Filtre" button + sheet covering year/month for
-     every role, so this would just be a redundant second control
-     sitting on top of that if it also showed up below 900px. */
-  @media(min-width:901px){
-    html.limited-view .ticket-date-filter-wrap{position:relative;display:flex;align-items:center;}
-    .ticket-date-toggle-btn{display:none;}
-    html.limited-view .ticket-date-toggle-btn{
-      display:flex;align-items:center;justify-content:center;flex-shrink:0;
-      width:38px;height:38px;border-radius:50%;
-      border:1px solid var(--line-strong);background:var(--paper-000);
-      color:var(--ink-600);cursor:pointer;
-    }
-    html.limited-view .ticket-date-toggle-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
-    html.limited-view .overview-year-bar#ticketYearBarPopover{
-      display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:60;
-      background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;
-      padding:14px;box-shadow:0 8px 24px rgba(20,24,29,0.15);
-      flex-direction:column;align-items:flex-start;gap:8px;margin-top:0;white-space:nowrap;
-    }
-    html.limited-view .overview-year-bar#ticketYearBarPopover.open{display:flex;}
-  }
 
   .admin-tabs-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;}
   .admin-tabs{display:flex;gap:6px;margin:24px 0 4px;border-bottom:1px solid var(--line);}
@@ -383,12 +339,6 @@
   @media(min-width:901px){
     .admin-tabs-row .overview-year-bar.active{display:flex;}
     .admin-panel .overview-year-bar{display:none;}
-    /* sesizari@ gets the calendar-icon popover instead (see the
-       .ticket-date-toggle-btn rules further down) — this is the
-       OTHER year/month shortcut, shown next to the tab row itself
-       rather than inside the toolbar, and was showing up alongside
-       the new icon as a confusing duplicate for this one role. */
-    html.limited-view .admin-tabs-row .overview-year-bar[data-year-panel="tickets"]{display:none;}
   }
 
   /* ===== PRIORITY SUMMARY CARDS =====
@@ -406,6 +356,46 @@
      already reserved site-wide to mean "resolved" — reusing it here
      for something else would break that convention rather than
      reinforce it. */
+  /* sesizari@ specifically gets quick-access calendar/search icons
+     right above the priority cards on Overview — this account has no
+     other way to search by name/address/phone on this tab at all
+     (Overview never had a search box, only year/month), and the
+     year/month controls elsewhere on the page felt like one extra
+     step for something used constantly. Desktop only, hidden for
+     every other role — those accounts already have this covered via
+     the tab-row year bar and, on Sesizări, the search box. */
+  .overview-quick-filters{display:none;}
+  @media(min-width:901px){
+    html.limited-view .overview-quick-filters{
+      display:flex;gap:10px;margin-bottom:18px;
+    }
+    .overview-icon-btn{
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;
+      width:38px;height:38px;border-radius:50%;
+      border:1px solid var(--line-strong);background:var(--paper-000);
+      color:var(--ink-600);cursor:pointer;
+    }
+    .overview-icon-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
+    .overview-date-filter-wrap{position:relative;display:flex;align-items:center;}
+    .overview-year-bar#overviewYearBarPopover{
+      display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:60;
+      background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;
+      padding:14px;box-shadow:0 8px 24px rgba(20,24,29,0.15);
+      flex-direction:column;align-items:flex-start;gap:8px;white-space:nowrap;
+    }
+    .overview-year-bar#overviewYearBarPopover.open{display:flex;}
+    .overview-search-wrap{position:relative;display:flex;align-items:center;}
+    #overviewSearchBox{
+      display:none;width:0;font-family:var(--body);font-size:13px;
+      padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;
+    }
+    .overview-search-wrap.expanded #overviewSearchBox{display:block;width:230px;margin-left:8px;}
+    .overview-search-wrap.expanded .overview-icon-btn{display:none;}
+    /* The tab-row year bar's own Overview instance is redundant with
+       the new popover above and was showing up as a visible duplicate
+       for this one role — same issue as before, same fix. */
+    html.limited-view .admin-tabs-row .overview-year-bar[data-year-panel="overview"]{display:none;}
+  }
   .priority-grid{
     display:grid;grid-template-columns:repeat(5,1fr);gap:14px;
     margin-bottom:28px;
@@ -1140,6 +1130,25 @@
     </div>
 
     <div class="admin-panel active" id="panel-overview">
+      <div class="overview-quick-filters">
+        <div class="overview-date-filter-wrap">
+          <button type="button" class="overview-icon-btn" id="overviewDateToggleBtn" aria-label="Filtrare după dată">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </button>
+          <div class="overview-year-bar" id="overviewYearBarPopover" style="margin-top:0;">
+            <label for="yearFilterSelectOverviewCompact">An:</label>
+            <select id="yearFilterSelectOverviewCompact"></select>
+            <label for="monthFilterSelectOverviewCompact">Lună:</label>
+            <select id="monthFilterSelectOverviewCompact"></select>
+          </div>
+        </div>
+        <div class="overview-search-wrap" id="overviewSearchWrap">
+          <button type="button" class="overview-icon-btn" id="overviewSearchToggleBtn" aria-label="Căutare">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <input type="search" id="overviewSearchBox" placeholder="Caută nume, adresă, telefon…">
+        </div>
+      </div>
       <div class="priority-grid">
         <button type="button" class="priority-card" id="prioActiveCard">
           <span class="k">● Active</span>
@@ -1226,17 +1235,12 @@
     <div class="admin-panel" id="panel-tickets">
       <div class="toolbar">
         <div class="filter-inline-group">
-          <div class="ticket-date-filter-wrap">
-            <button type="button" class="ticket-date-toggle-btn" id="ticketDateToggleBtn" aria-label="Filtrare după dată">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            </button>
-            <div class="overview-year-bar mobile-hidden" id="ticketYearBarPopover" style="margin-top:0;">
-              <label for="yearFilterSelectTickets">An:</label>
-              <select id="yearFilterSelectTickets"></select>
-              <label for="monthFilterSelectTickets">Lună:</label>
-              <select id="monthFilterSelectTickets"></select>
-              <span class="year-warning" id="yearWarningTickets">⚠ Nu e anul curent</span>
-            </div>
+          <div class="overview-year-bar mobile-hidden" style="margin-top:0;">
+            <label for="yearFilterSelectTickets">An:</label>
+            <select id="yearFilterSelectTickets"></select>
+            <label for="monthFilterSelectTickets">Lună:</label>
+            <select id="monthFilterSelectTickets"></select>
+            <span class="year-warning" id="yearWarningTickets">⚠ Nu e anul curent</span>
           </div>
           <div class="chips" id="chipsWrap"></div>
           <div class="ticket-search-wrap" id="ticketSearchWrap">
@@ -1822,6 +1826,7 @@
   }
 
   let ticketSearchQuery = '';
+  let overviewSearchQuery = '';
   let ticketYearFilter = 'all';
   let ticketMonthFilter = 'all';
   // Defaults to "Active" on phone specifically — a phone screen is
@@ -1992,6 +1997,7 @@
       document.getElementById('yearFilterSelectOverviewMobile'),
       document.getElementById('yearFilterSelectDesktop'),
       document.getElementById('yearFilterSelectTicketsDesktop'),
+      document.getElementById('yearFilterSelectOverviewCompact'),
     ].filter(Boolean);
     if (selects.length === 0) return;
 
@@ -2024,7 +2030,7 @@
 
   function setTicketYearFilter(value){
     ticketYearFilter = value;
-    document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
+    document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop, #yearFilterSelectOverviewCompact').forEach(s => { s.value = value; });
     updateYearWarning(
       ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectTicketsMobile', 'yearFilterSelectOverviewMobile', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
       ['yearWarningOverview', 'yearWarningTickets', 'yearWarningOverviewDesktop', 'yearWarningTicketsDesktop'],
@@ -2040,7 +2046,7 @@
   // to run once, not every time tickets reload.
   const MONTH_FILTER_NAMES = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
   function populateMonthFilterSelects(){
-    const selects = document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop');
+    const selects = document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop, #monthFilterSelectOverviewCompact');
     const optionsHtml = '<option value="all">Toate lunile</option>' +
       MONTH_FILTER_NAMES.map((name, i) => `<option value="${i + 1}">${name}</option>`).join('');
     selects.forEach(s => { s.innerHTML = optionsHtml; s.value = ticketMonthFilter; });
@@ -2048,7 +2054,7 @@
 
   function setTicketMonthFilter(value){
     ticketMonthFilter = value;
-    document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
+    document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop, #monthFilterSelectOverviewCompact').forEach(s => { s.value = value; });
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
@@ -2436,36 +2442,52 @@
     });
   }
 
-  // Calendar icon toggle for the year/month popover — sesizari@ only
-  // (see the html.limited-view CSS above); harmless no-op elsewhere
-  // since the button itself stays display:none for every other role.
-  const ticketDateToggleBtn = document.getElementById('ticketDateToggleBtn');
-  const ticketYearBarPopover = document.getElementById('ticketYearBarPopover');
-  if (ticketDateToggleBtn && ticketYearBarPopover) {
-    ticketDateToggleBtn.addEventListener('click', (e) => {
+  // Overview's own calendar + search icons — sesizari@ only (see the
+  // html.limited-view CSS); harmless no-op elsewhere since both
+  // buttons stay display:none for every other role.
+  const overviewDateToggleBtn = document.getElementById('overviewDateToggleBtn');
+  const overviewYearBarPopover = document.getElementById('overviewYearBarPopover');
+  if (overviewDateToggleBtn && overviewYearBarPopover) {
+    overviewDateToggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const willOpen = !ticketYearBarPopover.classList.contains('open');
-      ticketYearBarPopover.classList.toggle('open', willOpen);
-      ticketDateToggleBtn.classList.toggle('active', willOpen);
+      const willOpen = !overviewYearBarPopover.classList.contains('open');
+      overviewYearBarPopover.classList.toggle('open', willOpen);
+      overviewDateToggleBtn.classList.toggle('active', willOpen);
     });
-    // Closes on an outside click — same "tap away to dismiss" pattern
-    // as the mobile-sheet backdrops elsewhere in this file, just via
-    // a plain document listener since this is a small inline popover
-    // rather than a full-screen overlay.
     document.addEventListener('click', (e) => {
-      if (!ticketYearBarPopover.classList.contains('open')) return;
-      if (ticketYearBarPopover.contains(e.target) || e.target === ticketDateToggleBtn) return;
-      ticketYearBarPopover.classList.remove('open');
-      ticketDateToggleBtn.classList.remove('active');
+      if (!overviewYearBarPopover.classList.contains('open')) return;
+      if (overviewYearBarPopover.contains(e.target) || e.target === overviewDateToggleBtn) return;
+      overviewYearBarPopover.classList.remove('open');
+      overviewDateToggleBtn.classList.remove('active');
+    });
+  }
+  const overviewSearchToggleBtn = document.getElementById('overviewSearchToggleBtn');
+  const overviewSearchWrap = document.getElementById('overviewSearchWrap');
+  const overviewSearchBox = document.getElementById('overviewSearchBox');
+  if (overviewSearchToggleBtn && overviewSearchWrap && overviewSearchBox) {
+    overviewSearchToggleBtn.addEventListener('click', () => {
+      overviewSearchWrap.classList.add('expanded');
+      overviewSearchToggleBtn.classList.add('active');
+      overviewSearchBox.focus();
+    });
+    overviewSearchBox.addEventListener('blur', () => {
+      if (!overviewSearchBox.value.trim()) {
+        overviewSearchWrap.classList.remove('expanded');
+        overviewSearchToggleBtn.classList.remove('active');
+      }
+    });
+    overviewSearchBox.addEventListener('input', () => {
+      overviewSearchQuery = overviewSearchBox.value;
+      renderOverviewTable();
     });
   }
 
-  document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(select => {
+  document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop, #yearFilterSelectOverviewCompact').forEach(select => {
     select.addEventListener('change', () => setTicketYearFilter(select.value));
   });
 
   populateMonthFilterSelects();
-  document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(select => {
+  document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop, #monthFilterSelectOverviewCompact').forEach(select => {
     select.addEventListener('change', () => setTicketMonthFilter(select.value));
   });
 
@@ -2661,7 +2683,7 @@
     // doesn't erase it from this overview, and a ticket's actual
     // status (virtually always Terminat by the time it's archived)
     // still drives its green/done styling below exactly as before.
-    let visible = allTickets.filter(t => matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
+    let visible = allTickets.filter(t => matchesSearch(t, overviewSearchQuery.trim().toLowerCase()) && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
 
     // vlasbogdan@'s Overview is a dedicated "what needs my report"
     // table — priority cards/charts are hidden for this account (see
