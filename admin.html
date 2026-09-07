@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Insta Grup Admin</title>
 <meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#D11F24">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -314,6 +315,50 @@
      mobile-only affordance, added below in the 900px breakpoint. */
   .ticket-search-wrap{display:contents;}
   .search-icon-btn{display:none;}
+  /* sesizari@'s Sesizări toolbar gets the same compact icon-toggle
+     treatment on desktop that everyone already gets on mobile — a
+     plain always-visible search box and year/month selects felt
+     cluttered for this one account's day-to-day use, request was to
+     tuck both behind small icons instead. Reuses the exact same
+     .expanded-class-toggle mechanism the mobile version already
+     uses (see searchToggleBtn's own JS below) — nothing new to wire
+     up there, just extending where the matching CSS applies. */
+  html.limited-view .ticket-search-wrap{display:flex;align-items:center;position:relative;}
+  html.limited-view .search-icon-btn{
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:38px;height:38px;border-radius:50%;
+    border:1px solid var(--line-strong);background:var(--paper-000);
+    color:var(--ink-600);cursor:pointer;
+  }
+  html.limited-view .search-icon-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
+  html.limited-view #ticketSearchBox{display:none;width:0;}
+  html.limited-view .ticket-search-wrap.expanded #ticketSearchBox{display:block;width:230px;margin-left:8px;}
+  html.limited-view .ticket-search-wrap.expanded .search-icon-btn{display:none;}
+
+  /* Same idea for year/month — a small calendar icon opens a popover
+     with the same two selects, instead of them sitting inline and
+     always visible. Desktop only (min-width:901px) — mobile already
+     has its own "Filtre" button + sheet covering year/month for
+     every role, so this would just be a redundant second control
+     sitting on top of that if it also showed up below 900px. */
+  @media(min-width:901px){
+    html.limited-view .ticket-date-filter-wrap{position:relative;display:flex;align-items:center;}
+    .ticket-date-toggle-btn{display:none;}
+    html.limited-view .ticket-date-toggle-btn{
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;
+      width:38px;height:38px;border-radius:50%;
+      border:1px solid var(--line-strong);background:var(--paper-000);
+      color:var(--ink-600);cursor:pointer;
+    }
+    html.limited-view .ticket-date-toggle-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
+    html.limited-view .overview-year-bar#ticketYearBarPopover{
+      display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:60;
+      background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;
+      padding:14px;box-shadow:0 8px 24px rgba(20,24,29,0.15);
+      flex-direction:column;align-items:flex-start;gap:8px;margin-top:0;white-space:nowrap;
+    }
+    html.limited-view .overview-year-bar#ticketYearBarPopover.open{display:flex;}
+  }
 
   .admin-tabs-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;}
   .admin-tabs{display:flex;gap:6px;margin:24px 0 4px;border-bottom:1px solid var(--line);}
@@ -338,6 +383,12 @@
   @media(min-width:901px){
     .admin-tabs-row .overview-year-bar.active{display:flex;}
     .admin-panel .overview-year-bar{display:none;}
+    /* sesizari@ gets the calendar-icon popover instead (see the
+       .ticket-date-toggle-btn rules further down) — this is the
+       OTHER year/month shortcut, shown next to the tab row itself
+       rather than inside the toolbar, and was showing up alongside
+       the new icon as a confusing duplicate for this one role. */
+    html.limited-view .admin-tabs-row .overview-year-bar[data-year-panel="tickets"]{display:none;}
   }
 
   /* ===== PRIORITY SUMMARY CARDS =====
@@ -355,104 +406,15 @@
      already reserved site-wide to mean "resolved" — reusing it here
      for something else would break that convention rather than
      reinforce it. */
-  /* ===== HOME (vlasbogdan@ only) =====
-     A workflow-relevant landing screen instead of dropping straight
-     into a specific tab after login — leads with the one number that
-     matters most for this report-writing role (tickets awaiting a
-     report), then a row of secondary cards for the other three tabs,
-     each with its own live count so this screen is useful at a
-     glance, not just a navigation menu. */
-  /* vlasbogdan@ uses the menu below as the single navigation system,
-     so the old desktop tab strip never competes with the focused view. */
-  html.report-focused-view .admin-tabs-row{display:none;}
-  html:not(.report-focused-view) #panel-home{display:none!important;}
-  .dash.home-active .dash-head{border-bottom:none;padding-bottom:16px;}
-  html.report-focused-view header.scrolled .nav-header-tabs{display:none;}
-  html.report-focused-view header.scrolled .logo-img{display:block;}
-  .dash-head{position:relative;}
-  .report-nav-wrap{display:none;}
-  html.report-focused-view .report-nav-wrap{display:block;position:absolute;right:0;top:31px;}
-  .report-nav-btn{min-width:112px;justify-content:center;}
-  .report-nav-menu{display:none;position:absolute;right:0;top:calc(100% + 8px);z-index:80;min-width:220px;padding:6px;background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;box-shadow:0 10px 24px rgba(20,24,29,.14);}
-  .report-nav-menu.show{display:block;}
-  .report-nav-link{display:block;width:100%;padding:10px 12px;text-align:left;border:0;background:none;color:var(--ink-900);font:inherit;font-size:14px;cursor:pointer;border-radius:3px;}
-  .report-nav-link:hover{background:var(--paper-050);color:var(--copper-600);}
-  .home-eyebrow{
-    font-family:var(--mono);font-size:12.5px;text-transform:uppercase;
-    letter-spacing:0.06em;color:var(--copper-600);
-  }
-  .home-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:22px;}
-  .home-intro h2{margin:6px 0 0;}
-  .home-intro-copy{margin:0;color:var(--ink-600);font-size:14px;max-width:430px;text-align:right;}
-  .home-priority-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0;}
-  .home-metric{background:var(--paper-000);border:1px solid var(--line-strong);border-radius:7px;padding:16px;text-align:left;font:inherit;color:var(--ink-900);}
-  button.home-metric{width:100%;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .15s;}
-  button.home-metric:hover{border-color:var(--copper-500);box-shadow:0 2px 10px rgba(20,24,29,.08);transform:translateY(-1px);}
-  button.home-metric:focus-visible,.report-nav-link:focus-visible{outline:2px solid var(--copper-500);outline-offset:2px;}
-  .home-metric.alert{border-color:rgba(181,121,47,.4);background:var(--signal-orange-bg);}
-  .home-metric-label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-600);}
-  .home-metric-count{font-family:var(--display);font-size:30px;font-weight:700;line-height:1;margin:10px 0 5px;color:var(--ink-900);}
-  .home-metric-sub{font-size:12px;color:var(--ink-600);}
-  .home-work-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(250px,1fr);gap:18px;align-items:start;}
-  .home-section-card{background:var(--paper-000);border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;}
-  .home-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 18px;border-bottom:1px solid var(--line);}
-  .home-section-head h3{font-size:16px;margin:0;}
-  .home-section-head span{font-family:var(--mono);font-size:12px;color:var(--ink-600);}
-  .home-queue{display:flex;flex-direction:column;}
-  .home-queue-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:14px 18px;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);cursor:pointer;color:var(--ink-900);font:inherit;}
-  .home-queue-item:last-child{border-bottom:0;}
-  .home-queue-item:hover{background:var(--paper-050);}
-  .home-ticket-number{font-family:var(--mono);font-size:12px;color:var(--copper-600);}
-  .home-ticket-address{display:block;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .home-ticket-meta{display:block;font-size:12px;color:var(--ink-600);margin-top:3px;}
-  .home-ticket-action{font-family:var(--mono);font-size:11px;color:var(--copper-600);white-space:nowrap;}
-  .home-empty{padding:32px 18px;color:var(--ink-600);font-size:14px;}
-  .home-side-stack{display:grid;gap:18px;}
-  .home-activity{padding:4px 18px 10px;}
-  .home-activity-item{padding:12px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-700);}
-  .home-activity-item:last-child{border-bottom:0;}
-  .home-activity-item strong{color:var(--ink-900);}
-  .home-activity-time{display:block;font-size:11.5px;color:var(--ink-400);margin-top:3px;}
-  .home-tools-card{margin-top:18px;}
-  .home-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);}
-  .home-tool{display:flex;flex-direction:column;gap:5px;min-height:126px;padding:18px;background:var(--paper-000);color:var(--ink-900);text-decoration:none;transition:background .15s,color .15s;}
-  .home-tool:hover{background:var(--paper-050);color:var(--copper-600);}
-  .home-tool:focus-visible{outline:2px solid var(--copper-500);outline-offset:-2px;}
-  .home-tool-kind{font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--copper-600);}
-  .home-tool strong{font-size:16px;}
-  .home-tool small{margin-top:auto;font-size:12.5px;color:var(--ink-600);}
-  .home-tools-local-note{margin:0;padding:10px 18px;background:var(--signal-orange-bg);border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-700);}
-  @media(max-width:900px){
-    .home-intro{align-items:flex-start;margin-top:8px;}
-    .home-intro-copy{display:none;}
-    html.report-focused-view .report-nav-wrap{display:none;}
-    .home-priority-grid{grid-template-columns:repeat(2,1fr);}
-    .home-work-grid{grid-template-columns:1fr;}
-    .home-tools{grid-template-columns:1fr;}
-    .home-tool{min-height:0;}
-  }
-  @media(max-width:480px){
-    .home-queue-item{grid-template-columns:auto minmax(0,1fr);padding:14px;}
-    .home-ticket-action{grid-column:2;}
-  }
-
   .priority-grid{
     display:grid;grid-template-columns:repeat(5,1fr);gap:14px;
     margin-bottom:28px;
   }
-  html.report-focused-view .overview-sidebar{display:none;}
-  /* Home icon/tab only exist for vlasbogdan@ — the workflow-relevant
-     landing screen (see panel-home, renderHomePanel()) is built
-     specifically around what this one report-writing role needs to
-     see first, and wouldn't mean anything to a general admin login. */
-  .home-icon-btn{display:none;}
-  html.report-focused-view .home-icon-btn{display:inline-flex;}
-  /* Overrides the generic rule above specifically inside the mobile
-     sidebar list, where sibling .mobile-tab-btn entries use plain
-     flex (not inline-flex) for their row layout — matching that
-     exactly rather than leaving this one entry subtly
-     inconsistent with the others next to it. */
-  html.report-focused-view .mobile-sidebar-nav .home-icon-btn{display:flex;}
+  /* vlasbogdan@'s Overview is a dedicated "what needs my report"
+     table (see isReportFocusedView() / the JS toggling this class on
+     login) — the priority cards describe a different kind of
+     at-a-glance triage that doesn't apply to that dedicated context. */
+  html.report-focused-view .priority-grid{display:none;}
   /* .chips.report-focused-chips (compound, not the bare class alone)
      — the generic .chips{display:flex;...} rule further down the file
      is EQUAL specificity to a bare ".report-focused-chips", and being
@@ -631,6 +593,20 @@
   .overview-table tr.urgent-row td:first-child{border-left:3px solid var(--signal-red);}
   .overview-table tr.urgent-row td:not(:first-child){color:var(--signal-red);font-weight:600;}
   .overview-table td.aging-date{color:var(--signal-orange);font-weight:600;}
+  /* Clicking the resolved date reveals "Ce s-a făcut" right below the
+     row instead of navigating away — the Overview table has no spare
+     column width for that text permanently, and this is the one
+     detail vlasbogdan@ specifically needs to check quickly and often. */
+  .resolved-date-toggle{
+    cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px;
+    color:var(--ink-900);
+  }
+  .resolved-date-toggle:hover{color:var(--copper-600);}
+  .resnote-expand-row td{
+    background:var(--paper-050);font-size:13px;color:var(--ink-700);
+    padding:10px 14px;border-top:none;
+  }
+  .resnote-expand-row td em{color:var(--ink-400);font-style:italic;}
   .status-bubble{width:11px;height:11px;border-radius:50%;display:block;flex-shrink:0;}
   .status-bubble.active{background:var(--signal-orange);}
   .status-bubble.done{background:var(--signal-green);}
@@ -698,6 +674,12 @@
   }
   .ov-card-meta .aging{color:var(--signal-orange);font-weight:600;}
   .ov-card-resolved{margin-top:8px;font-size:12px;color:var(--ink-600);}
+  .resolved-date-toggle-mobile{text-decoration:underline dotted;text-underline-offset:2px;width:fit-content;}
+  .resnote-expand-mobile{
+    margin-top:6px;padding:8px 10px;background:var(--paper-050);border-radius:4px;
+    font-size:12px;color:var(--ink-700);text-align:left;
+  }
+  .resnote-expand-mobile em{color:var(--ink-400);font-style:italic;}
 
   @media(max-width:900px){
     .overview-table-wrap{display:none;}
@@ -970,7 +952,6 @@
   .ticket-card.urgent{border-color:rgba(181,80,47,0.4);background:var(--signal-red-bg);}
   .ticket-card.done{opacity:0.6;}
   .ticket-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
-  .ticket-return-row{margin:-2px 0 16px;}
   .ticket-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .ticket-num{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink-900);}
   .ticket-tag{
@@ -1091,7 +1072,6 @@
       </div>
     </div>
     <div class="nav-right">
-      <button class="btn home-icon-btn" type="button" id="homeIconBtn" data-tab="home" title="Acasă">⌂ Acasă</button>
       <span class="nav-tag" id="userTag"></span>
       <button class="btn" id="logoutBtn" style="display:none;">Deconectare</button>
     </div>
@@ -1127,15 +1107,6 @@
         <h1>Insta Grup Admin</h1>
         <p>Gestionați tichetele primite prin formularul de pe site și proiectele afișate public.</p>
       </div>
-      <div class="report-nav-wrap">
-        <button type="button" class="btn report-nav-btn" id="reportNavBtn" aria-expanded="false" aria-controls="reportNavMenu">☰ Meniu</button>
-        <div class="report-nav-menu" id="reportNavMenu">
-          <button type="button" class="report-nav-link" data-home-action="home">Acasă</button>
-          <button type="button" class="report-nav-link" data-home-action="tickets">Sesizări active</button>
-          <button type="button" class="report-nav-link" data-home-action="projects">Proiecte în lucru</button>
-          <button type="button" class="report-nav-link" data-home-action="backlog">Avarii deschise</button>
-        </div>
-      </div>
       <button type="button" class="mobile-logout-link" id="mobileLogoutBtn">Deconectare</button>
     </div>
 
@@ -1168,44 +1139,6 @@
       </div>
     </div>
 
-    <div class="admin-panel" id="panel-home">
-      <div class="home-intro">
-        <div><div class="home-eyebrow">Acasă</div><h2>Ce ai de făcut azi</h2></div>
-      </div>
-      <div class="home-priority-grid">
-        <button type="button" class="home-metric" data-home-action="tickets"><div class="home-metric-label">Sesizări active</div><div class="home-metric-count" id="homeTicketsCount">–</div><div class="home-metric-sub">vezi sesizările în lucru</div></button>
-        <button type="button" class="home-metric" data-home-action="projects"><div class="home-metric-label">Proiecte în lucru</div><div class="home-metric-count" id="homeProjectsCount">–</div><div class="home-metric-sub">vezi proiectele active</div></button>
-        <button type="button" class="home-metric" data-home-action="backlog"><div class="home-metric-label">Avarii deschise</div><div class="home-metric-count" id="homeBacklogCount">–</div><div class="home-metric-sub">vezi lucrările active</div></button>
-        <button type="button" class="home-metric alert" data-home-action="reports"><div class="home-metric-label">De făcut azi</div><div class="home-metric-count" id="homeAwaitingMetricCount">–</div><div class="home-metric-sub">rapoarte de completat</div></button>
-      </div>
-      <div class="home-work-grid">
-        <section class="home-section-card"><div class="home-section-head"><h3>Rapoarte de completat</h3><span id="homeQueueCount">– în așteptare</span></div><div class="home-queue" id="homeQueue"></div></section>
-        <div class="home-side-stack">
-          <section class="home-section-card"><div class="home-section-head"><h3>Activitate recentă</h3></div><div class="home-activity" id="homeRecentActivity"></div></section>
-        </div>
-      </div>
-      <section class="home-section-card home-tools-card">
-        <div class="home-section-head"><h3>Instrumente proiect</h3><span>modele Excel Insta Grup</span></div>
-        <p class="home-tools-local-note" id="homeToolsLocalNote" hidden>Previzualizarea locală nu poate descărca fișiere. Deschide panoul prin site-ul public pentru a descărca modelele Excel.</p>
-        <div class="home-tools">
-          <a class="home-tool" href="gantt-chart.xlsx" download>
-            <span class="home-tool-kind">Planificare</span>
-            <strong>Grafic Gantt</strong>
-            <small>Descarcă modelul pentru planificarea proiectelor.</small>
-          </a>
-          <a class="home-tool" href="agile-kanban-board.xlsx" download>
-            <span class="home-tool-kind">Flux de lucru</span>
-            <strong>Panou Kanban</strong>
-            <small>Descarcă modelul pentru organizarea sarcinilor.</small>
-          </a>
-          <a class="home-tool" href="to-do-list.xlsx" download>
-            <span class="home-tool-kind">Sarcini</span>
-            <strong>Listă de activități</strong>
-            <small>Descarcă modelul pentru urmărirea activităților.</small>
-          </a>
-        </div>
-      </section>
-    </div>
     <div class="admin-panel active" id="panel-overview">
       <div class="priority-grid">
         <button type="button" class="priority-card" id="prioActiveCard">
@@ -1293,12 +1226,17 @@
     <div class="admin-panel" id="panel-tickets">
       <div class="toolbar">
         <div class="filter-inline-group">
-          <div class="overview-year-bar mobile-hidden" style="margin-top:0;">
-            <label for="yearFilterSelectTickets">An:</label>
-            <select id="yearFilterSelectTickets"></select>
-            <label for="monthFilterSelectTickets">Lună:</label>
-            <select id="monthFilterSelectTickets"></select>
-            <span class="year-warning" id="yearWarningTickets">⚠ Nu e anul curent</span>
+          <div class="ticket-date-filter-wrap">
+            <button type="button" class="ticket-date-toggle-btn" id="ticketDateToggleBtn" aria-label="Filtrare după dată">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </button>
+            <div class="overview-year-bar mobile-hidden" id="ticketYearBarPopover" style="margin-top:0;">
+              <label for="yearFilterSelectTickets">An:</label>
+              <select id="yearFilterSelectTickets"></select>
+              <label for="monthFilterSelectTickets">Lună:</label>
+              <select id="monthFilterSelectTickets"></select>
+              <span class="year-warning" id="yearWarningTickets">⚠ Nu e anul curent</span>
+            </div>
           </div>
           <div class="chips" id="chipsWrap"></div>
           <div class="ticket-search-wrap" id="ticketSearchWrap">
@@ -1767,19 +1705,7 @@
     return currentSessionEmail === 'vlasbogdan@insta-grup.ro';
   }
 
-  // Browser security gives every file:// page a unique origin. Keep local
-  // preview usable, but enable PWA features only from a served website.
-  const isWebOrigin = window.location.protocol === 'https:' || window.location.protocol === 'http:';
-  if (isWebOrigin) {
-    const manifest = document.createElement('link');
-    manifest.rel = 'manifest';
-    manifest.href = 'manifest.json';
-    document.head.append(manifest);
-  }
-  const homeToolsLocalNote = document.getElementById('homeToolsLocalNote');
-  if (homeToolsLocalNote && !isWebOrigin) homeToolsLocalNote.hidden = false;
-
-  if (isWebOrigin && 'serviceWorker' in navigator) {
+  if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')
       .then(reg => {
         swRegistration = reg;
@@ -2301,11 +2227,22 @@
 
   async function autoArchiveStaleTickets(){
     const cutoffISO = new Date(Date.now() - AUTO_ARCHIVE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    // Requires resolution_note to actually be filled in before a
+    // ticket can be swept into archived=true — a Terminat ticket
+    // missing its "Ce s-a făcut" write-up stays out of the archive
+    // indefinitely (and keeps showing under "Așteaptă raport") until
+    // someone fills it in, however long that takes. This is
+    // completely separate from the public site's own 14-day
+    // visibility window (relatii-publice.html/sesizari.html filter by
+    // resolved_on client-side, not by this archived flag), so a
+    // ticket still disappears from the public pages on schedule
+    // either way — only the *admin* archive is being held back here.
     const { error } = await supabaseClient
       .from('tickets')
       .update({ archived: true, archived_at: new Date().toISOString() })
       .eq('status', 'Terminat')
       .eq('archived', false)
+      .not('resolution_note', 'is', null)
       .lt('resolved_on', cutoffISO);
     if (error) console.error('Auto-archive of stale tickets failed (non-blocking):', error);
   }
@@ -2328,39 +2265,22 @@
   }
 
   function showDashboard(email){
-    // Supabase normally returns a lowercase address, but email local
-    // parts are case-insensitive for this account. Normalize once so
-    // the vlasbogdan@ landing screen cannot disappear on a casing or
-    // whitespace difference returned by a session.
-    const normalizedEmail = (email || '').trim().toLowerCase();
-    if (dash.classList.contains('show') && currentSessionEmail === normalizedEmail) {
+    if (dash.classList.contains('show') && currentSessionEmail === email) {
       maybeAutoPromptForNotifications();
       return;
     }
-    currentSessionEmail = normalizedEmail;
-    // This account is identified by its authenticated email, not by
-    // the optional staff_roles lookup below. Switch its initial panel
-    // before revealing the dashboard so the default Overview never
-    // flashes for a frame while that lookup is still in flight.
-    const isReportAccount = isReportFocusedView();
-    document.documentElement.classList.toggle('report-focused-view', isReportAccount);
-    if (isReportAccount) {
-      openAdminTab('home', true);
-      history.replaceState({ adminTab: 'home' }, '', window.location.pathname + window.location.search + '#home');
-    }
+    currentSessionEmail = email;
     loginWrap.style.display = 'none';
     dash.classList.add('show');
     logoutBtn.style.display = 'inline-flex';
     maybeAutoPromptForNotifications();
-    userTag.textContent = normalizedEmail;
+    userTag.textContent = email;
     // Role must be known before the first render, so tickets don't
     // briefly flash the "Ce s-a făcut" field for a limited-access
     // account before it gets hidden a moment later.
-    fetchCurrentUserRole(normalizedEmail).then(() => {
-      // A sign-out or account switch may happen before the request
-      // resolves. Never let that stale response change the new view.
-      if (currentSessionEmail !== normalizedEmail) return;
+    fetchCurrentUserRole(email).then(() => {
       document.documentElement.classList.toggle('report-focused-view', isReportFocusedView());
+      document.documentElement.classList.toggle('limited-view', currentUserRole === 'limited');
       // The sheet's status chips render with the standard 3-option
       // set at script-load time (role isn't known yet then) — this
       // adds the 4th "Așteaptă raport" option specifically for the
@@ -2397,14 +2317,12 @@
       runAutoArchiveSweep().finally(() => {
         loadTickets();
         loadProjects();
-        loadBacklogProjects();
       });
     });
   }
 
   function showLogin(){
     currentSessionEmail = null;
-    document.documentElement.classList.remove('report-focused-view');
     loginWrap.style.display = 'flex';
     dash.classList.remove('show');
     logoutBtn.style.display = 'none';
@@ -2473,8 +2391,6 @@
   logoutBtn.addEventListener('click', performLogout);
   const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
   if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', performLogout);
-  const homeIconBtn = document.getElementById('homeIconBtn');
-  if (homeIconBtn) homeIconBtn.addEventListener('click', () => openAdminTab('home'));
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
     if (session) {
@@ -2517,6 +2433,30 @@
         ticketSearchWrap.classList.remove('expanded');
         searchToggleBtn.classList.remove('active');
       }
+    });
+  }
+
+  // Calendar icon toggle for the year/month popover — sesizari@ only
+  // (see the html.limited-view CSS above); harmless no-op elsewhere
+  // since the button itself stays display:none for every other role.
+  const ticketDateToggleBtn = document.getElementById('ticketDateToggleBtn');
+  const ticketYearBarPopover = document.getElementById('ticketYearBarPopover');
+  if (ticketDateToggleBtn && ticketYearBarPopover) {
+    ticketDateToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const willOpen = !ticketYearBarPopover.classList.contains('open');
+      ticketYearBarPopover.classList.toggle('open', willOpen);
+      ticketDateToggleBtn.classList.toggle('active', willOpen);
+    });
+    // Closes on an outside click — same "tap away to dismiss" pattern
+    // as the mobile-sheet backdrops elsewhere in this file, just via
+    // a plain document listener since this is a small inline popover
+    // rather than a full-screen overlay.
+    document.addEventListener('click', (e) => {
+      if (!ticketYearBarPopover.classList.contains('open')) return;
+      if (ticketYearBarPopover.contains(e.target) || e.target === ticketDateToggleBtn) return;
+      ticketYearBarPopover.classList.remove('open');
+      ticketDateToggleBtn.classList.remove('active');
     });
   }
 
@@ -2647,7 +2587,6 @@
     renderOverviewCharts();
     renderPrioritySummary();
     handlePendingTicketUrlParam();
-    renderHomePanel();
   }
 
   // The 4 cards at the top of "Prezentare generală" — deliberately
@@ -2724,33 +2663,54 @@
     // still drives its green/done styling below exactly as before.
     let visible = allTickets.filter(t => matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
 
-    // Every account uses the same Overview logic. vlasbogdan@ only
-    // gains one extra filter: solved tickets that still need a report.
-    if (overviewStatusFilter === 'active') {
-      visible = visible.filter(t => t.status !== 'Terminat');
-    } else if (overviewStatusFilter === 'done') {
-      visible = visible.filter(t => t.status === 'Terminat');
-    } else if (isReportFocusedView() && overviewStatusFilter === 'awaiting_report') {
-      visible = visible.filter(t => t.status === 'Terminat' && !t.resolution_note);
-    }
+    // vlasbogdan@'s Overview is a dedicated "what needs my report"
+    // table — priority cards/charts are hidden for this account (see
+    // the CSS), and a separate 3-way chip row (reportFocusedChipDefs
+    // above) replaces the normal priority-card narrowing entirely,
+    // since those don't apply to this dedicated context. "Soluționate"
+    // here specifically means truly complete (Terminat AND has a
+    // report) — consistent with "Așteaptă raport" meaning the other
+    // Terminat tickets, so every ticket falls into exactly one of the
+    // three states, none left out and none double-counted.
+    if (isReportFocusedView()) {
+      if (overviewStatusFilter === 'active') {
+        visible = visible.filter(t => t.status !== 'Terminat');
+      } else if (overviewStatusFilter === 'done') {
+        visible = visible.filter(t => t.status === 'Terminat' && !!t.resolution_note);
+      } else if (overviewStatusFilter === 'awaiting_report') {
+        visible = visible.filter(t => t.status === 'Terminat' && !t.resolution_note);
+      }
+    } else {
+      if (overviewStatusFilter === 'active') {
+        visible = visible.filter(t => t.status !== 'Terminat');
+      } else if (overviewStatusFilter === 'done') {
+        visible = visible.filter(t => t.status === 'Terminat');
+      }
 
-    // Four of the five priority cards describe a subset of ACTIVE
-    // tickets, so any of those first narrows to non-Terminat, then
-    // applies whatever further narrowing that specific card represents.
-    if (overviewCardFilter === 'solved') {
-      visible = visible.filter(t => t.status === 'Terminat');
-    } else if (overviewCardFilter) {
-      visible = visible.filter(t => t.status !== 'Terminat');
-      if (overviewCardFilter === 'aging') {
-        visible = visible.filter(t => {
-          if (!t.submitted_on) return false;
-          const daysOpen = (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24);
-          return daysOpen > AGING_THRESHOLD_DAYS;
-        });
-      } else if (overviewCardFilter === 'functional') {
-        visible = visible.filter(t => t.type !== 'Anunt accident');
-      } else if (overviewCardFilter === 'accident') {
-        visible = visible.filter(t => t.type === 'Anunt accident');
+      // Four of the five priority cards describe a subset of ACTIVE
+      // tickets, so any of those first narrows to non-Terminat, then
+      // applies whatever further narrowing that specific card
+      // represents. "solved" is the one exception — the opposite
+      // scope entirely (every Terminat ticket, report written or
+      // not), so it's branched separately rather than forced into
+      // the active-first narrowing the other four share.
+      if (overviewCardFilter === 'solved') {
+        visible = visible.filter(t => t.status === 'Terminat');
+      } else if (overviewCardFilter) {
+        visible = visible.filter(t => t.status !== 'Terminat');
+        if (overviewCardFilter === 'aging') {
+          visible = visible.filter(t => {
+            if (!t.submitted_on) return false;
+            const daysOpen = (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24);
+            return daysOpen > AGING_THRESHOLD_DAYS;
+          });
+        } else if (overviewCardFilter === 'functional') {
+          visible = visible.filter(t => t.type !== 'Anunt accident');
+        } else if (overviewCardFilter === 'accident') {
+          visible = visible.filter(t => t.type === 'Anunt accident');
+        }
+        // 'active' needs nothing further — the status filter above
+        // already covers exactly what that card represents.
       }
     }
 
@@ -2769,9 +2729,11 @@
       // isn't that yet, so it stays visually normal here even though
       // isDone itself (used below for the status pill, resolved date,
       // etc.) correctly still reflects the real stored status.
-      const isFullyComplete = (currentUserRole === 'limited' || isReportFocusedView())
-        ? isDone
-        : (isDone && !!t.resolution_note);
+      // Report-completion status isn't relevant to a limited-role
+      // account (they can't act on it either way), so every Terminat
+      // ticket fades uniformly for them — only 'full' accounts see
+      // the awaiting-report distinction called out visually.
+      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !!t.resolution_note);
       const isUrgent = t.type === 'Anunt accident';
       const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
       const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
@@ -2787,9 +2749,10 @@
           <td>${escapeHtml(t.phone || '—')}</td>
           <td class="overview-address-cell">${escapeHtml(t.address || '—')}</td>
           <td><span class="status-pill ${isDone ? 'status-pill-done' : 'status-pill-active'}">${isDone ? 'Soluționat' : 'În curs'}</span></td>
-          <td>${isDone ? fmtDateOnly(t.resolved_on) : '—'}</td>
+          <td>${isDone ? `<span class="resolved-date-toggle" data-ticket-id="${t.id}" title="Vezi ce s-a făcut">${fmtDateOnly(t.resolved_on)}</span>` : '—'}</td>
           <td>${resolutionDays !== null ? formatDurationDays(resolutionDays) : '—'}</td>
         </tr>
+        ${isDone ? `<tr class="resnote-expand-row" data-ticket-id="${t.id}" style="display:none;"><td colspan="9"><strong>Ce s-a făcut:</strong> ${t.resolution_note ? escapeHtml(t.resolution_note) : '<em>Nu a fost completat încă.</em>'}</td></tr>` : ''}
       `;
     }).join('');
 
@@ -2801,9 +2764,11 @@
     if (cardsWrap) {
       cardsWrap.innerHTML = ordered.map(t => {
         const isDone = t.status === 'Terminat';
-        const isFullyComplete = (currentUserRole === 'limited' || isReportFocusedView())
-          ? isDone
-          : (isDone && !!t.resolution_note);
+        // Report-completion status isn't relevant to a limited-role
+      // account (they can't act on it either way), so every Terminat
+      // ticket fades uniformly for them — only 'full' accounts see
+      // the awaiting-report distinction called out visually.
+      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !!t.resolution_note);
         const isUrgent = t.type === 'Anunt accident';
         const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
         const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
@@ -2819,7 +2784,8 @@
               <span class="${isAging ? 'aging' : ''}">${isAging ? '⚠ ' : ''}${fmtDateOnly(t.submitted_on)}</span>
               <span>${escapeHtml(t.name || '—')} · ${escapeHtml(t.phone || '—')}</span>
             </div>
-            ${isDone ? `<div class="ov-card-resolved">Soluționat: ${fmtDateOnly(t.resolved_on)}</div>` : ''}
+            ${isDone ? `<div class="ov-card-resolved resolved-date-toggle-mobile" data-ticket-id="${t.id}">Soluționat: ${fmtDateOnly(t.resolved_on)}</div>` : ''}
+            ${isDone ? `<div class="resnote-expand-mobile" data-ticket-id="${t.id}" style="display:none;"><strong>Ce s-a făcut:</strong> ${t.resolution_note ? escapeHtml(t.resolution_note) : '<em>Nu a fost completat încă.</em>'}</div>` : ''}
           </button>
         `;
       }).join('');
@@ -2838,6 +2804,13 @@
   const overviewCardsMobileEl = document.getElementById('overviewCardsMobile');
   if (overviewCardsMobileEl) {
     overviewCardsMobileEl.addEventListener('click', (e) => {
+      const dateToggle = e.target.closest('.resolved-date-toggle-mobile');
+      if (dateToggle) {
+        e.stopPropagation();
+        const expand = overviewCardsMobileEl.querySelector(`.resnote-expand-mobile[data-ticket-id="${dateToggle.dataset.ticketId}"]`);
+        if (expand) expand.style.display = expand.style.display === 'none' ? 'block' : 'none';
+        return;
+      }
       const card = e.target.closest('.ov-card');
       if (card) goToTicket(card.dataset.ticketId);
     });
@@ -2849,7 +2822,6 @@
   // actually be rendered regardless of which filter was previously
   // selected), then scrolling to and briefly highlighting it.
   let currentAdminTab = 'overview';
-  let overviewReturnState = null;
 
   /* ============================================================
      AUTOREFRESH — deliberately event-driven, not a timer polling
@@ -2876,145 +2848,6 @@
     loadBacklogProjects();
   }
 
-  // Home panel (vlasbogdan@ only) — reads whatever's currently in the
-  // three data arrays and updates its counts. Called from the end of
-  // renderOverviewTable()/renderProjects()/renderBacklogProjects()
-  // rather than awaited as one batch, since those three loads are
-  // independent async calls — this way the home screen fills in
-  // progressively as each one resolves instead of needing all three
-  // to coordinate before anything shows.
-  function renderHomePanel(){
-    const homePanel = document.getElementById('panel-home');
-    if (!homePanel) return;
-
-    const reportQueue = allTickets
-      .filter(t => !t.archived && t.status === 'Terminat' && !t.resolution_note)
-      .sort((a, b) => parseTicketDate(a.resolved_on || a.submitted_on) - parseTicketDate(b.resolved_on || b.submitted_on));
-    const awaitingCount = reportQueue.length;
-    const activeTicketsCount = allTickets.filter(t => !t.archived && t.status !== 'Terminat').length;
-    // Keep these totals aligned with the actual project tabs: completed
-    // projects are calculated from their due date, and archived rows
-    // are excluded from the active workload.
-    const activeProjectsCount = (typeof allProjects !== 'undefined' ? allProjects : [])
-      .filter(p => !p.archived && getProjectStatusFilterKey(p) === 'Ongoing').length;
-    const activeBacklogCount = (typeof allBacklogProjects !== 'undefined' ? allBacklogProjects : [])
-      .filter(p => !p.archived && (p.status || 'Ongoing') !== 'Terminat').length;
-
-    document.getElementById('homeAwaitingMetricCount').textContent = awaitingCount;
-    document.getElementById('homeTicketsCount').textContent = activeTicketsCount;
-    document.getElementById('homeProjectsCount').textContent = activeProjectsCount;
-    document.getElementById('homeBacklogCount').textContent = activeBacklogCount;
-
-    const homeQueue = document.getElementById('homeQueue');
-    const homeQueueCount = document.getElementById('homeQueueCount');
-    if (homeQueue) {
-      homeQueue.innerHTML = reportQueue.length
-        ? reportQueue.slice(0, 5).map(t => `
-          <button type="button" class="home-queue-item" data-ticket-id="${escapeHtml(t.id)}">
-            <span class="home-ticket-number">${escapeHtml(t.ticket_number || '—')}</span>
-            <span><span class="home-ticket-address">${escapeHtml(t.address || 'Adresă nespecificată')}</span><span class="home-ticket-meta">Soluționată ${fmtDateOnly(t.resolved_on)}${t.resolved_by ? ' · ' + escapeHtml(t.resolved_by) : ''}</span></span>
-            <span class="home-ticket-action">Completează raportul</span>
-          </button>
-        `).join('')
-        : '<div class="home-empty">Nu există rapoarte de completat. Toate tichetele soluționate sunt actualizate.</div>';
-    }
-    if (homeQueueCount) homeQueueCount.textContent = awaitingCount ? `${awaitingCount} în așteptare` : 'totul este actualizat';
-
-    const homeRecentActivity = document.getElementById('homeRecentActivity');
-    if (homeRecentActivity) {
-      const recentReports = allTickets
-        .filter(t => !t.archived && t.status === 'Terminat' && t.resolution_note && t.resolved_on)
-        .sort((a, b) => parseTicketDate(b.resolved_on) - parseTicketDate(a.resolved_on))
-        .slice(0, 4);
-      homeRecentActivity.innerHTML = recentReports.length
-        ? recentReports.map(t => `<div class="home-activity-item"><strong>${escapeHtml(t.ticket_number || 'Tichet')}</strong> · raport completat${t.resolved_by ? ' de ' + escapeHtml(t.resolved_by) : ''}<span class="home-activity-time">${fmtDateOnly(t.resolved_on)} · ${escapeHtml(t.address || 'Adresă nespecificată')}</span></div>`).join('')
-        : '<div class="home-empty">Încă nu există rapoarte finalizate.</div>';
-    }
-  }
-
-  function setHomeTabFilter(tabKey){
-    if (tabKey === 'tickets') {
-      editingTicketId = null;
-      if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
-      setTicketYearFilter('all');
-      setTicketMonthFilter('all');
-      overviewCardFilter = null;
-      updateOverviewNarrowFilterUI();
-      setOverviewStatusFilter('active');
-      tabKey = 'overview';
-    } else if (tabKey === 'projects') {
-      projectsFilter = 'Ongoing';
-      projectSearchQuery = '';
-      if (projectSearchBox) projectSearchBox.value = '';
-      projectYearFilter = 'all';
-      document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectMobile, #projectYearFilterSelectDesktop').forEach(select => { select.value = 'all'; });
-      document.querySelectorAll('#projectsChipsWrap .chip, #projectsChipsWrapSheet .chip').forEach(chip => {
-        chip.classList.toggle('active', chip.dataset.key === projectsFilter);
-      });
-      renderProjects();
-    } else if (tabKey === 'backlog') {
-      backlogFilter = 'Ongoing';
-      backlogSearchQuery = '';
-      if (backlogSearchBox) backlogSearchBox.value = '';
-      document.querySelectorAll('#backlogChipsWrap .chip, #backlogChipsWrapSheet .chip').forEach(chip => {
-        chip.classList.toggle('active', chip.dataset.key === backlogFilter);
-      });
-      renderBacklogProjects();
-    } else if (tabKey === 'reports') {
-      editingTicketId = null;
-      if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
-      setTicketYearFilter('all');
-      setTicketMonthFilter('all');
-      overviewCardFilter = null;
-      updateOverviewNarrowFilterUI();
-      setOverviewStatusFilter('awaiting_report');
-      tabKey = 'overview';
-    } else if (tabKey === 'home') {
-      tabKey = 'home';
-    }
-    openAdminTab(tabKey);
-  }
-
-  document.querySelectorAll('.home-metric[data-home-action]').forEach(card => {
-    card.addEventListener('click', () => setHomeTabFilter(card.dataset.homeAction));
-  });
-  const reportNavBtn = document.getElementById('reportNavBtn');
-  const reportNavMenu = document.getElementById('reportNavMenu');
-  if (reportNavBtn && reportNavMenu) {
-    reportNavBtn.addEventListener('click', () => {
-      const isOpen = reportNavMenu.classList.toggle('show');
-      reportNavBtn.setAttribute('aria-expanded', String(isOpen));
-    });
-    reportNavMenu.querySelectorAll('[data-home-action]').forEach(item => {
-      item.addEventListener('click', () => {
-        reportNavMenu.classList.remove('show');
-        reportNavBtn.setAttribute('aria-expanded', 'false');
-        setHomeTabFilter(item.dataset.homeAction);
-      });
-    });
-    document.addEventListener('click', event => {
-      if (!event.target.closest('.report-nav-wrap')) {
-        reportNavMenu.classList.remove('show');
-        reportNavBtn.setAttribute('aria-expanded', 'false');
-      }
-    });
-  }
-  document.getElementById('homeQueue').addEventListener('click', (event) => {
-    const ticket = event.target.closest('.home-queue-item');
-    if (!ticket) return;
-    // The queue is specifically for report work, so open the selected
-    // solved ticket directly in its existing edit form rather than
-    // making the person find it again in the full ticket list.
-    editingTicketId = ticket.dataset.ticketId;
-    if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
-    setTicketFilter('AwaitingReport');
-    openAdminTab('tickets');
-    requestAnimationFrame(() => {
-      const card = document.getElementById('ticket-card-' + ticket.dataset.ticketId);
-      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-  });
-
   let tabHiddenAt = null;
   const STALE_TAB_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
   document.addEventListener('visibilitychange', () => {
@@ -3033,9 +2866,6 @@
   });
 
   function openAdminTab(tabKey, fromPopState){
-    const isHome = tabKey === 'home' && isReportFocusedView();
-    dash.classList.toggle('home-active', isHome);
-    document.documentElement.classList.toggle('home-active', isHome);
     document.querySelectorAll('.admin-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.tab === tabKey);
     });
@@ -3119,29 +2949,18 @@
   if (clearNarrowFilterBtn) clearNarrowFilterBtn.addEventListener('click', clearNarrowFilter);
 
   function goToTicket(ticketId){
-    const targetTicket = allTickets.find(ticket => ticket.id === ticketId);
-    if (!targetTicket) return;
-    // Preserve the exact table state so a ticket opened from Overview
-    // can return to the same table, filter, year, and month.
-    overviewReturnState = currentAdminTab === 'overview'
-      ? {
-          status: overviewStatusFilter,
-          priority: overviewCardFilter,
-          year: ticketYearFilter,
-          month: ticketMonthFilter,
-          ticketId,
-        }
-      : null;
     agingOnlyFilter = false;
     typeOnlyFilter = null;
     updateActiveNarrowFilterUI();
     if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
-    // Archived tickets are not part of the regular ticket filters.
-    // Send them to their real home instead of silently leaving the
-    // selected card out of the rendered list.
-    setTicketYearFilter('all');
-    setTicketMonthFilter('all');
-    setTicketFilter(targetTicket.archived ? 'Archived' : 'Toate');
+    // An archived ticket doesn't exist under "Toate" (getFilteredTickets
+    // excludes archived there by design — see its own comment) — landing
+    // on "Toate" for one just showed an empty-feeling Sesizări tab with
+    // no visible ticket and no explanation why. Routing to the
+    // "Arhivate" chip instead means the ticket is actually there to
+    // find and highlight, for a click from either account.
+    const ticket = allTickets.find(t => String(t.id) === String(ticketId));
+    setTicketFilter(ticket && ticket.archived ? 'Archived' : 'Toate');
     openAdminTab('tickets');
 
     requestAnimationFrame(() => {
@@ -3154,28 +2973,18 @@
     });
   }
 
-  function returnToOverviewTable(){
-    const state = overviewReturnState;
-    overviewReturnState = null;
-    if (!state) {
-      openAdminTab('overview');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    setTicketYearFilter(state.year);
-    setTicketMonthFilter(state.month);
-    overviewCardFilter = state.priority;
-    updateOverviewNarrowFilterUI();
-    setOverviewStatusFilter(state.status);
-    openAdminTab('overview');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
   document.getElementById('overviewTableBody').addEventListener('click', (e) => {
     const link = e.target.closest('.ticket-link');
-    if (!link) return;
-    e.preventDefault();
-    goToTicket(link.dataset.ticketId);
+    if (link) {
+      e.preventDefault();
+      goToTicket(link.dataset.ticketId);
+      return;
+    }
+    const dateToggle = e.target.closest('.resolved-date-toggle');
+    if (dateToggle) {
+      const row = document.querySelector(`.resnote-expand-row[data-ticket-id="${dateToggle.dataset.ticketId}"]`);
+      if (row) row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+    }
   });
 
   /* ============================================================
@@ -3395,7 +3204,6 @@
           </div>
           <span class="ticket-date">Trimis: ${fmtDate(t.submitted_on)}</span>
         </div>
-        ${overviewReturnState && overviewReturnState.ticketId === t.id ? '<div class="ticket-return-row"><button type="button" class="btn ticket-return-overview">← Înapoi la tabel</button></div>' : ''}
         <div class="ticket-body">
           ${isEditing ? `
           <div class="ctrl-field">
@@ -3517,10 +3325,6 @@
       }
 
       const checkbox = card.querySelector('.f-select');
-      const returnOverviewBtn = card.querySelector('.ticket-return-overview');
-      if (returnOverviewBtn) {
-        returnOverviewBtn.addEventListener('click', returnToOverviewTable);
-      }
       checkbox.addEventListener('change', () => {
         if (checkbox.checked) selectedIds.add(t.id);
         else selectedIds.delete(t.id);
@@ -4534,7 +4338,6 @@
     allProjects = data || [];
     populateProjectYearFilterSelect();
     renderProjects();
-    renderHomePanel();
   }
 
   function renderProjects(){
@@ -4927,7 +4730,6 @@
     }
     allBacklogProjects = data || [];
     renderBacklogProjects();
-    renderHomePanel();
   }
 
   function daysSince(dateStr, endDateStr){
@@ -5317,10 +5119,6 @@
     <button type="button" class="sheet-close" id="mobileSidebarCloseBtn" aria-label="Închide">×</button>
   </div>
   <nav class="mobile-sidebar-nav">
-    <button type="button" class="mobile-tab-btn home-icon-btn" data-tab="home">
-      <span class="mtb-dash"></span>
-      <span>Acasă</span>
-    </button>
     <button type="button" class="mobile-tab-btn active" data-tab="overview">
       <span class="mtb-dash"></span>
       <span>Prezentare generală</span>
