@@ -357,17 +357,21 @@
      for something else would break that convention rather than
      reinforce it. */
   /* sesizari@ specifically gets quick-access calendar/search icons
-     right above the priority cards on Overview — this account has no
-     other way to search by name/address/phone on this tab at all
-     (Overview never had a search box, only year/month), and the
-     year/month controls elsewhere on the page felt like one extra
-     step for something used constantly. Desktop only, hidden for
-     every other role — those accounts already have this covered via
-     the tab-row year bar and, on Sesizări, the search box. */
+     on the tab row itself, right side, same line as the tabs — this
+     account has no other way to search by name/address/phone on
+     Overview at all (it never had a search box, only year/month),
+     and wanted a full day-level calendar rather than just year/month
+     dropdowns for the date side. Desktop only, hidden for every
+     other role — those accounts already have this covered via the
+     existing tab-row year bar and, on Sesizări, the search box.
+     Lives inside .admin-tabs-row (not the panel itself) specifically
+     so it can sit on the tab row's own line — shown/hidden in sync
+     with the "overview" tab via the same .active-class toggle the
+     other tab-row year bars already use (see openAdminTab()'s JS). */
   .overview-quick-filters{display:none;}
   @media(min-width:901px){
-    html.limited-view .overview-quick-filters{
-      display:flex;gap:10px;margin-bottom:18px;
+    html.limited-view .overview-quick-filters.active{
+      display:flex;gap:10px;align-items:center;
     }
     .overview-icon-btn{
       display:flex;align-items:center;justify-content:center;flex-shrink:0;
@@ -377,25 +381,66 @@
     }
     .overview-icon-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
     .overview-date-filter-wrap{position:relative;display:flex;align-items:center;}
-    .overview-year-bar#overviewYearBarPopover{
-      display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:60;
-      background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;
-      padding:14px;box-shadow:0 8px 24px rgba(20,24,29,0.15);
-      flex-direction:column;align-items:flex-start;gap:8px;white-space:nowrap;
-    }
-    .overview-year-bar#overviewYearBarPopover.open{display:flex;}
     .overview-search-wrap{position:relative;display:flex;align-items:center;}
     #overviewSearchBox{
       display:none;width:0;font-family:var(--body);font-size:13px;
       padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;
     }
-    .overview-search-wrap.expanded #overviewSearchBox{display:block;width:230px;margin-left:8px;}
+    .overview-search-wrap.expanded #overviewSearchBox{display:block;width:230px;margin-right:8px;}
     .overview-search-wrap.expanded .overview-icon-btn{display:none;}
     /* The tab-row year bar's own Overview instance is redundant with
-       the new popover above and was showing up as a visible duplicate
+       the calendar above and was showing up as a visible duplicate
        for this one role — same issue as before, same fix. */
     html.limited-view .admin-tabs-row .overview-year-bar[data-year-panel="overview"]{display:none;}
   }
+
+  /* ===== MINI CALENDAR (day/month/year, replaces the old plain
+     year+month dropdowns for this one popover) — a compact custom
+     grid rather than a browser-native <input type="date">, since a
+     native date input can't be scoped to only the years/months that
+     actually have tickets, and can't show a "some tickets exist this
+     day" affordance directly in the grid the way a bespoke one can
+     later if that's ever wanted. Positioned absolute, anchored to the
+     calendar icon that opens it, same popover pattern as everywhere
+     else on this page. */
+  .mini-calendar{
+    display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:60;
+    background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;
+    padding:14px;box-shadow:0 8px 24px rgba(20,24,29,0.15);width:240px;
+  }
+  .mini-calendar.open{display:block;}
+  .mini-cal-header{
+    display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;
+  }
+  .mini-cal-header span{font-family:var(--mono);font-size:13px;color:var(--ink-900);text-transform:capitalize;}
+  .mini-cal-header button{
+    width:26px;height:26px;border-radius:50%;border:1px solid var(--line-strong);
+    background:var(--paper-000);color:var(--ink-700);cursor:pointer;font-size:14px;line-height:1;
+  }
+  .mini-cal-header button:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .mini-cal-weekdays{
+    display:grid;grid-template-columns:repeat(7,1fr);
+    font-family:var(--mono);font-size:10.5px;color:var(--ink-400);
+    text-align:center;margin-bottom:4px;
+  }
+  .mini-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+  .mini-cal-day{
+    width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+    font-size:12.5px;color:var(--ink-900);background:none;border:none;border-radius:4px;
+    cursor:pointer;
+  }
+  .mini-cal-day:hover{background:var(--paper-050);}
+  .mini-cal-day.outside{color:var(--ink-300);}
+  .mini-cal-day.today{font-weight:700;color:var(--copper-600);}
+  .mini-cal-day.selected{background:var(--copper-500);color:#fff;}
+  .mini-cal-clear-btn{
+    width:100%;margin-top:10px;padding:7px;font-family:var(--mono);font-size:11px;
+    text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-600);
+    background:none;border:1px solid var(--line-strong);border-radius:4px;cursor:pointer;
+  }
+  .mini-cal-clear-btn:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .mini-cal-clear-btn.active-filter{border-color:var(--copper-500);color:var(--copper-600);background:var(--copper-050);}
+
   .priority-grid{
     display:grid;grid-template-columns:repeat(5,1fr);gap:14px;
     margin-bottom:28px;
@@ -1127,19 +1172,20 @@
         <select id="projectYearFilterSelectDesktop"></select>
         <span class="year-warning" id="yearWarningProjectsDesktop">⚠ Nu e anul curent</span>
       </div>
-    </div>
-
-    <div class="admin-panel active" id="panel-overview">
-      <div class="overview-quick-filters">
+      <div class="overview-quick-filters active">
         <div class="overview-date-filter-wrap">
           <button type="button" class="overview-icon-btn" id="overviewDateToggleBtn" aria-label="Filtrare după dată">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           </button>
-          <div class="overview-year-bar" id="overviewYearBarPopover" style="margin-top:0;">
-            <label for="yearFilterSelectOverviewCompact">An:</label>
-            <select id="yearFilterSelectOverviewCompact"></select>
-            <label for="monthFilterSelectOverviewCompact">Lună:</label>
-            <select id="monthFilterSelectOverviewCompact"></select>
+          <div class="mini-calendar" id="overviewMiniCalendar">
+            <div class="mini-cal-header">
+              <button type="button" id="miniCalPrevBtn" aria-label="Luna anterioară">‹</button>
+              <span id="miniCalLabel">—</span>
+              <button type="button" id="miniCalNextBtn" aria-label="Luna următoare">›</button>
+            </div>
+            <div class="mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+            <div class="mini-cal-grid" id="miniCalGrid"></div>
+            <button type="button" class="mini-cal-clear-btn" id="miniCalClearBtn">Toate zilele</button>
           </div>
         </div>
         <div class="overview-search-wrap" id="overviewSearchWrap">
@@ -1149,6 +1195,9 @@
           <input type="search" id="overviewSearchBox" placeholder="Caută nume, adresă, telefon…">
         </div>
       </div>
+    </div>
+
+    <div class="admin-panel active" id="panel-overview">
       <div class="priority-grid">
         <button type="button" class="priority-card" id="prioActiveCard">
           <span class="k">● Active</span>
@@ -1997,7 +2046,6 @@
       document.getElementById('yearFilterSelectOverviewMobile'),
       document.getElementById('yearFilterSelectDesktop'),
       document.getElementById('yearFilterSelectTicketsDesktop'),
-      document.getElementById('yearFilterSelectOverviewCompact'),
     ].filter(Boolean);
     if (selects.length === 0) return;
 
@@ -2030,7 +2078,7 @@
 
   function setTicketYearFilter(value){
     ticketYearFilter = value;
-    document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop, #yearFilterSelectOverviewCompact').forEach(s => { s.value = value; });
+    document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
     updateYearWarning(
       ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectTicketsMobile', 'yearFilterSelectOverviewMobile', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
       ['yearWarningOverview', 'yearWarningTickets', 'yearWarningOverviewDesktop', 'yearWarningTicketsDesktop'],
@@ -2046,7 +2094,7 @@
   // to run once, not every time tickets reload.
   const MONTH_FILTER_NAMES = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
   function populateMonthFilterSelects(){
-    const selects = document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop, #monthFilterSelectOverviewCompact');
+    const selects = document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop');
     const optionsHtml = '<option value="all">Toate lunile</option>' +
       MONTH_FILTER_NAMES.map((name, i) => `<option value="${i + 1}">${name}</option>`).join('');
     selects.forEach(s => { s.innerHTML = optionsHtml; s.value = ticketMonthFilter; });
@@ -2054,7 +2102,7 @@
 
   function setTicketMonthFilter(value){
     ticketMonthFilter = value;
-    document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop, #monthFilterSelectOverviewCompact').forEach(s => { s.value = value; });
+    document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
@@ -2446,20 +2494,113 @@
   // html.limited-view CSS); harmless no-op elsewhere since both
   // buttons stay display:none for every other role.
   const overviewDateToggleBtn = document.getElementById('overviewDateToggleBtn');
-  const overviewYearBarPopover = document.getElementById('overviewYearBarPopover');
-  if (overviewDateToggleBtn && overviewYearBarPopover) {
+  const overviewMiniCalendar = document.getElementById('overviewMiniCalendar');
+  const miniCalLabel = document.getElementById('miniCalLabel');
+  const miniCalGrid = document.getElementById('miniCalGrid');
+  const miniCalClearBtn = document.getElementById('miniCalClearBtn');
+  // A short Romanian month-name list of its own — MONTH_FILTER_NAMES
+  // elsewhere is capitalized for dropdown options, this one feeds
+  // straight into the calendar header text next to nav arrows, same
+  // capitalization either way so nothing looks inconsistent.
+  const MINI_CAL_MONTH_NAMES = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
+  let overviewCalViewYear = new Date().getFullYear();
+  let overviewCalViewMonth = new Date().getMonth() + 1; // 1-12
+  let overviewDayFilter = null; // 1-31, or null for "every day"
+
+  // Renders the 7-column day grid for whichever month/year the
+  // calendar is currently showing — this is purely a navigation/view
+  // state, separate from overviewDayFilter (the actual applied
+  // filter), so browsing to a different month to look around doesn't
+  // silently change what's filtered until a day is actually clicked.
+  function renderMiniCalendar(){
+    if (!miniCalGrid) return;
+    miniCalLabel.textContent = `${MINI_CAL_MONTH_NAMES[overviewCalViewMonth - 1]} ${overviewCalViewYear}`;
+
+    const firstOfMonth = new Date(overviewCalViewYear, overviewCalViewMonth - 1, 1);
+    // JS getDay() is 0=Sunday..6=Saturday; the grid's week starts on
+    // Monday (matching the L-M-M-J-V-S-D header), so Sunday needs to
+    // land in column 7, not column 1.
+    const startOffset = (firstOfMonth.getDay() + 6) % 7;
+    const daysInMonth = new Date(overviewCalViewYear, overviewCalViewMonth, 0).getDate();
+    const daysInPrevMonth = new Date(overviewCalViewYear, overviewCalViewMonth - 1, 0).getDate();
+
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear() === overviewCalViewYear && today.getMonth() + 1 === overviewCalViewMonth;
+
+    let html = '';
+    for (let i = 0; i < startOffset; i++) {
+      html += `<span class="mini-cal-day outside">${daysInPrevMonth - startOffset + i + 1}</span>`;
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const classes = ['mini-cal-day'];
+      if (isCurrentMonth && d === today.getDate()) classes.push('today');
+      if (overviewDayFilter === d && ticketYearFilter === String(overviewCalViewYear) && ticketMonthFilter === String(overviewCalViewMonth)) classes.push('selected');
+      html += `<button type="button" class="${classes.join(' ')}" data-day="${d}">${d}</button>`;
+    }
+    const totalCells = startOffset + daysInMonth;
+    const trailing = (7 - (totalCells % 7)) % 7;
+    for (let i = 1; i <= trailing; i++) {
+      html += `<span class="mini-cal-day outside">${i}</span>`;
+    }
+    miniCalGrid.innerHTML = html;
+
+    miniCalGrid.querySelectorAll('.mini-cal-day[data-day]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        overviewDayFilter = Number(btn.dataset.day);
+        // setTicketYearFilter/setTicketMonthFilter already call
+        // renderOverviewTable() internally — overviewDayFilter is
+        // set before either runs, so that render already picks up
+        // the day filter too, no separate call needed here.
+        setTicketYearFilter(String(overviewCalViewYear));
+        setTicketMonthFilter(String(overviewCalViewMonth));
+        renderMiniCalendar();
+      });
+    });
+
+    if (miniCalClearBtn) miniCalClearBtn.classList.toggle('active-filter', overviewDayFilter !== null);
+  }
+
+  if (overviewDateToggleBtn && overviewMiniCalendar) {
+    renderMiniCalendar();
     overviewDateToggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const willOpen = !overviewYearBarPopover.classList.contains('open');
-      overviewYearBarPopover.classList.toggle('open', willOpen);
+      const willOpen = !overviewMiniCalendar.classList.contains('open');
+      overviewMiniCalendar.classList.toggle('open', willOpen);
       overviewDateToggleBtn.classList.toggle('active', willOpen);
     });
     document.addEventListener('click', (e) => {
-      if (!overviewYearBarPopover.classList.contains('open')) return;
-      if (overviewYearBarPopover.contains(e.target) || e.target === overviewDateToggleBtn) return;
-      overviewYearBarPopover.classList.remove('open');
+      if (!overviewMiniCalendar.classList.contains('open')) return;
+      // composedPath() (not .contains(e.target)) specifically because
+      // clicking a day rebuilds the grid's innerHTML as part of
+      // handling that same click — by the time this listener runs,
+      // e.target is a detached node no longer inside
+      // overviewMiniCalendar at all, so .contains() would incorrectly
+      // say "that was an outside click" and close the popover right
+      // after selecting a day. composedPath() captures the original
+      // propagation path from when the event actually fired, before
+      // anything got replaced.
+      const path = e.composedPath();
+      if (path.includes(overviewMiniCalendar) || path.includes(overviewDateToggleBtn)) return;
+      overviewMiniCalendar.classList.remove('open');
       overviewDateToggleBtn.classList.remove('active');
     });
+    document.getElementById('miniCalPrevBtn').addEventListener('click', () => {
+      overviewCalViewMonth--;
+      if (overviewCalViewMonth < 1) { overviewCalViewMonth = 12; overviewCalViewYear--; }
+      renderMiniCalendar();
+    });
+    document.getElementById('miniCalNextBtn').addEventListener('click', () => {
+      overviewCalViewMonth++;
+      if (overviewCalViewMonth > 12) { overviewCalViewMonth = 1; overviewCalViewYear++; }
+      renderMiniCalendar();
+    });
+    if (miniCalClearBtn) {
+      miniCalClearBtn.addEventListener('click', () => {
+        overviewDayFilter = null;
+        renderMiniCalendar();
+        renderOverviewTable();
+      });
+    }
   }
   const overviewSearchToggleBtn = document.getElementById('overviewSearchToggleBtn');
   const overviewSearchWrap = document.getElementById('overviewSearchWrap');
@@ -2482,12 +2623,12 @@
     });
   }
 
-  document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop, #yearFilterSelectOverviewCompact').forEach(select => {
+  document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(select => {
     select.addEventListener('change', () => setTicketYearFilter(select.value));
   });
 
   populateMonthFilterSelects();
-  document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop, #monthFilterSelectOverviewCompact').forEach(select => {
+  document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(select => {
     select.addEventListener('change', () => setTicketMonthFilter(select.value));
   });
 
@@ -2684,6 +2825,15 @@
     // status (virtually always Terminat by the time it's archived)
     // still drives its green/done styling below exactly as before.
     let visible = allTickets.filter(t => matchesSearch(t, overviewSearchQuery.trim().toLowerCase()) && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
+    // Day-level narrowing on top of the shared year/month state —
+    // sesizari@'s mini-calendar only, everyone else's overviewDayFilter
+    // stays null forever since nothing else ever sets it.
+    if (typeof overviewDayFilter !== 'undefined' && overviewDayFilter !== null) {
+      visible = visible.filter(t => {
+        const d = parseTicketDate(t.submitted_on);
+        return !isNaN(d.getTime()) && d.getDate() === overviewDayFilter;
+      });
+    }
 
     // vlasbogdan@'s Overview is a dedicated "what needs my report"
     // table — priority cards/charts are hidden for this account (see
@@ -2903,6 +3053,8 @@
     document.querySelectorAll('.admin-tabs-row .overview-year-bar').forEach(bar => {
       bar.classList.toggle('active', bar.dataset.yearPanel === tabKey);
     });
+    const overviewQuickFilters = document.querySelector('.overview-quick-filters');
+    if (overviewQuickFilters) overviewQuickFilters.classList.toggle('active', tabKey === 'overview');
 
     // Browser back/forward support — each real tab switch becomes its
     // own history entry, so pressing back steps back through
