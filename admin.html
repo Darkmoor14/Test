@@ -43,7 +43,7 @@
   .nav-brand{display:flex;align-items:center;}
   /* Compact tab bar that swaps in for the logo once the page has
      scrolled past the real tab bar further down — lets you jump
-     between "Prezentare generală" / "Sesizări" / "Proiecte curente"
+     between "Prezentare generală" / "Sesizări" / "Proiecte publice"
      without scrolling all the way back to the top, which matters
      when quickly working through a long ticket list. */
   .nav-header-tabs{display:none;gap:6px;}
@@ -382,11 +382,18 @@
     .overview-icon-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
     .overview-date-filter-wrap{position:relative;display:flex;align-items:center;}
     .overview-search-wrap{position:relative;display:flex;align-items:center;}
-    #overviewSearchBox{
+    /* Generic — targets any search input inside .overview-search-wrap
+       by structure, not a specific ID. The original version of this
+       rule only ever hid #overviewSearchBox by name, so Sesizări/
+       Proiecte/Avarii's own search boxes (different IDs each) never
+       actually got hidden at all — they sat permanently visible
+       right next to their icon instead of collapsing behind it like
+       Overview's correctly did. */
+    .overview-search-wrap input[type="search"]{
       display:none;width:0;font-family:var(--body);font-size:13px;
       padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;
     }
-    .overview-search-wrap.expanded #overviewSearchBox{display:block;width:230px;margin-right:8px;}
+    .overview-search-wrap.expanded input[type="search"]{display:block;width:230px;margin-right:8px;}
     .overview-search-wrap.expanded .overview-icon-btn{display:none;}
     /* The tab-row year bar's own Overview instance is redundant with
        the calendar above and was showing up as a visible duplicate
@@ -401,7 +408,7 @@
     .admin-tabs-row .overview-year-bar[data-year-panel="tickets"]{display:none;}
     #panel-tickets .toolbar .overview-year-bar{display:none;}
     #panel-tickets .toolbar .ticket-search-wrap{display:none;}
-    /* Same again for Proiecte curente — its tab-row year bar only
+    /* Same again for Proiecte publice — its tab-row year bar only
        ever had year (no month), replaced now by the full calendar;
        its own toolbar's inline year-bar and search box are hidden
        the same way Sesizări's were. */
@@ -860,7 +867,7 @@
      mis-ordered) — .result-count had no mobile-hide rule at all, so
      it sat alongside .toolbar-mobile-summary's own count the whole
      time, showing the same "X din Y" text twice, side by side, on
-     Sesizări/Proiecte curente/Avarii rețele. */
+     Sesizări/Proiecte publice/Avarii rețele. */
   @media(max-width:900px){
     .result-count{display:none;}
     /* Status chips move into the "Filtre" sheet on mobile now,
@@ -1123,7 +1130,7 @@
       <div class="nav-header-tabs" id="navHeaderTabs">
         <button type="button" class="header-tab-btn" data-tab="overview">Prezentare generală</button>
         <button type="button" class="header-tab-btn" data-tab="tickets">Sesizări</button>
-        <button type="button" class="header-tab-btn" data-tab="projects">Proiecte curente</button>
+        <button type="button" class="header-tab-btn" data-tab="projects">Proiecte publice</button>
         <button type="button" class="header-tab-btn" data-tab="backlog">Avarii rețele</button>
       </div>
     </div>
@@ -1170,7 +1177,7 @@
       <div class="admin-tabs">
         <button class="admin-tab active" type="button" data-tab="overview">Prezentare generală</button>
         <button class="admin-tab" type="button" data-tab="tickets">Sesizări</button>
-        <button class="admin-tab" type="button" data-tab="projects">Proiecte curente</button>
+        <button class="admin-tab" type="button" data-tab="projects">Proiecte publice</button>
         <button class="admin-tab" type="button" data-tab="backlog">Avarii rețele</button>
       </div>
       <!-- Desktop-only year/month shortcuts for the first two panels. -->
@@ -1358,7 +1365,8 @@
 
     <div class="admin-panel" id="panel-tickets">
       <div class="toolbar">
-        <div class="filter-inline-group">
+        <div class="chips" id="chipsWrap"></div>
+        <div style="display:flex; align-items:center; gap:14px;">
           <div class="overview-year-bar mobile-hidden" style="margin-top:0;">
             <label for="yearFilterSelectTickets">An:</label>
             <select id="yearFilterSelectTickets"></select>
@@ -1366,7 +1374,6 @@
             <select id="monthFilterSelectTickets"></select>
             <span class="year-warning" id="yearWarningTickets">⚠ Nu e anul curent</span>
           </div>
-          <div class="chips" id="chipsWrap"></div>
           <div class="ticket-search-wrap" id="ticketSearchWrap">
             <button type="button" class="search-icon-btn" id="searchToggleBtn" aria-label="Căutare">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -3142,7 +3149,7 @@
      AUTOREFRESH — deliberately event-driven, not a timer polling
      every N minutes. Two triggers:
        1. Switching between admin's own tabs (Prezentare generală /
-          Sesizări / Proiecte curente) — someone else may have closed
+          Sesizări / Proiecte publice) — someone else may have closed
           a ticket or added a project while this tab was open on a
           different view.
        2. Returning to this browser tab after it sat unfocused/hidden
@@ -4337,7 +4344,7 @@
   if (exportExcelBtn) exportExcelBtn.addEventListener('click', () => handleExcelExport(exportExcelBtn));
 
   /* ============================================================
-     ADMIN TABS — switch between "Sesizări" and "Proiecte curente"
+     ADMIN TABS — switch between "Sesizări" and "Proiecte publice"
      within the same authenticated dashboard (no second login needed).
      ============================================================ */
   document.querySelectorAll('.admin-tab').forEach(tab => {
@@ -4548,7 +4555,7 @@
     renderProjects();
   }
 
-  // Proiecte curente's own calendar + search icons — year/month state
+  // Proiecte publice's own calendar + search icons — year/month state
   // shared with the tab's existing selects via setProjectYearFilter/
   // setProjectMonthFilter, day-level and search are new state of
   // their own (projects never had either before). Placed here,
@@ -5074,7 +5081,7 @@
   /* ============================================================
      BACKLOG PROJECTS — work that's identified but not urgent: not
      yet finished, not scheduled to wrap up soon, ongoing-but-not-
-     mandatory-right-now. Deliberately simpler than "Proiecte curente"
+     mandatory-right-now. Deliberately simpler than "Proiecte publice"
      above (no due date, no progress bar, no archiving, no Excel
      import) since these fields don't apply to work with no near-term
      deadline. Completed work stays in the same table and is moved to
@@ -5510,7 +5517,7 @@
     </button>
     <button type="button" class="mobile-tab-btn" data-tab="projects">
       <span class="mtb-dash"></span>
-      <span>Proiecte curente</span>
+      <span>Proiecte publice</span>
     </button>
     <button type="button" class="mobile-tab-btn" data-tab="backlog">
       <span class="mtb-dash"></span>
