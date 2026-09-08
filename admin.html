@@ -370,7 +370,7 @@
      other tab-row year bars already use (see openAdminTab()'s JS). */
   .overview-quick-filters{display:none;}
   @media(min-width:901px){
-    html.limited-view .overview-quick-filters.active{
+    .overview-quick-filters.active{
       display:flex;gap:10px;align-items:center;
     }
     .overview-icon-btn{
@@ -391,7 +391,28 @@
     /* The tab-row year bar's own Overview instance is redundant with
        the calendar above and was showing up as a visible duplicate
        for this one role — same issue as before, same fix. */
-    html.limited-view .admin-tabs-row .overview-year-bar[data-year-panel="overview"]{display:none;}
+    .admin-tabs-row .overview-year-bar[data-year-panel="overview"]{display:none;}
+    /* Same for Sesizări's own tab-row year bar and its toolbar's old
+       inline year-bar/search box — the new icon pair above (data-
+       year-panel="tickets") replaces both of those now, for every
+       role, not just year-bar's usual desktop-only display. Status
+       chips (#chipsWrap) are untouched — those aren't being
+       replaced, only the year/month controls and the search box. */
+    .admin-tabs-row .overview-year-bar[data-year-panel="tickets"]{display:none;}
+    #panel-tickets .toolbar .overview-year-bar{display:none;}
+    #panel-tickets .toolbar .ticket-search-wrap{display:none;}
+    /* Same again for Proiecte curente — its tab-row year bar only
+       ever had year (no month), replaced now by the full calendar;
+       its own toolbar's inline year-bar and search box are hidden
+       the same way Sesizări's were. */
+    .admin-tabs-row .overview-year-bar[data-year-panel="projects"]{display:none;}
+    #panel-projects .toolbar .overview-year-bar{display:none;}
+    #panel-projects .toolbar .ticket-search-wrap{display:none;}
+    /* Avarii rețele gets search only, no calendar — this tab has no
+       year/month/day concept at all (backlog items are tracked by
+       status only, not a date range), so there's nothing for a
+       calendar icon to filter here. */
+    #panel-backlog .toolbar .ticket-search-wrap{display:none;}
   }
 
   /* ===== MINI CALENDAR (day/month/year, replaces the old plain
@@ -1172,7 +1193,7 @@
         <select id="projectYearFilterSelectDesktop"></select>
         <span class="year-warning" id="yearWarningProjectsDesktop">⚠ Nu e anul curent</span>
       </div>
-      <div class="overview-quick-filters active">
+      <div class="overview-quick-filters active" data-year-panel="overview">
         <div class="overview-date-filter-wrap">
           <button type="button" class="overview-icon-btn" id="overviewDateToggleBtn" aria-label="Filtrare după dată">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -1193,6 +1214,60 @@
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </button>
           <input type="search" id="overviewSearchBox" placeholder="Caută nume, adresă, telefon…">
+        </div>
+      </div>
+      <div class="overview-quick-filters" data-year-panel="tickets">
+        <div class="overview-date-filter-wrap">
+          <button type="button" class="overview-icon-btn" id="ticketsDateToggleBtn" aria-label="Filtrare după dată">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </button>
+          <div class="mini-calendar" id="ticketsMiniCalendar">
+            <div class="mini-cal-header">
+              <button type="button" id="ticketsMiniCalPrevBtn" aria-label="Luna anterioară">‹</button>
+              <span id="ticketsMiniCalLabel">—</span>
+              <button type="button" id="ticketsMiniCalNextBtn" aria-label="Luna următoare">›</button>
+            </div>
+            <div class="mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+            <div class="mini-cal-grid" id="ticketsMiniCalGrid"></div>
+            <button type="button" class="mini-cal-clear-btn" id="ticketsMiniCalClearBtn">Toate zilele</button>
+          </div>
+        </div>
+        <div class="overview-search-wrap" id="ticketsIconSearchWrap">
+          <button type="button" class="overview-icon-btn" id="ticketsSearchToggleBtn" aria-label="Căutare">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <input type="search" id="ticketsIconSearchBox" placeholder="Caută nume, adresă, telefon…">
+        </div>
+      </div>
+      <div class="overview-quick-filters" data-year-panel="projects">
+        <div class="overview-date-filter-wrap">
+          <button type="button" class="overview-icon-btn" id="projectsDateToggleBtn" aria-label="Filtrare după dată">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </button>
+          <div class="mini-calendar" id="projectsMiniCalendar">
+            <div class="mini-cal-header">
+              <button type="button" id="projectsMiniCalPrevBtn" aria-label="Luna anterioară">‹</button>
+              <span id="projectsMiniCalLabel">—</span>
+              <button type="button" id="projectsMiniCalNextBtn" aria-label="Luna următoare">›</button>
+            </div>
+            <div class="mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+            <div class="mini-cal-grid" id="projectsMiniCalGrid"></div>
+            <button type="button" class="mini-cal-clear-btn" id="projectsMiniCalClearBtn">Toate zilele</button>
+          </div>
+        </div>
+        <div class="overview-search-wrap" id="projectsIconSearchWrap">
+          <button type="button" class="overview-icon-btn" id="projectsSearchToggleBtn" aria-label="Căutare">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <input type="search" id="projectsIconSearchBox" placeholder="Caută titlu, adresă…">
+        </div>
+      </div>
+      <div class="overview-quick-filters" data-year-panel="backlog">
+        <div class="overview-search-wrap" id="backlogIconSearchWrap">
+          <button type="button" class="overview-icon-btn" id="backlogIconSearchToggleBtn" aria-label="Căutare">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <input type="search" id="backlogIconSearchBox" placeholder="Caută titlu, adresă, angajat…">
         </div>
       </div>
     </div>
@@ -1996,6 +2071,16 @@
       ));
     }
     base = base.filter(t => matchesSearch(t, query) && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
+    // Shared with Overview's own calendar (both read/write the same
+    // ticketYearFilter/ticketMonthFilter already, so sharing the day
+    // level too keeps the two tabs' date filtering fully consistent
+    // with each other, not just coincidentally similar).
+    if (typeof overviewDayFilter !== 'undefined' && overviewDayFilter !== null) {
+      base = base.filter(t => {
+        const d = parseTicketDate(t.submitted_on);
+        return !isNaN(d.getTime()) && d.getDate() === overviewDayFilter;
+      });
+    }
 
     // Extra narrowing applied when a priority card was clicked — see
     // clearNarrowFilter()/the priority card handlers further down.
@@ -2490,138 +2575,196 @@
     });
   }
 
-  // Overview's own calendar + search icons — sesizari@ only (see the
-  // html.limited-view CSS); harmless no-op elsewhere since both
-  // buttons stay display:none for every other role.
-  const overviewDateToggleBtn = document.getElementById('overviewDateToggleBtn');
-  const overviewMiniCalendar = document.getElementById('overviewMiniCalendar');
-  const miniCalLabel = document.getElementById('miniCalLabel');
-  const miniCalGrid = document.getElementById('miniCalGrid');
-  const miniCalClearBtn = document.getElementById('miniCalClearBtn');
   // A short Romanian month-name list of its own — MONTH_FILTER_NAMES
   // elsewhere is capitalized for dropdown options, this one feeds
   // straight into the calendar header text next to nav arrows, same
   // capitalization either way so nothing looks inconsistent.
   const MINI_CAL_MONTH_NAMES = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
-  let overviewCalViewYear = new Date().getFullYear();
-  let overviewCalViewMonth = new Date().getMonth() + 1; // 1-12
-  let overviewDayFilter = null; // 1-31, or null for "every day"
 
-  // Renders the 7-column day grid for whichever month/year the
-  // calendar is currently showing — this is purely a navigation/view
-  // state, separate from overviewDayFilter (the actual applied
-  // filter), so browsing to a different month to look around doesn't
-  // silently change what's filtered until a day is actually clicked.
-  function renderMiniCalendar(){
-    if (!miniCalGrid) return;
-    miniCalLabel.textContent = `${MINI_CAL_MONTH_NAMES[overviewCalViewMonth - 1]} ${overviewCalViewYear}`;
+  // Generic day/month/year calendar widget — instantiated once per
+  // tab below rather than copy-pasted four times, since the only
+  // real difference between tabs is which state variables get read
+  // and written. `config` = {
+  //   toggleBtnId, calendarId, labelId, gridId, clearBtnId, prevBtnId, nextBtnId,
+  //   getYear, setYear, getMonth, setMonth,  — the tab's existing shared year/month filter
+  //   getDay, setDay,                        — this widget's own day-level filter
+  //   rerender                               — called after any change, so the tab's own list updates
+  // }
+  function createMiniCalendarWidget(config){
+    const toggleBtn = document.getElementById(config.toggleBtnId);
+    const calendar = document.getElementById(config.calendarId);
+    const label = document.getElementById(config.labelId);
+    const grid = document.getElementById(config.gridId);
+    const clearBtn = document.getElementById(config.clearBtnId);
+    const prevBtn = document.getElementById(config.prevBtnId);
+    const nextBtn = document.getElementById(config.nextBtnId);
+    if (!toggleBtn || !calendar || !grid) return;
 
-    const firstOfMonth = new Date(overviewCalViewYear, overviewCalViewMonth - 1, 1);
-    // JS getDay() is 0=Sunday..6=Saturday; the grid's week starts on
-    // Monday (matching the L-M-M-J-V-S-D header), so Sunday needs to
-    // land in column 7, not column 1.
-    const startOffset = (firstOfMonth.getDay() + 6) % 7;
-    const daysInMonth = new Date(overviewCalViewYear, overviewCalViewMonth, 0).getDate();
-    const daysInPrevMonth = new Date(overviewCalViewYear, overviewCalViewMonth - 1, 0).getDate();
+    // View navigation is separate from the applied filter — browsing
+    // to a different month to look around shouldn't silently change
+    // what's filtered until a day is actually clicked. Starts on
+    // today's month, or the currently-filtered month/year if one's
+    // already set (so opening the calendar shows relevant context,
+    // not always the current month regardless of what's filtered).
+    const initialYear = Number(config.getYear());
+    const initialMonth = Number(config.getMonth());
+    let viewYear = Number.isFinite(initialYear) ? initialYear : new Date().getFullYear();
+    let viewMonth = Number.isFinite(initialMonth) ? initialMonth : (new Date().getMonth() + 1);
 
-    const today = new Date();
-    const isCurrentMonth = today.getFullYear() === overviewCalViewYear && today.getMonth() + 1 === overviewCalViewMonth;
+    function render(){
+      label.textContent = `${MINI_CAL_MONTH_NAMES[viewMonth - 1]} ${viewYear}`;
+      const firstOfMonth = new Date(viewYear, viewMonth - 1, 1);
+      // JS getDay() is 0=Sunday..6=Saturday; the grid's week starts on
+      // Monday (matching the L-M-M-J-V-S-D header), so Sunday needs to
+      // land in column 7, not column 1.
+      const startOffset = (firstOfMonth.getDay() + 6) % 7;
+      const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
+      const daysInPrevMonth = new Date(viewYear, viewMonth - 1, 0).getDate();
+      const today = new Date();
+      const isCurrentMonth = today.getFullYear() === viewYear && today.getMonth() + 1 === viewMonth;
 
-    let html = '';
-    for (let i = 0; i < startOffset; i++) {
-      html += `<span class="mini-cal-day outside">${daysInPrevMonth - startOffset + i + 1}</span>`;
-    }
-    for (let d = 1; d <= daysInMonth; d++) {
-      const classes = ['mini-cal-day'];
-      if (isCurrentMonth && d === today.getDate()) classes.push('today');
-      if (overviewDayFilter === d && ticketYearFilter === String(overviewCalViewYear) && ticketMonthFilter === String(overviewCalViewMonth)) classes.push('selected');
-      html += `<button type="button" class="${classes.join(' ')}" data-day="${d}">${d}</button>`;
-    }
-    const totalCells = startOffset + daysInMonth;
-    const trailing = (7 - (totalCells % 7)) % 7;
-    for (let i = 1; i <= trailing; i++) {
-      html += `<span class="mini-cal-day outside">${i}</span>`;
-    }
-    miniCalGrid.innerHTML = html;
+      let html = '';
+      for (let i = 0; i < startOffset; i++) {
+        html += `<span class="mini-cal-day outside">${daysInPrevMonth - startOffset + i + 1}</span>`;
+      }
+      for (let d = 1; d <= daysInMonth; d++) {
+        const classes = ['mini-cal-day'];
+        if (isCurrentMonth && d === today.getDate()) classes.push('today');
+        if (config.getDay() === d && String(config.getYear()) === String(viewYear) && String(config.getMonth()) === String(viewMonth)) classes.push('selected');
+        html += `<button type="button" class="${classes.join(' ')}" data-day="${d}">${d}</button>`;
+      }
+      const trailing = (7 - ((startOffset + daysInMonth) % 7)) % 7;
+      for (let i = 1; i <= trailing; i++) {
+        html += `<span class="mini-cal-day outside">${i}</span>`;
+      }
+      grid.innerHTML = html;
 
-    miniCalGrid.querySelectorAll('.mini-cal-day[data-day]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        overviewDayFilter = Number(btn.dataset.day);
-        // setTicketYearFilter/setTicketMonthFilter already call
-        // renderOverviewTable() internally — overviewDayFilter is
-        // set before either runs, so that render already picks up
-        // the day filter too, no separate call needed here.
-        setTicketYearFilter(String(overviewCalViewYear));
-        setTicketMonthFilter(String(overviewCalViewMonth));
-        renderMiniCalendar();
+      grid.querySelectorAll('.mini-cal-day[data-day]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          config.setDay(Number(btn.dataset.day));
+          config.setYear(String(viewYear));
+          config.setMonth(String(viewMonth));
+          render();
+          config.rerender();
+        });
       });
-    });
+      if (clearBtn) clearBtn.classList.toggle('active-filter', config.getDay() !== null);
+    }
 
-    if (miniCalClearBtn) miniCalClearBtn.classList.toggle('active-filter', overviewDayFilter !== null);
-  }
-
-  if (overviewDateToggleBtn && overviewMiniCalendar) {
-    renderMiniCalendar();
-    overviewDateToggleBtn.addEventListener('click', (e) => {
+    render();
+    toggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const willOpen = !overviewMiniCalendar.classList.contains('open');
-      overviewMiniCalendar.classList.toggle('open', willOpen);
-      overviewDateToggleBtn.classList.toggle('active', willOpen);
+      const willOpen = !calendar.classList.contains('open');
+      calendar.classList.toggle('open', willOpen);
+      toggleBtn.classList.toggle('active', willOpen);
     });
     document.addEventListener('click', (e) => {
-      if (!overviewMiniCalendar.classList.contains('open')) return;
+      if (!calendar.classList.contains('open')) return;
       // composedPath() (not .contains(e.target)) specifically because
       // clicking a day rebuilds the grid's innerHTML as part of
       // handling that same click — by the time this listener runs,
-      // e.target is a detached node no longer inside
-      // overviewMiniCalendar at all, so .contains() would incorrectly
-      // say "that was an outside click" and close the popover right
-      // after selecting a day. composedPath() captures the original
-      // propagation path from when the event actually fired, before
-      // anything got replaced.
+      // e.target is a detached node no longer inside the calendar at
+      // all, so .contains() would incorrectly say "that was an
+      // outside click" and close the popover right after selecting a
+      // day. composedPath() captures the original propagation path
+      // from when the event actually fired, before anything got
+      // replaced.
       const path = e.composedPath();
-      if (path.includes(overviewMiniCalendar) || path.includes(overviewDateToggleBtn)) return;
-      overviewMiniCalendar.classList.remove('open');
-      overviewDateToggleBtn.classList.remove('active');
+      if (path.includes(calendar) || path.includes(toggleBtn)) return;
+      calendar.classList.remove('open');
+      toggleBtn.classList.remove('active');
     });
-    document.getElementById('miniCalPrevBtn').addEventListener('click', () => {
-      overviewCalViewMonth--;
-      if (overviewCalViewMonth < 1) { overviewCalViewMonth = 12; overviewCalViewYear--; }
-      renderMiniCalendar();
+    if (prevBtn) prevBtn.addEventListener('click', () => {
+      viewMonth--; if (viewMonth < 1) { viewMonth = 12; viewYear--; }
+      render();
     });
-    document.getElementById('miniCalNextBtn').addEventListener('click', () => {
-      overviewCalViewMonth++;
-      if (overviewCalViewMonth > 12) { overviewCalViewMonth = 1; overviewCalViewYear++; }
-      renderMiniCalendar();
+    if (nextBtn) nextBtn.addEventListener('click', () => {
+      viewMonth++; if (viewMonth > 12) { viewMonth = 1; viewYear++; }
+      render();
     });
-    if (miniCalClearBtn) {
-      miniCalClearBtn.addEventListener('click', () => {
-        overviewDayFilter = null;
-        renderMiniCalendar();
-        renderOverviewTable();
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        config.setDay(null);
+        render();
+        config.rerender();
       });
     }
   }
-  const overviewSearchToggleBtn = document.getElementById('overviewSearchToggleBtn');
-  const overviewSearchWrap = document.getElementById('overviewSearchWrap');
-  const overviewSearchBox = document.getElementById('overviewSearchBox');
-  if (overviewSearchToggleBtn && overviewSearchWrap && overviewSearchBox) {
-    overviewSearchToggleBtn.addEventListener('click', () => {
-      overviewSearchWrap.classList.add('expanded');
-      overviewSearchToggleBtn.classList.add('active');
-      overviewSearchBox.focus();
+
+  // Generic search-icon-to-search-box toggle — same "tap the icon,
+  // it expands and focuses; leave it empty and blur, it collapses
+  // back" pattern used everywhere else on this page, instantiated
+  // per tab instead of copy-pasted. `config` = {
+  //   toggleBtnId, wrapId, boxId, setQuery, rerender
+  // }
+  function createSearchToggleWidget(config){
+    const toggleBtn = document.getElementById(config.toggleBtnId);
+    const wrap = document.getElementById(config.wrapId);
+    const box = document.getElementById(config.boxId);
+    if (!toggleBtn || !wrap || !box) return;
+    toggleBtn.addEventListener('click', () => {
+      wrap.classList.add('expanded');
+      toggleBtn.classList.add('active');
+      box.focus();
     });
-    overviewSearchBox.addEventListener('blur', () => {
-      if (!overviewSearchBox.value.trim()) {
-        overviewSearchWrap.classList.remove('expanded');
-        overviewSearchToggleBtn.classList.remove('active');
+    box.addEventListener('blur', () => {
+      if (!box.value.trim()) {
+        wrap.classList.remove('expanded');
+        toggleBtn.classList.remove('active');
       }
     });
-    overviewSearchBox.addEventListener('input', () => {
-      overviewSearchQuery = overviewSearchBox.value;
-      renderOverviewTable();
+    box.addEventListener('input', () => {
+      config.setQuery(box.value);
+      config.rerender();
     });
   }
+
+  // Overview's own calendar + search icons — now shown for every
+  // role (see the CSS above), sharing the exact same
+  // ticketYearFilter/ticketMonthFilter state Sesizări's own icons
+  // use, plus its own day-level filter.
+  let overviewDayFilter = null; // 1-31, or null for "every day"
+  // Both tabs' calendars share this same day-filter state, so
+  // clearing/selecting a day from either one's widget needs to
+  // refresh both tabs' lists — not just the one whose icon was
+  // clicked — or switching to the other tab afterward would show
+  // stale results until something else happened to trigger a render.
+  function rerenderSharedTicketViews(){
+    renderOverviewTable();
+    renderTickets();
+  }
+  createMiniCalendarWidget({
+    toggleBtnId: 'overviewDateToggleBtn', calendarId: 'overviewMiniCalendar',
+    labelId: 'miniCalLabel', gridId: 'miniCalGrid', clearBtnId: 'miniCalClearBtn',
+    prevBtnId: 'miniCalPrevBtn', nextBtnId: 'miniCalNextBtn',
+    getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
+    getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
+    getDay: () => overviewDayFilter, setDay: (d) => { overviewDayFilter = d; },
+    rerender: rerenderSharedTicketViews,
+  });
+  createSearchToggleWidget({
+    toggleBtnId: 'overviewSearchToggleBtn', wrapId: 'overviewSearchWrap', boxId: 'overviewSearchBox',
+    setQuery: (v) => { overviewSearchQuery = v; }, rerender: renderOverviewTable,
+  });
+
+  // Sesizări's own calendar + search icons — shares the exact same
+  // ticketYearFilter/ticketMonthFilter/overviewDayFilter state as
+  // Overview's (both tabs stay in sync with each other), but its own
+  // search query, since Sesizări already had its own separate
+  // ticketSearchQuery/getFilteredTickets() search before this.
+  createMiniCalendarWidget({
+    toggleBtnId: 'ticketsDateToggleBtn', calendarId: 'ticketsMiniCalendar',
+    labelId: 'ticketsMiniCalLabel', gridId: 'ticketsMiniCalGrid', clearBtnId: 'ticketsMiniCalClearBtn',
+    prevBtnId: 'ticketsMiniCalPrevBtn', nextBtnId: 'ticketsMiniCalNextBtn',
+    getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
+    getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
+    getDay: () => overviewDayFilter, setDay: (d) => { overviewDayFilter = d; },
+    rerender: rerenderSharedTicketViews,
+  });
+  createSearchToggleWidget({
+    toggleBtnId: 'ticketsSearchToggleBtn', wrapId: 'ticketsIconSearchWrap', boxId: 'ticketsIconSearchBox',
+    setQuery: (v) => { ticketSearchQuery = v; }, rerender: renderTickets,
+  });
 
   document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(select => {
     select.addEventListener('change', () => setTicketYearFilter(select.value));
@@ -3053,8 +3196,9 @@
     document.querySelectorAll('.admin-tabs-row .overview-year-bar').forEach(bar => {
       bar.classList.toggle('active', bar.dataset.yearPanel === tabKey);
     });
-    const overviewQuickFilters = document.querySelector('.overview-quick-filters');
-    if (overviewQuickFilters) overviewQuickFilters.classList.toggle('active', tabKey === 'overview');
+    document.querySelectorAll('.overview-quick-filters').forEach(qf => {
+      qf.classList.toggle('active', qf.dataset.yearPanel === tabKey);
+    });
 
     // Browser back/forward support — each real tab switch becomes its
     // own history entry, so pressing back steps back through
@@ -4378,6 +4522,57 @@
     return String(new Date(p.start_date).getFullYear()) === String(yearFilter);
   }
 
+  // Month/day-level filtering added alongside the calendar icon —
+  // projects previously only had year-level filtering (no month
+  // select existed at all), since the mini-calendar's own month
+  // navigation makes a separate dropdown unnecessary now.
+  let projectMonthFilter = 'all';
+  let projectDayFilter = null;
+  function matchesProjectMonth(p, monthFilter){
+    if (monthFilter === 'all') return true;
+    if (!p.start_date) return false;
+    return String(new Date(p.start_date).getMonth() + 1) === String(monthFilter);
+  }
+  function setProjectYearFilter(value){
+    projectYearFilter = value;
+    document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectMobile, #projectYearFilterSelectDesktop').forEach(s => { s.value = value; });
+    updateYearWarning(
+      ['projectYearFilterSelect', 'projectYearFilterSelectMobile', 'projectYearFilterSelectDesktop'],
+      ['yearWarningProjects', 'yearWarningProjectsDesktop'],
+      projectYearFilter
+    );
+    renderProjects();
+  }
+  function setProjectMonthFilter(value){
+    projectMonthFilter = value;
+    renderProjects();
+  }
+
+  // Proiecte curente's own calendar + search icons — year/month state
+  // shared with the tab's existing selects via setProjectYearFilter/
+  // setProjectMonthFilter, day-level and search are new state of
+  // their own (projects never had either before). Placed here,
+  // after projectYearFilter/projectMonthFilter/projectDayFilter are
+  // actually declared, not up near Overview/Sesizări's own instances
+  // — createMiniCalendarWidget's first call is synchronous and reads
+  // these variables immediately, so calling it before their `let`
+  // declarations run would throw a "Cannot access before
+  // initialization" error and take down the rest of the script with
+  // it (this exact mistake got caught during testing, not left in).
+  createMiniCalendarWidget({
+    toggleBtnId: 'projectsDateToggleBtn', calendarId: 'projectsMiniCalendar',
+    labelId: 'projectsMiniCalLabel', gridId: 'projectsMiniCalGrid', clearBtnId: 'projectsMiniCalClearBtn',
+    prevBtnId: 'projectsMiniCalPrevBtn', nextBtnId: 'projectsMiniCalNextBtn',
+    getYear: () => projectYearFilter, setYear: setProjectYearFilter,
+    getMonth: () => projectMonthFilter, setMonth: setProjectMonthFilter,
+    getDay: () => projectDayFilter, setDay: (d) => { projectDayFilter = d; },
+    rerender: renderProjects,
+  });
+  createSearchToggleWidget({
+    toggleBtnId: 'projectsSearchToggleBtn', wrapId: 'projectsIconSearchWrap', boxId: 'projectsIconSearchBox',
+    setQuery: (v) => { projectSearchQuery = v; }, rerender: renderProjects,
+  });
+
   function populateProjectYearFilterSelect(){
     const selects = [
       document.getElementById('projectYearFilterSelect'),
@@ -4426,7 +4621,14 @@
       base = allProjects.filter(p => !p.archived && (projectsFilter === 'Toate' || getProjectStatusFilterKey(p) === projectsFilter));
     }
     const query = projectSearchQuery.trim().toLowerCase();
-    return base.filter(p => matchesProjectYear(p, projectYearFilter) && matchesProjectSearch(p, query));
+    base = base.filter(p => matchesProjectYear(p, projectYearFilter) && matchesProjectMonth(p, projectMonthFilter) && matchesProjectSearch(p, query));
+    if (projectDayFilter !== null) {
+      base = base.filter(p => {
+        if (!p.start_date) return false;
+        return new Date(p.start_date).getDate() === projectDayFilter;
+      });
+    }
+    return base;
   }
 
   const projectChipDefs = [
@@ -4465,16 +4667,7 @@
   }
 
   document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectMobile, #projectYearFilterSelectDesktop').forEach(select => {
-    select.addEventListener('change', () => {
-      projectYearFilter = select.value;
-      document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectMobile, #projectYearFilterSelectDesktop').forEach(s => { s.value = projectYearFilter; });
-      updateYearWarning(
-        ['projectYearFilterSelect', 'projectYearFilterSelectMobile', 'projectYearFilterSelectDesktop'],
-        ['yearWarningProjects', 'yearWarningProjectsDesktop'],
-        projectYearFilter
-      );
-      renderProjects();
-    });
+    select.addEventListener('change', () => setProjectYearFilter(select.value));
   });
 
   const projectsChipsWrap = document.getElementById('projectsChipsWrap');
@@ -4892,6 +5085,20 @@
   let allBacklogProjects = [];
   let backlogSearchQuery = '';
   let backlogFilter = 'Ongoing';
+
+  // Avarii rețele's own search icon — no calendar, per instruction,
+  // since backlog items don't have a year/month/day concept to
+  // filter by, only status. Placed here (after backlogSearchQuery is
+  // declared, before renderBacklogProjects is ever called) for the
+  // same reason Projects' own instantiation had to move — this one
+  // doesn't read backlogSearchQuery synchronously on creation the
+  // way the calendar widget does with its year/month/day getters, so
+  // it's technically safe anywhere after the `let` above, but kept
+  // right here for consistency with how Projects' is laid out.
+  createSearchToggleWidget({
+    toggleBtnId: 'backlogIconSearchToggleBtn', wrapId: 'backlogIconSearchWrap', boxId: 'backlogIconSearchBox',
+    setQuery: (v) => { backlogSearchQuery = v; }, rerender: renderBacklogProjects,
+  });
 
   async function loadBacklogProjects(){
     const { data, error } = await supabaseClient
