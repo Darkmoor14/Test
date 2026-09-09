@@ -4299,34 +4299,113 @@
     'Observatii',
   ];
 
-  function buildRepairTemplateWorkbookBinary(activeTickets){
-    const ordered = sortTicketsByNumber(activeTickets);
-    const groupRow = new Array(REPAIR_TEMPLATE_HEADERS_ROW2.length).fill('');
-    groupRow[5] = 'Demontat';
-    groupRow[9] = 'Schimbat';
-    groupRow[13] = 'Legaturi';
-    groupRow[16] = 'Montat';
-    const rows = [groupRow, REPAIR_TEMPLATE_HEADERS_ROW2];
-    ordered.forEach((t, i) => {
-      const row = new Array(REPAIR_TEMPLATE_HEADERS_ROW2.length).fill('');
-      row[0] = i + 1;
-      row[1] = t.ticket_number || '';
-      row[2] = t.address || '';
-      rows.push(row);
+  // The "Fișă remedieri" template needs real print formatting to be
+  // usable on paper — A4 landscape, and the repair-step headers
+  // rotated 90° so 24 narrow columns still fit across the page,
+  // exactly like the source file staff already print and fill in by
+  // hand. XLSX (SheetJS, used everywhere else in this file) is the
+  // free/community build: it can only WRITE plain values, column
+  // widths, row heights and merges — page orientation and any cell
+  // styling (rotation, fonts, borders) are silently dropped on write
+  // even if you set them, that's a Pro-only feature there. ExcelJS
+  // writes all of that correctly, so it's loaded from CDN on demand
+  // (only when this specific export is used) rather than for every
+  // page load — same lazy-load pattern as loadYearlyReportBundle()
+  // above, just a real npm package instead of an in-repo bundle.
+  let excelJsLoaded = false;
+  function loadExcelJs(){
+    if (excelJsLoaded || typeof ExcelJS !== 'undefined') { excelJsLoaded = true; return Promise.resolve(); }
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      script.onload = () => { excelJsLoaded = true; resolve(); };
+      script.onerror = () => reject(new Error('Nu am putut încărca modulul necesar pentru fișa de remedieri.'));
+      document.body.appendChild(script);
     });
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    // Visually groups the repair-step columns under their category,
-    // same idea as the source template's own header row.
-    ws['!merges'] = [
-      { s: { r: 0, c: 5 }, e: { r: 0, c: 8 } },
-      { s: { r: 0, c: 9 }, e: { r: 0, c: 12 } },
-      { s: { r: 0, c: 13 }, e: { r: 0, c: 15 } },
-      { s: { r: 0, c: 16 }, e: { r: 0, c: 22 } },
-    ];
-    autosizeWorksheet(ws, rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, ws, 'Fisa remedieri'.slice(0, 31));
-    return XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  }
+
+  async function buildRepairTemplateWorkbookBuffer(activeTickets){
+    const ordered = sortTicketsByNumber(activeTickets);
+    const headers = REPAIR_TEMPLATE_HEADERS_ROW2;
+    const colCount = headers.length;
+    const thin = { style: 'thin' };
+    const allBorders = { top: thin, bottom: thin, left: thin, right: thin };
+
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('Fisa remedieri', {
+      pageSetup: {
+        orientation: 'landscape',
+        paperSize: 9, // A4
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
+        margins: { left: 0.3, right: 0.1, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 },
+      },
+    });
+
+    // Narrow checkbox-style columns throughout; wider for the ones
+    // that actually hold text (Nr. Tichet, Strada, Observatii).
+    ws.columns = headers.map((_, i) => {
+      if (i === 0) return { width: 5 };
+      if (i === 1) return { width: 9 };
+      if (i === 2) return { width: 28 };
+      if (i === colCount - 1) return { width: 26 };
+      return { width: 4 };
+    });
+
+    // Row 1 — group labels (Demontat/Schimbat/Legături/Montat),
+    // merged across the columns they cover, same layout as the
+    // source sheet.
+    const groupRow = ws.getRow(1);
+    groupRow.height = 20;
+    [
+      { label: 'Demontat', from: 6, to: 9 },
+      { label: 'Schimbat', from: 10, to: 13 },
+      { label: 'Legături', from: 14, to: 16 },
+      { label: 'Montat', from: 17, to: 23 },
+    ].forEach(g => {
+      ws.mergeCells(1, g.from, 1, g.to);
+      const cell = ws.getCell(1, g.from);
+      cell.value = g.label;
+      cell.font = { name: 'Calibri', size: 14 };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+
+    // Row 2 — the real column headers. Every repair-step label gets
+    // rotated 90° so it stays readable in a ~4-char-wide column;
+    // Strada si nr. and Observatii stay horizontal since they hold
+    // free text, not a one-word checkbox label.
+    const headerRow = ws.getRow(2);
+    headerRow.height = 150;
+    headers.forEach((label, i) => {
+      const col = i + 1;
+      const cell = headerRow.getCell(col);
+      cell.value = label;
+      const rotated = col !== 3 && col !== colCount;
+      cell.alignment = rotated
+        ? { textRotation: 90, horizontal: 'center', vertical: 'bottom', wrapText: true }
+        : { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.font = { name: 'Calibri', size: 12 };
+      cell.border = allBorders;
+    });
+
+    ordered.forEach((t, i) => {
+      const row = ws.getRow(i + 3);
+      row.height = 20;
+      row.getCell(1).value = i + 1;
+      row.getCell(2).value = t.ticket_number || '';
+      row.getCell(3).value = t.address || '';
+      for (let col = 1; col <= colCount; col++) {
+        const cell = row.getCell(col);
+        cell.font = { name: 'Calibri', size: 11 };
+        cell.border = allBorders;
+        cell.alignment = { vertical: 'middle', horizontal: col === 3 ? 'left' : 'center' };
+      }
+    });
+
+    ws.pageSetup.printArea = `A1:${String.fromCharCode(64 + colCount)}${ordered.length + 2}`;
+
+    return workbook.xlsx.writeBuffer();
   }
 
   async function exportRepairTemplate(btn){
@@ -4339,8 +4418,9 @@
         alert('Nu există sesizări active în acest moment.');
         return;
       }
-      const bytes = buildRepairTemplateWorkbookBinary(activeTickets);
-      const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      await loadExcelJs();
+      const buffer = await buildRepairTemplateWorkbookBuffer(activeTickets);
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
