@@ -2490,6 +2490,20 @@
     logoutBtn.style.display = 'inline-flex';
     maybeAutoPromptForNotifications();
     userTag.textContent = email;
+    // Reset role-gated UI to its neutral/default state up front, not
+    // just after the new account's role is fetched below. Without
+    // this, switching accounts in the same tab (log out, log back in
+    // as someone else — no full page reload happens, see
+    // onAuthStateChange) left currentUserRole and the
+    // report-focused-view/limited-view classes on <html> holding
+    // whatever the PREVIOUS account's role set them to, for however
+    // long fetchCurrentUserRole(email) below takes to resolve. In
+    // that window the new account would flash the previous one's
+    // role-specific chrome — vlasbogdan@'s dedicated Overview and
+    // repair-import button showing for someone else's account, or a
+    // limited account's hidden fields still hidden for a full one.
+    currentUserRole = 'full';
+    document.documentElement.classList.remove('report-focused-view', 'limited-view');
     // Role must be known before the first render, so tickets don't
     // briefly flash the "Ce s-a făcut" field for a limited-access
     // account before it gets hidden a moment later.
@@ -2500,7 +2514,19 @@
       // set at script-load time (role isn't known yet then) — this
       // adds the 4th "Așteaptă raport" option specifically for the
       // report-focused role, once we actually know who's logged in.
-      if (isReportFocusedView() && overviewStatusChipsSheet && !overviewStatusChipsSheet.querySelector('[data-key="awaiting_report"]')) {
+      // Both branches below are written to be fully reversible, not
+      // just additive — these run again on every login, and with no
+      // full page reload between accounts (see onAuthStateChange),
+      // an account switch within the same tab needs the PREVIOUS
+      // account's role-specific DOM changes actually undone here, not
+      // just left in place because this account doesn't happen to
+      // trigger them. A one-way "add chip" / "hide element" is
+      // exactly the kind of leftover that showed the next person to
+      // log in a leftover trace of whoever was on before them.
+      const existingAwaitingChip = overviewStatusChipsSheet
+        ? overviewStatusChipsSheet.querySelector('[data-key="awaiting_report"]')
+        : null;
+      if (isReportFocusedView() && overviewStatusChipsSheet && !existingAwaitingChip) {
         const awaitingDef = reportFocusedChipDefs.find(c => c.key === 'awaiting_report');
         const chip = document.createElement('button');
         chip.type = 'button';
@@ -2509,6 +2535,8 @@
         chip.dataset.key = awaitingDef.key;
         chip.addEventListener('click', () => setOverviewStatusFilter(awaitingDef.key));
         overviewStatusChipsSheet.appendChild(chip);
+      } else if (!isReportFocusedView() && existingAwaitingChip) {
+        existingAwaitingChip.remove();
       }
       // "Așteaptă raport" isn't relevant for a limited-role account —
       // they can't fill the report, so a chip dedicated to "here's
@@ -2517,18 +2545,19 @@
       // this specific dedicated view is hidden. Chips render once at
       // script-load time before login (and therefore before the role
       // is known), so this hides the one in question after the fact
-      // rather than restructuring that earlier initialization.
-      if (currentUserRole === 'limited') {
-        document.querySelectorAll('[data-key="AwaitingReport"]').forEach(el => {
-          el.style.display = 'none';
-        });
-        // The mobile Overview status filter (Toate/Active/Soluționate)
-        // used to be hidden here, on the theory that sesizari@ should
-        // just work from the full, unfiltered table on Overview —
-        // but that meant this account's phone view had year/month
-        // filtering only, with no way to narrow by status at all.
-        // Now enabled for this role too, same chips full admins get.
-      }
+      // rather than restructuring that earlier initialization — and
+      // un-hides it again for any account that isn't 'limited', since
+      // an inline style set here for one account otherwise persists
+      // for whoever logs in next.
+      document.querySelectorAll('[data-key="AwaitingReport"]').forEach(el => {
+        el.style.display = currentUserRole === 'limited' ? 'none' : '';
+      });
+      // The mobile Overview status filter (Toate/Active/Soluționate)
+      // used to be hidden here, on the theory that sesizari@ should
+      // just work from the full, unfiltered table on Overview —
+      // but that meant this account's phone view had year/month
+      // filtering only, with no way to narrow by status at all.
+      // Now enabled for this role too, same chips full admins get.
       runAutoArchiveSweep().finally(() => {
         loadTickets();
         loadProjects();
@@ -2542,6 +2571,12 @@
     dash.classList.remove('show');
     logoutBtn.style.display = 'none';
     userTag.textContent = '';
+    // Same reason as the reset at the top of showDashboard() — don't
+    // leave the previous account's role state sitting around once
+    // they're logged out, in case anything ever reads it before the
+    // next login's fetchCurrentUserRole resolves.
+    currentUserRole = 'full';
+    document.documentElement.classList.remove('report-focused-view', 'limited-view');
     allTickets = [];
     allProjects = [];
     selectedIds.clear();
