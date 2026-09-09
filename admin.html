@@ -142,7 +142,7 @@
        a magnifying-glass button until tapped. Export is still
        available on phone, just via the dedicated mobile action row
        below rather than crammed into the main toolbar line. */
-    #importExcelBtn, #exportExcelBtn, #exportBacklogExcelBtn{display:none;}
+    #importExcelBtn, #exportExcelBtn, #exportBacklogExcelBtn, #importRepairSheetBtn{display:none;}
     .toolbar-mobile-actions{display:flex;}
     .toolbar-mobile-summary{display:flex;}
     .toolbar-mobile-only{display:inline-flex;}
@@ -498,6 +498,13 @@
   @media(min-width:901px){
     html.report-focused-view .chips.report-focused-chips{display:flex;}
   }
+  /* "Încarcă fișă remedieri" (Sesizări toolbar) — vlasbogdan@ only,
+     same isReportFocusedView()/report-focused-view class as the rest
+     of his dedicated UI. Compound selector for the same reason as
+     .chips.report-focused-chips above: needs to outweigh the bare
+     .btn{display:inline-flex} rule regardless of file order. */
+  .btn.repair-import-btn{display:none;}
+  html.report-focused-view .btn.repair-import-btn{display:inline-flex;}
   /* Status filtering now lives inside the "Filtre" sheet for every
      mobile admin (see #overviewSheetStatusSection below), not just
      report-focused — this separate inline chip row is redundant with
@@ -848,6 +855,11 @@
   }
   .excel-preview-table td{padding:9px 12px;border-top:1px solid var(--line);color:var(--ink-700);}
   .excel-preview-table tr.row-error td{background:var(--signal-red-bg);color:var(--signal-red);}
+  .repair-note-input{
+    width:100%;min-height:52px;font:inherit;font-size:13px;padding:6px 8px;
+    border:1px solid var(--line-strong);border-radius:3px;resize:vertical;color:var(--ink-900);
+  }
+  .repair-note-input:disabled{background:var(--paper-050);color:var(--ink-600);}
   .chips{display:flex;gap:8px;flex-wrap:wrap;}
   .chip{
     font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:20px;
@@ -1381,6 +1393,8 @@
             <input type="search" id="ticketSearchBox" placeholder="Caută adresă, nume, telefon, nr. sesizare…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:230px;">
           </div>
           <div class="result-count" id="resultCount"></div>
+          <input type="file" id="repairSheetInput" accept=".xlsx,.xls,.csv" style="display:none;">
+          <button class="btn repair-import-btn" id="importRepairSheetBtn" type="button">⭳ Încarcă fișă remedieri</button>
           <button class="btn btn-primary" id="addTicketBtn" type="button">+ Adaugă sesizare</button>
           <button class="btn" id="exportExcelBtn" type="button">⭳ Raport Excel</button>
         </div>
@@ -1452,6 +1466,14 @@
         <button class="btn" id="clearSelectionBtn" type="button">Anulează selecția</button>
         <button class="btn" id="editSelectedBtn" type="button">Editează</button>
         <button class="btn btn-primary" id="archiveSelectedBtn" type="button">Arhivează selectate</button>
+      </div>
+      <div class="excel-preview" id="repairSheetPreview" style="display:none;">
+        <p class="excel-preview-note" id="repairSheetPreviewNote">Previzualizare — verificați rândurile înainte de a confirma.</p>
+        <div class="excel-preview-table-wrap"><table class="excel-preview-table" id="repairSheetPreviewTable"></table></div>
+        <div class="pf-actions">
+          <button class="btn" id="repairSheetCancelBtn" type="button">Anulează</button>
+          <button class="btn btn-primary" id="repairSheetConfirmBtn" type="button">Confirmă și salvează</button>
+        </div>
       </div>
       <div class="ticket-list" id="ticketList"></div>
       <datalist id="resolution-suggestions">
@@ -5487,6 +5509,221 @@
     excelPreviewWrap.style.display = 'none';
     loadProjects();
   });
+
+  /* ============================================================
+     REPAIR SHEET IMPORT ("Fișă remedieri IP") — lets vlasbogdan@
+     upload the field team's Excel repair sheet and auto-fill "Ce
+     s-a făcut" for every ticket it lists, instead of typing each
+     one in by hand. Deliberately only ever writes resolution_note
+     — never touches status/resolved_by/resolved_on — since a
+     ticket only shows up in this sheet after sesizari@ has already
+     closed it and it's sitting in "Așteaptă raport" (see the
+     STAFF ROLES comment above for that workflow).
+
+     Expected layout: a header row somewhere near the top containing
+     "Nr. Tichet" (found by scanning, not a fixed row index, since
+     the real sheet has a merged group-label row above it — "Demontat"
+     / "Schimbat" / "Legaturi" / "Montat"), a "Strada si nr." column,
+     one column per repair step (Glob OLIMP, SKD 578, Bec (W), Repus
+     sub tensiune, etc. — any non-empty cell, typically "x", counts
+     as done), and an "Observatii" free-text column. Column order
+     doesn't matter and matching is case/diacritic-insensitive, same
+     approach as the project import above. A row is only turned into
+     a note when its "Nr. Tichet" cell holds a plain whole number —
+     template rows left blank for future entries are silently
+     skipped, matching how the field team actually fills this sheet
+     in (one blank row per future ticket, pre-numbered 1..N in
+     column A but with no ticket number yet in column B).
+     ============================================================ */
+  const REPAIR_FIELD_GROUPS = [
+    { title: 'Verificări', fields: [
+        { header: 'scos de sub tensiune', label: 'Scos de sub tensiune' },
+        { header: 'verificat corp de iluminat', label: 'Verificat corp de iluminat' },
+      ]},
+    { title: 'Demontat', fields: [
+        { header: 'glob olimp', label: 'Glob OLIMP' },
+        { header: 'corp iluminat', label: 'Corp iluminat' },
+        { header: 'capac stalp', label: 'Capac stâlp' },
+        { header: 'burlan protectie', label: 'Burlan protecție' },
+      ]},
+    { title: 'Schimbat', fields: [
+        { header: 'skd 578', label: 'SKD 578' },
+        { header: 'bec (w)', label: 'Bec' },
+        { header: 'driver (w)', label: 'Driver' },
+        { header: 'bobine (w)', label: 'Bobine' },
+      ]},
+    { title: 'Legături', fields: [
+        { header: 'refacute', label: 'Refăcute' },
+        { header: 'verificate', label: 'Verificate' },
+        { header: 'sigurante schimbate', label: 'Siguranțe schimbate' },
+      ]},
+    { title: 'Montat', fields: [
+        { header: 'montat corp iluminat', label: 'Corp iluminat' },
+        { header: 'cleme', label: 'Cleme' },
+        { header: 'montat capac stalp', label: 'Capac stâlp' },
+        { header: 'montat capac lampa', label: 'Capac lampă' },
+        { header: 'defrisari', label: 'Defrișări' },
+        { header: 'fixat burlan', label: 'Burlan fixat' },
+        { header: 'repus sub tensiune', label: 'Repus sub tensiune' },
+      ]},
+  ];
+  const REPAIR_TICKET_HEADERS = ['nr. tichet', 'nr tichet', 'numar tichet', 'nr tichet.', 'ticket'];
+  const REPAIR_STREET_HEADERS = ['strada si nr.', 'strada si nr', 'strada', 'adresa'];
+  const REPAIR_OBS_HEADERS = ['observatii', 'observatii.', 'obs'];
+
+  let pendingRepairRows = [];
+
+  function isRepairCellChecked(value){
+    return String(value == null ? '' : value).trim() !== '';
+  }
+
+  function buildRepairNote(rowArr, colIndex, observatiiText){
+    const parts = [];
+    REPAIR_FIELD_GROUPS.forEach(group => {
+      const doneLabels = group.fields
+        .filter(f => colIndex[f.header] != null && isRepairCellChecked(rowArr[colIndex[f.header]]))
+        .map(f => f.label);
+      if (doneLabels.length) parts.push(`${group.title}: ${doneLabels.join(', ')}.`);
+    });
+    if (observatiiText) parts.push(`Observații: ${observatiiText}.`);
+    return parts.join(' ');
+  }
+
+  const repairSheetInput = document.getElementById('repairSheetInput');
+  const importRepairSheetBtn = document.getElementById('importRepairSheetBtn');
+  if (importRepairSheetBtn && repairSheetInput) {
+    importRepairSheetBtn.addEventListener('click', () => repairSheetInput.click());
+
+    repairSheetInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const workbook = XLSX.read(evt.target.result, { type: 'array' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+          const headerRowIdx = rows.findIndex(r =>
+            r.some(cell => REPAIR_TICKET_HEADERS.includes(normalizeHeader(cell)))
+          );
+          if (headerRowIdx === -1) {
+            alert('Nu am găsit coloana "Nr. Tichet" în acest fișier. Verificați că este fișa de remedieri corectă.');
+            repairSheetInput.value = '';
+            return;
+          }
+          const headers = rows[headerRowIdx].map(normalizeHeader);
+          const colIndex = {};
+          headers.forEach((h, i) => { if (h && colIndex[h] == null) colIndex[h] = i; });
+
+          const ticketCol = headers.findIndex(h => REPAIR_TICKET_HEADERS.includes(h));
+          const streetCol = headers.findIndex(h => REPAIR_STREET_HEADERS.includes(h));
+          const obsCol = headers.findIndex(h => REPAIR_OBS_HEADERS.includes(h));
+
+          pendingRepairRows = rows.slice(headerRowIdx + 1)
+            .map(r => {
+              const rawTicket = String(r[ticketCol] == null ? '' : r[ticketCol]).trim();
+              if (!/^\d+$/.test(rawTicket)) return null;
+              const street = streetCol >= 0 ? String(r[streetCol] || '').trim() : '';
+              const obsText = obsCol >= 0 ? String(r[obsCol] || '').trim() : '';
+              const note = buildRepairNote(r, colIndex, obsText);
+              const matched = allTickets.find(t => String(t.ticket_number || '').trim() === rawTicket) || null;
+              return { ticketNumber: rawTicket, street, note, matched, include: !!matched };
+            })
+            .filter(Boolean);
+
+          if (pendingRepairRows.length === 0) {
+            alert('Niciun rând din fișier are un număr de tichet completat la coloana "Nr. Tichet".');
+            repairSheetInput.value = '';
+            return;
+          }
+          renderRepairPreview();
+        } catch (err) {
+          console.error(err);
+          alert('Nu am putut citi acest fișier. Verificați că este un .xlsx, .xls sau .csv valid.');
+        }
+        repairSheetInput.value = '';
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function renderRepairPreview(){
+    const wrap = document.getElementById('repairSheetPreview');
+    const table = document.getElementById('repairSheetPreviewTable');
+    const foundCount = pendingRepairRows.filter(r => r.matched).length;
+    table.innerHTML = `
+      <thead><tr>
+        <th></th><th>Nr. tichet</th><th>Stradă (fișă)</th><th>Sesizare găsită</th><th>Ce s-a făcut</th>
+      </tr></thead>
+      <tbody>
+        ${pendingRepairRows.map((r, i) => `
+          <tr class="${r.matched ? '' : 'row-error'}">
+            <td><input type="checkbox" class="repair-row-include" data-idx="${i}" ${r.include ? 'checked' : ''} ${r.matched ? '' : 'disabled'}></td>
+            <td>${escapeHtml(r.ticketNumber)}</td>
+            <td>${escapeHtml(r.street) || '—'}</td>
+            <td>${r.matched
+              ? escapeHtml(r.matched.address || '—') + (r.matched.resolution_note ? ' <strong>(are deja raport — va fi înlocuit)</strong>' : '')
+              : 'Nu a fost găsită nicio sesizare cu acest număr'}</td>
+            <td><textarea class="repair-note-input" data-idx="${i}" rows="2" ${r.matched ? '' : 'disabled'}>${escapeHtml(r.note)}</textarea></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    `;
+    document.getElementById('repairSheetPreviewNote').textContent =
+      `Previzualizare — ${foundCount} din ${pendingRepairRows.length} rânduri au fost asociate unei sesizări existente. Debifați un rând pentru a-l exclude, sau editați textul înainte de a confirma.`;
+    table.querySelectorAll('.repair-row-include').forEach(cb => {
+      cb.addEventListener('change', () => {
+        pendingRepairRows[Number(cb.dataset.idx)].include = cb.checked;
+      });
+    });
+    table.querySelectorAll('.repair-note-input').forEach(ta => {
+      ta.addEventListener('input', () => {
+        pendingRepairRows[Number(ta.dataset.idx)].note = ta.value;
+      });
+    });
+    wrap.style.display = 'block';
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  const repairSheetCancelBtn = document.getElementById('repairSheetCancelBtn');
+  if (repairSheetCancelBtn) {
+    repairSheetCancelBtn.addEventListener('click', () => {
+      pendingRepairRows = [];
+      document.getElementById('repairSheetPreview').style.display = 'none';
+    });
+  }
+
+  const repairSheetConfirmBtn = document.getElementById('repairSheetConfirmBtn');
+  if (repairSheetConfirmBtn) {
+    repairSheetConfirmBtn.addEventListener('click', async () => {
+      const toSave = pendingRepairRows.filter(r => r.matched && r.include);
+      if (toSave.length === 0) {
+        alert('Niciun rând selectat de salvat.');
+        return;
+      }
+      repairSheetConfirmBtn.disabled = true;
+      repairSheetConfirmBtn.textContent = 'Se salvează...';
+      let failCount = 0;
+      for (const r of toSave) {
+        const { error } = await supabaseClient
+          .from('tickets')
+          .update({ resolution_note: r.note.trim() || null })
+          .eq('id', r.matched.id);
+        if (error) { console.error(error); failCount++; }
+      }
+      repairSheetConfirmBtn.disabled = false;
+      repairSheetConfirmBtn.textContent = 'Confirmă și salvează';
+      pendingRepairRows = [];
+      document.getElementById('repairSheetPreview').style.display = 'none';
+      if (failCount > 0) {
+        alert(`${failCount} rapoarte nu au putut fi salvate. Încercați din nou.`);
+      } else {
+        showToast(`${toSave.length} rapoarte au fost salvate.`);
+      }
+      loadTickets();
+    });
+  }
 
   checkSession();
 </script>
