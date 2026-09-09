@@ -4771,17 +4771,22 @@
   async function handleExcelExport(triggerButton){
     const btn = triggerButton || document.getElementById('exportExcelBtn');
     if (!btn) return;
-    const reportType = await openReportTypeSelection();
-    if (reportType === null) return;
-    if (reportType === 'repair') {
-      await exportRepairTemplate(btn);
-      return;
-    }
+    // Disabled for the whole flow, starting before the type-selection
+    // dialog even opens — otherwise a quick double-click opens two
+    // independent dialogs (each wiring its own set of listeners onto
+    // the same shared sheet elements) before the first one has a
+    // chance to disable anything, risking two concurrent exports.
     // Icon-only button — disabling it is feedback enough, see the
     // same note in exportRepairTemplate above for why this no longer
     // swaps in "Se generează..." text.
     btn.disabled = true;
     try {
+      const reportType = await openReportTypeSelection();
+      if (reportType === null) return;
+      if (reportType === 'repair') {
+        await exportRepairTemplate(btn);
+        return;
+      }
       const year = ticketYearFilter === 'all' ? new Date().getFullYear() : Number(ticketYearFilter);
       const monthSelection = await openReportMonthSelection(year);
       if (monthSelection === null) return;
@@ -6183,11 +6188,17 @@
               // just not written down) fall back to the street —
               // matching is based on whichever of the two actually
               // identifies the ticket, not "street only when the
-              // number is completely absent".
+              // number is completely absent". Archived tickets are
+              // excluded here too, same as the street path below —
+              // once a ticket's archived this workflow is done with
+              // it, so a stale/reused number shouldn't be able to
+              // silently resurrect one. A ticket that already has a
+              // resolution_note is still a valid match, though (lets
+              // a corrected sheet update an existing note).
               let matched = null;
               let matchedBy = null;
               if (ticketDigits) {
-                matched = allTickets.find(t => extractTicketDigits(t.ticket_number) === ticketDigits) || null;
+                matched = allTickets.find(t => !t.archived && extractTicketDigits(t.ticket_number) === ticketDigits) || null;
                 if (matched) matchedBy = 'number';
               }
               if (!matched && street) {
@@ -6276,14 +6287,22 @@
       }
       repairSheetConfirmBtn.disabled = true;
       repairSheetConfirmBtn.textContent = 'Se salvează...';
-      let failCount = 0;
-      for (const r of toSave) {
-        const { error } = await supabaseClient
+      // Fired concurrently rather than awaited one row at a time —
+      // each row updates a different ticket by id, so there's no
+      // ordering dependency between them, only the round-trip time
+      // was ever serialized. allSettled (not all) so one failed row
+      // doesn't cancel the rest.
+      const results = await Promise.allSettled(toSave.map(r =>
+        supabaseClient
           .from('tickets')
           .update({ resolution_note: r.note.trim() || null })
-          .eq('id', r.matched.id);
+          .eq('id', r.matched.id)
+      ));
+      let failCount = 0;
+      results.forEach(result => {
+        const error = result.status === 'fulfilled' ? result.value.error : result.reason;
         if (error) { console.error(error); failCount++; }
-      }
+      });
       repairSheetConfirmBtn.disabled = false;
       repairSheetConfirmBtn.textContent = 'Confirmă și salvează';
       pendingRepairRows = [];

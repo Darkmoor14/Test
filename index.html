@@ -1285,11 +1285,11 @@
 
   function renderShowcase(){
     const data = showcaseData[showcaseTab];
-    // Servicii slides carry a real photo (see showcaseData above) —
-    // shown as the slide's background instead of the plain icon,
-    // which stays reserved for produse (no photography there yet).
+    // Slides carry a real photo (see showcaseData above) — shown as
+    // the slide's background instead of the plain icon; the icon
+    // only renders as a fallback for a slide with no photo field.
     // The existing bottom gradient in .showcase-slide-overlay
-    // already keeps the tag/title readable over any photo without
+    // already keeps the title readable over any photo without
     // needing a change there.
     showcaseTrack.innerHTML = data.slides.map(s => `
       <div class="showcase-slide"${s.photo ? ` style="background-image:url('${s.photo}');background-size:cover;background-position:center;"` : ''}>
