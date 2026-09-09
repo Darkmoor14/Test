@@ -4295,14 +4295,15 @@
 
   // Same column layout as the "Fișă remedieri IP" sheet the repair
   // import above knows how to read (see REPAIR_FIELD_GROUPS et al.
-  // further down) — only Nr. Tichet/Strada si nr. are filled in,
+  // further down) — only Nr. crt./Nr./Strada si nr. are filled in,
   // every repair-step and Observatii column is left blank for the
-  // field crew to mark by hand before it gets re-uploaded. No plain
-  // row-counter column here (the source sheet's "Nr." column) —
-  // Nr. Tichet already identifies each row, and dropping it frees up
-  // a column's worth of space on an already-tight landscape page.
+  // field crew to mark by hand before it gets re-uploaded. "Nr.
+  // crt." is the source sheet's own plain row counter (1, 2, 3...);
+  // the ticket-number column is labelled just "Nr." — the word
+  // "Tichet" dropped, since the rotated header only needs to fit a
+  // number, not read as a sentence.
   const REPAIR_TEMPLATE_HEADERS_ROW2 = [
-    'Nr. Tichet', 'Strada si nr.', 'Scos de sub tensiune', 'Verificat corp de iluminat',
+    'Nr. crt.', 'Nr.', 'Strada si nr.', 'Scos de sub tensiune', 'Verificat corp de iluminat',
     'Glob OLIMP', 'Corp iluminat', 'Capac stalp', 'Burlan protectie',
     'SKD 578', 'Bec (W)', 'Driver (W)', 'Bobine (W)',
     'Refacute', 'Verificate', 'Sigurante schimbate',
@@ -4349,7 +4350,11 @@
     const titleCell = ws.getCell(1, titleFromCol);
     titleCell.value = FISA_HEADER_TITLE;
     titleCell.font = { name: 'Calibri', size: 14, bold: true };
-    titleCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    // shrinkToFit (not wrapText) — auto-shrinks the font just enough
+    // to keep the title on one line regardless of how wide the
+    // merged area ends up being, instead of wrapping to a second
+    // line the 55pt banner row isn't tall enough to show cleanly.
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle', shrinkToFit: true };
   }
 
   // "Coperta" (cover page) — a quick-reference list of every active
@@ -4422,10 +4427,11 @@
     });
 
     // Narrow checkbox-style columns throughout; wider for the ones
-    // that actually hold text (Nr. Tichet, Strada, Observatii).
+    // that actually hold text (Nr. crt., Nr., Strada, Observatii).
     ws.columns = headers.map((_, i) => {
-      if (i === 0) return { width: 9 };
-      if (i === 1) return { width: 28 };
+      if (i === 0) return { width: 5 };
+      if (i === 1) return { width: 8 };
+      if (i === 2) return { width: 28 };
       if (i === colCount - 1) return { width: 26 };
       return { width: 4 };
     });
@@ -4434,16 +4440,23 @@
 
     // Row 2 — group labels (Demontat/Schimbat/Legături/Montat),
     // merged across the columns they cover, same layout as the
-    // source sheet.
+    // source sheet. Border is applied to every column in the merged
+    // range, not just its anchor cell — for a merge, Excel only
+    // draws the outer perimeter regardless, but the anchor cell
+    // alone won't produce a full box around it when printed.
     const groupRow = ws.getRow(2);
     groupRow.height = 20;
     [
-      { label: 'Demontat', from: 5, to: 8 },
-      { label: 'Schimbat', from: 9, to: 12 },
-      { label: 'Legături', from: 13, to: 15 },
-      { label: 'Montat', from: 16, to: 22 },
+      { label: 'Demontat', from: 6, to: 9 },
+      { label: 'Schimbat', from: 10, to: 13 },
+      { label: 'Legături', from: 14, to: 16 },
+      { label: 'Montat', from: 17, to: 23 },
     ].forEach(g => {
       ws.mergeCells(2, g.from, 2, g.to);
+      for (let col = g.from; col <= g.to; col++) {
+        const cell = ws.getCell(2, col);
+        cell.border = allBorders;
+      }
       const cell = ws.getCell(2, g.from);
       cell.value = g.label;
       cell.font = { name: 'Calibri', size: 14 };
@@ -4460,7 +4473,7 @@
       const col = i + 1;
       const cell = headerRow.getCell(col);
       cell.value = label;
-      const rotated = col !== 2 && col !== colCount;
+      const rotated = col !== 3 && col !== colCount;
       cell.alignment = rotated
         ? { textRotation: 90, horizontal: 'center', vertical: 'bottom', wrapText: true }
         : { horizontal: 'center', vertical: 'middle', wrapText: true };
@@ -4474,21 +4487,41 @@
     // only happens when the row has no explicit height forced on it.
     orderedTickets.forEach((t, i) => {
       const row = ws.getRow(i + 4);
-      row.getCell(1).value = t.ticket_number || '';
-      row.getCell(2).value = t.address || '';
+      row.getCell(1).value = i + 1;
+      row.getCell(2).value = t.ticket_number || '';
+      row.getCell(3).value = t.address || '';
       for (let col = 1; col <= colCount; col++) {
         const cell = row.getCell(col);
         cell.font = { name: 'Calibri', size: 11 };
         cell.border = allBorders;
         cell.alignment = {
           vertical: 'middle',
-          horizontal: col === 2 ? 'left' : 'center',
-          wrapText: col === 2,
+          horizontal: col === 3 ? 'left' : 'center',
+          wrapText: col === 3,
         };
       }
     });
 
-    ws.pageSetup.printArea = `A1:${String.fromCharCode(64 + colCount)}${orderedTickets.length + 3}`;
+    // Footer — a signature line for whoever filled the sheet in,
+    // one blank row below the data so it doesn't read as part of
+    // the table itself.
+    const lastDataRow = orderedTickets.length + 3;
+    const footerRow = ws.getRow(lastDataRow + 2);
+    footerRow.height = 26;
+    const third = Math.ceil(colCount / 3);
+    [
+      { text: 'Nume: ' + '_'.repeat(28), from: 1, to: third },
+      { text: 'Semnătură: ' + '_'.repeat(28), from: third + 1, to: third * 2 },
+      { text: 'Data: ' + '_'.repeat(20), from: third * 2 + 1, to: colCount },
+    ].forEach(f => {
+      ws.mergeCells(footerRow.number, f.from, footerRow.number, f.to);
+      const cell = ws.getCell(footerRow.number, f.from);
+      cell.value = f.text;
+      cell.font = { name: 'Calibri', size: 12 };
+      cell.alignment = { horizontal: 'left', vertical: 'middle' };
+    });
+
+    ws.pageSetup.printArea = `A1:${String.fromCharCode(64 + colCount)}${footerRow.number}`;
   }
 
   async function buildRepairTemplateWorkbookBuffer(activeTickets){
@@ -5904,7 +5937,11 @@
         { header: 'repus sub tensiune', label: 'Repus sub tensiune' },
       ]},
   ];
-  const REPAIR_TICKET_HEADERS = ['nr. tichet', 'nr tichet', 'numar tichet', 'nr tichet.', 'ticket'];
+  // 'nr.' covers the generated template's own shortened header (see
+  // buildFisaSheet above — "Nr." not "Nr. Tichet", to keep the
+  // rotated header compact); the rest cover the original field
+  // sheet and any hand-typed variant of the full name.
+  const REPAIR_TICKET_HEADERS = ['nr.', 'nr', 'nr. tichet', 'nr tichet', 'numar tichet', 'nr tichet.', 'ticket'];
   const REPAIR_STREET_HEADERS = ['strada si nr.', 'strada si nr', 'strada', 'adresa'];
   const REPAIR_OBS_HEADERS = ['observatii', 'observatii.', 'obs'];
 
