@@ -181,6 +181,13 @@
   .btn-primary{background:var(--copper-500);color:#fff;border-color:var(--copper-500);}
   .btn-primary:hover{background:var(--copper-600);color:#fff;}
   .btn:disabled{opacity:0.5;cursor:not-allowed;}
+  /* Compact circular icon button — same visual language as
+     .search-icon-btn (border/hover already inherited from .btn),
+     just square-cornered padding swapped for a fixed 38px circle so
+     secondary toolbar actions (upload/download) don't each need a
+     full text label competing with the primary "+ Adaugă sesizare"
+     button for attention. */
+  .icon-action-btn{padding:0;width:38px;height:38px;border-radius:50%;justify-content:center;}
 
   /* ===== LOGIN ===== */
   .login-wrap{min-height:calc(100vh - 76px);display:flex;align-items:center;justify-content:center;background:var(--paper-050);}
@@ -1403,9 +1410,13 @@
           </div>
           <div class="result-count" id="resultCount"></div>
           <input type="file" id="repairSheetInput" accept=".xlsx,.xls,.csv" style="display:none;">
-          <button class="btn repair-import-btn" id="importRepairSheetBtn" type="button">⭳ Încarcă fișă remedieri</button>
+          <button class="btn icon-action-btn repair-import-btn" id="importRepairSheetBtn" type="button" title="Încarcă fișă remedieri" aria-label="Încarcă fișă remedieri">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </button>
           <button class="btn btn-primary" id="addTicketBtn" type="button">+ Adaugă sesizare</button>
-          <button class="btn" id="exportExcelBtn" type="button">⭳ Raport Excel</button>
+          <button class="btn icon-action-btn" id="exportExcelBtn" type="button" title="Raport Excel" aria-label="Raport Excel">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
         </div>
         <div class="toolbar-mobile-summary">
           <span id="resultCountMobile">0 tichete</span>
@@ -4599,9 +4610,12 @@
   }
 
   async function exportRepairTemplate(btn){
-    const originalText = btn.textContent;
+    // Icon-only button now (see the toolbar cleanup) — disabling it
+    // is feedback enough (.btn:disabled dims it) without swapping
+    // its content for loading text and permanently losing the icon
+    // afterwards, since btn.textContent on an <svg>-only button
+    // reads back as ''.
     btn.disabled = true;
-    btn.textContent = 'Se generează...';
     try {
       // Genuinely active/unresolved tickets only — this is the
       // work-list handed to the field crew for issues nobody's fixed
@@ -4634,7 +4648,6 @@
       alert('Eroare la generarea fișei: ' + (err && err.message ? err.message : 'motiv necunoscut'));
     } finally {
       btn.disabled = false;
-      btn.textContent = originalText;
     }
   }
 
@@ -4743,9 +4756,10 @@
       await exportRepairTemplate(btn);
       return;
     }
-    const originalText = btn.textContent;
+    // Icon-only button — disabling it is feedback enough, see the
+    // same note in exportRepairTemplate above for why this no longer
+    // swaps in "Se generează..." text.
     btn.disabled = true;
-    btn.textContent = 'Se generează...';
     try {
       const year = ticketYearFilter === 'all' ? new Date().getFullYear() : Number(ticketYearFilter);
       const monthSelection = await openReportMonthSelection(year);
@@ -4798,7 +4812,6 @@
       alert('Eroare la generarea raportului Excel: ' + (err && err.message ? err.message : 'motiv necunoscut'));
     } finally {
       btn.disabled = false;
-      btn.textContent = originalText;
     }
   }
 
@@ -6072,6 +6085,23 @@
     return true;
   }
 
+  // Only among tickets that still need a report (same "active" set
+  // the export itself uses — a ticket that's already fully done, or
+  // an archived one, is a false positive waiting to happen), and
+  // only when exactly one candidate matches. More than one such
+  // ticket on that street is genuinely ambiguous — flagged for the
+  // person to resolve by hand rather than guessed at.
+  function findTicketByStreet(street){
+    const needleWords = streetWordSet(street);
+    const candidates = allTickets.filter(t =>
+      !t.archived && !t.resolution_note && t.address &&
+      streetWordsMatch(needleWords, streetWordSet(t.address))
+    );
+    if (candidates.length === 1) return { matched: candidates[0], matchedBy: 'street' };
+    if (candidates.length > 1) return { matched: null, matchedBy: 'ambiguous' };
+    return { matched: null, matchedBy: null };
+  }
+
   function buildRepairNote(rowArr, colIndex, observatiiText){
     const parts = [];
     REPAIR_FIELD_GROUPS.forEach(group => {
@@ -6127,32 +6157,22 @@
               const obsText = obsCol >= 0 ? String(r[obsCol] || '').trim() : '';
               const note = buildRepairNote(r, colIndex, obsText);
 
+              // Try the ticket number first when there is one; if
+              // that doesn't land a match (missing, mistyped, or
+              // just not written down) fall back to the street —
+              // matching is based on whichever of the two actually
+              // identifies the ticket, not "street only when the
+              // number is completely absent".
               let matched = null;
               let matchedBy = null;
               if (ticketDigits) {
                 matched = allTickets.find(t => extractTicketDigits(t.ticket_number) === ticketDigits) || null;
                 if (matched) matchedBy = 'number';
-              } else if (street) {
-                // No ticket number written down — fall back to
-                // matching by street alone, but only among tickets
-                // that still need a report (same "active" set the
-                // export itself uses — a ticket that's already fully
-                // done, or an archived one, is a false positive
-                // waiting to happen), and only when exactly one
-                // candidate matches. More than one such ticket on
-                // that street is genuinely ambiguous — flagged for
-                // the person to resolve by hand rather than guessed at.
-                const needleWords = streetWordSet(street);
-                const candidates = allTickets.filter(t =>
-                  !t.archived && !t.resolution_note && t.address &&
-                  streetWordsMatch(needleWords, streetWordSet(t.address))
-                );
-                if (candidates.length === 1) {
-                  matched = candidates[0];
-                  matchedBy = 'street';
-                } else if (candidates.length > 1) {
-                  matchedBy = 'ambiguous';
-                }
+              }
+              if (!matched && street) {
+                const byStreet = findTicketByStreet(street);
+                matched = byStreet.matched;
+                matchedBy = byStreet.matchedBy;
               }
 
               return { ticketNumber: ticketDigits, street, note, matched, matchedBy, include: !!matched };
