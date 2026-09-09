@@ -4603,9 +4603,15 @@
     btn.disabled = true;
     btn.textContent = 'Se generează...';
     try {
-      const activeTickets = allTickets.filter(t => t.status !== 'Terminat' && !t.archived);
+      // "Active" here means "still needs a report written" — not
+      // just status === 'Ongoing'. A ticket sesizari@ already closed
+      // (Terminat) but hasn't gotten its "Ce s-a făcut" note yet is
+      // exactly as much this sheet's business as one nobody's
+      // visited yet; excluding it by status was the actual bug
+      // behind tickets not being found later on import.
+      const activeTickets = allTickets.filter(t => !t.archived && !t.resolution_note);
       if (activeTickets.length === 0) {
-        alert('Nu există sesizări active în acest moment.');
+        alert('Nu există sesizări care au nevoie de raport în acest moment.');
         return;
       }
       await loadExcelJs();
@@ -6101,16 +6107,17 @@
                 if (matched) matchedBy = 'number';
               } else if (street) {
                 // No ticket number written down — fall back to
-                // matching by street alone, but only among currently
-                // active tickets (a resolved ticket from months ago
-                // on the same street is a false positive waiting to
-                // happen), and only when exactly one candidate
-                // matches. More than one active ticket on that
-                // street is genuinely ambiguous — flagged for the
-                // person to resolve by hand rather than guessed at.
+                // matching by street alone, but only among tickets
+                // that still need a report (same "active" set the
+                // export itself uses — a ticket that's already fully
+                // done, or an archived one, is a false positive
+                // waiting to happen), and only when exactly one
+                // candidate matches. More than one such ticket on
+                // that street is genuinely ambiguous — flagged for
+                // the person to resolve by hand rather than guessed at.
                 const needle = normalizeStreetForMatch(street);
                 const candidates = needle
-                  ? allTickets.filter(t => !t.archived && t.status !== 'Terminat' && t.address && (() => {
+                  ? allTickets.filter(t => !t.archived && !t.resolution_note && t.address && (() => {
                       const hay = normalizeStreetForMatch(t.address);
                       return hay && (hay.includes(needle) || needle.includes(hay));
                     })())
