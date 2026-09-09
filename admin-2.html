@@ -487,6 +487,12 @@
   .lps-guide ol{margin:0;padding-left:20px;color:var(--ink-700);font-size:13px;line-height:1.7;}
   .lps-empty{padding:32px 18px;border:1px dashed var(--line-strong);border-radius:7px;color:var(--ink-600);font-size:14px;text-align:center;}
   .lps-eval{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px;margin-top:10px;}
+  .lps-live-note{margin:7px 0 0;font-size:12.5px;color:var(--ink-600);font-style:italic;}
+  .lps-variance-breakdown{margin-bottom:16px;padding:16px 18px;background:var(--paper-000);border:1px solid var(--line-strong);border-radius:8px;}
+  .lps-variance-breakdown h4{margin:0 0 12px;font-size:14px;}
+  .lps-variance-row{display:grid;grid-template-columns:140px minmax(0,1fr) 24px;align-items:center;gap:10px;margin-bottom:8px;font-size:12.5px;color:var(--ink-700);}
+  .lps-variance-bar-track{height:8px;background:var(--paper-100);border-radius:4px;overflow:hidden;}
+  .lps-variance-bar-fill{display:block;height:100%;background:var(--signal-red);border-radius:4px;}
   @media(max-width:900px){
     .home-intro{align-items:flex-start;margin-top:8px;}
     .home-intro-copy{display:none;}
@@ -1327,10 +1333,10 @@
       <div class="lps-empty" id="lpsNoProjectMessage" hidden>Adaugă mai întâi un proiect intern, apoi configurează planificarea LPS pentru acel proiect.</div>
       <div id="lpsWorkspace">
         <div class="lps-kpi-grid">
-          <div class="lps-kpi"><div class="lps-kpi-label">PPC săptămâna curentă</div><div class="lps-kpi-value" id="lpsPpcValue">–</div><div class="lps-kpi-note" id="lpsPpcNote">fără promisiuni</div></div>
+          <div class="lps-kpi"><div class="lps-kpi-label">PPC (ultima săptămână încheiată)</div><div class="lps-kpi-value" id="lpsPpcValue">–</div><div class="lps-kpi-note" id="lpsPpcNote">fără promisiuni</div></div>
           <div class="lps-kpi"><div class="lps-kpi-label">Lucru pregătit</div><div class="lps-kpi-value" id="lpsReadyValue">–</div><div class="lps-kpi-note">poate deveni promisiune</div></div>
           <div class="lps-kpi"><div class="lps-kpi-label">Constrângeri deschise</div><div class="lps-kpi-value" id="lpsConstraintsValue">–</div><div class="lps-kpi-note">de eliminat înainte de lucru</div></div>
-          <div class="lps-kpi"><div class="lps-kpi-label">Variații</div><div class="lps-kpi-value" id="lpsVarianceValue">–</div><div class="lps-kpi-note">promisiuni neîndeplinite</div></div>
+          <div class="lps-kpi"><div class="lps-kpi-label">Variații (ultima săptămână încheiată)</div><div class="lps-kpi-value" id="lpsVarianceValue">–</div><div class="lps-kpi-note">promisiuni neîndeplinite</div></div>
         </div>
         <div class="lps-tabs" role="tablist">
           <button type="button" class="lps-tab active" data-lps-view="overview">Prezentare</button>
@@ -1351,8 +1357,8 @@
         <section class="lps-section" data-lps-section="pull"><div class="lps-section-head"><div><h3>Handoff-uri / pull plan</h3><p>Definește ce trebuie predat, de cine și cui, pentru ca următoarea activitate să poată începe.</p></div></div><form class="lps-form" id="lpsPullForm"><div class="lps-form-grid"><div class="ctrl-field"><label>Predare / rezultat</label><input name="title" required placeholder="ex: Desen aprobat pentru montaj"></div><div class="ctrl-field"><label>De la</label><input name="from_owner" placeholder="Echipă / responsabil"></div><div class="ctrl-field"><label>Către</label><input name="to_owner" placeholder="Următorul responsabil"></div><div class="ctrl-field full"><label>Condiție de satisfacție</label><input name="condition" placeholder="Ce înseamnă că predarea este utilizabilă"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Adaugă handoff</button></div></form><div class="lps-list" id="lpsPullList"></div></section>
         <section class="lps-section" data-lps-section="lookahead"><div class="lps-section-head"><div><h3>Look-ahead și Make Ready</h3><p>Urmărește lucrările din următoarele 6 săptămâni. Marchează „Pregătit” numai când pot fi începute fără blocaj.</p></div></div><form class="lps-form" id="lpsLookaheadForm"><div class="lps-form-grid"><div class="ctrl-field"><label>Lucrare</label><input name="title" required placeholder="ex: Montaj tablou electric"></div><div class="ctrl-field"><label>Responsabil</label><input name="owner" placeholder="Nume / echipă"></div><div class="ctrl-field"><label>Început planificat</label><input name="start_date" type="date"></div><div class="ctrl-field"><label>Finalizare planificată</label><input name="due_date" type="date"></div><div class="ctrl-field"><label>Pregătit?</label><select name="ready"><option value="false">Nu - are constrângeri</option><option value="true">Da - poate fi promis</option></select></div><div class="ctrl-field"><label>Loc / zonă</label><input name="location" placeholder="ex: PT 12, Str. X"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Adaugă în look-ahead</button></div></form><div class="lps-list" id="lpsLookaheadList"></div></section>
         <section class="lps-section" data-lps-section="constraints"><div class="lps-section-head"><div><h3>Registru constrângeri</h3><p>Fiecare blocaj are proprietar și termen de rezolvare înainte să oprească lucrarea din teren.</p></div></div><form class="lps-form" id="lpsConstraintForm"><div class="lps-form-grid"><div class="ctrl-field"><label>Constrângere</label><input name="title" required placeholder="ex: Aviz de acces lipsă"></div><div class="ctrl-field"><label>Categorie</label><select name="category"><option>Materiale</option><option>Acces</option><option>Aviz / proiectare</option><option>Resurse</option><option>Predecesor</option><option>Vreme</option><option>Altul</option></select></div><div class="ctrl-field"><label>Responsabil</label><input name="owner" placeholder="Nume / echipă"></div><div class="ctrl-field"><label>Termen eliminare</label><input name="due_date" type="date"></div><div class="ctrl-field full"><label>Acțiune pentru eliminare</label><input name="action" placeholder="ex: Confirmă avizul cu beneficiarul"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Înregistrează constrângerea</button></div></form><div class="lps-list" id="lpsConstraintsList"></div></section>
-        <section class="lps-section" data-lps-section="weekly"><div class="lps-section-head"><div><h3>Plan săptămânal și promisiuni</h3><p>Promite doar activități pregătite. La finalul săptămânii, evaluează fiecare promisiune pentru calculul PPC.</p></div></div><form class="lps-form" id="lpsWeeklyForm"><div class="lps-form-grid"><div class="ctrl-field"><label>Promisiune</label><input name="title" required placeholder="ex: Finalizez cablarea tabloului T1"></div><div class="ctrl-field"><label>Last Planner</label><input name="owner" required placeholder="Persoana care promite"></div><div class="ctrl-field"><label>Săptămâna începe</label><input name="week_start" type="date" required></div><div class="ctrl-field"><label>Zi planificată</label><input name="planned_date" type="date"></div><div class="ctrl-field full"><label>Condiție de satisfacție</label><input name="condition" placeholder="Cum știm că promisiunea este completă?"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Adaugă promisiune</button></div></form><div class="lps-list" id="lpsWeeklyList"></div></section>
-        <section class="lps-section" data-lps-section="learning"><div class="lps-section-head"><div><h3>Huddle și învățare</h3><p>Notează discuția scurtă de teren. Analizează PPC și motivele de variație în fiecare săptămână.</p></div></div><form class="lps-form" id="lpsHuddleForm"><div class="lps-form-grid"><div class="ctrl-field"><label>Data huddle</label><input name="huddle_date" type="date" required></div><div class="ctrl-field"><label>Facilitator</label><input name="facilitator" placeholder="Nume"></div><div class="ctrl-field full"><label>Blocaje și decizii</label><input name="notes" placeholder="Ce trebuie rezolvat înainte de următoarea întâlnire?"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Salvează huddle</button></div></form><div class="lps-list" id="lpsHuddleList"></div></section>
+        <section class="lps-section" data-lps-section="weekly"><div class="lps-section-head"><div><h3>Plan săptămânal și promisiuni</h3><p>Promite doar activități pregătite. La finalul săptămânii, evaluează fiecare promisiune pentru calculul PPC.</p><p class="lps-live-note" id="lpsWeeklyLiveNote"></p></div></div><form class="lps-form" id="lpsWeeklyForm"><div class="lps-form-grid"><div class="ctrl-field"><label>Promisiune</label><input name="title" required placeholder="ex: Finalizez cablarea tabloului T1"></div><div class="ctrl-field"><label>Last Planner</label><input name="owner" required placeholder="Persoana care promite"></div><div class="ctrl-field"><label>Săptămâna începe</label><input name="week_start" type="date" required></div><div class="ctrl-field"><label>Zi planificată</label><input name="planned_date" type="date"></div><div class="ctrl-field full"><label>Condiție de satisfacție</label><input name="condition" placeholder="Cum știm că promisiunea este completă?"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Adaugă promisiune</button></div></form><div class="lps-list" id="lpsWeeklyList"></div></section>
+        <section class="lps-section" data-lps-section="learning"><div class="lps-section-head"><div><h3>Huddle și învățare</h3><p>Notează discuția scurtă de teren. Analizează PPC și motivele de variație în fiecare săptămână.</p></div></div><div class="lps-variance-breakdown" id="lpsVarianceBreakdown"></div><form class="lps-form" id="lpsHuddleForm"><div class="lps-form-grid"><div class="ctrl-field"><label>Data huddle</label><input name="huddle_date" type="date" required></div><div class="ctrl-field"><label>Facilitator</label><input name="facilitator" placeholder="Nume"></div><div class="ctrl-field full"><label>Blocaje și decizii</label><input name="notes" placeholder="Ce trebuie rezolvat înainte de următoarea întâlnire?"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Salvează huddle</button></div></form><div class="lps-list" id="lpsHuddleList"></div></section>
       </div>
     </div>
     <div class="admin-panel active" id="panel-overview">
@@ -3307,6 +3313,16 @@
     return value.toISOString().slice(0, 10);
   }
   function lpsDate(value){ return value ? fmtDateOnly(value) : 'fără dată'; }
+  // "dd.mm–dd.mm" label for the Mon-Sun week starting on weekStartIso.
+  function lpsWeekRangeLabel(weekStartIso){
+    if (!weekStartIso) return '';
+    const start = new Date(weekStartIso + 'T00:00:00');
+    if (isNaN(start.getTime())) return '';
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    const fmt = (d) => d.toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit' });
+    return `${fmt(start)}–${fmt(end)}`;
+  }
   function loadLpsStore(){
     try {
       const parsed = JSON.parse(localStorage.getItem(LPS_STORAGE_KEY) || '{}');
@@ -3344,17 +3360,41 @@
     const data = getLpsProjectData(store, lpsSelectedProjectId);
     saveLpsStore(store);
     const currentWeek = mondayIso();
+    const previousWeekDate = new Date();
+    previousWeekDate.setDate(previousWeekDate.getDate() - 7);
+    const previousWeekStart = mondayIso(previousWeekDate);
     const weeklyCurrent = data.weekly.filter(item => item.week_start === currentWeek);
-    const complete = weeklyCurrent.filter(item => item.status === 'Terminat').length;
-    const missed = weeklyCurrent.filter(item => item.status === 'Neîndeplinit');
-    const ppc = weeklyCurrent.length ? Math.round((complete / weeklyCurrent.length) * 100) : null;
+    // PPC is a lagging measure — it's meant to compare what was
+    // promised for a week against what actually got done BY THE END
+    // of that week, not a mid-week snapshot of a plan still in
+    // progress. Computing it off weeklyCurrent (the week that's still
+    // running) made it look artificially bad every Monday/Tuesday,
+    // since most of that week's promises are legitimately still
+    // "Promis" rather than evaluated yet. The headline number below
+    // is now the most recently CLOSED week (always the calendar week
+    // immediately before this one); the still-running week gets its
+    // own live, unlabeled-as-PPC progress note in the weekly section
+    // instead (see lpsWeeklyLiveNote below).
+    const weeklyLastCompleted = data.weekly.filter(item => item.week_start === previousWeekStart);
+    const completeLast = weeklyLastCompleted.filter(item => item.status === 'Terminat').length;
+    const missedLast = weeklyLastCompleted.filter(item => item.status === 'Neîndeplinit');
+    const ppc = weeklyLastCompleted.length ? Math.round((completeLast / weeklyLastCompleted.length) * 100) : null;
     const ready = data.lookahead.filter(item => item.ready).length;
     const openConstraints = data.constraints.filter(item => !item.resolved).length;
     document.getElementById('lpsPpcValue').textContent = ppc === null ? '–' : `${ppc}%`;
-    document.getElementById('lpsPpcNote').textContent = weeklyCurrent.length ? `${complete} din ${weeklyCurrent.length} promisiuni îndeplinite` : 'fără promisiuni în această săptămână';
+    document.getElementById('lpsPpcNote').textContent = weeklyLastCompleted.length
+      ? `${completeLast} din ${weeklyLastCompleted.length} promisiuni · săpt. ${lpsWeekRangeLabel(previousWeekStart)}`
+      : `fără promisiuni în săpt. ${lpsWeekRangeLabel(previousWeekStart)}`;
     document.getElementById('lpsReadyValue').textContent = ready;
     document.getElementById('lpsConstraintsValue').textContent = openConstraints;
-    document.getElementById('lpsVarianceValue').textContent = missed.length;
+    document.getElementById('lpsVarianceValue').textContent = missedLast.length;
+    const liveNoteEl = document.getElementById('lpsWeeklyLiveNote');
+    if (liveNoteEl) {
+      const completeCurrent = weeklyCurrent.filter(item => item.status === 'Terminat').length;
+      liveNoteEl.textContent = weeklyCurrent.length
+        ? `Săptămâna în curs (${lpsWeekRangeLabel(currentWeek)}): ${completeCurrent} din ${weeklyCurrent.length} finalizate până acum — PPC-ul acestei săptămâni se calculează abia după ce se încheie.`
+        : `Săptămâna în curs (${lpsWeekRangeLabel(currentWeek)}): nicio promisiune adăugată încă.`;
+    }
     document.querySelectorAll('.lps-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.lpsView === lpsActiveView));
     document.querySelectorAll('.lps-section').forEach(section => section.classList.toggle('active', section.dataset.lpsSection === lpsActiveView));
 
@@ -3382,6 +3422,35 @@
     huddleList.innerHTML = data.huddles.length ? data.huddles.slice().sort((a, b) => (b.huddle_date || '').localeCompare(a.huddle_date || '')).map(item => lpsItemHtml('huddles', item, `${lpsDate(item.huddle_date)} · ${item.facilitator || 'Facilitator nealocat'}`, 'Huddle', '', item.notes)).join('') : lpsEmpty('Salvează rezultatul următoarei întâlniri scurte de coordonare.');
     const weeklyStart = document.querySelector('#lpsWeeklyForm [name="week_start"]');
     if (weeklyStart && !weeklyStart.value) weeklyStart.value = currentWeek;
+    renderLpsVarianceBreakdown(data);
+  }
+  // The "Learn" half of Should/Can/Will/Did/Learn: a missed promise
+  // on its own is just a log entry — the point of recording a reason
+  // is to spot which one keeps coming back so it can actually be
+  // fixed, rather than re-discovering the same blocker every huddle.
+  // Counted across the whole project's history rather than a rolling
+  // window, since a new LPS project won't have enough missed weeks
+  // yet for a windowed view to mean anything.
+  function renderLpsVarianceBreakdown(data){
+    const el = document.getElementById('lpsVarianceBreakdown');
+    if (!el) return;
+    const counts = {};
+    let total = 0;
+    data.weekly.forEach(item => {
+      if (item.status === 'Neîndeplinit' && item.variance) {
+        counts[item.variance] = (counts[item.variance] || 0) + 1;
+        total++;
+      }
+    });
+    if (!total) {
+      el.innerHTML = '<h4>Motive de variație (de la începutul proiectului)</h4><p class="lps-item-meta">Încă nu există promisiuni neîndeplinite cu motiv înregistrat.</p>';
+      return;
+    }
+    const rows = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([reason, count]) => {
+      const pct = Math.round((count / total) * 100);
+      return `<div class="lps-variance-row"><span>${escapeHtml(reason)}</span><span class="lps-variance-bar-track"><span class="lps-variance-bar-fill" style="width:${pct}%"></span></span><span>${count}</span></div>`;
+    }).join('');
+    el.innerHTML = `<h4>Motive de variație (de la începutul proiectului · ${total} promisiuni neîndeplinite)</h4>${rows}`;
   }
   function lpsEmpty(message){ return `<div class="lps-empty">${message}</div>`; }
   function lpsItemHtml(collection, item, meta, status, statusClass = '', note = '', extraAction = ''){
