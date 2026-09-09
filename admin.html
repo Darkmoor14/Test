@@ -2080,44 +2080,56 @@
     return month !== null && String(month) === String(monthFilter);
   }
 
+  // True numeric value of a ticket_number, regardless of its exact
+  // text format — "TICKET-0096", a bare "96", or any other prefix a
+  // ticket happened to be stored with (the format isn't guaranteed
+  // consistent across every ticket; the code elsewhere already relies
+  // on pulling out digits for that reason, see extractTicketDigits()
+  // below). Comparing THIS instead of the raw string is required for
+  // real descending order: string comparison (even locale-aware
+  // "numeric" comparison) sorts by whatever the leading, non-numeric
+  // prefix collates as first, not by the number itself — two tickets
+  // with differently-formatted numbers can end up in the wrong
+  // relative order even though the numbers themselves compare
+  // correctly. Missing/non-numeric ticket_number sinks to the bottom.
+  function ticketNumVal(ticketNumber){
+    const digits = extractTicketDigits(ticketNumber);
+    return digits ? parseInt(digits, 10) : -1;
+  }
+
   // Shared ordering used by both the overview table and the detailed
   // ticket cards: urgent/accident tickets that are still active always
-  // come first — regardless of submission date — since those are the
-  // ones that genuinely can't wait. Everything else follows by date,
-  // with resolved tickets sinking to the bottom as before.
-  // parseTicketDate() returns an Invalid Date for a missing/unparseable
-  // submitted_on (a real, pre-existing condition elsewhere guarded with
-  // "!t.submitted_on" checks) — subtracting two of those in a sort
-  // comparator produces NaN, which isn't a valid ordering result and
-  // makes affected tickets land in an inconsistent, seemingly random
-  // spot within their tier. Falling back to epoch 0 keeps the
-  // comparator always numeric so those tickets deterministically sink
-  // to the bottom of their tier instead.
-  function ticketSortTime(iso){
-    if (!iso) return 0;
-    const t = parseTicketDate(iso).getTime();
-    return isNaN(t) ? 0 : t;
-  }
+  // come first — regardless of ticket number — since those are the
+  // ones that genuinely can't wait. Everything else follows by ticket
+  // number descending, with resolved tickets sinking to the bottom.
+  // Each tier used to be sorted by date (submitted_on / resolved_on)
+  // instead — but resolution order doesn't track ticket-number order
+  // (crews don't necessarily close tickets in the order they were
+  // opened), so the "done" tier in particular could show, say, ticket
+  // 94 above 116 above 115 above 90: correctly date-ordered, but not
+  // descending by number the way every other list in the app is.
+  // Sorting on the number itself keeps this tier consistent with the
+  // rest of the app instead of on a different axis entirely.
   function sortTicketsForDisplay(tickets){
     const urgentActive = tickets.filter(t => t.type === 'Anunt accident' && t.status !== 'Terminat')
-      .sort((a, b) => ticketSortTime(b.submitted_on) - ticketSortTime(a.submitted_on));
+      .sort((a, b) => ticketNumVal(b.ticket_number) - ticketNumVal(a.ticket_number));
     const regularActive = tickets.filter(t => t.type !== 'Anunt accident' && t.status !== 'Terminat')
-      .sort((a, b) => ticketSortTime(b.submitted_on) - ticketSortTime(a.submitted_on));
+      .sort((a, b) => ticketNumVal(b.ticket_number) - ticketNumVal(a.ticket_number));
     const done = tickets.filter(t => t.status === 'Terminat')
-      .sort((a, b) => ticketSortTime(b.resolved_on || b.submitted_on) - ticketSortTime(a.resolved_on || a.submitted_on));
+      .sort((a, b) => ticketNumVal(b.ticket_number) - ticketNumVal(a.ticket_number));
     return [...urgentActive, ...regularActive, ...done];
   }
 
   // Used by the overview table specifically — ticket number order
   // instead of by date, since with archived tickets now mixed back
   // in alongside active ones, a date-sorted table put them in a
-  // confusing, hard-to-scan order. Numeric-aware comparison so
-  // "SES-2026-10" sorts above "SES-2026-2", not below it. Descending
-  // — newest (highest) ticket number first.
+  // confusing, hard-to-scan order. True numeric comparison (via
+  // ticketNumVal above) rather than string localeCompare, so
+  // whatever prefix a ticket's number happens to be stored with
+  // doesn't affect the result — descending, newest (highest ticket
+  // number) first.
   function sortTicketsByNumber(tickets){
-    return [...tickets].sort((a, b) =>
-      (b.ticket_number || '').localeCompare(a.ticket_number || '', undefined, { numeric: true })
-    );
+    return [...tickets].sort((a, b) => ticketNumVal(b.ticket_number) - ticketNumVal(a.ticket_number));
   }
 
   let agingOnlyFilter = false;
