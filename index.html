@@ -1240,11 +1240,11 @@
     servicii: {
       href: 'servicii.html', moreKey: 'showcase_more_servicii',
       slides: [
-        { tagKey: 'showcase_servicii_tag', titleKey: 'svc1_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/><path d="M17 8l2 2 4-4"/></svg>' },
-        { tagKey: 'showcase_servicii_tag', titleKey: 'svc2_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4l-5.6 5.6a1.5 1.5 0 0 0 2.1 2.1l5.6-5.6a4 4 0 0 1 5.4-5.4l-2.6 2.6-1.7-1.7z"/></svg>' },
-        { tagKey: 'showcase_servicii_tag', titleKey: 'svc3_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2v6M6 8h12l-3 5H9l-3 5h12"/><circle cx="12" cy="8" r="1.4" fill="currentColor" stroke="none"/></svg>' },
-        { tagKey: 'showcase_servicii_tag', titleKey: 'svc4_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>' },
-        { tagKey: 'showcase_servicii_tag', titleKey: 'svc5_title', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="16" height="10" rx="1"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg>' },
+        { tagKey: 'showcase_servicii_tag', titleKey: 'svc1_title', photo: 'images/servicii/servicii-1-consultanta-proiectare.webp', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/><path d="M17 8l2 2 4-4"/></svg>' },
+        { tagKey: 'showcase_servicii_tag', titleKey: 'svc2_title', photo: 'images/servicii/servicii-2-instalare-punere-functiune.webp', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4l-5.6 5.6a1.5 1.5 0 0 0 2.1 2.1l5.6-5.6a4 4 0 0 1 5.4-5.4l-2.6 2.6-1.7-1.7z"/></svg>' },
+        { tagKey: 'showcase_servicii_tag', titleKey: 'svc3_title', photo: 'images/servicii/servicii-3-modernizare-retehnologizare.webp', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2v6M6 8h12l-3 5H9l-3 5h12"/><circle cx="12" cy="8" r="1.4" fill="currentColor" stroke="none"/></svg>' },
+        { tagKey: 'showcase_servicii_tag', titleKey: 'svc4_title', photo: 'images/servicii/servicii-4-reparatii-mentenanta.webp', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>' },
+        { tagKey: 'showcase_servicii_tag', titleKey: 'svc5_title', photo: 'images/servicii/servicii-5-piese-schimb.webp', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="16" height="10" rx="1"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg>' },
       ]
     }
   };
@@ -1285,9 +1285,15 @@
 
   function renderShowcase(){
     const data = showcaseData[showcaseTab];
+    // Servicii slides carry a real photo (see showcaseData above) —
+    // shown as the slide's background instead of the plain icon,
+    // which stays reserved for produse (no photography there yet).
+    // The existing bottom gradient in .showcase-slide-overlay
+    // already keeps the tag/title readable over any photo without
+    // needing a change there.
     showcaseTrack.innerHTML = data.slides.map(s => `
-      <div class="showcase-slide">
-        <div class="showcase-slide-icon">${s.icon}</div>
+      <div class="showcase-slide"${s.photo ? ` style="background-image:url('${s.photo}');background-size:cover;background-position:center;"` : ''}>
+        ${s.photo ? '' : `<div class="showcase-slide-icon">${s.icon}</div>`}
         <div class="showcase-slide-overlay">
           <span class="showcase-slide-tag">${t(s.tagKey)}</span>
           <div class="showcase-slide-title">${t(s.titleKey)}</div>
