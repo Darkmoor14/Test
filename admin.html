@@ -2085,13 +2085,26 @@
   // come first — regardless of submission date — since those are the
   // ones that genuinely can't wait. Everything else follows by date,
   // with resolved tickets sinking to the bottom as before.
+  // parseTicketDate() returns an Invalid Date for a missing/unparseable
+  // submitted_on (a real, pre-existing condition elsewhere guarded with
+  // "!t.submitted_on" checks) — subtracting two of those in a sort
+  // comparator produces NaN, which isn't a valid ordering result and
+  // makes affected tickets land in an inconsistent, seemingly random
+  // spot within their tier. Falling back to epoch 0 keeps the
+  // comparator always numeric so those tickets deterministically sink
+  // to the bottom of their tier instead.
+  function ticketSortTime(iso){
+    if (!iso) return 0;
+    const t = parseTicketDate(iso).getTime();
+    return isNaN(t) ? 0 : t;
+  }
   function sortTicketsForDisplay(tickets){
     const urgentActive = tickets.filter(t => t.type === 'Anunt accident' && t.status !== 'Terminat')
-      .sort((a, b) => parseTicketDate(b.submitted_on) - parseTicketDate(a.submitted_on));
+      .sort((a, b) => ticketSortTime(b.submitted_on) - ticketSortTime(a.submitted_on));
     const regularActive = tickets.filter(t => t.type !== 'Anunt accident' && t.status !== 'Terminat')
-      .sort((a, b) => parseTicketDate(b.submitted_on) - parseTicketDate(a.submitted_on));
+      .sort((a, b) => ticketSortTime(b.submitted_on) - ticketSortTime(a.submitted_on));
     const done = tickets.filter(t => t.status === 'Terminat')
-      .sort((a, b) => parseTicketDate(b.resolved_on || b.submitted_on) - parseTicketDate(a.resolved_on || a.submitted_on));
+      .sort((a, b) => ticketSortTime(b.resolved_on || b.submitted_on) - ticketSortTime(a.resolved_on || a.submitted_on));
     return [...urgentActive, ...regularActive, ...done];
   }
 
