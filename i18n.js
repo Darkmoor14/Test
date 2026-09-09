@@ -49,7 +49,7 @@ ro: {
   produse_eyebrow: "Produse",
   produse_h2: "Componente pentru infrastructură energetică",
   produse_lede: "Fabricăm și furnizăm o gamă completă de componente pentru rețele electrice și de iluminat public.",
-  prod1_title: "Consultanță, proiectare și servicii de asistență tehnică",
+  prod1_title: "Cămine din beton",
   prod2_title: "Capace de cămin din beton",
   prod3_title: "Gură de vizitare din oțel zincat",
   prod4_title: "Posturi de transformare în anvelopă metalică",
@@ -108,7 +108,7 @@ ro: {
   svc_hint: "Vezi detalii",
 
   // Service list (reused by the homepage showcase slider)
-  svc1_title: "Consultanță și servicii de asistență tehnică",
+  svc1_title: "Consultanță, proiectare și servicii de asistență tehnică",
   svc2_title: "Instalare și punere în funcțiune",
   svc3_title: "Modernizare și retehnologizare",
   svc4_title: "Reparații și mentenanță",
@@ -296,7 +296,7 @@ en: {
   produse_eyebrow: "Products",
   produse_h2: "Components for energy infrastructure",
   produse_lede: "We manufacture and supply a full range of components for electrical and public lighting networks.",
-  prod1_title: "Consulting, design and technical assistance services",
+  prod1_title: "Concrete chambers",
   prod2_title: "Concrete chamber covers",
   prod3_title: "Galvanized steel manholes",
   prod4_title: "Transformer stations in metal enclosures",
@@ -350,7 +350,7 @@ en: {
   svc_lede: "We cover the entire lifecycle of electrical infrastructure — from early technical decisions through day-to-day maintenance.",
   svc_hint: "See details",
 
-  svc1_title: "Consulting and advisory services",
+  svc1_title: "Consulting, design and technical assistance services",
   svc2_title: "Installation and commissioning",
   svc3_title: "Modernisation and upgrades",
   svc4_title: "Repair and maintenance",
@@ -530,7 +530,7 @@ hu: {
   produse_eyebrow: "Termékek",
   produse_h2: "Energetikai infrastruktúra alkatrészei",
   produse_lede: "A villamos hálózatok és a közvilágítás teljes alkatrészválasztékát gyártjuk és szállítjuk.",
-  prod1_title: "Tanácsadás, tervezés és műszaki segítségnyújtási szolgáltatások",
+  prod1_title: "Betonaknák",
   prod2_title: "Betonakna fedlapok",
   prod3_title: "Horganyzott acél aknafedelek",
   prod4_title: "Transzformátorállomások fémburkolatban",
@@ -584,7 +584,7 @@ hu: {
   svc_lede: "A villamos infrastruktúra teljes életciklusát lefedjük — a korai műszaki döntésektől a napi karbantartásig.",
   svc_hint: "Részletek",
 
-  svc1_title: "Tanácsadás és műszaki szaktanácsadás",
+  svc1_title: "Tanácsadás, tervezés és műszaki segítségnyújtási szolgáltatások",
   svc2_title: "Telepítés és üzembe helyezés",
   svc3_title: "Korszerűsítés és fejlesztés",
   svc4_title: "Javítás és karbantartás",
