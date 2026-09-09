@@ -4420,35 +4420,41 @@
     ws.pageSetup.printArea = `A1:D${orderedTickets.length + 2}`;
   }
 
-  // How many ticket rows fit on one A4-landscape page alongside the
-  // banner/group/header/footer blocks. A4 landscape is ~595pt tall;
-  // with top/bottom margins at 0.5in (36pt) each and header/footer
-  // margins at 0 (see buildFisaSheet — those reserve page space for
-  // a print header/footer even with none defined, and this sheet's
-  // "header" and "footer" are ordinary in-sheet rows, not the print
-  // kind, so there's nothing to reserve that space for), usable
-  // height is ~523pt. Fixed rows eat ~251pt (banner 55 + group 20 +
-  // rotated header 150 + footer 26), leaving ~272pt for data rows at
-  // 24pt each — a bare ~11 rows with zero margin for error. Kept
-  // deliberately well under that (9, not 11) as a safety buffer:
-  // this number being even slightly optimistic is exactly what
-  // caused Excel to silently insert its own extra automatic page
-  // break partway through a block before (no repeated banner/header
-  // on that unplanned overflow page, which is what a forced manual
-  // break here is specifically meant to prevent).
-  //
-  // This is a fixed count rather than relying on Excel's own
-  // automatic page break in the first place because a real page
-  // break just cuts the table wherever it happens to land, with
-  // none of the banner/headers/footer repeated on the overflow
-  // page. Every page here is instead built as a complete,
-  // self-contained block — same banner, group row, column headers,
-  // a full ROWS_PER_PAGE of ticket rows (blank ones pre-numbered and
-  // left empty when there aren't that many active tickets, same as
-  // the source sheet's own unused rows), and its own signature
-  // footer — with a manual page break forced after each block's
-  // footer so it never splits mid-table.
-  const FISA_ROWS_PER_PAGE = 9;
+  // Excel's own "fit to 1 page wide" (fitToWidth) doesn't pin down a
+  // KNOWN scale percentage — it's computed by whatever's rendering
+  // the file (Excel vs. LibreOffice vs. a print driver), each using
+  // its own font-metrics estimate, and there's no way to read that
+  // number back out to plan row heights against it. That mismatch
+  // between the *assumed* scale and the *actual* one is what caused
+  // both the leftover blank space at the bottom of the page and,
+  // separately, an inconsistent extra page break mid-table — the
+  // real available height was never what the row-count math assumed
+  // it was. Fixed here by computing an EXPLICIT fixed scale
+  // ourselves from the column widths below (same standard MDW=7px
+  // Calibri-11 approximation Excel itself uses to turn a column
+  // "width" into pixels), setting that directly instead of
+  // fitToWidth, and sizing rows against the resulting KNOWN usable
+  // area — every viewer then renders identically, and the row math
+  // and the print math are finally computed from the same numbers.
+  function excelColWidthToPoints(width){
+    return (width * 7 + 5) * 0.75;
+  }
+  // A4 landscape is 841.9pt × 595.3pt. Usable width/height below
+  // already subtract this sheet's margins (0.3in+0.1in left/right,
+  // 0.5in+0.5in top/bottom — header/footer margins are 0, since
+  // this sheet's "header" and "footer" are ordinary in-sheet rows,
+  // not Excel's print header/footer feature, so there's nothing to
+  // reserve that space for).
+  const FISA_USABLE_WIDTH_PT = 813;
+  const FISA_USABLE_HEIGHT_PT = 523;
+  // This is a fixed row-per-page count (each page a complete,
+  // self-contained block with its own banner/group row/column
+  // headers/footer, joined by a manual page break) rather than
+  // relying on Excel's own automatic page break in the first place,
+  // because a real automatic break just cuts the table wherever it
+  // happens to land, with none of that repeated on the overflow
+  // page. Unused rows on a page stay blank but pre-numbered, same as
+  // the source sheet's own unused rows.
 
   // The actual fill-in form for the field crew — same column layout
   // the repair-sheet import above already knows how to read.
@@ -4459,31 +4465,46 @@
     const allBorders = { top: thin, bottom: thin, left: thin, right: thin };
     const lastColLetter = String.fromCharCode(64 + colCount);
 
+    // Narrow checkbox-style columns throughout; wider for the ones
+    // that actually hold text. Strada gets the biggest share by far
+    // — a full street + house number needs real room. Comfortable
+    // widths, not pre-squeezed to fit — the print scale computed
+    // below is derived FROM these, not the other way round, so
+    // there's no tension between "wide enough to read" and "narrow
+    // enough to print".
+    const colWidths = headers.map((_, i) => {
+      if (i === 0) return 5;
+      if (i === 1) return 9;
+      if (i === 2) return 40;
+      if (i === colCount - 1) return 24;
+      return 4.5;
+    });
+    const totalContentWidthPt = colWidths.reduce((sum, w) => sum + excelColWidthToPoints(w), 0);
+    const printScale = Math.max(50, Math.min(100, Math.floor((FISA_USABLE_WIDTH_PT / totalContentWidthPt) * 100)));
+
     const ws = workbook.addWorksheet('Fisa remedieri', {
       pageSetup: {
         orientation: 'landscape',
         paperSize: 9,
-        fitToPage: true,
-        fitToWidth: 1,
-        fitToHeight: 0,
+        fitToPage: false,
+        scale: printScale,
         margins: { left: 0.3, right: 0.1, top: 0.5, bottom: 0.5, header: 0, footer: 0 },
       },
     });
+    ws.columns = colWidths.map(width => ({ width }));
 
-    // Narrow checkbox-style columns throughout; wider for the ones
-    // that actually hold text. Strada gets the biggest share by far
-    // — a full street + house number needs real room, and
-    // fitToWidth scales every column together to fill the page
-    // width regardless, so giving it a bigger share here is what
-    // actually makes it wider on the printed page, not just on
-    // screen.
-    ws.columns = headers.map((_, i) => {
-      if (i === 0) return { width: 5 };
-      if (i === 1) return { width: 9 };
-      if (i === 2) return { width: 46 };
-      if (i === colCount - 1) return { width: 26 };
-      return { width: 4 };
-    });
+    // Everything on the page (this sheet's content included) prints
+    // at printScale%, so the page can actually hold
+    // FISA_USABLE_HEIGHT_PT / (printScale/100) worth of NOMINAL
+    // (unscaled) row height before the real, physical page edge is
+    // reached. A 10% margin on top of that (0.9 factor) is the
+    // actual safety buffer against this being slightly optimistic —
+    // an underestimate here is what caused Excel to insert its own
+    // unplanned extra page break mid-block before.
+    const dataRowHeight = 26;
+    const fixedOverheadPt = 55 /* banner */ + 20 /* group */ + 150 /* header */ + 15 /* spacer row */ + 26 /* footer */;
+    const nominalHeightBudget = (FISA_USABLE_HEIGHT_PT / (printScale / 100)) * 0.9;
+    const FISA_ROWS_PER_PAGE = Math.max(1, Math.floor((nominalHeightBudget - fixedOverheadPt) / dataRowHeight));
 
     const totalPages = Math.max(1, Math.ceil(orderedTickets.length / FISA_ROWS_PER_PAGE));
     let lastRowUsed = 0;
@@ -4545,7 +4566,7 @@
         const globalIndex = page * FISA_ROWS_PER_PAGE + r;
         const t = orderedTickets[globalIndex];
         const row = ws.getRow(firstDataRow + r);
-        row.height = 24;
+        row.height = dataRowHeight;
         row.getCell(1).value = globalIndex + 1;
         if (t) {
           row.getCell(2).value = extractTicketDigits(t.ticket_number) || t.ticket_number || '';
