@@ -4603,15 +4603,17 @@
     btn.disabled = true;
     btn.textContent = 'Se generează...';
     try {
-      // "Active" here means "still needs a report written" — not
-      // just status === 'Ongoing'. A ticket sesizari@ already closed
-      // (Terminat) but hasn't gotten its "Ce s-a făcut" note yet is
-      // exactly as much this sheet's business as one nobody's
-      // visited yet; excluding it by status was the actual bug
-      // behind tickets not being found later on import.
-      const activeTickets = allTickets.filter(t => !t.archived && !t.resolution_note);
+      // Genuinely active/unresolved tickets only — this is the
+      // work-list handed to the field crew for issues nobody's fixed
+      // yet, deliberately separate from tickets sesizari@ already
+      // closed and that are just waiting on vlasbogdan@'s paperwork
+      // (those show up under "Așteaptă raport" instead, not here).
+      // The repair-sheet *import* matching further down searches
+      // both sets, since an uploaded sheet can cover either kind —
+      // only this download is scoped to active-only.
+      const activeTickets = allTickets.filter(t => t.status !== 'Terminat' && !t.archived);
       if (activeTickets.length === 0) {
-        alert('Nu există sesizări care au nevoie de raport în acest moment.');
+        alert('Nu există sesizări active în acest moment.');
         return;
       }
       await loadExcelJs();
@@ -6036,13 +6038,38 @@
   }
 
   // Loose street-text match for rows where the field crew left the
-  // ticket number blank and only wrote the street — lowercased,
-  // diacritics stripped (reusing normalizeRomanianText, same
-  // function the institutional-reporter whitelist already uses),
-  // punctuation collapsed to spaces so "Str. Violetelor" and
-  // "violetelor" line up.
-  function normalizeStreetForMatch(value){
-    return normalizeRomanianText(value).replace(/[^a-z0-9]+/g, ' ').trim();
+  // ticket number blank and only wrote the street. A plain substring
+  // check doesn't work here: what's written on the paper form is
+  // usually just "Magurei 2", while the stored address is "Str.
+  // Măgurei nr. 2" — the inserted "nr." means "magurei 2" never
+  // actually appears as a literal substring of "str magurei nr 2"
+  // even though they obviously mean the same address. So this
+  // compares WORD SETS instead: lowercase, diacritics stripped
+  // (reusing normalizeRomanianText), punctuation collapsed to
+  // spaces, and the common connector words ("str", "nr", "bd"...)
+  // dropped entirely since they carry no identifying information —
+  // leaving just the street name and house number to compare.
+  const STREET_MATCH_STOPWORDS = new Set(['str', 'strada', 'nr', 'numarul', 'bd', 'bdul', 'aleea', 'sos', 'soseaua']);
+  function streetWordSet(value){
+    return new Set(
+      normalizeRomanianText(value)
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()
+        .split(' ')
+        .filter(w => w && !STREET_MATCH_STOPWORDS.has(w))
+    );
+  }
+  // True when every word typed on the form (needleWords) also shows
+  // up in the ticket's real address (hayWords) — the real address
+  // may well have extra words (block, apartment, "nr.") beyond what
+  // was written down, but everything that WAS written should genuinely
+  // be in there somewhere.
+  function streetWordsMatch(needleWords, hayWords){
+    if (needleWords.size === 0) return false;
+    for (const w of needleWords) {
+      if (!hayWords.has(w)) return false;
+    }
+    return true;
   }
 
   function buildRepairNote(rowArr, colIndex, observatiiText){
@@ -6115,13 +6142,11 @@
                 // candidate matches. More than one such ticket on
                 // that street is genuinely ambiguous — flagged for
                 // the person to resolve by hand rather than guessed at.
-                const needle = normalizeStreetForMatch(street);
-                const candidates = needle
-                  ? allTickets.filter(t => !t.archived && !t.resolution_note && t.address && (() => {
-                      const hay = normalizeStreetForMatch(t.address);
-                      return hay && (hay.includes(needle) || needle.includes(hay));
-                    })())
-                  : [];
+                const needleWords = streetWordSet(street);
+                const candidates = allTickets.filter(t =>
+                  !t.archived && !t.resolution_note && t.address &&
+                  streetWordsMatch(needleWords, streetWordSet(t.address))
+                );
                 if (candidates.length === 1) {
                   matched = candidates[0];
                   matchedBy = 'street';
