@@ -433,7 +433,6 @@
   .internal-projects-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;}
   .internal-projects-head h2{margin:6px 0 0;}
   .internal-projects-copy{max-width:460px;margin:0;color:var(--ink-600);font-size:14px;text-align:right;}
-  .internal-stage{display:inline-flex;margin-top:10px;padding:4px 7px;background:var(--copper-100);color:var(--copper-700);border-radius:3px;font-family:var(--mono);font-size:11px;letter-spacing:.03em;text-transform:uppercase;}
   .lps-project-bar{display:flex;align-items:end;gap:12px;margin-bottom:18px;padding:16px 18px;background:var(--paper-050);border:1px solid var(--line-strong);border-radius:8px;}
   .lps-project-bar .ctrl-field{flex:1;}
   .lps-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
@@ -443,7 +442,7 @@
   .lps-kpi-note{margin-top:4px;font-size:12px;color:var(--ink-600);}
   .lps-tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:18px;padding-bottom:2px;}
   .lps-tab{flex:0 0 auto;padding:9px 12px;border:1px solid var(--line-strong);border-radius:4px;background:var(--paper-000);font:inherit;font-size:13px;color:var(--ink-700);cursor:pointer;}
-  .lps-tab.active{border-color:var(--copper-500);background:var(--copper-100);color:var(--copper-700);font-weight:600;}
+  .lps-tab.active{border-color:var(--copper-500);background:var(--copper-050);color:var(--copper-600);font-weight:600;}
   .lps-section{display:none;}
   .lps-section.active{display:block;}
   .lps-section-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:16px;}
@@ -473,6 +472,35 @@
   .lps-variance-row{display:grid;grid-template-columns:140px minmax(0,1fr) 24px;align-items:center;gap:10px;margin-bottom:8px;font-size:12.5px;color:var(--ink-700);}
   .lps-variance-bar-track{height:8px;background:var(--paper-100);border-radius:4px;overflow:hidden;}
   .lps-variance-bar-fill{display:block;height:100%;background:var(--signal-red);border-radius:4px;}
+  .lps-gantt-wrap{margin-bottom:18px;}
+  .lps-gantt-legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:10px;font-size:12px;color:var(--ink-600);}
+  .lps-gantt-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .lps-gantt-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;flex:0 0 auto;}
+  .lps-gantt{display:flex;max-height:440px;overflow-y:auto;border:1px solid var(--line-strong);border-radius:8px;background:var(--paper-000);}
+  .lps-gantt-labels{flex:0 0 190px;border-right:1px solid var(--line-strong);}
+  .lps-gantt-track-wrap{flex:1;position:relative;min-width:0;}
+  .lps-gantt-label-spacer,.lps-gantt-scale{height:28px;position:sticky;top:0;background:var(--paper-000);z-index:2;border-bottom:1px solid var(--line-strong);}
+  .lps-gantt-scale{position:sticky;}
+  .lps-gantt-tick-label{position:absolute;top:7px;font-family:var(--mono);font-size:10.5px;color:var(--ink-600);transform:translateX(-50%);white-space:nowrap;}
+  .lps-gantt-gridline{position:absolute;top:0;bottom:0;width:1px;background:var(--line);}
+  .lps-gantt-today-line{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed var(--copper-500);z-index:1;}
+  .lps-gantt-today-line span{position:absolute;top:6px;left:4px;font-family:var(--mono);font-size:10px;color:var(--copper-600);white-space:nowrap;}
+  .lps-gantt-group-label{height:26px;display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-600);background:var(--paper-050);}
+  .lps-gantt-group-row{height:26px;background:var(--paper-050);}
+  .lps-gantt-label{height:30px;display:flex;align-items:center;padding:0 12px;font-size:12.5px;color:var(--ink-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lps-gantt-track-row{height:30px;position:relative;}
+  .lps-gantt-marker{position:absolute;top:50%;width:10px;height:10px;transform:translate(-50%,-50%) rotate(45deg);border-radius:2px;}
+  .lps-gantt-marker.milestone-open{background:var(--copper-500);}
+  .lps-gantt-marker.milestone-done{background:var(--signal-green);}
+  .lps-gantt-marker.constraint{background:var(--signal-red);}
+  .lps-gantt-dot{position:absolute;top:50%;width:9px;height:9px;transform:translate(-50%,-50%);border-radius:50%;}
+  .lps-gantt-dot.status-done{background:var(--signal-green);}
+  .lps-gantt-dot.status-missed{background:var(--signal-red);}
+  .lps-gantt-dot.status-pending{background:var(--ink-400);}
+  .lps-gantt-bar{position:absolute;top:8px;height:14px;border-radius:4px;min-width:8px;}
+  .lps-gantt-bar.ready{background:var(--signal-green);}
+  .lps-gantt-bar.blocked{background:var(--signal-red);}
+  .lps-gantt-empty{padding:24px 18px;text-align:center;color:var(--ink-600);font-size:13px;}
   @media(max-width:900px){
     .home-intro{align-items:flex-start;margin-top:8px;}
     .home-intro-copy{display:none;}
@@ -484,6 +512,8 @@
     .internal-projects-copy{display:none;}
     .lps-kpi-grid{grid-template-columns:repeat(2,1fr);}
     .lps-overview-grid{grid-template-columns:1fr;}
+    .lps-gantt-labels{flex:0 0 120px;}
+    .lps-gantt-label,.lps-gantt-group-label{padding:0 8px;font-size:11.5px;}
   }
   @media(max-width:480px){
     .home-queue-item{grid-template-columns:auto minmax(0,1fr);padding:14px;}
@@ -1293,6 +1323,16 @@
           <button type="button" class="lps-tab" data-lps-view="learning">Huddle și învățare</button>
         </div>
         <section class="lps-section active" data-lps-section="overview">
+          <div class="lps-gantt-wrap">
+            <div class="lps-section-head"><div><h3>Cronologie proiect</h3><p>Repere, look-ahead, constrângeri deschise și promisiuni săptămânale pe aceeași axă de timp. Linia punctată arată ziua de azi.</p></div></div>
+            <div class="lps-gantt-legend">
+              <span><i style="background:var(--copper-500)"></i>Reper</span>
+              <span><i style="background:var(--signal-green)"></i>Finalizat / pregătit / terminat</span>
+              <span><i style="background:var(--signal-red)"></i>Blocat / constrângere / neîndeplinit</span>
+              <span><i style="background:var(--ink-400)"></i>Promisiune în așteptare</span>
+            </div>
+            <div class="lps-gantt" id="lpsGanttChart"></div>
+          </div>
           <div class="lps-overview-grid">
             <div class="lps-guide"><h3>Ritmul LPS</h3><ol><li>Fixează reperele și rezultatele de fază.</li><li>Planifică invers handoff-urile necesare pentru reper.</li><li>Analizează următoarele 6 săptămâni și elimină constrângerile.</li><li>Promite doar lucru pregătit pentru săptămâna următoare.</li><li>La huddle, confirmă ce s-a făcut și de ce nu s-a făcut.</li></ol></div>
             <div class="lps-guide"><h3>Regula de calitate</h3><ol><li>Fiecare promisiune are un responsabil și o zi clară.</li><li>O lucrare intră în plan doar dacă este definită, în secvență și pregătită.</li><li>O promisiune ratată primește un motiv de variație.</li><li>Folosește PPC și tendințele de variație pentru îmbunătățire.</li></ol></div>
@@ -3323,6 +3363,120 @@
     const weeklyStart = document.querySelector('#lpsWeeklyForm [name="week_start"]');
     if (weeklyStart && !weeklyStart.value) weeklyStart.value = currentWeek;
     renderLpsVarianceBreakdown(data);
+    renderLpsGantt(data);
+  }
+  function lpsGanttDate(iso){
+    if (!iso) return null;
+    const d = new Date(iso + 'T00:00:00');
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function lpsGanttPct(date, range){
+    const total = range.end.getTime() - range.start.getTime();
+    if (total <= 0) return 0;
+    return Math.max(0, Math.min(100, ((date.getTime() - range.start.getTime()) / total) * 100));
+  }
+  // Weekly ticks read better than monthly ones on a short project, but
+  // stop being legible once the visible window gets much past two
+  // months — 70 days is the rough crossover point.
+  function lpsGanttTicks(range){
+    const stepDays = (range.end.getTime() - range.start.getTime()) / 86400000 <= 70 ? 7 : 30;
+    const ticks = [];
+    let cursor = new Date(range.start);
+    while (cursor.getTime() <= range.end.getTime()) {
+      ticks.push(new Date(cursor));
+      cursor = new Date(cursor.getTime() + stepDays * 86400000);
+    }
+    return ticks;
+  }
+  // A lightweight Gantt-style timeline built from data the LPS tabs
+  // already collect — no separate schedule to maintain. Milestones
+  // plot as diamonds on their due date; look-ahead items (the only
+  // things with both a start and an end) plot as bars; open
+  // constraints and weekly promises plot as single-point markers,
+  // since they don't have a duration of their own. Rows are grouped
+  // by section and sorted by date within each group so the chart
+  // reads top-to-bottom the same way the LPS conversations flow.
+  function renderLpsGantt(data){
+    const el = document.getElementById('lpsGanttChart');
+    if (!el) return;
+    const rows = [];
+    const dated = [];
+    const trackDate = (iso) => { const d = lpsGanttDate(iso); if (d) dated.push(d); return d; };
+
+    const milestonesDated = data.milestones.filter(m => m.due_date);
+    if (milestonesDated.length) {
+      rows.push({ type: 'group', label: 'Repere' });
+      milestonesDated.slice().sort((a, b) => a.due_date.localeCompare(b.due_date)).forEach(m => {
+        rows.push({ type: 'milestone', label: m.title, date: trackDate(m.due_date), done: !!m.done });
+      });
+    }
+    const lookaheadDated = data.lookahead.filter(l => l.start_date || l.due_date);
+    if (lookaheadDated.length) {
+      rows.push({ type: 'group', label: 'Look-ahead' });
+      lookaheadDated.slice().sort((a, b) => (a.start_date || a.due_date).localeCompare(b.start_date || b.due_date)).forEach(l => {
+        rows.push({ type: 'lookahead', label: l.title, start: trackDate(l.start_date || l.due_date), end: trackDate(l.due_date || l.start_date), ready: !!l.ready });
+      });
+    }
+    const openConstraints = data.constraints.filter(c => !c.resolved && c.due_date);
+    if (openConstraints.length) {
+      rows.push({ type: 'group', label: 'Constrângeri deschise' });
+      openConstraints.slice().sort((a, b) => a.due_date.localeCompare(b.due_date)).forEach(c => {
+        rows.push({ type: 'constraint', label: c.title, date: trackDate(c.due_date) });
+      });
+    }
+    const weeklyDated = data.weekly.filter(w => w.planned_date || w.week_start);
+    if (weeklyDated.length) {
+      rows.push({ type: 'group', label: 'Promisiuni săptămânale' });
+      weeklyDated.slice().sort((a, b) => (a.planned_date || a.week_start).localeCompare(b.planned_date || b.week_start)).forEach(w => {
+        rows.push({ type: 'weekly', label: w.title, date: trackDate(w.planned_date || w.week_start), status: w.status });
+      });
+    }
+
+    if (!dated.length) {
+      el.innerHTML = '<div class="lps-gantt-empty">Adaugă date la repere, look-ahead, constrângeri sau promisiuni pentru a vedea cronologia proiectului.</div>';
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(Math.min(...dated.map(d => d.getTime()), today.getTime()));
+    const end = new Date(Math.max(...dated.map(d => d.getTime()), today.getTime()));
+    start.setDate(start.getDate() - 3);
+    end.setDate(end.getDate() + 3);
+    const range = { start, end };
+
+    const ticks = lpsGanttTicks(range);
+    const fmtTick = (d) => d.toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit' });
+
+    const labelsHtml = ['<div class="lps-gantt-label-spacer"></div>'];
+    const trackHtml = [
+      `<div class="lps-gantt-scale">${ticks.map(t => `<span class="lps-gantt-tick-label" style="left:${lpsGanttPct(t, range)}%">${fmtTick(t)}</span>`).join('')}</div>`,
+      ...ticks.map(t => `<div class="lps-gantt-gridline" style="left:${lpsGanttPct(t, range)}%"></div>`),
+      `<div class="lps-gantt-today-line" style="left:${lpsGanttPct(today, range)}%"><span>Azi</span></div>`,
+    ];
+
+    rows.forEach(row => {
+      if (row.type === 'group') {
+        labelsHtml.push(`<div class="lps-gantt-group-label">${escapeHtml(row.label)}</div>`);
+        trackHtml.push('<div class="lps-gantt-group-row"></div>');
+        return;
+      }
+      labelsHtml.push(`<div class="lps-gantt-label" title="${escapeHtml(row.label)}">${escapeHtml(row.label)}</div>`);
+      if (row.type === 'milestone') {
+        trackHtml.push(`<div class="lps-gantt-track-row"><span class="lps-gantt-marker ${row.done ? 'milestone-done' : 'milestone-open'}" style="left:${lpsGanttPct(row.date, range)}%" title="${escapeHtml(row.label)} · ${fmtTick(row.date)}"></span></div>`);
+      } else if (row.type === 'lookahead') {
+        const leftPct = lpsGanttPct(row.start, range);
+        const widthPct = Math.max(lpsGanttPct(row.end, range) - leftPct, 1.2);
+        trackHtml.push(`<div class="lps-gantt-track-row"><span class="lps-gantt-bar ${row.ready ? 'ready' : 'blocked'}" style="left:${leftPct}%;width:${widthPct}%" title="${escapeHtml(row.label)}"></span></div>`);
+      } else if (row.type === 'constraint') {
+        trackHtml.push(`<div class="lps-gantt-track-row"><span class="lps-gantt-marker constraint" style="left:${lpsGanttPct(row.date, range)}%" title="${escapeHtml(row.label)} · termen ${fmtTick(row.date)}"></span></div>`);
+      } else if (row.type === 'weekly') {
+        const statusClass = row.status === 'Terminat' ? 'status-done' : row.status === 'Neîndeplinit' ? 'status-missed' : 'status-pending';
+        trackHtml.push(`<div class="lps-gantt-track-row"><span class="lps-gantt-dot ${statusClass}" style="left:${lpsGanttPct(row.date, range)}%" title="${escapeHtml(row.label)} · ${fmtTick(row.date)}"></span></div>`);
+      }
+    });
+
+    el.innerHTML = `<div class="lps-gantt-labels">${labelsHtml.join('')}</div><div class="lps-gantt-track-wrap">${trackHtml.join('')}</div>`;
   }
   // The "Learn" half of Should/Can/Will/Did/Learn: a missed promise
   // on its own is just a log entry — the point of recording a reason
