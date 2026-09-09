@@ -4372,7 +4372,7 @@
         fitToPage: true,
         fitToWidth: 1,
         fitToHeight: 0,
-        margins: { left: 0.3, right: 0.3, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 },
+        margins: { left: 0.3, right: 0.3, top: 0.5, bottom: 0.5, header: 0, footer: 0 },
       },
     });
     ws.columns = [{ width: 12 }, { width: 16 }, { width: 32 }, { width: 70 }];
@@ -4410,23 +4410,34 @@
   }
 
   // How many ticket rows fit on one A4-landscape page alongside the
-  // banner/group/header/footer blocks (roughly: ~523pt of usable
-  // page height, minus ~251pt for those four fixed rows, divided by
-  // a 24pt data row — see buildFisaSheet). Deliberately a fixed
-  // count rather than relying on Excel's own automatic page break:
-  // a real page break just cuts the table wherever it happens to
-  // land, with none of the banner/headers/footer repeated on the
-  // overflow page. Every page here is instead built as a complete,
+  // banner/group/header/footer blocks. A4 landscape is ~595pt tall;
+  // with top/bottom margins at 0.5in (36pt) each and header/footer
+  // margins at 0 (see buildFisaSheet — those reserve page space for
+  // a print header/footer even with none defined, and this sheet's
+  // "header" and "footer" are ordinary in-sheet rows, not the print
+  // kind, so there's nothing to reserve that space for), usable
+  // height is ~523pt. Fixed rows eat ~251pt (banner 55 + group 20 +
+  // rotated header 150 + footer 26), leaving ~272pt for data rows at
+  // 24pt each — a bare ~11 rows with zero margin for error. Kept
+  // deliberately well under that (9, not 11) as a safety buffer:
+  // this number being even slightly optimistic is exactly what
+  // caused Excel to silently insert its own extra automatic page
+  // break partway through a block before (no repeated banner/header
+  // on that unplanned overflow page, which is what a forced manual
+  // break here is specifically meant to prevent).
+  //
+  // This is a fixed count rather than relying on Excel's own
+  // automatic page break in the first place because a real page
+  // break just cuts the table wherever it happens to land, with
+  // none of the banner/headers/footer repeated on the overflow
+  // page. Every page here is instead built as a complete,
   // self-contained block — same banner, group row, column headers,
   // a full ROWS_PER_PAGE of ticket rows (blank ones pre-numbered and
   // left empty when there aren't that many active tickets, same as
   // the source sheet's own unused rows), and its own signature
   // footer — with a manual page break forced after each block's
-  // footer so it never splits mid-table. Kept fairly low on purpose
-  // — the Strada column below is wide enough that most street names
-  // fit on one line, which matters more for legibility than
-  // squeezing extra rows onto a page.
-  const FISA_ROWS_PER_PAGE = 11;
+  // footer so it never splits mid-table.
+  const FISA_ROWS_PER_PAGE = 9;
 
   // The actual fill-in form for the field crew — same column layout
   // the repair-sheet import above already knows how to read.
@@ -4444,7 +4455,7 @@
         fitToPage: true,
         fitToWidth: 1,
         fitToHeight: 0,
-        margins: { left: 0.3, right: 0.1, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 },
+        margins: { left: 0.3, right: 0.1, top: 0.5, bottom: 0.5, header: 0, footer: 0 },
       },
     });
 
