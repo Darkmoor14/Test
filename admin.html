@@ -982,6 +982,15 @@
     padding:14px 16px;background:var(--paper-000);
   }
   .month-picker-all p{font-size:13px;color:var(--ink-600);margin-top:4px;}
+  .report-type-list{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
+  .report-type-option{
+    display:block;width:100%;text-align:left;font-family:var(--body);
+    border:1px solid var(--line-strong);border-radius:12px;
+    padding:14px 16px;background:var(--paper-000);cursor:pointer;
+  }
+  .report-type-option:hover{border-color:var(--copper-500);}
+  .report-type-option strong{display:block;font-size:14px;color:var(--ink-900);}
+  .report-type-option span{display:block;font-size:12.5px;color:var(--ink-600);margin-top:4px;}
   @media(max-width:640px){
     .sheet-grid, .month-picker-list{grid-template-columns:1fr;}
     .sheet-actions{flex-direction:column-reverse;}
@@ -1722,6 +1731,33 @@
     </div>
     <div class="sheet-actions">
       <button type="button" class="btn btn-primary" data-close-sheet="backlogFiltersSheet">Aplică</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="reportTypeSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="reportTypeSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h3 id="reportTypeSheetTitle">Raport Excel</h3>
+        <p>Alege ce fel de fișier vrei să descarci.</p>
+      </div>
+      <button type="button" class="sheet-close" id="reportTypeCloseBtn" aria-label="Închide">×</button>
+    </div>
+    <div class="report-type-list">
+      <button type="button" class="report-type-option" id="reportTypeFullBtn">
+        <strong>Raport complet</strong>
+        <span>Toate detaliile sesizărilor, ca până acum — alegi anul și lunile la pasul următor.</span>
+      </button>
+      <button type="button" class="report-type-option" id="reportTypeRepairBtn">
+        <strong>Fișă remedieri (doar sesizări active)</strong>
+        <span>Doar stradă și nr. tichet completate, gata de dat echipei din teren — în formatul fișei de remedieri.</span>
+      </button>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="reportTypeCancelBtn">Anulează</button>
     </div>
   </div>
 </div>
@@ -4204,6 +4240,126 @@
     });
   }
 
+  /* First step of "Raport Excel" — asks whether to build the usual
+     full yearly report, or a blank "Fișă remedieri" template
+     pre-filled with just street + ticket number for every currently
+     active ticket, ready to hand to the field crew (see the repair
+     sheet import above — this is the other half of that workflow).
+     Same open/resolve(null on cancel) pattern as
+     openReportMonthSelection just below. */
+  function openReportTypeSelection(){
+    const sheet = document.getElementById('reportTypeSheet');
+    const fullBtn = document.getElementById('reportTypeFullBtn');
+    const repairBtn = document.getElementById('reportTypeRepairBtn');
+    const cancelBtn = document.getElementById('reportTypeCancelBtn');
+    const closeBtn = document.getElementById('reportTypeCloseBtn');
+    const backdrop = sheet ? sheet.querySelector('.mobile-sheet-backdrop') : null;
+    if (!sheet || !fullBtn || !repairBtn || !cancelBtn || !closeBtn || !backdrop) {
+      return Promise.resolve('full');
+    }
+    setSheetOpen('reportTypeSheet', true);
+    return new Promise(resolve => {
+      let settled = false;
+      const cleanup = (result) => {
+        if (settled) return;
+        settled = true;
+        setSheetOpen('reportTypeSheet', false);
+        fullBtn.removeEventListener('click', handleFull);
+        repairBtn.removeEventListener('click', handleRepair);
+        cancelBtn.removeEventListener('click', handleCancel);
+        closeBtn.removeEventListener('click', handleCancel);
+        backdrop.removeEventListener('click', handleCancel);
+        document.removeEventListener('keydown', handleKeydown);
+        resolve(result);
+      };
+      const handleFull = () => cleanup('full');
+      const handleRepair = () => cleanup('repair');
+      const handleCancel = () => cleanup(null);
+      const handleKeydown = (event) => { if (event.key === 'Escape') handleCancel(); };
+      fullBtn.addEventListener('click', handleFull);
+      repairBtn.addEventListener('click', handleRepair);
+      cancelBtn.addEventListener('click', handleCancel);
+      closeBtn.addEventListener('click', handleCancel);
+      backdrop.addEventListener('click', handleCancel);
+      document.addEventListener('keydown', handleKeydown);
+    });
+  }
+
+  // Same column layout as the "Fișă remedieri IP" sheet the repair
+  // import above knows how to read (see REPAIR_FIELD_GROUPS et al.
+  // further down) — only Nr./Nr. Tichet/Strada si nr. are filled in,
+  // every repair-step and Observatii column is left blank for the
+  // field crew to mark by hand before it gets re-uploaded.
+  const REPAIR_TEMPLATE_HEADERS_ROW2 = [
+    'Nr.', 'Nr. Tichet', 'Strada si nr.', 'Scos de sub tensiune', 'Verificat corp de iluminat',
+    'Glob OLIMP', 'Corp iluminat', 'Capac stalp', 'Burlan protectie',
+    'SKD 578', 'Bec (W)', 'Driver (W)', 'Bobine (W)',
+    'Refacute', 'Verificate', 'Sigurante schimbate',
+    'Montat corp iluminat', 'Cleme', 'Montat capac stalp', 'Montat capac lampa', 'Defrisari', 'Fixat burlan', 'Repus sub tensiune',
+    'Observatii',
+  ];
+
+  function buildRepairTemplateWorkbookBinary(activeTickets){
+    const ordered = sortTicketsByNumber(activeTickets);
+    const groupRow = new Array(REPAIR_TEMPLATE_HEADERS_ROW2.length).fill('');
+    groupRow[5] = 'Demontat';
+    groupRow[9] = 'Schimbat';
+    groupRow[13] = 'Legaturi';
+    groupRow[16] = 'Montat';
+    const rows = [groupRow, REPAIR_TEMPLATE_HEADERS_ROW2];
+    ordered.forEach((t, i) => {
+      const row = new Array(REPAIR_TEMPLATE_HEADERS_ROW2.length).fill('');
+      row[0] = i + 1;
+      row[1] = t.ticket_number || '';
+      row[2] = t.address || '';
+      rows.push(row);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    // Visually groups the repair-step columns under their category,
+    // same idea as the source template's own header row.
+    ws['!merges'] = [
+      { s: { r: 0, c: 5 }, e: { r: 0, c: 8 } },
+      { s: { r: 0, c: 9 }, e: { r: 0, c: 12 } },
+      { s: { r: 0, c: 13 }, e: { r: 0, c: 15 } },
+      { s: { r: 0, c: 16 }, e: { r: 0, c: 22 } },
+    ];
+    autosizeWorksheet(ws, rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, ws, 'Fisa remedieri'.slice(0, 31));
+    return XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  }
+
+  async function exportRepairTemplate(btn){
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Se generează...';
+    try {
+      const activeTickets = allTickets.filter(t => t.status !== 'Terminat' && !t.archived);
+      if (activeTickets.length === 0) {
+        alert('Nu există sesizări active în acest moment.');
+        return;
+      }
+      const bytes = buildRepairTemplateWorkbookBinary(activeTickets);
+      const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const today = new Date().toISOString().slice(0, 10);
+      a.download = `fisa-remedieri-active-${today}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Fișa de remedieri a fost descărcată (${activeTickets.length} sesizări active).`);
+    } catch (err) {
+      console.error('Repair template export failed:', err);
+      alert('Eroare la generarea fișei: ' + (err && err.message ? err.message : 'motiv necunoscut'));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
   function buildYearlyWorkbookBinary(yearTickets, year, monthSelection){
     const workbook = XLSX.utils.book_new();
     const monthlyBuckets = Array.from({ length: 12 }, () => []);
@@ -4303,6 +4459,12 @@
   async function handleExcelExport(triggerButton){
     const btn = triggerButton || document.getElementById('exportExcelBtn');
     if (!btn) return;
+    const reportType = await openReportTypeSelection();
+    if (reportType === null) return;
+    if (reportType === 'repair') {
+      await exportRepairTemplate(btn);
+      return;
+    }
     const originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Se generează...';
