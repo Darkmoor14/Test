@@ -4394,7 +4394,7 @@
     // row to fit the wrapped text instead of truncating it.
     orderedTickets.forEach((t, i) => {
       const row = ws.getRow(i + 3);
-      row.getCell(1).value = t.ticket_number || '';
+      row.getCell(1).value = extractTicketDigits(t.ticket_number) || t.ticket_number || '';
       row.getCell(2).value = t.phone || '';
       row.getCell(3).value = t.address || '';
       row.getCell(4).value = t.description || '';
@@ -4412,7 +4412,7 @@
   // How many ticket rows fit on one A4-landscape page alongside the
   // banner/group/header/footer blocks (roughly: ~523pt of usable
   // page height, minus ~251pt for those four fixed rows, divided by
-  // a 20pt data row — see buildFisaSheet). Deliberately a fixed
+  // a 24pt data row — see buildFisaSheet). Deliberately a fixed
   // count rather than relying on Excel's own automatic page break:
   // a real page break just cuts the table wherever it happens to
   // land, with none of the banner/headers/footer repeated on the
@@ -4422,8 +4422,11 @@
   // left empty when there aren't that many active tickets, same as
   // the source sheet's own unused rows), and its own signature
   // footer — with a manual page break forced after each block's
-  // footer so it never splits mid-table.
-  const FISA_ROWS_PER_PAGE = 13;
+  // footer so it never splits mid-table. Kept fairly low on purpose
+  // — the Strada column below is wide enough that most street names
+  // fit on one line, which matters more for legibility than
+  // squeezing extra rows onto a page.
+  const FISA_ROWS_PER_PAGE = 11;
 
   // The actual fill-in form for the field crew — same column layout
   // the repair-sheet import above already knows how to read.
@@ -4446,11 +4449,16 @@
     });
 
     // Narrow checkbox-style columns throughout; wider for the ones
-    // that actually hold text (Nr. crt., Nr. Tichet, Strada, Observatii).
+    // that actually hold text. Strada gets the biggest share by far
+    // — a full street + house number needs real room, and
+    // fitToWidth scales every column together to fill the page
+    // width regardless, so giving it a bigger share here is what
+    // actually makes it wider on the printed page, not just on
+    // screen.
     ws.columns = headers.map((_, i) => {
       if (i === 0) return { width: 5 };
       if (i === 1) return { width: 9 };
-      if (i === 2) return { width: 28 };
+      if (i === 2) return { width: 46 };
       if (i === colCount - 1) return { width: 26 };
       return { width: 4 };
     });
@@ -4515,10 +4523,10 @@
         const globalIndex = page * FISA_ROWS_PER_PAGE + r;
         const t = orderedTickets[globalIndex];
         const row = ws.getRow(firstDataRow + r);
-        row.height = 20;
+        row.height = 24;
         row.getCell(1).value = globalIndex + 1;
         if (t) {
-          row.getCell(2).value = t.ticket_number || '';
+          row.getCell(2).value = extractTicketDigits(t.ticket_number) || t.ticket_number || '';
           row.getCell(3).value = t.address || '';
         }
         for (let col = 1; col <= colCount; col++) {
@@ -5980,11 +5988,12 @@
         { header: 'repus sub tensiune', label: 'Repus sub tensiune' },
       ]},
   ];
-  // 'nr.' covers the generated template's own shortened header (see
-  // buildFisaSheet above — "Nr." not "Nr. Tichet", to keep the
-  // rotated header compact); the rest cover the original field
-  // sheet and any hand-typed variant of the full name.
-  const REPAIR_TICKET_HEADERS = ['nr.', 'nr', 'nr. tichet', 'nr tichet', 'numar tichet', 'nr tichet.', 'ticket'];
+  // Deliberately does NOT include a bare 'nr.'/'nr' — the sheet also
+  // has an unrelated "Nr. crt." row-counter column (column A), and a
+  // loose alias like that would match it instead of "Nr. Tichet"
+  // (column B), which is exactly the column-A-instead-of-B bug this
+  // once caused.
+  const REPAIR_TICKET_HEADERS = ['nr. tichet', 'nr tichet', 'numar tichet', 'nr tichet.', 'ticket'];
   const REPAIR_STREET_HEADERS = ['strada si nr.', 'strada si nr', 'strada', 'adresa'];
   const REPAIR_OBS_HEADERS = ['observatii', 'observatii.', 'obs'];
 
@@ -5992,6 +6001,31 @@
 
   function isRepairCellChecked(value){
     return String(value == null ? '' : value).trim() !== '';
+  }
+
+  // Real ticket_number values look like "TICKET-0096", not a bare
+  // "96" — but nobody wants to type "TICKET-0096" into a paper form
+  // by hand. This pulls out the first run of digits from whatever's
+  // there (a plain "96", the full "TICKET-0096", "Tichet 96", a
+  // leading-zero "0096" — anything with a number in it) and returns
+  // it with leading zeros stripped, so a bare typed "96" and the
+  // real stored "TICKET-0096" both reduce to the same "96" and
+  // compare equal. Used for both matching an uploaded row to a
+  // ticket AND for how the ticket number is displayed on export
+  // (see buildFisaSheet/buildCoverSheet) — same rule both directions.
+  function extractTicketDigits(value){
+    const match = String(value == null ? '' : value).match(/\d+/);
+    return match ? String(parseInt(match[0], 10)) : '';
+  }
+
+  // Loose street-text match for rows where the field crew left the
+  // ticket number blank and only wrote the street — lowercased,
+  // diacritics stripped (reusing normalizeRomanianText, same
+  // function the institutional-reporter whitelist already uses),
+  // punctuation collapsed to spaces so "Str. Violetelor" and
+  // "violetelor" line up.
+  function normalizeStreetForMatch(value){
+    return normalizeRomanianText(value).replace(/[^a-z0-9]+/g, ' ').trim();
   }
 
   function buildRepairNote(rowArr, colIndex, observatiiText){
@@ -6039,18 +6073,51 @@
 
           pendingRepairRows = rows.slice(headerRowIdx + 1)
             .map(r => {
-              const rawTicket = String(r[ticketCol] == null ? '' : r[ticketCol]).trim();
-              if (!/^\d+$/.test(rawTicket)) return null;
+              const ticketDigits = ticketCol >= 0 ? extractTicketDigits(r[ticketCol]) : '';
               const street = streetCol >= 0 ? String(r[streetCol] || '').trim() : '';
+              // A row is worth looking at if it has either a ticket
+              // number or a street — a template row left completely
+              // blank (both empty) is silently skipped, same as
+              // before.
+              if (!ticketDigits && !street) return null;
               const obsText = obsCol >= 0 ? String(r[obsCol] || '').trim() : '';
               const note = buildRepairNote(r, colIndex, obsText);
-              const matched = allTickets.find(t => String(t.ticket_number || '').trim() === rawTicket) || null;
-              return { ticketNumber: rawTicket, street, note, matched, include: !!matched };
+
+              let matched = null;
+              let matchedBy = null;
+              if (ticketDigits) {
+                matched = allTickets.find(t => extractTicketDigits(t.ticket_number) === ticketDigits) || null;
+                if (matched) matchedBy = 'number';
+              } else if (street) {
+                // No ticket number written down — fall back to
+                // matching by street alone, but only among currently
+                // active tickets (a resolved ticket from months ago
+                // on the same street is a false positive waiting to
+                // happen), and only when exactly one candidate
+                // matches. More than one active ticket on that
+                // street is genuinely ambiguous — flagged for the
+                // person to resolve by hand rather than guessed at.
+                const needle = normalizeStreetForMatch(street);
+                const candidates = needle
+                  ? allTickets.filter(t => !t.archived && t.status !== 'Terminat' && t.address && (() => {
+                      const hay = normalizeStreetForMatch(t.address);
+                      return hay && (hay.includes(needle) || needle.includes(hay));
+                    })())
+                  : [];
+                if (candidates.length === 1) {
+                  matched = candidates[0];
+                  matchedBy = 'street';
+                } else if (candidates.length > 1) {
+                  matchedBy = 'ambiguous';
+                }
+              }
+
+              return { ticketNumber: ticketDigits, street, note, matched, matchedBy, include: !!matched };
             })
             .filter(Boolean);
 
           if (pendingRepairRows.length === 0) {
-            alert('Niciun rând din fișier are un număr de tichet completat la coloana "Nr. Tichet".');
+            alert('Niciun rând din fișier are un număr de tichet sau o stradă completată.');
             repairSheetInput.value = '';
             return;
           }
@@ -6077,11 +6144,15 @@
         ${pendingRepairRows.map((r, i) => `
           <tr class="${r.matched ? '' : 'row-error'}">
             <td><input type="checkbox" class="repair-row-include" data-idx="${i}" ${r.include ? 'checked' : ''} ${r.matched ? '' : 'disabled'}></td>
-            <td>${escapeHtml(r.ticketNumber)}</td>
+            <td>${r.ticketNumber ? escapeHtml(r.ticketNumber) : '<em>(după stradă)</em>'}</td>
             <td>${escapeHtml(r.street) || '—'}</td>
             <td>${r.matched
-              ? escapeHtml(r.matched.address || '—') + (r.matched.resolution_note ? ' <strong>(are deja raport — va fi înlocuit)</strong>' : '')
-              : 'Nu a fost găsită nicio sesizare cu acest număr'}</td>
+              ? escapeHtml(r.matched.address || '—')
+                + (r.matchedBy === 'street' ? ' <strong>(găsit după adresă — verificați)</strong>' : '')
+                + (r.matched.resolution_note ? ' <strong>(are deja raport — va fi înlocuit)</strong>' : '')
+              : r.matchedBy === 'ambiguous'
+                ? 'Mai multe sesizări active pe această stradă — completați numărul de tichet'
+                : 'Nu a fost găsită nicio sesizare'}</td>
             <td><textarea class="repair-note-input" data-idx="${i}" rows="2" ${r.matched ? '' : 'disabled'}>${escapeHtml(r.note)}</textarea></td>
           </tr>
         `).join('')}
