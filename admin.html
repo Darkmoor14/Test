@@ -4295,15 +4295,15 @@
 
   // Same column layout as the "Fișă remedieri IP" sheet the repair
   // import above knows how to read (see REPAIR_FIELD_GROUPS et al.
-  // further down) — only Nr. crt./Nr./Strada si nr. are filled in,
-  // every repair-step and Observatii column is left blank for the
-  // field crew to mark by hand before it gets re-uploaded. "Nr.
-  // crt." is the source sheet's own plain row counter (1, 2, 3...);
-  // the ticket-number column is labelled just "Nr." — the word
-  // "Tichet" dropped, since the rotated header only needs to fit a
-  // number, not read as a sentence.
+  // further down) — only Nr. crt./Nr. Tichet/Strada si nr. are
+  // filled in, every repair-step and Observatii column is left
+  // blank for the field crew to mark by hand before it gets
+  // re-uploaded. "Nr. crt." is the source sheet's own plain row
+  // counter (1, 2, 3...); "Nr. Tichet" is the actual ticket number —
+  // its DATA cells only ever hold the bare number, but the header
+  // itself keeps the full label.
   const REPAIR_TEMPLATE_HEADERS_ROW2 = [
-    'Nr. crt.', 'Nr.', 'Strada si nr.', 'Scos de sub tensiune', 'Verificat corp de iluminat',
+    'Nr. crt.', 'Nr. Tichet', 'Strada si nr.', 'Scos de sub tensiune', 'Verificat corp de iluminat',
     'Glob OLIMP', 'Corp iluminat', 'Capac stalp', 'Burlan protectie',
     'SKD 578', 'Bec (W)', 'Driver (W)', 'Bobine (W)',
     'Refacute', 'Verificate', 'Sigurante schimbate',
@@ -4337,17 +4337,19 @@
     });
   }
 
-  // Logo + title banner across the top of a sheet. The image floats
-  // over the first columns at a fixed anchor (not tied to column
-  // width), while the title text is a merged cell starting further
-  // right so the two never overlap.
-  function addFisaHeaderBanner(workbook, ws, colCount, logoImageId){
-    const bannerRow = ws.getRow(1);
+  // Logo + title banner across the top of a sheet, at a given row
+  // (the multi-page fill-in form repeats this once per printed
+  // page — see buildFisaSheet). The image floats over the first
+  // columns at a fixed anchor (not tied to column width), while the
+  // title text is a merged cell starting further right so the two
+  // never overlap.
+  function addFisaHeaderBanner(workbook, ws, colCount, logoImageId, rowNum){
+    const bannerRow = ws.getRow(rowNum);
     bannerRow.height = 55;
-    ws.addImage(logoImageId, { tl: { col: 0.15, row: 0.1 }, ext: { width: 100, height: 66 } });
+    ws.addImage(logoImageId, { tl: { col: 0.15, row: rowNum - 1 + 0.1 }, ext: { width: 100, height: 66 } });
     const titleFromCol = Math.min(3, colCount);
-    ws.mergeCells(1, titleFromCol, 1, colCount);
-    const titleCell = ws.getCell(1, titleFromCol);
+    ws.mergeCells(rowNum, titleFromCol, rowNum, colCount);
+    const titleCell = ws.getCell(rowNum, titleFromCol);
     titleCell.value = FISA_HEADER_TITLE;
     titleCell.font = { name: 'Calibri', size: 14, bold: true };
     // shrinkToFit (not wrapText) — auto-shrinks the font just enough
@@ -4374,7 +4376,7 @@
       },
     });
     ws.columns = [{ width: 12 }, { width: 16 }, { width: 32 }, { width: 70 }];
-    addFisaHeaderBanner(workbook, ws, headers.length, logoImageId);
+    addFisaHeaderBanner(workbook, ws, headers.length, logoImageId, 1);
 
     const thin = { style: 'thin' };
     const allBorders = { top: thin, bottom: thin, left: thin, right: thin };
@@ -4407,6 +4409,22 @@
     ws.pageSetup.printArea = `A1:D${orderedTickets.length + 2}`;
   }
 
+  // How many ticket rows fit on one A4-landscape page alongside the
+  // banner/group/header/footer blocks (roughly: ~523pt of usable
+  // page height, minus ~251pt for those four fixed rows, divided by
+  // a 20pt data row — see buildFisaSheet). Deliberately a fixed
+  // count rather than relying on Excel's own automatic page break:
+  // a real page break just cuts the table wherever it happens to
+  // land, with none of the banner/headers/footer repeated on the
+  // overflow page. Every page here is instead built as a complete,
+  // self-contained block — same banner, group row, column headers,
+  // a full ROWS_PER_PAGE of ticket rows (blank ones pre-numbered and
+  // left empty when there aren't that many active tickets, same as
+  // the source sheet's own unused rows), and its own signature
+  // footer — with a manual page break forced after each block's
+  // footer so it never splits mid-table.
+  const FISA_ROWS_PER_PAGE = 13;
+
   // The actual fill-in form for the field crew — same column layout
   // the repair-sheet import above already knows how to read.
   function buildFisaSheet(workbook, orderedTickets, logoImageId){
@@ -4414,6 +4432,7 @@
     const colCount = headers.length;
     const thin = { style: 'thin' };
     const allBorders = { top: thin, bottom: thin, left: thin, right: thin };
+    const lastColLetter = String.fromCharCode(64 + colCount);
 
     const ws = workbook.addWorksheet('Fisa remedieri', {
       pageSetup: {
@@ -4427,101 +4446,125 @@
     });
 
     // Narrow checkbox-style columns throughout; wider for the ones
-    // that actually hold text (Nr. crt., Nr., Strada, Observatii).
+    // that actually hold text (Nr. crt., Nr. Tichet, Strada, Observatii).
     ws.columns = headers.map((_, i) => {
       if (i === 0) return { width: 5 };
-      if (i === 1) return { width: 8 };
+      if (i === 1) return { width: 9 };
       if (i === 2) return { width: 28 };
       if (i === colCount - 1) return { width: 26 };
       return { width: 4 };
     });
 
-    addFisaHeaderBanner(workbook, ws, colCount, logoImageId);
+    const totalPages = Math.max(1, Math.ceil(orderedTickets.length / FISA_ROWS_PER_PAGE));
+    let lastRowUsed = 0;
 
-    // Row 2 — group labels (Demontat/Schimbat/Legături/Montat),
-    // merged across the columns they cover, same layout as the
-    // source sheet. Border is applied to every column in the merged
-    // range, not just its anchor cell — for a merge, Excel only
-    // draws the outer perimeter regardless, but the anchor cell
-    // alone won't produce a full box around it when printed.
-    const groupRow = ws.getRow(2);
-    groupRow.height = 20;
-    [
-      { label: 'Demontat', from: 6, to: 9 },
-      { label: 'Schimbat', from: 10, to: 13 },
-      { label: 'Legături', from: 14, to: 16 },
-      { label: 'Montat', from: 17, to: 23 },
-    ].forEach(g => {
-      ws.mergeCells(2, g.from, 2, g.to);
-      for (let col = g.from; col <= g.to; col++) {
-        const cell = ws.getCell(2, col);
+    for (let page = 0; page < totalPages; page++) {
+      const bannerRowNum = lastRowUsed + 1;
+      addFisaHeaderBanner(workbook, ws, colCount, logoImageId, bannerRowNum);
+
+      // Group labels (Demontat/Schimbat/Legături/Montat), merged
+      // across the columns they cover, same layout as the source
+      // sheet. Border is applied to every column in the merged
+      // range, not just its anchor cell — for a merge, Excel only
+      // draws the outer perimeter regardless, but the anchor cell
+      // alone won't produce a full box around it when printed.
+      const groupRowNum = bannerRowNum + 1;
+      const groupRow = ws.getRow(groupRowNum);
+      groupRow.height = 20;
+      [
+        { label: 'Demontat', from: 6, to: 9 },
+        { label: 'Schimbat', from: 10, to: 13 },
+        { label: 'Legături', from: 14, to: 16 },
+        { label: 'Montat', from: 17, to: 23 },
+      ].forEach(g => {
+        ws.mergeCells(groupRowNum, g.from, groupRowNum, g.to);
+        for (let col = g.from; col <= g.to; col++) {
+          ws.getCell(groupRowNum, col).border = allBorders;
+        }
+        const cell = ws.getCell(groupRowNum, g.from);
+        cell.value = g.label;
+        cell.font = { name: 'Calibri', size: 14 };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+
+      // The real column headers. Every repair-step label gets
+      // rotated 90° so it stays readable in a ~4-char-wide column;
+      // Strada si nr. and Observatii stay horizontal since they hold
+      // free text, not a one-word checkbox label.
+      const headerRowNum = groupRowNum + 1;
+      const headerRow = ws.getRow(headerRowNum);
+      headerRow.height = 150;
+      headers.forEach((label, i) => {
+        const col = i + 1;
+        const cell = headerRow.getCell(col);
+        cell.value = label;
+        const rotated = col !== 3 && col !== colCount;
+        cell.alignment = rotated
+          ? { textRotation: 90, horizontal: 'center', vertical: 'bottom', wrapText: true }
+          : { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.font = { name: 'Calibri', size: 12 };
         cell.border = allBorders;
+      });
+
+      // A full FISA_ROWS_PER_PAGE of rows every page — Nr. crt. keeps
+      // counting even past the real tickets, so unused rows stay
+      // pre-numbered and ready to fill in by hand, same as the
+      // source sheet.
+      const firstDataRow = headerRowNum + 1;
+      for (let r = 0; r < FISA_ROWS_PER_PAGE; r++) {
+        const globalIndex = page * FISA_ROWS_PER_PAGE + r;
+        const t = orderedTickets[globalIndex];
+        const row = ws.getRow(firstDataRow + r);
+        row.height = 20;
+        row.getCell(1).value = globalIndex + 1;
+        if (t) {
+          row.getCell(2).value = t.ticket_number || '';
+          row.getCell(3).value = t.address || '';
+        }
+        for (let col = 1; col <= colCount; col++) {
+          const cell = row.getCell(col);
+          cell.font = { name: 'Calibri', size: 11 };
+          cell.border = allBorders;
+          cell.alignment = {
+            vertical: 'middle',
+            horizontal: col === 3 ? 'left' : 'center',
+            wrapText: col === 3,
+          };
+        }
       }
-      const cell = ws.getCell(2, g.from);
-      cell.value = g.label;
-      cell.font = { name: 'Calibri', size: 14 };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
-    });
+      const lastDataRow = firstDataRow + FISA_ROWS_PER_PAGE - 1;
 
-    // Row 3 — the real column headers. Every repair-step label gets
-    // rotated 90° so it stays readable in a ~4-char-wide column;
-    // Strada si nr. and Observatii stay horizontal since they hold
-    // free text, not a one-word checkbox label.
-    const headerRow = ws.getRow(3);
-    headerRow.height = 150;
-    headers.forEach((label, i) => {
-      const col = i + 1;
-      const cell = headerRow.getCell(col);
-      cell.value = label;
-      const rotated = col !== 3 && col !== colCount;
-      cell.alignment = rotated
-        ? { textRotation: 90, horizontal: 'center', vertical: 'bottom', wrapText: true }
-        : { horizontal: 'center', vertical: 'middle', wrapText: true };
-      cell.font = { name: 'Calibri', size: 12 };
-      cell.border = allBorders;
-    });
+      // Footer — a signature line for whoever filled the sheet in,
+      // one blank row below the data so it doesn't read as part of
+      // the table itself.
+      const footerRowNum = lastDataRow + 2;
+      const footerRow = ws.getRow(footerRowNum);
+      footerRow.height = 26;
+      const third = Math.ceil(colCount / 3);
+      [
+        { text: 'Nume: ' + '_'.repeat(28), from: 1, to: third },
+        { text: 'Semnătură: ' + '_'.repeat(28), from: third + 1, to: third * 2 },
+        { text: 'Data: ' + '_'.repeat(20), from: third * 2 + 1, to: colCount },
+      ].forEach(f => {
+        ws.mergeCells(footerRowNum, f.from, footerRowNum, f.to);
+        const cell = ws.getCell(footerRowNum, f.from);
+        cell.value = f.text;
+        cell.font = { name: 'Calibri', size: 12 };
+        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+      });
 
-    // Data rows are deliberately left without a fixed height — a
-    // long street name wraps onto a second line inside its own cell
-    // (wrapText below) and Excel auto-grows the row to fit it, which
-    // only happens when the row has no explicit height forced on it.
-    orderedTickets.forEach((t, i) => {
-      const row = ws.getRow(i + 4);
-      row.getCell(1).value = i + 1;
-      row.getCell(2).value = t.ticket_number || '';
-      row.getCell(3).value = t.address || '';
-      for (let col = 1; col <= colCount; col++) {
-        const cell = row.getCell(col);
-        cell.font = { name: 'Calibri', size: 11 };
-        cell.border = allBorders;
-        cell.alignment = {
-          vertical: 'middle',
-          horizontal: col === 3 ? 'left' : 'center',
-          wrapText: col === 3,
-        };
+      if (page < totalPages - 1) {
+        // Forces everything after this row onto a new printed page,
+        // rather than letting Excel decide where to break — see
+        // FISA_ROWS_PER_PAGE above for why.
+        ws.getRow(footerRowNum).addPageBreak();
+        lastRowUsed = footerRowNum + 1; // blank row before the next page's banner
+      } else {
+        lastRowUsed = footerRowNum;
       }
-    });
+    }
 
-    // Footer — a signature line for whoever filled the sheet in,
-    // one blank row below the data so it doesn't read as part of
-    // the table itself.
-    const lastDataRow = orderedTickets.length + 3;
-    const footerRow = ws.getRow(lastDataRow + 2);
-    footerRow.height = 26;
-    const third = Math.ceil(colCount / 3);
-    [
-      { text: 'Nume: ' + '_'.repeat(28), from: 1, to: third },
-      { text: 'Semnătură: ' + '_'.repeat(28), from: third + 1, to: third * 2 },
-      { text: 'Data: ' + '_'.repeat(20), from: third * 2 + 1, to: colCount },
-    ].forEach(f => {
-      ws.mergeCells(footerRow.number, f.from, footerRow.number, f.to);
-      const cell = ws.getCell(footerRow.number, f.from);
-      cell.value = f.text;
-      cell.font = { name: 'Calibri', size: 12 };
-      cell.alignment = { horizontal: 'left', vertical: 'middle' };
-    });
-
-    ws.pageSetup.printArea = `A1:${String.fromCharCode(64 + colCount)}${footerRow.number}`;
+    ws.pageSetup.printArea = `A1:${lastColLetter}${lastRowUsed}`;
   }
 
   async function buildRepairTemplateWorkbookBuffer(activeTickets){
