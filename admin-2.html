@@ -366,7 +366,6 @@
      so the old desktop tab strip never competes with the focused view. */
   html.report-focused-view .admin-tabs-row{display:none;}
   html:not(.report-focused-view) #panel-home{display:none!important;}
-  html:not(.report-focused-view) #panel-internal-projects{display:none!important;}
   html:not(.report-focused-view) #panel-lps{display:none!important;}
   .dash.home-active .dash-head{border-bottom:none;padding-bottom:16px;}
   html.report-focused-view header.scrolled .nav-header-tabs{display:none;}
@@ -431,28 +430,9 @@
   .home-deadline-meta{display:block;margin-top:3px;font-size:12px;color:var(--ink-600);}
   .home-deadline-status{font-family:var(--mono);font-size:11px;color:var(--copper-600);white-space:nowrap;}
   .home-deadline-status.late{color:var(--signal-red);}
-  .home-tools-card{margin-top:18px;}
-  .home-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);}
-  .home-tool{display:flex;flex-direction:column;gap:5px;min-height:126px;padding:18px;background:var(--paper-000);color:var(--ink-900);text-decoration:none;transition:background .15s,color .15s;}
-  .home-tool:hover{background:var(--paper-050);color:var(--copper-600);}
-  .home-tool:focus-visible{outline:2px solid var(--copper-500);outline-offset:-2px;}
-  .home-tool-kind{font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--copper-600);}
-  .home-tool strong{font-size:16px;}
-  .home-tool small{margin-top:auto;font-size:12.5px;color:var(--ink-600);}
-  .home-tools-local-note{margin:0;padding:10px 18px;background:var(--signal-orange-bg);border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-700);}
   .internal-projects-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;}
   .internal-projects-head h2{margin:6px 0 0;}
   .internal-projects-copy{max-width:460px;margin:0;color:var(--ink-600);font-size:14px;text-align:right;}
-  .internal-projects-form{display:none;margin:0 0 18px;padding:18px;background:var(--paper-050);border:1px solid var(--line-strong);border-radius:8px;}
-  .internal-projects-form.show{display:block;}
-  .internal-projects-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
-  .internal-projects-grid .ctrl-field.full{grid-column:1/-1;}
-  .internal-projects-list{display:grid;gap:12px;}
-  .internal-project-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;padding:18px;background:var(--paper-000);border:1px solid var(--line-strong);border-radius:8px;}
-  .internal-project-card h3{margin:0;font-size:17px;}
-  .internal-project-meta{margin-top:7px;font-size:13px;color:var(--ink-600);}
-  .internal-project-next{margin:12px 0 0;padding:10px 12px;background:var(--paper-050);border-left:3px solid var(--copper-500);font-size:13px;color:var(--ink-700);}
-  .internal-project-actions{display:flex;align-items:flex-start;gap:8px;}
   .internal-stage{display:inline-flex;margin-top:10px;padding:4px 7px;background:var(--copper-100);color:var(--copper-700);border-radius:3px;font-family:var(--mono);font-size:11px;letter-spacing:.03em;text-transform:uppercase;}
   .lps-project-bar{display:flex;align-items:end;gap:12px;margin-bottom:18px;padding:16px 18px;background:var(--paper-050);border:1px solid var(--line-strong);border-radius:8px;}
   .lps-project-bar .ctrl-field{flex:1;}
@@ -500,8 +480,6 @@
     .home-priority-grid{grid-template-columns:repeat(2,1fr);}
     .home-work-grid{grid-template-columns:1fr;}
     .process-strip{grid-template-columns:repeat(2,1fr);}
-    .home-tools{grid-template-columns:1fr;}
-    .home-tool{min-height:0;}
     .internal-projects-head{align-items:flex-start;}
     .internal-projects-copy{display:none;}
     .lps-kpi-grid{grid-template-columns:repeat(2,1fr);}
@@ -512,8 +490,6 @@
     .home-ticket-action{grid-column:2;}
     .process-strip{grid-template-columns:1fr;}
     .home-deadline-item{padding:14px;}
-    .internal-projects-grid{grid-template-columns:1fr;}
-    .internal-project-card{grid-template-columns:1fr;}
     .lps-project-bar{align-items:stretch;flex-direction:column;}
     .lps-form-grid{grid-template-columns:1fr;}
     .lps-eval{grid-template-columns:1fr;}
@@ -1216,7 +1192,6 @@
           <button type="button" class="report-nav-link" data-home-action="home">Acasă</button>
           <button type="button" class="report-nav-link" data-home-action="tickets">Sesizări active</button>
           <button type="button" class="report-nav-link" data-home-action="projects">Proiecte în lucru</button>
-          <button type="button" class="report-nav-link vlas-only" data-home-action="internal-projects">Proiecte interne</button>
           <button type="button" class="report-nav-link vlas-only" data-home-action="lps">Planificare LPS</button>
           <button type="button" class="report-nav-link" data-home-action="backlog">Avarii deschise</button>
         </div>
@@ -1277,49 +1252,6 @@
           <section class="home-section-card"><div class="home-section-head"><h3>Închideri recente</h3></div><div class="home-activity" id="homeRecentActivity"></div></section>
         </div>
       </div>
-      <section class="home-section-card home-tools-card">
-        <div class="home-section-head"><h3>Instrumente proiect</h3><span>modele Excel Insta Grup</span></div>
-        <p class="home-tools-local-note" id="homeToolsLocalNote" hidden>Previzualizarea locală nu poate descărca fișiere. Deschide panoul prin site-ul public pentru a descărca modelele Excel.</p>
-        <div class="home-tools">
-          <a class="home-tool" href="gantt-chart.xlsx" download>
-            <span class="home-tool-kind">Planificare</span>
-            <strong>Grafic Gantt</strong>
-            <small>Descarcă modelul pentru planificarea proiectelor.</small>
-          </a>
-          <a class="home-tool" href="agile-kanban-board.xlsx" download>
-            <span class="home-tool-kind">Flux de lucru</span>
-            <strong>Panou Kanban</strong>
-            <small>Descarcă modelul pentru organizarea sarcinilor.</small>
-          </a>
-          <a class="home-tool" href="to-do-list.xlsx" download>
-            <span class="home-tool-kind">Sarcini</span>
-            <strong>Listă de activități</strong>
-            <small>Descarcă modelul pentru urmărirea activităților.</small>
-          </a>
-        </div>
-      </section>
-    </div>
-    <div class="admin-panel" id="panel-internal-projects">
-      <div class="internal-projects-head">
-        <div><div class="home-eyebrow">Control intern</div><h2>Proiecte interne</h2></div>
-        <p class="internal-projects-copy">Planifică inițiativele interne separat de lucrările active din teren, cu un responsabil, termen și următoarea acțiune clară.</p>
-      </div>
-      <div class="toolbar">
-        <div class="result-count" id="internalProjectsCount">0 proiecte</div>
-        <button class="btn btn-primary" type="button" id="addInternalProjectBtn">+ Adaugă proiect intern</button>
-      </div>
-      <form class="internal-projects-form" id="internalProjectForm">
-        <input type="hidden" id="internalProjectId">
-        <div class="internal-projects-grid">
-          <div class="ctrl-field"><label for="internalProjectTitle">Proiect</label><input id="internalProjectTitle" required placeholder="ex: Organizare depozit materiale"></div>
-          <div class="ctrl-field"><label for="internalProjectOwner">Responsabil</label><input id="internalProjectOwner" placeholder="ex: Vlas Bogdan"></div>
-          <div class="ctrl-field"><label for="internalProjectDue">Termen</label><input type="date" id="internalProjectDue"></div>
-          <div class="ctrl-field"><label for="internalProjectStage">Etapă</label><select id="internalProjectStage"><option>Planificare</option><option>Pregătire</option><option>Execuție</option><option>Închidere</option><option>Finalizat</option></select></div>
-          <div class="ctrl-field full"><label for="internalProjectNext">Următoarea acțiune</label><input id="internalProjectNext" placeholder="ex: Confirmă lista de materiale până vineri"></div>
-        </div>
-        <div class="pf-actions"><button class="btn" type="button" id="cancelInternalProjectBtn">Anulează</button><button class="btn btn-primary" type="submit">Salvează proiectul</button></div>
-      </form>
-      <div class="internal-projects-list" id="internalProjectsList"></div>
     </div>
     <div class="admin-panel" id="panel-lps">
       <div class="internal-projects-head">
@@ -1328,8 +1260,21 @@
       </div>
       <div class="lps-project-bar">
         <div class="ctrl-field"><label for="lpsProjectSelect">Proiect intern</label><select id="lpsProjectSelect"></select></div>
-        <button type="button" class="btn" id="lpsNewProjectBtn">+ Proiect intern</button>
+        <button type="button" class="btn" id="lpsNewProjectBtn">+ Proiect nou</button>
+        <button type="button" class="btn" id="lpsEditProjectBtn">Editează proiectul</button>
+        <button type="button" class="btn" id="lpsDeleteProjectBtn">Șterge proiectul</button>
       </div>
+      <form class="lps-form" id="internalProjectForm" hidden>
+        <input type="hidden" id="internalProjectId">
+        <div class="lps-form-grid">
+          <div class="ctrl-field"><label for="internalProjectTitle">Proiect</label><input id="internalProjectTitle" required placeholder="ex: Organizare depozit materiale"></div>
+          <div class="ctrl-field"><label for="internalProjectOwner">Responsabil</label><input id="internalProjectOwner" placeholder="ex: Vlas Bogdan"></div>
+          <div class="ctrl-field"><label for="internalProjectDue">Termen</label><input type="date" id="internalProjectDue"></div>
+          <div class="ctrl-field"><label for="internalProjectStage">Etapă</label><select id="internalProjectStage"><option>Planificare</option><option>Pregătire</option><option>Execuție</option><option>Închidere</option><option>Finalizat</option></select></div>
+          <div class="ctrl-field full"><label for="internalProjectNext">Următoarea acțiune</label><input id="internalProjectNext" placeholder="ex: Confirmă lista de materiale până vineri"></div>
+        </div>
+        <div class="pf-actions"><button class="btn" type="button" id="cancelInternalProjectBtn">Anulează</button><button class="btn btn-primary" type="submit">Salvează proiectul</button></div>
+      </form>
       <div class="lps-empty" id="lpsNoProjectMessage" hidden>Adaugă mai întâi un proiect intern, apoi configurează planificarea LPS pentru acel proiect.</div>
       <div id="lpsWorkspace">
         <div class="lps-kpi-grid">
@@ -1931,9 +1876,6 @@
     manifest.href = 'manifest.json';
     document.head.append(manifest);
   }
-  const homeToolsLocalNote = document.getElementById('homeToolsLocalNote');
-  if (homeToolsLocalNote && !isWebOrigin) homeToolsLocalNote.hidden = false;
-
   if (isWebOrigin && 'serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')
       .then(reg => {
@@ -3162,9 +3104,6 @@
       updateOverviewNarrowFilterUI();
       setOverviewStatusFilter('awaiting_report');
       tabKey = 'overview';
-    } else if (tabKey === 'internal-projects') {
-      if (!isReportFocusedView()) return;
-      renderInternalProjects();
     } else if (tabKey === 'lps') {
       if (!isReportFocusedView()) return;
       renderLpsWorkspace();
@@ -3178,7 +3117,6 @@
   // browser storage, keeping internal initiatives separate from shared
   // field projects and avoiding any change to the existing Supabase schema.
   const INTERNAL_PROJECTS_STORAGE_KEY = 'insta-grup-vlas-internal-projects-v1';
-  const internalProjectStages = ['Planificare', 'Pregătire', 'Execuție', 'Închidere', 'Finalizat'];
   let internalProjects = [];
 
   function loadInternalProjects(){
@@ -3194,47 +3132,11 @@
     localStorage.setItem(INTERNAL_PROJECTS_STORAGE_KEY, JSON.stringify(internalProjects));
   }
 
-  function getInternalDueDate(project){
-    return project.due_date ? new Date(project.due_date + 'T00:00:00') : null;
-  }
-
-  function renderInternalProjects(){
-    if (!isReportFocusedView()) return;
-    loadInternalProjects();
-    const list = document.getElementById('internalProjectsList');
-    const count = document.getElementById('internalProjectsCount');
-    if (!list || !count) return;
-    const visibleProjects = [...internalProjects].sort((a, b) => {
-      const aDue = getInternalDueDate(a);
-      const bDue = getInternalDueDate(b);
-      return (aDue ? aDue.getTime() : Number.MAX_SAFE_INTEGER) - (bDue ? bDue.getTime() : Number.MAX_SAFE_INTEGER);
-    });
-    count.textContent = `${visibleProjects.length} proiect${visibleProjects.length === 1 ? '' : 'e'} intern${visibleProjects.length === 1 ? '' : 'e'}`;
-    if (!visibleProjects.length) {
-      list.innerHTML = '<div class="home-empty">Nu există proiecte interne. Adaugă unul pentru a-i stabili responsabilul, termenul și următoarea acțiune.</div>';
-      return;
-    }
-    list.innerHTML = visibleProjects.map(project => {
-      const due = getInternalDueDate(project);
-      const dueText = due ? `Termen: ${fmtDateOnly(project.due_date)}` : 'Fără termen stabilit';
-      const ownerText = project.owner ? `Responsabil: ${escapeHtml(project.owner)}` : 'Responsabil nealocat';
-      const canAdvance = project.stage !== 'Finalizat';
-      return `<article class="internal-project-card" data-internal-project-id="${escapeHtml(project.id)}">
-        <div>
-          <h3>${escapeHtml(project.title)}</h3>
-          <div class="internal-project-meta">${ownerText} · ${dueText}</div>
-          <span class="internal-stage">${escapeHtml(project.stage)}</span>
-          ${project.next_action ? `<p class="internal-project-next"><strong>Următoarea acțiune:</strong> ${escapeHtml(project.next_action)}</p>` : ''}
-        </div>
-        <div class="internal-project-actions">
-          ${canAdvance ? '<button type="button" class="btn internal-advance-btn">Etapa următoare</button>' : ''}
-          <button type="button" class="btn internal-edit-btn">Editează</button>
-          <button type="button" class="btn internal-delete-btn">Șterge</button>
-        </div>
-      </article>`;
-    }).join('');
-  }
-
+  // Project add/edit form now lives inline in the LPS panel itself
+  // (see lpsEditProjectBtn/lpsDeleteProjectBtn below) — there's no
+  // longer a separate "Proiecte interne" list view to browse/manage
+  // projects from; LPS's own project dropdown is the only place a
+  // project is picked, so managing one happens right there too.
   function showInternalProjectForm(project){
     const form = document.getElementById('internalProjectForm');
     if (!form) return;
@@ -3244,12 +3146,11 @@
     document.getElementById('internalProjectDue').value = project ? project.due_date || '' : '';
     document.getElementById('internalProjectStage').value = project ? project.stage : 'Planificare';
     document.getElementById('internalProjectNext').value = project ? project.next_action || '' : '';
-    form.classList.add('show');
+    form.hidden = false;
     document.getElementById('internalProjectTitle').focus();
   }
 
-  document.getElementById('addInternalProjectBtn').addEventListener('click', () => showInternalProjectForm(null));
-  document.getElementById('cancelInternalProjectBtn').addEventListener('click', () => document.getElementById('internalProjectForm').classList.remove('show'));
+  document.getElementById('cancelInternalProjectBtn').addEventListener('click', () => { document.getElementById('internalProjectForm').hidden = true; });
   document.getElementById('internalProjectForm').addEventListener('submit', event => {
     event.preventDefault();
     if (!isReportFocusedView()) return;
@@ -3268,27 +3169,26 @@
     if (index >= 0) internalProjects[index] = project;
     else internalProjects.push(project);
     saveInternalProjects();
-    document.getElementById('internalProjectForm').classList.remove('show');
-    renderInternalProjects();
+    document.getElementById('internalProjectForm').hidden = true;
+    lpsSelectedProjectId = project.id;
+    renderLpsWorkspace();
   });
-  document.getElementById('internalProjectsList').addEventListener('click', event => {
-    const card = event.target.closest('[data-internal-project-id]');
-    if (!card || !isReportFocusedView()) return;
+  document.getElementById('lpsEditProjectBtn').addEventListener('click', () => {
+    const project = getSelectedLpsProject();
+    if (project) showInternalProjectForm(project);
+  });
+  document.getElementById('lpsDeleteProjectBtn').addEventListener('click', () => {
+    const project = getSelectedLpsProject();
+    if (!project || !window.confirm(`Șterge proiectul „${project.title}” și toată planificarea LPS asociată?`)) return;
     loadInternalProjects();
-    const index = internalProjects.findIndex(project => project.id === card.dataset.internalProjectId);
-    if (index < 0) return;
-    if (event.target.closest('.internal-edit-btn')) {
-      showInternalProjectForm(internalProjects[index]);
-    } else if (event.target.closest('.internal-advance-btn')) {
-      const stageIndex = internalProjectStages.indexOf(internalProjects[index].stage);
-      internalProjects[index].stage = internalProjectStages[Math.min(stageIndex + 1, internalProjectStages.length - 1)];
-      saveInternalProjects();
-      renderInternalProjects();
-    } else if (event.target.closest('.internal-delete-btn') && window.confirm('Șterge acest proiect intern?')) {
-      internalProjects.splice(index, 1);
-      saveInternalProjects();
-      renderInternalProjects();
-    }
+    const index = internalProjects.findIndex(item => item.id === project.id);
+    if (index >= 0) internalProjects.splice(index, 1);
+    saveInternalProjects();
+    const lpsStore = loadLpsStore();
+    delete lpsStore[project.id];
+    saveLpsStore(lpsStore);
+    lpsSelectedProjectId = '';
+    renderLpsWorkspace();
   });
 
   /* ============================================================
@@ -3494,7 +3394,7 @@
     form.reset();
   });
   document.getElementById('lpsProjectSelect').addEventListener('change', event => { lpsSelectedProjectId = event.target.value; renderLpsWorkspace(); });
-  document.getElementById('lpsNewProjectBtn').addEventListener('click', () => { setHomeTabFilter('internal-projects'); showInternalProjectForm(null); });
+  document.getElementById('lpsNewProjectBtn').addEventListener('click', () => showInternalProjectForm(null));
   document.querySelectorAll('.lps-tab').forEach(tab => tab.addEventListener('click', () => { lpsActiveView = tab.dataset.lpsView; renderLpsWorkspace(); }));
   document.getElementById('panel-lps').addEventListener('click', event => {
     const itemElement = event.target.closest('[data-lps-collection]');
