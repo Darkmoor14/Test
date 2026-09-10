@@ -4568,12 +4568,59 @@
     const dataRowHeight = 19.7;
     const fixedOverheadPt = 55 /* banner */ + 18.75 /* group */ + 155 /* header */ + 15 /* spacer row */ + 26 /* footer */;
     const nominalHeightBudget = (FISA_USABLE_HEIGHT_PT / (printScale / 100)) * 0.9;
-    const FISA_ROWS_PER_PAGE = Math.max(1, Math.floor((nominalHeightBudget - fixedOverheadPt) / dataRowHeight));
+    const pageDataBudgetPt = nominalHeightBudget - fixedOverheadPt;
 
-    const totalPages = Math.max(1, Math.ceil(orderedTickets.length / FISA_ROWS_PER_PAGE));
+    // A street name that wraps to more than one line needs a taller
+    // row than the single-line default, or the wrapped lines get
+    // visually cut off at the row's own border — Excel/ExcelJS never
+    // auto-grows row height for wrapped text, this has to be worked
+    // out ourselves. colWidths[2] (Strada) is itself, by definition,
+    // roughly how many characters of the sheet's normal font fit on
+    // one line — 0.82 knocks a bit off for cell padding, erring
+    // toward assuming FEWER characters fit per line (an
+    // underestimate here just adds an unneeded extra line; an
+    // overestimate is the actual cut-text bug).
+    const streetCharsPerLine = Math.max(10, Math.floor(colWidths[2] * 0.82));
+    const wrappedLineHeightPt = 14;
+    const rowPaddingPt = 6;
+    function ticketRowHeight(t){
+      const len = t && t.address ? String(t.address).length : 0;
+      const lineCount = Math.max(1, Math.ceil(len / streetCharsPerLine));
+      return Math.max(dataRowHeight, lineCount * wrappedLineHeightPt + rowPaddingPt);
+    }
+
+    // Pages are packed by actual accumulated row height instead of a
+    // fixed ticket count per page — a page with several long street
+    // names genuinely holds fewer tickets than one where every
+    // address is short and single-line. (i > start) in the inner
+    // break condition guarantees a page always gets at least one
+    // ticket even if that one ticket's own height alone exceeds the
+    // budget, so a single pathological address can't loop forever or
+    // silently vanish — it just prints slightly taller than the
+    // nominal page budget, same tradeoff FISA_ROWS_PER_PAGE's old
+    // fixed-count version had no way to avoid either.
+    const fisaPages = [];
+    {
+      let i = 0;
+      while (i < orderedTickets.length) {
+        const start = i;
+        let used = 0;
+        while (i < orderedTickets.length) {
+          const h = ticketRowHeight(orderedTickets[i]);
+          if (used + h > pageDataBudgetPt && i > start) break;
+          used += h;
+          i++;
+        }
+        fisaPages.push({ start, count: i - start, usedHeight: used });
+      }
+      if (fisaPages.length === 0) fisaPages.push({ start: 0, count: 0, usedHeight: 0 });
+    }
+
     let lastRowUsed = 0;
+    let rowNumberCounter = 0;
 
-    for (let page = 0; page < totalPages; page++) {
+    for (let page = 0; page < fisaPages.length; page++) {
+      const { start, count, usedHeight } = fisaPages[page];
       const bannerRowNum = lastRowUsed + 1;
       addFisaHeaderBanner(workbook, ws, colCount, logoImageId, bannerRowNum);
 
@@ -4630,21 +4677,16 @@
         cell.border = allBorders;
       });
 
-      // A full FISA_ROWS_PER_PAGE of rows every page — Nr. keeps
-      // counting even past the real tickets, so unused rows stay
-      // pre-numbered and ready to fill in by hand, same as the
-      // source sheet.
+      // Real tickets first, each at its own computed height; then
+      // pad the rest of this page's budget with blank, pre-numbered
+      // rows at the base single-line height — Nr. keeps counting
+      // even past the real tickets, so unused rows stay pre-numbered
+      // and ready to fill in by hand, same as the source sheet, just
+      // however many now fit the remaining real points instead of a
+      // fixed count.
       const firstDataRow = headerRowNum + 1;
-      for (let r = 0; r < FISA_ROWS_PER_PAGE; r++) {
-        const globalIndex = page * FISA_ROWS_PER_PAGE + r;
-        const t = orderedTickets[globalIndex];
-        const row = ws.getRow(firstDataRow + r);
-        row.height = dataRowHeight;
-        row.getCell(1).value = globalIndex + 1;
-        if (t) {
-          row.getCell(2).value = extractTicketDigits(t.ticket_number) || t.ticket_number || '';
-          row.getCell(3).value = t.address || '';
-        }
+      let rowOffset = 0;
+      const styleDataCell = (row) => {
         for (let col = 1; col <= colCount; col++) {
           const cell = row.getCell(col);
           cell.font = { name: 'Calibri', size: 11 };
@@ -4655,8 +4697,29 @@
             wrapText: col === 3,
           };
         }
+      };
+      for (let r = 0; r < count; r++) {
+        const t = orderedTickets[start + r];
+        const row = ws.getRow(firstDataRow + rowOffset);
+        row.height = ticketRowHeight(t);
+        rowNumberCounter++;
+        row.getCell(1).value = rowNumberCounter;
+        row.getCell(2).value = extractTicketDigits(t.ticket_number) || t.ticket_number || '';
+        row.getCell(3).value = t.address || '';
+        styleDataCell(row);
+        rowOffset++;
       }
-      const lastDataRow = firstDataRow + FISA_ROWS_PER_PAGE - 1;
+      let remainingBudget = pageDataBudgetPt - usedHeight;
+      while (remainingBudget >= dataRowHeight) {
+        const row = ws.getRow(firstDataRow + rowOffset);
+        row.height = dataRowHeight;
+        rowNumberCounter++;
+        row.getCell(1).value = rowNumberCounter;
+        styleDataCell(row);
+        rowOffset++;
+        remainingBudget -= dataRowHeight;
+      }
+      const lastDataRow = firstDataRow + rowOffset - 1;
 
       // Footer — a signature line for whoever filled the sheet in,
       // one blank row below the data so it doesn't read as part of
@@ -4677,10 +4740,10 @@
         cell.alignment = { horizontal: 'left', vertical: 'middle' };
       });
 
-      if (page < totalPages - 1) {
+      if (page < fisaPages.length - 1) {
         // Forces everything after this row onto a new printed page,
         // rather than letting Excel decide where to break — see
-        // FISA_ROWS_PER_PAGE above for why.
+        // fisaPages above for why.
         ws.getRow(footerRowNum).addPageBreak();
         lastRowUsed = footerRowNum + 1; // blank row before the next page's banner
       } else {
