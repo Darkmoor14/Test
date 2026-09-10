@@ -4366,19 +4366,23 @@
 
   // Same column layout as the "Fișă remedieri IP" sheet the repair
   // import above knows how to read (see REPAIR_FIELD_GROUPS et al.
-  // further down) — only Nr. crt./Nr. Tichet/Strada si nr. are
+  // further down) — only Nr./Nr. Tichet/Strada si nr. are
   // filled in, every repair-step and Observatii column is left
   // blank for the field crew to mark by hand before it gets
-  // re-uploaded. "Nr. crt." is the source sheet's own plain row
-  // counter (1, 2, 3...); "Nr. Tichet" is the actual ticket number —
-  // its DATA cells only ever hold the bare number, but the header
-  // itself keeps the full label.
+  // re-uploaded. "Nr." is the source sheet's own plain row counter
+  // (1, 2, 3...); "Nr. Tichet" is the actual ticket number — its
+  // DATA cells only ever hold the bare number, but the header itself
+  // keeps the full label. Text and column order copied verbatim
+  // (including the source sheet's own lack of diacritics) from the
+  // real FISA_REMEDIERILOR_IP.xlsx template — do not "correct" the
+  // spelling here without re-checking that file, since this exact
+  // wording is also what REPAIR_FIELD_GROUPS below matches against.
   const REPAIR_TEMPLATE_HEADERS_ROW2 = [
-    'Nr. crt.', 'Nr. Tichet', 'Strada si nr.', 'Scos de sub tensiune', 'Verificat corp de iluminat',
-    'Glob OLIMP', 'Corp iluminat', 'Capac stalp', 'Burlan protectie',
+    'Nr.', 'Nr. Tichet', 'Strada si nr.', 'Scos/Repus sub tensiune', 'Verificat corp de iluminat',
+    'Glob OLIMP', 'Corp iluminat', 'Capac stalp', 'Stalp', 'Burlan protectie',
     'SKD 578', 'Bec (W)', 'Driver (W)', 'Bobine (W)',
-    'Refacute', 'Verificate', 'Sigurante schimbate',
-    'Montat corp iluminat', 'Cleme', 'Montat capac stalp', 'Montat capac lampa', 'Defrisari', 'Fixat burlan', 'Repus sub tensiune',
+    'Refacute/Verificate', 'Sigurante schimbate', 'Cleme',
+    'Contact slab refacut', 'Defrisari', 'Curatat corp iluminat',
     'Observatii',
   ];
 
@@ -4561,8 +4565,8 @@
     // actual safety buffer against this being slightly optimistic —
     // an underestimate here is what caused Excel to insert its own
     // unplanned extra page break mid-block before.
-    const dataRowHeight = 26;
-    const fixedOverheadPt = 55 /* banner */ + 20 /* group */ + 150 /* header */ + 15 /* spacer row */ + 26 /* footer */;
+    const dataRowHeight = 19.7;
+    const fixedOverheadPt = 55 /* banner */ + 18.75 /* group */ + 155 /* header */ + 15 /* spacer row */ + 26 /* footer */;
     const nominalHeightBudget = (FISA_USABLE_HEIGHT_PT / (printScale / 100)) * 0.9;
     const FISA_ROWS_PER_PAGE = Math.max(1, Math.floor((nominalHeightBudget - fixedOverheadPt) / dataRowHeight));
 
@@ -4573,22 +4577,31 @@
       const bannerRowNum = lastRowUsed + 1;
       addFisaHeaderBanner(workbook, ws, colCount, logoImageId, bannerRowNum);
 
-      // Group labels (Demontat/Schimbat/Legături/Montat), merged
-      // across the columns they cover, same layout as the source
-      // sheet. Border is applied to every column in the merged
-      // range, not just its anchor cell — for a merge, Excel only
-      // draws the outer perimeter regardless, but the anchor cell
-      // alone won't produce a full box around it when printed.
+      // Group labels (Demontat/Montat, Inlocuit, Legaturi, Diverse),
+      // merged across the columns they cover, same layout and text
+      // as the real source sheet. The leading columns (Nr./Nr.
+      // Tichet/Strada/the two Verificări columns) and the trailing
+      // Observatii column aren't part of any group on the source
+      // sheet either — filled in here as blank, bordered cells (not
+      // left untouched) so the top border row reads as one
+      // continuous line across the full table width instead of
+      // having a gap over those columns. Border is applied to every
+      // column in each merged range, not just its anchor cell — for
+      // a merge, Excel only draws the outer perimeter regardless,
+      // but the anchor cell alone won't produce a full box around it
+      // when printed.
       const groupRowNum = bannerRowNum + 1;
       const groupRow = ws.getRow(groupRowNum);
-      groupRow.height = 20;
+      groupRow.height = 18.75;
       [
-        { label: 'Demontat', from: 6, to: 9 },
-        { label: 'Schimbat', from: 10, to: 13 },
-        { label: 'Legături', from: 14, to: 16 },
-        { label: 'Montat', from: 17, to: 23 },
+        { label: '', from: 1, to: 5 },
+        { label: 'Demontat/Montat', from: 6, to: 10 },
+        { label: 'Inlocuit', from: 11, to: 14 },
+        { label: 'Legaturi', from: 15, to: 17 },
+        { label: 'Diverse', from: 18, to: 20 },
+        { label: '', from: colCount, to: colCount },
       ].forEach(g => {
-        ws.mergeCells(groupRowNum, g.from, groupRowNum, g.to);
+        if (g.from !== g.to) ws.mergeCells(groupRowNum, g.from, groupRowNum, g.to);
         for (let col = g.from; col <= g.to; col++) {
           ws.getCell(groupRowNum, col).border = allBorders;
         }
@@ -4604,7 +4617,7 @@
       // free text, not a one-word checkbox label.
       const headerRowNum = groupRowNum + 1;
       const headerRow = ws.getRow(headerRowNum);
-      headerRow.height = 150;
+      headerRow.height = 155;
       headers.forEach((label, i) => {
         const col = i + 1;
         const cell = headerRow.getCell(col);
@@ -4617,7 +4630,7 @@
         cell.border = allBorders;
       });
 
-      // A full FISA_ROWS_PER_PAGE of rows every page — Nr. crt. keeps
+      // A full FISA_ROWS_PER_PAGE of rows every page — Nr. keeps
       // counting even past the real tickets, so unused rows stay
       // pre-numbered and ready to fill in by hand, same as the
       // source sheet.
@@ -6061,53 +6074,51 @@
 
      Expected layout: a header row somewhere near the top containing
      "Nr. Tichet" (found by scanning, not a fixed row index, since
-     the real sheet has a merged group-label row above it — "Demontat"
-     / "Schimbat" / "Legaturi" / "Montat"), a "Strada si nr." column,
-     one column per repair step (Glob OLIMP, SKD 578, Bec (W), Repus
-     sub tensiune, etc. — any non-empty cell, typically "x", counts
-     as done), and an "Observatii" free-text column. Column order
-     doesn't matter and matching is case/diacritic-insensitive, same
-     approach as the project import above. A row is only turned into
-     a note when its "Nr. Tichet" cell holds a plain whole number —
-     template rows left blank for future entries are silently
-     skipped, matching how the field team actually fills this sheet
-     in (one blank row per future ticket, pre-numbered 1..N in
-     column A but with no ticket number yet in column B).
+     the real sheet has a merged group-label row above it —
+     "Demontat/Montat" / "Inlocuit" / "Legaturi" / "Diverse"), a
+     "Strada si nr." column, one column per repair step (Glob OLIMP,
+     SKD 578, Bec (W), Scos/Repus sub tensiune, etc. — any non-empty
+     cell, typically "x", counts as done), and an "Observatii"
+     free-text column. Column order doesn't matter and matching is
+     case/diacritic-insensitive, same approach as the project import
+     above. A row is only turned into a note when its "Nr. Tichet"
+     cell holds a plain whole number — template rows left blank for
+     future entries are silently skipped, matching how the field
+     team actually fills this sheet in (one blank row per future
+     ticket, pre-numbered 1..N in column A but with no ticket number
+     yet in column B).
      ============================================================ */
   const REPAIR_FIELD_GROUPS = [
     { title: 'Verificări', fields: [
-        { header: 'scos de sub tensiune', label: 'Scos de sub tensiune' },
+        { header: 'scos/repus sub tensiune', label: 'Scos/Repus sub tensiune' },
         { header: 'verificat corp de iluminat', label: 'Verificat corp de iluminat' },
       ]},
-    { title: 'Demontat', fields: [
+    { title: 'Demontat/Montat', fields: [
         { header: 'glob olimp', label: 'Glob OLIMP' },
         { header: 'corp iluminat', label: 'Corp iluminat' },
         { header: 'capac stalp', label: 'Capac stâlp' },
+        { header: 'stalp', label: 'Stâlp' },
         { header: 'burlan protectie', label: 'Burlan protecție' },
       ]},
-    { title: 'Schimbat', fields: [
+    { title: 'Inlocuit', fields: [
         { header: 'skd 578', label: 'SKD 578' },
         { header: 'bec (w)', label: 'Bec' },
         { header: 'driver (w)', label: 'Driver' },
         { header: 'bobine (w)', label: 'Bobine' },
       ]},
     { title: 'Legături', fields: [
-        { header: 'refacute', label: 'Refăcute' },
-        { header: 'verificate', label: 'Verificate' },
+        { header: 'refacute/verificate', label: 'Refăcute/Verificate' },
         { header: 'sigurante schimbate', label: 'Siguranțe schimbate' },
-      ]},
-    { title: 'Montat', fields: [
-        { header: 'montat corp iluminat', label: 'Corp iluminat' },
         { header: 'cleme', label: 'Cleme' },
-        { header: 'montat capac stalp', label: 'Capac stâlp' },
-        { header: 'montat capac lampa', label: 'Capac lampă' },
+      ]},
+    { title: 'Diverse', fields: [
+        { header: 'contact slab refacut', label: 'Contact slab refăcut' },
         { header: 'defrisari', label: 'Defrișări' },
-        { header: 'fixat burlan', label: 'Burlan fixat' },
-        { header: 'repus sub tensiune', label: 'Repus sub tensiune' },
+        { header: 'curatat corp iluminat', label: 'Curățat corp iluminat' },
       ]},
   ];
   // Deliberately does NOT include a bare 'nr.'/'nr' — the sheet also
-  // has an unrelated "Nr. crt." row-counter column (column A), and a
+  // has an unrelated "Nr." row-counter column (column A), and a
   // loose alias like that would match it instead of "Nr. Tichet"
   // (column B), which is exactly the column-A-instead-of-B bug this
   // once caused.
