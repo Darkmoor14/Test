@@ -1694,18 +1694,8 @@
       </div>
       <button type="button" class="sheet-close" data-close-sheet="ticketFiltersSheet" aria-label="Închide">×</button>
     </div>
-    <div class="sheet-grid">
-      <div class="ctrl-field">
-        <label for="yearFilterSelectTicketsMobile">An</label>
-        <select id="yearFilterSelectTicketsMobile"></select>
-      </div>
-      <div class="ctrl-field">
-        <label for="monthFilterSelectTicketsMobile">Lună</label>
-        <select id="monthFilterSelectTicketsMobile"></select>
-      </div>
-    </div>
     <div class="sheet-filter-status">
-      <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Calendar — o zi anume, sau apasă luna pentru toată luna</label>
+      <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Calendar — o zi anume, sau apasă luna pentru toată luna (apasă din nou pentru toate lunile)</label>
       <div class="sheet-mini-calendar" id="ticketsSheetMiniCalendar">
         <div class="mini-cal-header">
           <button type="button" id="ticketsSheetMiniCalPrevBtn" aria-label="Luna anterioară">‹</button>
@@ -2791,6 +2781,15 @@
     let viewYear = Number.isFinite(initialYear) ? initialYear : new Date().getFullYear();
     let viewMonth = Number.isFinite(initialMonth) ? initialMonth : (new Date().getMonth() + 1);
 
+    // Whether the month/year currently being browsed (viewYear/
+    // viewMonth) IS the applied filter, with no specific day
+    // narrowing it further — used both to highlight the label and to
+    // decide what clicking it should do next.
+    function isWholeMonthSelected(){
+      return config.getDay() === null &&
+        String(config.getYear()) === String(viewYear) && String(config.getMonth()) === String(viewMonth);
+    }
+
     function render(){
       label.textContent = `${MINI_CAL_MONTH_NAMES[viewMonth - 1]} ${viewYear}`;
       // The label doubles as a "select the whole month" action (day
@@ -2800,10 +2799,10 @@
       // day inside it was previously only reachable through the
       // separate year/month dropdowns elsewhere on the page, not from
       // the calendar itself.
-      label.title = `Selectează toată luna ${MINI_CAL_MONTH_NAMES[viewMonth - 1]} ${viewYear}`;
-      const wholeMonthSelected = config.getDay() === null &&
-        String(config.getYear()) === String(viewYear) && String(config.getMonth()) === String(viewMonth);
-      label.classList.toggle('active-filter', wholeMonthSelected);
+      label.title = isWholeMonthSelected()
+        ? `Șterge filtrul de lună — arată toate lunile`
+        : `Selectează toată luna ${MINI_CAL_MONTH_NAMES[viewMonth - 1]} ${viewYear}`;
+      label.classList.toggle('active-filter', isWholeMonthSelected());
       const firstOfMonth = new Date(viewYear, viewMonth - 1, 1);
       // JS getDay() is 0=Sunday..6=Saturday; the grid's week starts on
       // Monday (matching the L-M-M-J-V-S-D header), so Sunday needs to
@@ -2848,9 +2847,18 @@
     // this only needs binding once.
     label.addEventListener('click', (e) => {
       e.stopPropagation();
-      config.setYear(String(viewYear));
-      config.setMonth(String(viewMonth));
-      config.setDay(null);
+      if (isWholeMonthSelected()) {
+        // Clicking it again while it's already the applied filter
+        // clears it back to "every month", instead of just
+        // re-applying the same thing it already is.
+        config.setYear('all');
+        config.setMonth('all');
+        config.setDay(null);
+      } else {
+        config.setYear(String(viewYear));
+        config.setMonth(String(viewMonth));
+        config.setDay(null);
+      }
       render();
       config.rerender();
     });
