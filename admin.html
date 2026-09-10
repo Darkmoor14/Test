@@ -4503,6 +4503,14 @@
   function excelColWidthToPoints(width){
     return (width * 7 + 5) * 0.75;
   }
+  // Inverse of the above — how wide (in Excel's own column-width
+  // units) a budget of points can afford, using the same MDW=7px
+  // approximation. Used to figure out how much width is actually
+  // left over for Observatii once every other column has claimed
+  // what it needs.
+  function pointsToExcelColWidth(points){
+    return (points / 0.75 - 5) / 7;
+  }
   // A4 landscape is 841.9pt × 595.3pt. Usable width/height below
   // already subtract this sheet's margins (0.3in+0.1in left/right,
   // 0.5in+0.5in top/bottom — header/footer margins are 0, since
@@ -4529,19 +4537,39 @@
     const allBorders = { top: thin, bottom: thin, left: thin, right: thin };
     const lastColLetter = String.fromCharCode(64 + colCount);
 
-    // Narrow checkbox-style columns throughout; wider for the ones
-    // that actually hold text. Strada gets the biggest share by far
-    // — a full street + house number needs real room. Comfortable
-    // widths, not pre-squeezed to fit — the print scale computed
-    // below is derived FROM these, not the other way round, so
-    // there's no tension between "wide enough to read" and "narrow
-    // enough to print".
+    // Column widths adapt to the real tickets being exported instead
+    // of a guessed-in-advance fixed size — a short list with short
+    // ticket numbers and addresses gets a tighter, more legible
+    // table than one with many long ones. Checkbox columns hold at
+    // most a single "x" mark regardless of the data, so there's
+    // nothing to adapt there; they stay fixed and narrow. Observatii
+    // holds nothing at all yet at export time (it's free-form notes,
+    // filled in by hand after printing), so it can't be sized from
+    // its own content either — it deliberately claims whatever width
+    // is left over after every other column has taken what it
+    // actually needs, since notes are exactly the column most likely
+    // to run long and least acceptable to leave cramped.
+    const CHECKBOX_COL_WIDTH = 4.5;
+    const maxTicketDigits = orderedTickets.reduce((max, t) => Math.max(max, (extractTicketDigits(t.ticket_number) || '').length), 1);
+    const maxAddressLen = orderedTickets.reduce((max, t) => Math.max(max, (t.address || '').length), 1);
+    const nrWidth = Math.max(4, String(Math.max(orderedTickets.length, 1)).length + 2);
+    const ticketWidth = Math.max(7, maxTicketDigits + 3);
+    // Strada no longer needs to fit the longest possible address on
+    // a single line — a row that wraps just grows its own height now
+    // (see ticketRowHeight below) — so this aims for "most addresses
+    // fit on one line without wrapping" rather than sizing for the
+    // single longest outlier, which is what was eating into the
+    // space Observatii could otherwise have.
+    const stradaWidth = Math.min(38, Math.max(22, Math.round(maxAddressLen * 0.6) + 4));
+    const fixedColsWidth = nrWidth + ticketWidth + stradaWidth + CHECKBOX_COL_WIDTH * (colCount - 4);
+    const observatiiWidth = Math.max(stradaWidth + 6, Math.floor(pointsToExcelColWidth(FISA_USABLE_WIDTH_PT) - fixedColsWidth));
+
     const colWidths = headers.map((_, i) => {
-      if (i === 0) return 5;
-      if (i === 1) return 9;
-      if (i === 2) return 40;
-      if (i === colCount - 1) return 24;
-      return 4.5;
+      if (i === 0) return nrWidth;
+      if (i === 1) return ticketWidth;
+      if (i === 2) return stradaWidth;
+      if (i === colCount - 1) return observatiiWidth;
+      return CHECKBOX_COL_WIDTH;
     });
     const totalContentWidthPt = colWidths.reduce((sum, w) => sum + excelColWidthToPoints(w), 0);
     const printScale = Math.max(50, Math.min(100, Math.floor((FISA_USABLE_WIDTH_PT / totalContentWidthPt) * 100)));
