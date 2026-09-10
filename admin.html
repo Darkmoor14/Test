@@ -458,11 +458,12 @@
   .mini-cal-month-label{font-family:var(--mono);font-size:13px;color:var(--ink-900);text-transform:capitalize;background:none;border:none;border-radius:4px;padding:2px 7px;cursor:pointer;}
   .mini-cal-month-label:hover{background:var(--paper-050);color:var(--copper-600);}
   .mini-cal-month-label.active-filter{background:var(--copper-050);color:var(--copper-600);}
-  .mini-cal-header button{
-    width:26px;height:26px;border-radius:50%;border:1px solid var(--line-strong);
+  .mini-cal-header button:not(.mini-cal-month-label){
+    width:26px;height:26px;flex-shrink:0;border-radius:50%;border:1px solid var(--line-strong);
     background:var(--paper-000);color:var(--ink-700);cursor:pointer;font-size:14px;line-height:1;
   }
-  .mini-cal-header button:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .mini-cal-header button:not(.mini-cal-month-label):hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .mini-cal-month-label{white-space:nowrap;}
   .mini-cal-weekdays{
     display:grid;grid-template-columns:repeat(7,1fr);
     font-family:var(--mono);font-size:10.5px;color:var(--ink-400);
@@ -968,12 +969,17 @@
      across a wide desktop window it just reads as an oversized,
      out-of-place strip. Sesizări's filter sheet is now reachable
      from desktop too (see .toolbar-desktop-only), so above 900px it
-     detaches into a compact floating panel anchored near where the
-     button that opened it actually is, instead of spanning edge to
-     edge. */
+     becomes a compact panel sized here but POSITIONED by
+     setSheetOpen() in JS — top/left get set inline to sit right
+     below whichever button opened it, expanding downward like a
+     normal dropdown instead of floating in a fixed page corner
+     disconnected from what was actually clicked. The top/right/left/
+     bottom here are just an inert fallback for the (currently
+     nonexistent) case of a desktop-width sheet opened without an
+     anchor element. */
   @media(min-width:901px){
     .mobile-sheet-panel{
-      left:auto;right:28px;bottom:28px;
+      top:80px;left:auto;right:40px;bottom:auto;
       width:380px;border-radius:14px;
       max-height:min(80vh, 640px);
     }
@@ -1278,21 +1284,12 @@
         </div>
       </div>
       <div class="overview-quick-filters" data-year-panel="tickets">
-        <div class="overview-date-filter-wrap">
-          <button type="button" class="overview-icon-btn" id="ticketsDateToggleBtn" aria-label="Filtrare după dată">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          </button>
-          <div class="mini-calendar" id="ticketsMiniCalendar">
-            <div class="mini-cal-header">
-              <button type="button" id="ticketsMiniCalPrevBtn" aria-label="Luna anterioară">‹</button>
-              <button type="button" class="mini-cal-month-label" id="ticketsMiniCalLabel">—</button>
-              <button type="button" id="ticketsMiniCalNextBtn" aria-label="Luna următoare">›</button>
-            </div>
-            <div class="mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
-            <div class="mini-cal-grid" id="ticketsMiniCalGrid"></div>
-            <button type="button" class="mini-cal-clear-btn" id="ticketsMiniCalClearBtn">Toate zilele</button>
-          </div>
-        </div>
+        <!-- No date-filter-wrap here (unlike Overview's/Projects' own
+             quick-filters row above/below) — Sesizări's calendar now
+             lives inline inside the Filtre sheet (ticketsSheetMiniCalendar)
+             instead, so a second, separate popover calendar icon here
+             would just be the exact same filter reachable two
+             different, disconnected-looking ways. -->
         <div class="overview-search-wrap" id="ticketsIconSearchWrap">
           <button type="button" class="overview-icon-btn" id="ticketsSearchToggleBtn" aria-label="Căutare">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -2952,29 +2949,21 @@
     setQuery: (v) => { overviewSearchQuery = v; }, rerender: renderOverviewTable,
   });
 
-  // Sesizări's own calendar + search icons — shares the exact same
-  // ticketYearFilter/ticketMonthFilter/overviewDayFilter state as
-  // Overview's (both tabs stay in sync with each other), but its own
-  // search query, since Sesizări already had its own separate
-  // ticketSearchQuery/getFilteredTickets() search before this.
-  createMiniCalendarWidget({
-    toggleBtnId: 'ticketsDateToggleBtn', calendarId: 'ticketsMiniCalendar',
-    labelId: 'ticketsMiniCalLabel', gridId: 'ticketsMiniCalGrid', clearBtnId: 'ticketsMiniCalClearBtn',
-    prevBtnId: 'ticketsMiniCalPrevBtn', nextBtnId: 'ticketsMiniCalNextBtn',
-    getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
-    getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
-    getDay: () => overviewDayFilter, setDay: (d) => { overviewDayFilter = d; },
-    rerender: rerenderSharedTicketViews,
-  });
+  // Sesizări's own search icon — its own search query, since Sesizări
+  // already had its own separate ticketSearchQuery/getFilteredTickets()
+  // search before this (unlike its calendar, which now lives only
+  // inside the Filtre sheet below — see ticketsSheetMiniCalendar).
   createSearchToggleWidget({
     toggleBtnId: 'ticketsSearchToggleBtn', wrapId: 'ticketsIconSearchWrap', boxId: 'ticketsIconSearchBox',
     setQuery: (v) => { ticketSearchQuery = v; }, rerender: renderTickets,
   });
-  // Same calendar, same shared state, just a second instance living
-  // permanently inline inside the filter sheet (no toggleBtnId) —
-  // picking a day (or the whole month, via the label) here updates
-  // ticketsMiniCalendar's own popover too next time it's opened,
-  // since both instances read/write the exact same state.
+  // Sesizări's calendar — shares the exact same
+  // ticketYearFilter/ticketMonthFilter/overviewDayFilter state as
+  // Overview's (both tabs stay in sync with each other). Lives inline
+  // inside the Filtre sheet (no toggleBtnId — see
+  // createMiniCalendarWidget's own comment on why that's optional)
+  // rather than behind its own separate popover icon, so there's only
+  // one place to look for it instead of two disconnected ones.
   createMiniCalendarWidget({
     calendarId: 'ticketsSheetMiniCalendar',
     labelId: 'ticketsSheetMiniCalLabel', gridId: 'ticketsSheetMiniCalGrid', clearBtnId: 'ticketsSheetMiniCalClearBtn',
@@ -3003,7 +2992,7 @@
   // filtering used to sit permanently inline in the toolbar instead.
   const ticketFiltersDesktopBtn = document.getElementById('ticketFiltersDesktopBtn');
   if (ticketFiltersDesktopBtn) {
-    ticketFiltersDesktopBtn.addEventListener('click', () => setSheetOpen('ticketFiltersSheet', true));
+    ticketFiltersDesktopBtn.addEventListener('click', () => setSheetOpen('ticketFiltersSheet', true, ticketFiltersDesktopBtn));
   }
 
   const overviewFiltersMobileBtn = document.getElementById('overviewFiltersMobileBtn');
@@ -4292,12 +4281,36 @@
     return ws;
   }
 
-  function setSheetOpen(sheetId, open){
+  // anchorEl is optional — only the desktop filter button passes one.
+  // On a real phone the sheet always slides up from the bottom
+  // regardless (see the CSS, .mobile-sheet-panel's default position
+  // only gets overridden above the 900px breakpoint), so anchoring
+  // logic below is simply inert there.
+  function setSheetOpen(sheetId, open, anchorEl){
     const sheet = document.getElementById(sheetId);
     if (!sheet) return;
     sheet.classList.toggle('show', open);
     sheet.setAttribute('aria-hidden', open ? 'false' : 'true');
     document.body.style.overflow = open ? 'hidden' : '';
+    const panel = sheet.querySelector('.mobile-sheet-panel');
+    if (panel && anchorEl && open && window.innerWidth > 900) {
+      // getBoundingClientRect() is viewport-relative, matching how
+      // .mobile-sheet-panel is positioned (absolute within
+      // .mobile-sheet, itself fixed to the full viewport) — so these
+      // coordinates line up directly with no further conversion.
+      const rect = anchorEl.getBoundingClientRect();
+      const panelWidth = panel.offsetWidth || 380;
+      const left = Math.max(12, Math.min(rect.left, window.innerWidth - panelWidth - 12));
+      panel.style.top = (rect.bottom + 8) + 'px';
+      panel.style.left = left + 'px';
+      panel.style.right = 'auto';
+      panel.style.bottom = 'auto';
+    } else if (panel) {
+      panel.style.top = '';
+      panel.style.left = '';
+      panel.style.right = '';
+      panel.style.bottom = '';
+    }
   }
 
   document.querySelectorAll('[data-close-sheet]').forEach(btn => {
