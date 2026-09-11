@@ -6336,6 +6336,7 @@
   const REPAIR_OBS_HEADERS = ['observatii', 'observatii.', 'obs'];
 
   let pendingRepairRows = [];
+  let repairSkippedUnchangedCount = 0;
 
   function isRepairCellChecked(value){
     return String(value == null ? '' : value).trim() !== '';
@@ -6451,6 +6452,7 @@
           const streetCol = headers.findIndex(h => REPAIR_STREET_HEADERS.includes(h));
           const obsCol = headers.findIndex(h => REPAIR_OBS_HEADERS.includes(h));
 
+          repairSkippedUnchangedCount = 0;
           pendingRepairRows = rows.slice(headerRowIdx + 1)
             .map(r => {
               const ticketDigits = ticketCol >= 0 ? extractTicketDigits(r[ticketCol]) : '';
@@ -6487,12 +6489,26 @@
                 matchedBy = byStreet.matchedBy;
               }
 
+              // A ticket that already has a resolution_note identical
+              // to the note this row would produce has already been
+              // imported before (a re-uploaded sheet, or the same
+              // fișă run twice) — nothing would actually change, so
+              // it's dropped instead of cluttering the preview with a
+              // row nobody needs to act on. Only a genuinely different
+              // note (a correction, or a first-time note) shows up.
+              if (matched && matched.resolution_note && matched.resolution_note.trim() === note.trim()) {
+                repairSkippedUnchangedCount++;
+                return null;
+              }
+
               return { ticketNumber: ticketDigits, street, note, matched, matchedBy, include: !!matched };
             })
             .filter(Boolean);
 
           if (pendingRepairRows.length === 0) {
-            alert('Niciun rând din fișier are un număr de tichet sau o stradă completată.');
+            alert(repairSkippedUnchangedCount > 0
+              ? 'Toate rândurile din fișier corespund unor rapoarte deja existente și identice — nimic de actualizat.'
+              : 'Niciun rând din fișier are un număr de tichet sau o stradă completată.');
             repairSheetInput.value = '';
             return;
           }
@@ -6534,7 +6550,10 @@
       </tbody>
     `;
     document.getElementById('repairSheetPreviewNote').textContent =
-      `Previzualizare — ${foundCount} din ${pendingRepairRows.length} rânduri au fost asociate unei sesizări existente. Debifați un rând pentru a-l exclude, sau editați textul înainte de a confirma.`;
+      `Previzualizare — ${foundCount} din ${pendingRepairRows.length} rânduri au fost asociate unei sesizări existente. Debifați un rând pentru a-l exclude, sau editați textul înainte de a confirma.`
+      + (repairSkippedUnchangedCount > 0
+        ? ` (${repairSkippedUnchangedCount} rând${repairSkippedUnchangedCount === 1 ? '' : 'uri'} cu raport identic celui existent ${repairSkippedUnchangedCount === 1 ? 'a fost omis' : 'au fost omise'} automat.)`
+        : '');
     table.querySelectorAll('.repair-row-include').forEach(cb => {
       cb.addEventListener('change', () => {
         pendingRepairRows[Number(cb.dataset.idx)].include = cb.checked;
