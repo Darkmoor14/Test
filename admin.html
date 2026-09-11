@@ -755,6 +755,19 @@
   .ov-card-num{
     margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--copper-600);font-weight:600;
   }
+  /* Sits in the same top row as ov-card-num rather than adding a row
+     of its own — the whole point is a share action that doesn't
+     change the card's height/shape. Negative margin claims a
+     thumb-sized tap target without visually widening the row; it's a
+     <span>, not a <button>, since .ov-card itself already is one and
+     buttons can't nest — same pattern resolved-date-toggle-mobile
+     already uses for a tap target inside this card. */
+  .ov-card-share{
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:30px;height:30px;margin:-8px -8px -8px 0;border-radius:50%;
+    color:var(--ink-600);
+  }
+  .ov-card-share:active{background:var(--paper-100);color:var(--copper-600);}
   .ov-card-address{font-size:16px;font-weight:600;color:var(--ink-900);line-height:1.35;margin-bottom:6px;}
   .ov-card-meta{
     display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
@@ -3325,6 +3338,9 @@
               <span class="status-bubble ${isDone ? 'done' : 'active'}"></span>
               <span class="ov-card-type">${isUrgent ? 'Accident' : 'Defect'}</span>
               <span class="ov-card-num">${escapeHtml(t.ticket_number || '—')}</span>
+              <span class="ov-card-share" data-ticket-id="${t.id}" role="button" aria-label="Trimite sesizarea">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              </span>
             </div>
             <div class="ov-card-address">${escapeHtml(t.address || '—')}</div>
             <div class="ov-card-meta">
@@ -3348,9 +3364,59 @@
     }
   }
 
+  // Plain-text summary of a ticket for the "share" button on the
+  // Overview mobile cards — meant for someone with no login at all
+  // (a subcontractor, a crew lead without the app), sent through
+  // whatever the phone already has (WhatsApp, SMS, email) via the
+  // native share sheet. Deliberately just a text snapshot, not a
+  // link back into the system — see shareTicket() below for the
+  // fallback when navigator.share itself isn't available.
+  function ticketShareText(t){
+    const isUrgent = t.type === 'Anunt accident';
+    const lines = [
+      `Sesizare ${t.ticket_number || '—'} (${isUrgent ? 'Accident' : 'Defect'})`,
+      `Adresă: ${t.address || '—'}`,
+      `Nume: ${t.name || '—'}`,
+      `Telefon: ${t.phone || '—'}`,
+      `Trimis: ${fmtDateOnly(t.submitted_on)}`,
+      `Stare: ${t.status === 'Terminat' ? 'Soluționat' : 'În curs'}`,
+    ];
+    if (t.description) lines.push(`Descriere: ${t.description}`);
+    if (t.status === 'Terminat' && t.resolution_note) lines.push(`Ce s-a făcut: ${t.resolution_note}`);
+    return lines.join('\n');
+  }
+  async function shareTicket(ticketId){
+    const t = allTickets.find(x => x.id === ticketId);
+    if (!t) return;
+    const text = ticketShareText(t);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Sesizare ${t.ticket_number || ''}`, text });
+      } catch (err) {
+        if (err.name !== 'AbortError') console.error(err); // AbortError = user closed the share sheet, not a real failure
+      }
+      return;
+    }
+    // Desktop / no Web Share API support — copy instead, same as
+    // every other "no share sheet available" fallback would.
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('Datele sesizării au fost copiate.');
+    } catch (err) {
+      console.error(err);
+      alert('Nu am putut partaja sau copia datele acestei sesizări.');
+    }
+  }
+
   const overviewCardsMobileEl = document.getElementById('overviewCardsMobile');
   if (overviewCardsMobileEl) {
     overviewCardsMobileEl.addEventListener('click', (e) => {
+      const shareBtn = e.target.closest('.ov-card-share');
+      if (shareBtn) {
+        e.stopPropagation();
+        shareTicket(shareBtn.dataset.ticketId);
+        return;
+      }
       const dateToggle = e.target.closest('.resolved-date-toggle-mobile');
       if (dateToggle) {
         e.stopPropagation();
