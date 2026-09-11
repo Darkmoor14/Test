@@ -3376,10 +3376,7 @@
     const lines = [
       `Sesizare ${t.ticket_number || '—'} (${isUrgent ? 'Accident' : 'Defect'})`,
       `Adresă: ${t.address || '—'}`,
-      `Nume: ${t.name || '—'}`,
       `Telefon: ${t.phone || '—'}`,
-      `Trimis: ${fmtDateOnly(t.submitted_on)}`,
-      `Stare: ${t.status === 'Terminat' ? 'Soluționat' : 'În curs'}`,
     ];
     if (t.description) lines.push(`Descriere: ${t.description}`);
     if (t.status === 'Terminat' && t.resolution_note) lines.push(`Ce s-a făcut: ${t.resolution_note}`);
