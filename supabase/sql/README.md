@@ -8,13 +8,24 @@ folder fixes: from now on, the server-side logic that matters for public
 safety is written down here first, and the live project is expected to
 match it.
 
-**Because there was nothing to diff against, every file below is a
-reference implementation, not a migration diff.** Before running any of
-it against the real project: open each function in the Supabase SQL
-editor / dashboard, compare it to what's here, and port over anything
-this reference doesn't know about (extra validation, a different
-`ticket_number` format, additional columns) rather than blindly
-overwriting a working function.
+**The two Edge Functions in `supabase/functions/` ARE the real deployed
+logic** (their actual source was provided directly, not reconstructed) —
+the SMTP send, the email templates per notification type, and the full
+RFC 8291/8292 Web Push implementation are all unchanged from what's live.
+The only thing added to each is the caller-authentication check at the
+top (see "What changed and why" below); the business logic after that
+point is exactly what was already running. These are safe to deploy as
+committed here, once the one-time setup below is done.
+
+**The SQL files ARE still reference implementations, not a migration
+diff** — `create_ticket()`'s real source was never available to check
+against, so before running `003_create_ticket.sql`: open the real
+function in the Supabase SQL editor, compare it to what's here, and port
+over anything this reference doesn't know about (extra validation, a
+different `ticket_number` format, additional columns) rather than blindly
+overwriting a working function. The other SQL files (rate limiting,
+`contact_messages`, the triggers, `public_tickets`) are all genuinely new
+and don't have this concern.
 
 ## What changed and why
 
