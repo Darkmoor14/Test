@@ -924,6 +924,9 @@
         <input type="email" id="c-email" placeholder="nume@companie.ro" data-i18n-placeholder="cf_email_ph" required>
         <label data-i18n="cf_message_label">Detalii proiect</label>
         <textarea id="c-message" placeholder="Descrieți pe scurt lucrarea..." data-i18n-placeholder="cf_message_ph" required></textarea>
+        <!-- TODO: replace with your real Turnstile site key once
+             registered (see supabase/sql/README.md). -->
+        <div class="cf-turnstile" id="contactCaptcha" data-sitekey="0x0000000000000000000000AA" style="margin:12px 0;"></div>
         <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;" id="contactSubmitBtn" data-i18n="cf_submit_btn">Trimite solicitarea</button>
       </form>
       <div class="form-msg" id="contactMsg"></div>
@@ -1102,6 +1105,7 @@
 
 <script src="i18n.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script>
   /* ============================================================
      SUPABASE CONFIG — these are your public project values
@@ -1112,46 +1116,17 @@
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   /* ============================================================
-     EMAIL NOTIFICATIONS — sent via a Supabase Edge Function that
-     connects directly to the company's own cPanel SMTP mailbox.
-     No third-party email service is used.
-
-     IMPORTANT: the function's actual URL slug is "bright-processor",
-     NOT the display name shown in the Supabase dashboard ("send-email").
-     Supabase's Edge Functions dashboard auto-generates a random slug
-     at creation time, separate from the editable "Name" field, which
-     is purely cosmetic and does not affect the endpoint URL. If you
-     ever redeploy this function under a new name, check its real URL
-     under Edge Functions -> (the function) -> the address shown at
-     the top of the page, and update the two `.invoke('...')` calls
-     below to match — do not assume the display name is the slug.
-
-     This call never blocks or breaks the actual form flow if it
-     fails — the Supabase save (ticket or nothing, for contact)
-     already happened by the time this runs, so a broken/misconfigured
-     mail function just means a missed notification, not a lost ticket.
+     CONTACT NOTIFICATION — no longer sent from here. The contact
+     form below now calls submit_contact_message() (a Supabase RPC,
+     validated + rate-limited + CAPTCHA-checked server-side, same
+     pattern as create_ticket()), which just saves the message; a
+     database trigger then re-fetches it and emails office@ from
+     trusted server-side logic. See supabase/sql/004_contact_messages.sql
+     and 005_notify_triggers.sql. Previously this page called the
+     bright-processor Edge Function directly with the anon key and
+     whatever was typed into the form — nothing validated or rate-
+     limited that call.
      ============================================================ */
-  async function sendNotification(payload, { allowFailure = true } = {}){
-    try {
-      const { error } = await supabaseClient.functions.invoke('bright-processor', {
-        body: payload,
-      });
-      if (error) {
-        if (allowFailure) {
-          console.error('send-email function failed (non-blocking):', error);
-          return false;
-        }
-        throw error;
-      }
-      return true;
-    } catch (err) {
-      if (allowFailure) {
-        console.error('send-email call failed (non-blocking):', err);
-        return false;
-      }
-      throw err;
-    }
-  }
 
   /* ============================================================
      LEGAL MODALS (GDPR / Termeni și Condiții)
@@ -1574,23 +1549,27 @@
     const name = document.getElementById('c-name').value.trim();
     const email = document.getElementById('c-email').value.trim();
     const message = document.getElementById('c-message').value.trim();
+    const captchaToken = document.querySelector('#contactCaptcha [name="cf-turnstile-response"]')?.value || '';
 
-    try {
-      await sendNotification(
-        { type: 'contact', from_name: name, from_email: email, message: message },
-        { allowFailure: false }
-      );
+    const { error } = await supabaseClient.rpc('submit_contact_message', {
+      p_name: name,
+      p_email: email,
+      p_message: message,
+      p_captcha_token: captchaToken,
+    });
+
+    if (error) {
+      console.error(error);
+      contactMsg.className = 'form-msg error';
+      contactMsg.textContent = t('cf_error');
+    } else {
       contactMsg.className = 'form-msg success';
       contactMsg.textContent = t('cf_success');
       contactForm.reset();
-    } catch (err) {
-      console.error(err);
-      contactMsg.className = 'form-msg error';
-      contactMsg.textContent = t('cf_error');
-    } finally {
-      contactSubmitBtn.disabled = false;
-      contactSubmitBtn.textContent = t('cf_submit_btn');
     }
+    if (window.turnstile) turnstile.reset('#contactCaptcha');
+    contactSubmitBtn.disabled = false;
+    contactSubmitBtn.textContent = t('cf_submit_btn');
   });
 
   /* ============================================================

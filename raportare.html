@@ -493,6 +493,12 @@
             <textarea id="f-description" placeholder="Descrieți pe scurt ce ați observat..." data-i18n-placeholder="f_desc_ph"></textarea>
           </div>
 
+          <!-- TODO: replace with your real Turnstile site key once
+               registered (see supabase/sql/README.md) -- this
+               placeholder will fail verification server-side, which
+               is the correct/safe default until it's set. -->
+          <div class="cf-turnstile" id="ticketCaptcha" data-sitekey="0x0000000000000000000000AA" style="margin:16px 0;"></div>
+
           <div class="report-actions">
             <span class="back-link" id="backBtn" data-i18n="back_link">← Înapoi</span>
             <button type="submit" class="btn btn-primary" id="submitBtn" data-i18n="submit_btn">Trimite sesizarea →</button>
@@ -560,6 +566,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <div class="modal-overlay" id="cookieModal" onclick="if(event.target===this) closeModal('cookieModal')">
   <div class="modal-card">
@@ -595,69 +602,14 @@
   document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id)); } });
 
   /* ============================================================
-     EMAIL NOTIFICATIONS — sent via the same Supabase Edge Function
-     used elsewhere on the site ("bright-processor" -- see index.html's
-     equivalent comment for why the name looks odd). Never blocks the
-     actual ticket submission if it fails.
+     NOTIFICATIONS — no longer sent from here at all. create_ticket()
+     (below) marks a citizen's own submission as created_via_public,
+     and a database trigger re-fetches the saved row and calls
+     bright-processor/send-push server-side from there — see
+     supabase/sql/005_notify_triggers.sql. A public visitor's browser
+     used to be able to call those Edge Functions directly with the
+     anon key and made-up data; it no longer calls them at all.
      ============================================================ */
-  async function sendNotification(payload, { allowFailure = true } = {}){
-    try {
-      const { error } = await supabaseClient.functions.invoke('bright-processor', {
-        body: payload,
-      });
-      if (error) {
-        console.error('bright-processor (email) function failed:', error);
-        if (!allowFailure) throw error;
-      }
-    } catch (err) {
-      console.error('bright-processor (email) call failed:', err);
-      if (!allowFailure) throw err;
-    }
-  }
-
-  /* ============================================================
-     WHATSAPP NOTIFICATION — separate Edge Function that pings one or
-     more staff phone numbers via the official WhatsApp Business
-     Cloud API whenever a new ticket comes in (source in
-     supabase-functions/send-whatsapp/index.ts, but the function is
-     actually deployed under the name "bright-function" in Supabase —
-     rename it to "send-whatsapp" there and update the string below
-     to match if you'd rather keep the naming consistent). Isolated
-     from sendNotification()'s email call above: if WhatsApp isn't
-     configured yet (secrets missing, template not approved, etc.)
-     or the API call fails for any reason, it's swallowed silently
-     here too — a missing/failed WhatsApp ping should never stop a
-     citizen's ticket from being submitted, exactly like the email
-     notification.
-     ============================================================ */
-  async function sendWhatsAppNotification(payload){
-    try {
-      const { error } = await supabaseClient.functions.invoke('bright-function', {
-        body: payload,
-      });
-      if (error) console.error('bright-function (WhatsApp) failed:', error);
-    } catch (err) {
-      console.error('bright-function (WhatsApp) call failed:', err);
-    }
-  }
-
-  // Push notification to every staff device that has installed the
-  // Admin PWA and enabled notifications there (see admin.html). This
-  // is the free replacement for the WhatsApp notification above.
-  async function sendPushNotification(payload){
-    try {
-      const { error } = await supabaseClient.functions.invoke('send-push', {
-        body: {
-          title: 'Sesizare nouă',
-          body: `${payload.ticket_number} — ${payload.address}`,
-          url: 'admin.html?ticket=' + encodeURIComponent(payload.ticket_number),
-        },
-      });
-      if (error) console.error('send-push failed:', error);
-    } catch (err) {
-      console.error('send-push call failed:', err);
-    }
-  }
 
   /* ============================================================
      TICKET REPORT FORM
@@ -763,6 +715,12 @@
       address: document.getElementById('f-address').value.trim(),
       description: document.getElementById('f-description').value.trim() || null,
     };
+    // Turnstile's widget writes its token into a same-named hidden
+    // input inside the widget div automatically; this reads it back
+    // rather than calling turnstile.getResponse(), so it works even
+    // if the widget script is still loading (empty string either way,
+    // which create_ticket() correctly treats as a failed CAPTCHA).
+    const captchaToken = document.querySelector('#ticketCaptcha [name="cf-turnstile-response"]')?.value || '';
 
     const { data: ticketNumber, error } = await supabaseClient.rpc('create_ticket', {
       p_type: payload.type,
@@ -771,6 +729,7 @@
       p_email: payload.email,
       p_address: payload.address,
       p_description: payload.description,
+      p_captcha_token: captchaToken,
     });
 
     submitBtn.disabled = false;
@@ -780,35 +739,16 @@
       console.error(error);
       formMsg.className = 'form-msg error';
       formMsg.textContent = t('submit_error');
+      if (window.turnstile) turnstile.reset('#ticketCaptcha');
       return;
     }
 
     formMsg.className = 'form-msg success';
     formMsg.innerHTML = t('submit_success_html', {num: `<span class="ticket-num">${ticketNumber}</span>`});
-
-    // Notify the team — this runs after the Supabase save already
-    // succeeded, so a failed/unconfigured email or WhatsApp message
-    // never affects the ticket.
-    const notifyPayload = {
-      type: 'ticket',
-      ticket_number: ticketNumber,
-      ticket_type: payload.type === 'Anunt accident' ? 'Accident / urgență' : 'Defect',
-      name: payload.name,
-      phone: payload.phone,
-      email: payload.email || '-',
-      address: payload.address,
-      description: payload.description || '-',
-    };
-    sendNotification(notifyPayload);
-    // WhatsApp notifications turned off — Meta bills each one as a
-    // billable Utility template message, and Adam decided the
-    // recurring cost isn't worth it. Email notifications above are
-    // unaffected and continue exactly as before. All the WhatsApp
-    // setup (Edge Function, secrets, approved template) is still in
-    // place if this ever needs to be switched back on — just
-    // uncomment the line below.
-    // sendWhatsAppNotification(notifyPayload);
-    sendPushNotification(notifyPayload); // free — replaces WhatsApp for staff alerts
+    // Notifying the team now happens entirely server-side (a database
+    // trigger, once the row above is actually saved) — see
+    // supabase/sql/005_notify_triggers.sql. Nothing left to call here.
+    if (window.turnstile) turnstile.reset('#ticketCaptcha');
 
     ticketForm.reset();
     ticketForm.style.display = 'none';

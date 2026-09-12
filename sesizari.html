@@ -307,26 +307,17 @@
 
      IMPORTANT (security): this page reads from `public_tickets`, a
      Postgres VIEW in Supabase -- NOT the real `tickets` table. That
-     view intentionally excludes name, phone, email, and resolved_by,
-     exposing only: ticket_number, type, address, description, status,
-     submitted_on, resolved_on. See public-tickets-view.sql for the
-     view definition -- if a ticket's status/dates aren't showing up
-     here even though they're saved on the ticket in admin.html, the
-     view is missing one of those columns; re-run something like:
-
-       create or replace view public_tickets as
-       select
-         id, ticket_number, type, address, description, status,
-         submitted_on, resolved_on
-       from tickets
-       where archived = false;
-
-     (adjust to match whatever the original view's column list /
-     WHERE clause actually was, if it differs from this). Do NOT
+     view intentionally excludes name, phone, email, resolved_by, AND
+     the free-text description -- exposing only: ticket_number, type,
+     a generalized `area` (not the full street address), status,
+     submitted_on, resolved_on. See supabase/sql/006_public_tickets_view.sql
+     in this repo for the actual, committed view definition (this used
+     to say "see public-tickets-view.sql", a file that was never
+     actually in the repo -- it now is, under supabase/sql/). Do NOT
      change this page to query `tickets` directly -- that table's
      RLS only allows staff (authenticated) to read it, and even if
      that were opened up to anon, it would leak every visitor's
-     name/phone/email publicly.
+     name/phone/email/full address publicly.
 
      Only two filters are offered on purpose (Active / Soluționate) --
      no "Toate" combined view, matching the brief for this page.
@@ -433,7 +424,7 @@
     const filtered = allTickets.filter(t => {
       const matchFilter = t.status === activeFilter;
       const matchSearch = !searchTerm ||
-        (t.address || '').toLowerCase().includes(searchTerm) ||
+        (t.area || '').toLowerCase().includes(searchTerm) ||
         (t.ticket_number || '').toLowerCase().includes(searchTerm);
       return matchFilter && matchSearch;
     });
@@ -460,9 +451,7 @@
         </div>
         <div class="ticket-body">
           <div><span class="k">${t('public_k_date')}</span>${fmtDate(tk.submitted_on)}</div>
-          <div><span class="k">${t('public_k_address')}</span>${escapeHtml(tk.address || '—')}</div>
-          ${tk.public_name ? `<div><span class="k">${t('public_k_name')}</span>${escapeHtml(tk.public_name)}</div>` : ''}
-          ${tk.description ? `<div class="full"><span class="k">${t('public_k_desc')}</span>${escapeHtml(tk.description)}</div>` : ''}
+          <div><span class="k">${t('public_k_address')}</span>${escapeHtml(tk.area || '—')}</div>
           ${isDone ? `<div class="full"><span class="k">${t('public_k_resolved')}</span>${fmtDate(tk.resolved_on)}</div>` : ''}
         </div>
       `;
