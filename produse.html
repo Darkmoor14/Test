@@ -532,6 +532,9 @@
         </select>
         <label data-i18n="ef_message_label">Detalii solicitare</label>
         <textarea id="e-message" placeholder="Cantitate, specificații, termen dorit..." data-i18n-placeholder="ef_message_ph" required></textarea>
+        <!-- Same Turnstile site key as index.html/raportare.html -- one
+             widget per domain, safe to reuse across every form on the site. -->
+        <div class="cf-turnstile" id="enquiryCaptcha" data-sitekey="0x4AAAAAAEyundb1gymMWT4I" style="margin:12px 0;"></div>
         <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;" id="enquirySubmitBtn" data-i18n="ef_submit_btn">Trimite solicitarea</button>
       </form>
       <div class="form-msg" id="enquiryMsg"></div>
@@ -592,6 +595,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <div class="modal-overlay" id="cookieModal" onclick="if(event.target===this) closeModal('cookieModal')">
   <div class="modal-card">
@@ -626,27 +630,6 @@
   function closeModal(id){ document.getElementById(id).classList.remove('open'); document.body.style.overflow = ''; }
   document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id)); } });
 
-
-  /* ============================================================
-     EMAIL NOTIFICATIONS — sent via the same Supabase Edge Function
-     used elsewhere on the site ("bright-processor" -- see index.html's
-     equivalent comment for why the name looks odd). Never blocks the
-     actual ticket submission if it fails.
-     ============================================================ */
-  async function sendNotification(payload, { allowFailure = true } = {}){
-    try {
-      const { error } = await supabaseClient.functions.invoke('bright-processor', {
-        body: payload,
-      });
-      if (error) {
-        console.error('bright-processor (email) function failed:', error);
-        if (!allowFailure) throw error;
-      }
-    } catch (err) {
-      console.error('bright-processor (email) call failed:', err);
-      if (!allowFailure) throw err;
-    }
-  }
 
   // Push notification to every staff device that has installed the
   // Admin PWA and enabled notifications there (see admin.html). Free
@@ -718,13 +701,13 @@
   window.addEventListener('langchange', renderProducts);
 
   /* ============================================================
-     ENQUIRY FORM — sends straight to office@insta-grup.ro via the
-     same 'contact' notification type already used by index.html's
-     own contact form (see bright-processor Edge Function — the
-     recipient is fixed server-side for this type, not something the
-     client controls). No Supabase table of its own, same as that
-     form: purely a "send us an email" enquiry, not a persisted
-     ticket record.
+     ENQUIRY FORM — goes through submit_contact_message() (CAPTCHA +
+     rate-limited server-side, same RPC index.html's own contact form
+     uses), which saves it and lets a database trigger notify
+     office@insta-grup.ro from trusted server-side data. Used to call
+     the bright-processor Edge Function directly from the browser with
+     no validation at all -- fixed alongside the rest of the public
+     endpoints (see the P1 security review this session).
      ============================================================ */
   const enquiryForm = document.getElementById('enquiryForm');
   const enquiryMsg = document.getElementById('enquiryMsg');
@@ -743,30 +726,35 @@
     const message = document.getElementById('e-message').value.trim();
 
     // The product of interest is folded into the message body rather
-    // than sent as a separate field, since bright-processor's
-    // 'contact' type only has a fixed from_name/from_email/message
-    // shape (matching index.html's own contact form) — adding a new
-    // field there would mean changing the Edge Function too.
+    // than sent as a separate field, since submit_contact_message()
+    // only has a fixed p_name/p_email/p_message shape (matching
+    // index.html's own contact form) — adding a new field there would
+    // mean changing the RPC too.
     const fullMessage = productName
       ? `Produs de interes: ${productName}\n\n${message}`
       : message;
 
-    try {
-      await sendNotification(
-        { type: 'contact', from_name: name, from_email: email, message: fullMessage },
-        { allowFailure: false }
-      );
+    const captchaToken = document.querySelector('#enquiryCaptcha [name="cf-turnstile-response"]')?.value || '';
+
+    const { error } = await supabaseClient.rpc('submit_contact_message', {
+      p_name: name,
+      p_email: email,
+      p_message: fullMessage,
+      p_captcha_token: captchaToken,
+    });
+
+    if (error) {
+      console.error(error);
+      enquiryMsg.className = 'form-msg error';
+      enquiryMsg.textContent = t('ef_error');
+    } else {
       enquiryMsg.className = 'form-msg success';
       enquiryMsg.textContent = t('ef_success');
       enquiryForm.reset();
-    } catch (err) {
-      console.error(err);
-      enquiryMsg.className = 'form-msg error';
-      enquiryMsg.textContent = t('ef_error');
-    } finally {
-      enquirySubmitBtn.disabled = false;
-      enquirySubmitBtn.textContent = t('ef_submit_btn');
     }
+    if (window.turnstile) turnstile.reset('#enquiryCaptcha');
+    enquirySubmitBtn.disabled = false;
+    enquirySubmitBtn.textContent = t('ef_submit_btn');
   });
 
 
