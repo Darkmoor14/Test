@@ -48,10 +48,10 @@ and don't have this concern.
   raw form data — authenticated with a shared secret only the trigger
   knows.
 - **`public_tickets`** is rewritten to drop `description` and any name
-  field entirely, and to replace the full `address` with a generalized
-  `area` (street, no house number) via a best-effort regex. It's a
-  heuristic, not a guarantee — see the comment in
-  `006_public_tickets_view.sql`.
+  field entirely. `address` is kept exact and unmasked — it's the
+  location of the reported fault, not the reporter's own address, and
+  this is a public transparency page about where faults are, so
+  precision there is the point, not a leak.
 
 ## Required one-time setup in the Supabase dashboard
 

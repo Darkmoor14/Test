@@ -754,7 +754,7 @@
     const filtered = allTickets.filter(tk => {
       const matchFilter = tk.status === activeFilter;
       const matchSearch = !searchTerm ||
-        (tk.area || '').toLowerCase().includes(searchTerm) ||
+        (tk.address || '').toLowerCase().includes(searchTerm) ||
         (tk.ticket_number || '').toLowerCase().includes(searchTerm);
       return matchFilter && matchSearch;
     });
@@ -781,7 +781,7 @@
         </div>
         <div class="ticket-body">
           <div><span class="k">${t('public_k_date')}</span>${fmtDate(tk.submitted_on)}</div>
-          <div><span class="k">${t('public_k_address')}</span>${escapeHtml(tk.area || '—')}</div>
+          <div><span class="k">${t('public_k_address')}</span>${escapeHtml(tk.address || '—')}</div>
           ${isDone ? `<div class="full"><span class="k">${t('public_k_resolved')}</span>${fmtDate(tk.resolved_on)}</div>` : ''}
         </div>
       `;
