@@ -305,21 +305,27 @@
      see the current state of reported street-lighting issues, for
      transparency.
 
-     IMPORTANT (security): this page reads from `public_tickets`, a
-     Postgres VIEW in Supabase -- NOT the real `tickets` table. That
-     view intentionally excludes name, phone, email, resolved_by, AND
-     the free-text description -- exposing only: ticket_number, type,
-     address, status, submitted_on, resolved_on. Address IS kept exact
-     on purpose here -- it's the location of the reported fault (which
-     pole, which stretch of street), not the reporter's own address,
-     and a vague location would defeat the point of this page. See
+     IMPORTANT (security/GDPR): this page reads from `public_tickets`,
+     a Postgres VIEW in Supabase -- NOT the real `tickets` table. That
+     view intentionally excludes phone, email, resolved_by, AND the
+     free-text description -- exposing only: ticket_number, type,
+     address, status, submitted_on, resolved_on, and `public_name`.
+     Address IS kept exact on purpose -- it's the location of the
+     reported fault (which pole, which stretch of street), not the
+     reporter's own address, and a vague location would defeat the
+     point of this page. `public_name` is NOT a real citizen's name --
+     the view only ever fills it in when the ticket's `name` column
+     holds one of a small set of institutional sources (Autosesizare /
+     Poliția locală / Birou energetic); any actual person's name stays
+     null/hidden, same as before. See
      supabase/sql/006_public_tickets_view.sql in this repo for the
      actual, committed view definition (this used to say "see
      public-tickets-view.sql", a file that was never actually in the
      repo -- it now is, under supabase/sql/). Do NOT change this page
      to query `tickets` directly -- that table's RLS only allows staff
      (authenticated) to read it, and even if that were opened up to
-     anon, it would leak every visitor's name/phone/email publicly.
+     anon, it would leak every visitor's real name/phone/email
+     publicly.
 
      Only two filters are offered on purpose (Active / Soluționate) --
      no "Toate" combined view, matching the brief for this page.
@@ -454,6 +460,7 @@
         <div class="ticket-body">
           <div><span class="k">${t('public_k_date')}</span>${fmtDate(tk.submitted_on)}</div>
           <div><span class="k">${t('public_k_address')}</span>${escapeHtml(tk.address || '—')}</div>
+          ${tk.public_name ? `<div><span class="k">${t('public_k_name')}</span>${escapeHtml(tk.public_name)}</div>` : ''}
           ${isDone ? `<div class="full"><span class="k">${t('public_k_resolved')}</span>${fmtDate(tk.resolved_on)}</div>` : ''}
         </div>
       `;

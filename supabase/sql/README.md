@@ -1,12 +1,12 @@
 # Supabase server-side SQL — security remediation
 
 None of this repo ever had the project's real SQL committed to it — every
-Postgres function referenced from the client (`create_ticket`, the
-`public_tickets` view) has lived only in the live Supabase project, with
-no local source to review or diff against. That's the core problem this
-folder fixes: from now on, the server-side logic that matters for public
-safety is written down here first, and the live project is expected to
-match it.
+Postgres function referenced from the client lived only in the live
+Supabase project, with no local source to review or diff against. That's
+the core problem this folder fixes: the server-side logic that matters
+for public safety is now written down here, reconciled against the real
+deployed source where it was available (`create_ticket()`, both Edge
+Functions), and the live project is expected to match it going forward.
 
 **The two Edge Functions in `supabase/functions/` ARE the real deployed
 logic** (their actual source was provided directly, not reconstructed) —
@@ -17,15 +17,18 @@ top (see "What changed and why" below); the business logic after that
 point is exactly what was already running. These are safe to deploy as
 committed here, once the one-time setup below is done.
 
-**The SQL files ARE still reference implementations, not a migration
-diff** — `create_ticket()`'s real source was never available to check
-against, so before running `003_create_ticket.sql`: open the real
-function in the Supabase SQL editor, compare it to what's here, and port
-over anything this reference doesn't know about (extra validation, a
-different `ticket_number` format, additional columns) rather than blindly
-overwriting a working function. The other SQL files (rate limiting,
-`contact_messages`, the triggers, `public_tickets`) are all genuinely new
-and don't have this concern.
+**`003_create_ticket.sql` is now reconciled against the real deployed
+function** (its source was provided directly) — ticket numbering is left
+entirely to the existing `trg_set_ticket_number` trigger, `status` and
+`submitted_on` are left to their column defaults, exactly like the real
+function. The only additions are the CAPTCHA/rate-limit check (anonymous
+callers only) and the new `created_via_public` column. Note that it
+explicitly `DROP`s the old 6-argument function before creating the new
+7-argument one — adding a parameter does not replace a function in
+Postgres, it creates a second, separate overload, which would have left
+the old unprotected version callable directly. The other SQL files (rate
+limiting, `contact_messages`, the triggers, `public_tickets`) were always
+genuinely new, not reconstructions.
 
 ## What changed and why
 
@@ -47,11 +50,18 @@ and don't have this concern.
   Functions server-side via `pg_net`, passing only a row id — never the
   raw form data — authenticated with a shared secret only the trigger
   knows.
-- **`public_tickets`** is rewritten to drop `description` and any name
-  field entirely. `address` is kept exact and unmasked — it's the
-  location of the reported fault, not the reporter's own address, and
-  this is a public transparency page about where faults are, so
-  precision there is the point, not a leak.
+- **`public_tickets`** drops `description`, `phone`, and `email`
+  entirely (GDPR — no reason for any of these to be public). `address`
+  is kept exact and unmasked — it's the location of the reported
+  fault, not the reporter's own address, and this is a public
+  transparency page about where faults are, so precision there is the
+  point, not a leak. `name` is GDPR-sensitive in general but is also
+  overloaded in this schema — an admin-logged ticket that came from an
+  institutional source (the company's own detection, local police, the
+  energy office) stores that source in the same `name` column a
+  citizen's own name would go in. `public_name` is only ever non-null
+  when `name` matches that specific institutional allowlist; an actual
+  person's name stays hidden.
 
 ## Required one-time setup in the Supabase dashboard
 
