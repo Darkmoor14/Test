@@ -394,7 +394,7 @@
     background:var(--copper-500);border-color:var(--copper-500);color:#fff;
   }
   .overview-icon-btn.add-btn:hover{background:var(--copper-600);border-color:var(--copper-600);}
-  .overview-date-filter-wrap{position:relative;display:flex;align-items:center;}
+  .overview-popover-wrap{position:relative;display:flex;align-items:center;}
   .overview-search-wrap{position:relative;display:flex;align-items:center;}
   /* Generic — targets any search input inside .overview-search-wrap
      by structure, not a specific ID. The original version of this
@@ -424,63 +424,27 @@
     .overview-search-wrap.expanded input[type="search"]{width:230px;}
   }
 
-  /* ===== MINI CALENDAR (day/month/year, replaces the old plain
-     year+month dropdowns for this one popover) — a compact custom
-     grid rather than a browser-native <input type="date">, since a
-     native date input can't be scoped to only the years/months that
-     actually have tickets, and can't show a "some tickets exist this
-     day" affordance directly in the grid the way a bespoke one can
-     later if that's ever wanted. Positioned absolute, anchored to the
-     calendar icon that opens it, same popover pattern as everywhere
-     else on this page. */
-  .mini-calendar{
+  /* ===== FILTER POPOVER (An/Lună + status, one per tab that has a
+     "Filtre" icon) — replaces the old per-tab mix of a day-level mini
+     calendar, a separate "Filtre" text button/sheet, and inline
+     always-visible status chips. Same popover positioning as every
+     other icon-triggered panel on this page (compare .mini-calendar's
+     old position:absolute/top/right pattern, now generalized here
+     instead of duplicated). Plain year+month <select>s, not a day
+     grid — day-level narrowing was more than anyone actually asked
+     for and just added a second, redundant way to pick a date
+     alongside this one. */
+  .filter-popover{
     display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:60;
     background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;
-    padding:14px;box-shadow:0 8px 24px rgba(20,24,29,0.15);width:240px;
+    padding:16px;box-shadow:0 8px 24px rgba(20,24,29,0.15);width:260px;
   }
-  .mini-calendar.open{display:block;}
-  /* Same inner chrome as .mini-calendar (the mini-cal-* classes are
-     shared), but meant to sit permanently inline instead of behind a
-     popover toggle — e.g. inside a filter sheet that's already an
-     explicit, deliberately-opened panel of its own. */
-  .sheet-mini-calendar{
-    background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;
-    padding:10px;margin-top:4px;max-width:220px;
+  .filter-popover.open{display:block;}
+  .filter-popover .sheet-grid{margin-bottom:14px;}
+  .filter-popover .sheet-filter-status label{
+    font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;
+    color:var(--ink-600);display:block;margin-bottom:10px;
   }
-  .mini-cal-header{
-    display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;
-  }
-  .mini-cal-month-label{font-family:var(--mono);font-size:13px;color:var(--ink-900);text-transform:capitalize;background:none;border:none;border-radius:4px;padding:2px 7px;cursor:pointer;}
-  .mini-cal-month-label:hover{background:var(--paper-050);color:var(--copper-600);}
-  .mini-cal-month-label.active-filter{background:var(--copper-050);color:var(--copper-600);}
-  .mini-cal-header button:not(.mini-cal-month-label){
-    width:26px;height:26px;flex-shrink:0;border-radius:50%;border:1px solid var(--line-strong);
-    background:var(--paper-000);color:var(--ink-700);cursor:pointer;font-size:14px;line-height:1;
-  }
-  .mini-cal-header button:not(.mini-cal-month-label):hover{border-color:var(--copper-500);color:var(--copper-600);}
-  .mini-cal-month-label{white-space:nowrap;}
-  .mini-cal-weekdays{
-    display:grid;grid-template-columns:repeat(7,1fr);
-    font-family:var(--mono);font-size:10.5px;color:var(--ink-400);
-    text-align:center;margin-bottom:4px;
-  }
-  .mini-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
-  .mini-cal-day{
-    width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
-    font-size:12.5px;color:var(--ink-900);background:none;border:none;border-radius:4px;
-    cursor:pointer;
-  }
-  .mini-cal-day:hover{background:var(--paper-050);}
-  .mini-cal-day.outside{color:var(--ink-300);}
-  .mini-cal-day.today{font-weight:700;color:var(--copper-600);}
-  .mini-cal-day.selected{background:var(--copper-500);color:#fff;}
-  .mini-cal-clear-btn{
-    width:100%;margin-top:10px;padding:7px;font-family:var(--mono);font-size:11px;
-    text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-600);
-    background:none;border:1px solid var(--line-strong);border-radius:4px;cursor:pointer;
-  }
-  .mini-cal-clear-btn:hover{border-color:var(--copper-500);color:var(--copper-600);}
-  .mini-cal-clear-btn.active-filter{border-color:var(--copper-500);color:var(--copper-600);background:var(--copper-050);}
 
   .priority-grid{
     display:grid;grid-template-columns:repeat(5,1fr);gap:14px;
@@ -519,22 +483,17 @@
      regardless of file order. */
   .overview-icon-btn.repair-import-btn{display:none;}
   html.report-focused-view .overview-icon-btn.repair-import-btn{display:flex;}
-  /* Status filtering now lives inside the "Filtre" sheet for every
-     mobile admin (see #overviewSheetStatusSection below), not just
-     report-focused — this separate inline chip row is redundant with
-     that and hidden unconditionally now instead of only for one
-     role. The actual display:none for it lives further down, right
-     after its own base rule (same reason .overview-year-bar's
-     override has to sit right after its base rule too — a media
-     query alone doesn't win a same-specificity tie against a rule
-     that simply comes later in the file). Year/month bar hidden the
-     same way, for the same reason. */
-  /* Sheet's status-chip section — shown to every mobile admin now.
-     Chips themselves are populated with the standard 3-option set at
-     script-load time; the report-focused role's extra 4th option
-     ("Așteaptă raport") gets appended separately once login resolves
-     who's actually logged in (see fetchCurrentUserRole's .then()). */
-  #overviewSheetStatusSection{display:block;}
+  /* Excel import/export icons (repair sheet, Raport Excel, Proiecte's
+     import, Avarii's export) aren't a phone workflow — uploading or
+     downloading a spreadsheet on a small screen isn't something
+     anyone actually does there, and they were just extra clutter
+     competing with Filtre/Add/Search for space in the icon row.
+     Desktop keeps all of them exactly as before; !important is needed
+     here specifically to also outweigh .repair-import-btn's own
+     role-gated display:flex above, regardless of role, on mobile. */
+  @media(max-width:900px){
+    .excel-icon-btn{display:none !important;}
+  }
   /* Desktop only — on mobile, .admin-tabs-row (the tabs this spacing
      is meant to separate from) is hidden entirely, replaced by the
      bottom tab bar, so this specific relationship doesn't apply
@@ -898,12 +857,12 @@
   .chip.active{background:var(--copper-500);border-color:var(--copper-500);color:#fff;}
   /* Used to stretch every sheet chip to fill its row (flex:1 1 auto)
      to fix a specific 5-chip ragged-wrap case on Sesizări's old
-     "Filtre" sheet — that sheet is gone now (status chips live inline
-     in the toolbar instead, see ticketStatusChipsToolbar), and the
-     remaining sheets' 2-4-chip status rows have plenty of spare width
-     per row, so stretching them just turned normal compact pill
-     buttons into oversized full-width blocks. Sizing chips by their
-     own content again, same as every other chip row on the page. */
+     "Filtre" sheet — every tab's status chips live inside a compact
+     Filtre popover now (.filter-popover, see createFilterPopoverWidget)
+     with plenty of spare width per row, so stretching them just
+     turned normal compact pill buttons into oversized full-width
+     blocks. Sizing chips by their own content again, same as every
+     other chip row on the page. */
   .result-count{font-family:var(--mono);font-size:12.5px;color:var(--ink-400);}
   /* Placed immediately after its own base rule, not just wrapped in a
      media query somewhere else convenient — same reasoning as the
@@ -919,12 +878,6 @@
   @media(max-width:900px){
     .result-count{display:none;}
   }
-  .overview-mobile-status-filter{display:none;}
-  .overview-mobile-status-filter .chips{gap:10px;}
-  .filter-inline-group{
-    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-  }
-  .filter-inline-group .chips{align-items:center;}
   .sheet-filter-status{
     margin-top:16px;
   }
@@ -934,30 +887,12 @@
   .sheet-filter-status .chip{
     text-align:center;
   }
-  .toolbar-mobile-actions,
-  .toolbar-mobile-summary,
-  .toolbar-mobile-only{display:none;}
-  .toolbar-desktop-only{display:inline-flex;}
+  .toolbar-mobile-summary{display:none;}
   @media(max-width:900px){
-    .toolbar-mobile-actions{display:flex;}
     .toolbar-mobile-summary{display:flex;}
-    .toolbar-mobile-only{display:inline-flex;}
-    .toolbar-desktop-only{display:none;}
-    .filter-inline-group{width:100%;}
-    .overview-mobile-status-filter{display:block;}
-  }
-  /* Has to come after the display:block rule right above, not just be
-     wrapped in its own media query — see the comment near this
-     element's other reference higher up in the file for why a media
-     query alone doesn't win a same-specificity tie against a rule
-     that simply appears later in the stylesheet. */
-  @media(max-width:900px){
-    .overview-mobile-status-filter{display:none;}
   }
   @media(min-width:901px){
-    .toolbar-mobile-actions,
-    .toolbar-mobile-summary,
-    .toolbar-mobile-only{display:none !important;}
+    .toolbar-mobile-summary{display:none !important;}
   }
   .mobile-sheet{
     position:fixed;inset:0;z-index:320;display:none;
@@ -1289,21 +1224,30 @@
         <span class="year-warning" id="yearWarningProjectsDesktop">⚠ Nu e anul curent</span>
       </div>
       <div class="overview-quick-filters active" data-year-panel="overview">
-        <div class="overview-date-filter-wrap">
-          <button type="button" class="overview-icon-btn" id="overviewDateToggleBtn" aria-label="Filtrare după dată">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <div class="overview-popover-wrap">
+          <button type="button" class="overview-icon-btn" id="overviewFilterToggleBtn" aria-label="Filtre">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
           </button>
-          <div class="mini-calendar" id="overviewMiniCalendar">
-            <div class="mini-cal-header">
-              <button type="button" id="miniCalPrevBtn" aria-label="Luna anterioară">‹</button>
-              <button type="button" class="mini-cal-month-label" id="miniCalLabel">—</button>
-              <button type="button" id="miniCalNextBtn" aria-label="Luna următoare">›</button>
+          <div class="filter-popover" id="overviewFilterPopover">
+            <div class="sheet-grid">
+              <div class="ctrl-field">
+                <label for="yearFilterSelectOverviewMobile">An</label>
+                <select id="yearFilterSelectOverviewMobile"></select>
+              </div>
+              <div class="ctrl-field">
+                <label for="monthFilterSelectOverviewMobile">Lună</label>
+                <select id="monthFilterSelectOverviewMobile"></select>
+              </div>
             </div>
-            <div class="mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
-            <div class="mini-cal-grid" id="miniCalGrid"></div>
-            <button type="button" class="mini-cal-clear-btn" id="miniCalClearBtn">Toate zilele</button>
+            <div class="sheet-filter-status">
+              <label>Stare listă</label>
+              <div class="chips" id="overviewStatusChipsPopover"></div>
+            </div>
           </div>
         </div>
+        <button type="button" class="overview-icon-btn add-btn" id="addTicketBtn" title="Adaugă sesizare" aria-label="Adaugă sesizare">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
         <div class="overview-search-wrap" id="overviewSearchWrap">
           <button type="button" class="overview-icon-btn" id="overviewSearchToggleBtn" aria-label="Căutare">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1311,32 +1255,38 @@
           <input type="search" id="overviewSearchBox" placeholder="Caută nume, adresă, telefon…">
         </div>
         <input type="file" id="repairSheetInput" accept=".xlsx,.xls,.csv" style="display:none;">
-        <button type="button" class="overview-icon-btn repair-import-btn" id="importRepairSheetBtn" title="Încarcă fișă remedieri" aria-label="Încarcă fișă remedieri">
+        <button type="button" class="overview-icon-btn repair-import-btn excel-icon-btn" id="importRepairSheetBtn" title="Încarcă fișă remedieri" aria-label="Încarcă fișă remedieri">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </button>
-        <button type="button" class="overview-icon-btn" id="exportExcelBtn" title="Raport Excel" aria-label="Raport Excel">
+        <button type="button" class="overview-icon-btn excel-icon-btn" id="exportExcelBtn" title="Raport Excel" aria-label="Raport Excel">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        </button>
-        <button type="button" class="overview-icon-btn add-btn" id="addTicketBtn" title="Adaugă sesizare" aria-label="Adaugă sesizare">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       </div>
       <div class="overview-quick-filters" data-year-panel="tickets">
-        <div class="overview-date-filter-wrap">
-          <button type="button" class="overview-icon-btn" id="ticketsDateToggleBtn" aria-label="Filtrare după dată">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <div class="overview-popover-wrap">
+          <button type="button" class="overview-icon-btn" id="ticketsFilterToggleBtn" aria-label="Filtre">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
           </button>
-          <div class="mini-calendar" id="ticketsMiniCalendar">
-            <div class="mini-cal-header">
-              <button type="button" id="ticketsMiniCalPrevBtn" aria-label="Luna anterioară">‹</button>
-              <button type="button" class="mini-cal-month-label" id="ticketsMiniCalLabel">—</button>
-              <button type="button" id="ticketsMiniCalNextBtn" aria-label="Luna următoare">›</button>
+          <div class="filter-popover" id="ticketsFilterPopover">
+            <div class="sheet-grid">
+              <div class="ctrl-field">
+                <label for="yearFilterSelectTicketsPopover">An</label>
+                <select id="yearFilterSelectTicketsPopover"></select>
+              </div>
+              <div class="ctrl-field">
+                <label for="monthFilterSelectTicketsPopover">Lună</label>
+                <select id="monthFilterSelectTicketsPopover"></select>
+              </div>
             </div>
-            <div class="mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
-            <div class="mini-cal-grid" id="ticketsMiniCalGrid"></div>
-            <button type="button" class="mini-cal-clear-btn" id="ticketsMiniCalClearBtn">Toate zilele</button>
+            <div class="sheet-filter-status">
+              <label>Stare listă</label>
+              <div class="chips" id="ticketStatusChipsPopover"></div>
+            </div>
           </div>
         </div>
+        <button type="button" class="overview-icon-btn add-btn" id="addTicketBtnTickets" title="Adaugă sesizare" aria-label="Adaugă sesizare">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
         <div class="overview-search-wrap" id="ticketsIconSearchWrap">
           <button type="button" class="overview-icon-btn" id="ticketsSearchToggleBtn" aria-label="Căutare">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1345,21 +1295,30 @@
         </div>
       </div>
       <div class="overview-quick-filters" data-year-panel="projects">
-        <div class="overview-date-filter-wrap">
-          <button type="button" class="overview-icon-btn" id="projectsDateToggleBtn" aria-label="Filtrare după dată">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <div class="overview-popover-wrap">
+          <button type="button" class="overview-icon-btn" id="projectsFilterToggleBtn" aria-label="Filtre">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
           </button>
-          <div class="mini-calendar" id="projectsMiniCalendar">
-            <div class="mini-cal-header">
-              <button type="button" id="projectsMiniCalPrevBtn" aria-label="Luna anterioară">‹</button>
-              <button type="button" class="mini-cal-month-label" id="projectsMiniCalLabel">—</button>
-              <button type="button" id="projectsMiniCalNextBtn" aria-label="Luna următoare">›</button>
+          <div class="filter-popover" id="projectsFilterPopover">
+            <div class="sheet-grid">
+              <div class="ctrl-field">
+                <label for="projectYearFilterSelectPopover">An</label>
+                <select id="projectYearFilterSelectPopover"></select>
+              </div>
+              <div class="ctrl-field">
+                <label for="projectMonthFilterSelectPopover">Lună</label>
+                <select id="projectMonthFilterSelectPopover"></select>
+              </div>
             </div>
-            <div class="mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
-            <div class="mini-cal-grid" id="projectsMiniCalGrid"></div>
-            <button type="button" class="mini-cal-clear-btn" id="projectsMiniCalClearBtn">Toate zilele</button>
+            <div class="sheet-filter-status">
+              <label>Stare listă</label>
+              <div class="chips" id="projectsChipsWrap"></div>
+            </div>
           </div>
         </div>
+        <button type="button" class="overview-icon-btn add-btn" id="addProjectBtn" title="Adaugă proiect" aria-label="Adaugă proiect">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
         <div class="overview-search-wrap" id="projectsIconSearchWrap">
           <button type="button" class="overview-icon-btn" id="projectsSearchToggleBtn" aria-label="Căutare">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1367,25 +1326,33 @@
           <input type="search" id="projectsIconSearchBox" placeholder="Caută titlu, adresă…">
         </div>
         <input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none;">
-        <button type="button" class="overview-icon-btn" id="importExcelBtn" title="Importă din Excel" aria-label="Importă din Excel">
+        <button type="button" class="overview-icon-btn excel-icon-btn" id="importExcelBtn" title="Importă din Excel" aria-label="Importă din Excel">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        </button>
-        <button type="button" class="overview-icon-btn add-btn" id="addProjectBtn" title="Adaugă proiect" aria-label="Adaugă proiect">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       </div>
       <div class="overview-quick-filters" data-year-panel="backlog">
+        <div class="overview-popover-wrap">
+          <button type="button" class="overview-icon-btn" id="backlogFilterToggleBtn" aria-label="Filtre">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          </button>
+          <div class="filter-popover" id="backlogFilterPopover">
+            <div class="sheet-filter-status">
+              <label>Stare listă</label>
+              <div class="chips" id="backlogChipsWrap"></div>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="overview-icon-btn add-btn" id="addBacklogBtn" title="Adaugă lucrare" aria-label="Adaugă lucrare">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
         <div class="overview-search-wrap" id="backlogIconSearchWrap">
           <button type="button" class="overview-icon-btn" id="backlogIconSearchToggleBtn" aria-label="Căutare">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </button>
           <input type="search" id="backlogIconSearchBox" placeholder="Caută titlu, adresă, angajat…">
         </div>
-        <button type="button" class="overview-icon-btn" id="exportBacklogExcelBtn" title="Exportă Excel" aria-label="Exportă Excel">
+        <button type="button" class="overview-icon-btn excel-icon-btn" id="exportBacklogExcelBtn" title="Exportă Excel" aria-label="Exportă Excel">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        </button>
-        <button type="button" class="overview-icon-btn add-btn" id="addBacklogBtn" title="Adaugă lucrare" aria-label="Adaugă lucrare">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       </div>
     </div>
@@ -1483,10 +1450,6 @@
         </div>
       </div>
 
-      <div class="overview-mobile-status-filter">
-        <div class="chips" id="overviewStatusChipsMobile"></div>
-      </div>
-      <button class="btn toolbar-mobile-only" id="overviewFiltersMobileBtn" type="button">Filtre</button>
       <div class="overview-year-bar">
         <label for="yearFilterSelect">An:</label>
         <select id="yearFilterSelect"></select>
@@ -1543,7 +1506,6 @@
         <div style="display:flex; align-items:center; gap:14px;">
           <div class="result-count" id="resultCount"></div>
         </div>
-        <div class="chips" id="ticketStatusChipsToolbar"></div>
         <div class="toolbar-mobile-summary">
           <span id="resultCountMobile">0 tichete</span>
           <span id="ticketFilterHintMobile">Folosește filtrele sau căutarea</span>
@@ -1574,7 +1536,6 @@
         <div style="display:flex; align-items:center; gap:14px;">
           <div class="result-count" id="projectsCount"></div>
         </div>
-        <div class="chips" id="projectsChipsWrap"></div>
         <div class="toolbar-mobile-summary">
           <span id="projectsCountMobile">0 proiecte</span>
           <span id="projectFilterHintMobile">Folosește filtrele sau căutarea</span>
@@ -1633,7 +1594,6 @@
         <div style="display:flex; align-items:center; gap:14px;">
           <div class="result-count" id="backlogCount"></div>
         </div>
-        <div class="chips" id="backlogChipsWrap"></div>
         <div class="toolbar-mobile-summary">
           <span id="backlogCountMobile">0 lucrări</span>
         </div>
@@ -1672,37 +1632,6 @@
       <div class="backlog-list" id="backlogList"></div>
     </div>
 </div>
-</div>
-
-<div class="mobile-sheet" id="overviewFiltersSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="overviewFiltersSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="overviewFiltersSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div>
-        <h3 id="overviewFiltersSheetTitle">Filtre prezentare generală</h3>
-        <p>Controlezi rapid anul, luna și starea listei fără să aglomerezi bara de sus pe telefon.</p>
-      </div>
-      <button type="button" class="sheet-close" data-close-sheet="overviewFiltersSheet" aria-label="Închide">×</button>
-    </div>
-    <div class="sheet-grid">
-      <div class="ctrl-field">
-        <label for="yearFilterSelectOverviewMobile">An</label>
-        <select id="yearFilterSelectOverviewMobile"></select>
-      </div>
-      <div class="ctrl-field">
-        <label for="monthFilterSelectOverviewMobile">Lună</label>
-        <select id="monthFilterSelectOverviewMobile"></select>
-      </div>
-    </div>
-    <div class="sheet-filter-status" id="overviewSheetStatusSection">
-      <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Stare listă</label>
-      <div class="chips" id="overviewStatusChipsSheet"></div>
-    </div>
-    <div class="sheet-actions">
-      <button type="button" class="btn btn-primary" data-close-sheet="overviewFiltersSheet">Aplică</button>
-    </div>
-  </div>
 </div>
 
 <div class="mobile-sheet" id="reportTypeSheet" aria-hidden="true">
@@ -2016,17 +1945,13 @@
   // just be set directly, no data-driven fallback needed. Someone
   // wanting the full history still has "Toate lunile" one click away.
   let ticketMonthFilter = String(new Date().getMonth() + 1);
-  // Defaults to "Active" on phone specifically — a phone screen is
-  // small enough that "everything, including tickets already closed"
-  // isn't a useful first view the way it can be on a wider desktop
-  // table; someone checking Overview on their phone is almost always
-  // asking "what still needs attention," not doing a full audit.
-  // Desktop keeps its original "Toate" default untouched. Checked
-  // once at load (matches the same 900px breakpoint the rest of the
-  // site's mobile/desktop split uses) — this is an initial default,
-  // not something that needs to react to the window being resized
-  // afterward.
-  let overviewStatusFilter = window.matchMedia('(max-width: 900px)').matches ? 'active' : 'all';
+  // "Active" by default everywhere now, not just on phone — same
+  // default as Sesizări/Proiecte's own status filter (Ongoing), and
+  // matches what the Filtre popover's own "non-default filter" accent
+  // treats as the baseline (see createFilterPopoverWidget). Used to
+  // be phone-only (desktop defaulted to "Toate"), which was exactly
+  // the kind of inconsistency this default is meant to end.
+  let overviewStatusFilter = 'active';
 
   // A ticket is "awaiting report" when it's solved but nobody's
   // written up what was done yet — not a real stored status, just
@@ -2160,46 +2085,31 @@
 
   function getFilteredTickets(){
     const query = ticketSearchQuery.trim().toLowerCase();
-    let base;
-    if (activeStatusFilter === 'Archived') {
-      base = allTickets.filter(t => t.archived);
-    } else if (activeStatusFilter === 'AwaitingReport') {
-      // Not a real status of its own — see isAwaitingReport() above.
-      base = allTickets.filter(t => !t.archived && isAwaitingReport(t));
-    } else {
-      // Previously "Terminat" required a filled-in resolution_note
-      // too, splitting finished-but-unreported tickets off into
-      // "AwaitingReport" only — meaning a resolved ticket without
-      // "Ce s-a făcut" text never showed under "Terminat" itself.
-      // That's wrong: ticket status and report-writing are two
-      // separate things, and a ticket being done shouldn't depend on
-      // whether someone has gotten around to writing up what was
-      // done. "Terminat" now means exactly that — status is
-      // Terminat, full stop. "AwaitingReport" still exists below as
-      // a useful additional lens (which Terminat tickets still need
-      // a report written), it just no longer controls whether the
-      // ticket appears under "Terminat" itself.
-      base = allTickets.filter(t => !t.archived && (
-        activeStatusFilter === 'Toate' ? true : t.status === activeStatusFilter
-      ));
-    }
+    // Previously "Terminat" required a filled-in resolution_note too,
+    // splitting finished-but-unreported tickets off into a separate
+    // "AwaitingReport" status entirely — meaning a resolved ticket
+    // without "Ce s-a făcut" text never showed under "Terminat"
+    // itself. That's wrong: ticket status and report-writing are two
+    // separate things, and a ticket being done shouldn't depend on
+    // whether someone has gotten around to writing up what was done.
+    // "Terminat" means exactly that — status is Terminat, full stop
+    // (isAwaitingReport() above is a separate lens on top of it, for
+    // the accounts that need it, not a status of its own).
+    // No archived exclusion either — "Toate" means every ticket, and
+    // since only already-Terminat tickets ever get archived (see the
+    // auto-archive sweep), leaving it out of "Ongoing"/"Terminat" too
+    // costs nothing there (an archived ticket is never Ongoing) while
+    // fixing the one place it did matter: "Soluționate" no longer
+    // quietly stops counting a ticket the moment it ages into the
+    // archive.
+    let base = allTickets.filter(t =>
+      activeStatusFilter === 'Toate' ? true : t.status === activeStatusFilter
+    );
     // Type is a second, independent axis — applied on top of whichever
-    // status branch above ran, so e.g. "Arhivate" + "Accidente" (an
-    // archived accident report) works too, not just the non-archived
-    // branches.
+    // status branch above ran.
     if (activeTypeFilter === 'accident') base = base.filter(t => t.type === 'Anunt accident');
     else if (activeTypeFilter === 'functional') base = base.filter(t => t.type !== 'Anunt accident');
     base = base.filter(t => matchesSearch(t, query) && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
-    // Shared with Overview's own calendar (both read/write the same
-    // ticketYearFilter/ticketMonthFilter already, so sharing the day
-    // level too keeps the two tabs' date filtering fully consistent
-    // with each other, not just coincidentally similar).
-    if (typeof overviewDayFilter !== 'undefined' && overviewDayFilter !== null) {
-      base = base.filter(t => {
-        const d = parseTicketDate(t.submitted_on);
-        return !isNaN(d.getTime()) && d.getDate() === overviewDayFilter;
-      });
-    }
 
     // Extra narrowing applied when a priority card was clicked — see
     // clearNarrowFilter()/the priority card handlers further down.
@@ -2246,7 +2156,7 @@
     const selects = [
       document.getElementById('yearFilterSelect'),
       document.getElementById('yearFilterSelectTickets'),
-      document.getElementById('yearFilterSelectTicketsMobile'),
+      document.getElementById('yearFilterSelectTicketsPopover'),
       document.getElementById('yearFilterSelectOverviewMobile'),
       document.getElementById('yearFilterSelectDesktop'),
       document.getElementById('yearFilterSelectTicketsDesktop'),
@@ -2274,20 +2184,37 @@
 
     selects.forEach(s => { s.value = ticketYearFilter; });
     updateYearWarning(
-      ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectTicketsMobile', 'yearFilterSelectOverviewMobile', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
+      ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectTicketsPopover', 'yearFilterSelectOverviewMobile', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
       ['yearWarningOverview', 'yearWarningTickets', 'yearWarningOverviewDesktop', 'yearWarningTicketsDesktop'],
       ticketYearFilter
     );
   }
 
+  // Overview and Sesizări share ticketYearFilter/ticketMonthFilter,
+  // but each has its own Filtre icon — changing the year from either
+  // tab's popover needs to re-check BOTH icons' "non-default filter"
+  // highlight, not just the one whose own select fired the change
+  // event, or the other tab's icon would keep showing whatever state
+  // it happened to be in the last time IT was interacted with.
+  // Defined as a plain function (hoisted) and called defensively —
+  // createFilterPopoverWidget's syncActiveState() are still assigned
+  // further down at page-load, well before any real user interaction
+  // could trigger this, but a stray call during that brief window
+  // shouldn't throw.
+  function syncSharedFilterButtons(){
+    if (typeof overviewFilterWidget !== 'undefined' && overviewFilterWidget) overviewFilterWidget.syncActiveState();
+    if (typeof ticketsFilterWidget !== 'undefined' && ticketsFilterWidget) ticketsFilterWidget.syncActiveState();
+  }
+
   function setTicketYearFilter(value){
     ticketYearFilter = value;
-    document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
+    document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsPopover, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
     updateYearWarning(
-      ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectTicketsMobile', 'yearFilterSelectOverviewMobile', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
+      ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectTicketsPopover', 'yearFilterSelectOverviewMobile', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
       ['yearWarningOverview', 'yearWarningTickets', 'yearWarningOverviewDesktop', 'yearWarningTicketsDesktop'],
       ticketYearFilter
     );
+    syncSharedFilterButtons();
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
@@ -2298,7 +2225,7 @@
   // to run once, not every time tickets reload.
   const MONTH_FILTER_NAMES = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
   function populateMonthFilterSelects(){
-    const selects = document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop');
+    const selects = document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsPopover, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop');
     const optionsHtml = '<option value="all">Toate lunile</option>' +
       MONTH_FILTER_NAMES.map((name, i) => `<option value="${i + 1}">${name}</option>`).join('');
     selects.forEach(s => { s.innerHTML = optionsHtml; s.value = ticketMonthFilter; });
@@ -2306,7 +2233,8 @@
 
   function setTicketMonthFilter(value){
     ticketMonthFilter = value;
-    document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
+    document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsPopover, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
+    syncSharedFilterButtons();
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
@@ -2586,10 +2514,10 @@
     // one-way "add chip" / "hide element" is exactly the kind of
     // leftover that showed the next person to log in a leftover trace
     // of whoever was on before them.
-    const existingAwaitingChip = overviewStatusChipsSheet
-      ? overviewStatusChipsSheet.querySelector('[data-key="awaiting_report"]')
+    const existingAwaitingChip = overviewStatusChipsPopover
+      ? overviewStatusChipsPopover.querySelector('[data-key="awaiting_report"]')
       : null;
-    if (isReportFocusedView() && overviewStatusChipsSheet && !existingAwaitingChip) {
+    if (isReportFocusedView() && overviewStatusChipsPopover && !existingAwaitingChip) {
       const awaitingDef = reportFocusedChipDefs.find(c => c.key === 'awaiting_report');
       const chip = document.createElement('button');
       chip.type = 'button';
@@ -2597,7 +2525,7 @@
       chip.textContent = awaitingDef.label;
       chip.dataset.key = awaitingDef.key;
       chip.addEventListener('click', () => setOverviewStatusFilter(awaitingDef.key));
-      overviewStatusChipsSheet.appendChild(chip);
+      overviewStatusChipsPopover.appendChild(chip);
     } else if (!isReportFocusedView() && existingAwaitingChip) {
       existingAwaitingChip.remove();
     }
@@ -2672,24 +2600,18 @@
     typeOnlyFilter = null;
     ticketYearFilter = 'all';
     projectYearFilter = 'all';
-    // Has to match the SAME viewport-aware default used at initial
-    // declaration (line ~2108), not just hardcode 'all' — and has to
-    // sync the chip DOM right here too, not leave that to whichever
-    // render happens to run next. The chips themselves are only ever
-    // created once, at page-load, showing whatever overviewStatusFilter
-    // was at that moment; a raw reassignment here with no matching DOM
-    // sync is exactly how the two drift apart — chips still showing
-    // "Active" selected (correct at creation time, on a phone) while
-    // this reset silently switched the actual filter to 'all', which
-    // the very next showDashboard() render would then use, without
-    // ever re-touching the chips to reveal the mismatch. That's the
-    // "chip says Active, list shows everything, need to click it again
-    // to fix" bug — showLogin() can run mid-session (a transient
-    // auth-state hiccup, more common on mobile), not just on an actual
-    // logout, so this has to stay correct every time, not just on the
-    // very first page load before any chip exists to go stale.
-    overviewStatusFilter = window.matchMedia('(max-width: 900px)').matches ? 'active' : 'all';
-    document.querySelectorAll('#overviewStatusChipsMobile .chip, #overviewStatusChipsDesktop .chip, #overviewStatusChipsSheet .chip').forEach(chip => {
+    // Has to match the SAME default used at initial declaration (see
+    // its own comment) and sync the chip DOM right here too, not
+    // leave that to whichever render happens to run next — a raw
+    // reassignment with no matching DOM sync is exactly how the two
+    // used to drift apart (chip still showing the old selection while
+    // the real filter had already moved on). showLogin() can run
+    // mid-session (a transient auth-state hiccup, more common on
+    // mobile), not just on an actual logout, so this has to stay
+    // correct every time, not just on the very first page load before
+    // any chip exists to go stale.
+    overviewStatusFilter = 'active';
+    document.querySelectorAll('#overviewStatusChipsDesktop .chip, #overviewStatusChipsPopover .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === overviewStatusFilter);
     });
     ticketYearFilterInitialized = false;
@@ -2750,19 +2672,20 @@
     }
   });
 
-  // Directly visible in the toolbar now — no chip is hidden behind a
-  // "Filtre" button/sheet anymore (date filtering moved to the icon-
-  // popover calendar next to the search icon; see ticketsDateToggleBtn
-  // below). "Toate" is back per explicit request, so the full history
-  // is still reachable without leaving this tab. Type is no longer a
-  // chip here at all — Sesizări funcționale/accidente are separate
-  // top-level tabs now, each locking activeTypeFilter on its own via
-  // openAdminTab().
+  // Lives inside the tab's Filtre popover now (ticketStatusChipsPopover
+  // — see createFilterPopoverWidget below), not as its own always-
+  // visible row and not behind a separate "Filtre" sheet either — one
+  // icon covers date + status together. No separate "Arhivate" option
+  // anymore: "Toate" already means every ticket, archived or not (see
+  // getFilteredTickets()'s own comment on that), so a dedicated
+  // archive-only filter was just a second way to reach a subset
+  // "Toate" already covers. Type is no longer a chip here at all —
+  // Sesizări funcționale/accidente are separate top-level tabs now,
+  // each locking activeTypeFilter on its own via openAdminTab().
   const statusChipDefs = [
     { key: 'Ongoing', label: 'Active' },
     { key: 'Terminat', label: 'Soluționate' },
     { key: 'Toate', label: 'Toate' },
-    { key: 'Archived', label: 'Arhivate' },
   ];
 
   // The old in-panel search box (ticketSearchBox/searchToggleBtn) is
@@ -2770,212 +2693,76 @@
   // as every other tab (ticketsIconSearchBox, wired further down via
   // createSearchToggleWidget) instead of its own separate one.
 
-  // A short Romanian month-name list of its own — MONTH_FILTER_NAMES
-  // elsewhere is capitalized for dropdown options, this one feeds
-  // straight into the calendar header text next to nav arrows, same
-  // capitalization either way so nothing looks inconsistent.
-  const MINI_CAL_MONTH_NAMES = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
-
-  // Generic day/month/year calendar widget — instantiated once per
-  // tab below rather than copy-pasted four times, since the only
-  // real difference between tabs is which state variables get read
-  // and written. `config` = {
-  //   toggleBtnId, calendarId, labelId, gridId, clearBtnId, prevBtnId, nextBtnId,
-  //   getYear, setYear, getMonth, setMonth,  — the tab's existing shared year/month filter
-  //   getDay, setDay,                        — this widget's own day-level filter
-  //   rerender                               — called after any change, so the tab's own list updates
+  // Icon-triggered popover holding An/Lună selects (optional — Avarii
+  // rețele has neither, just status) and a status-chip row, replacing
+  // the old per-tab mix of a day-level mini calendar, a separate
+  // "Filtre" text button + bottom sheet, and inline always-visible
+  // chips. One popover per tab that has a Filtre icon; the icon
+  // itself turns into the page's usual "active filter" copper accent
+  // (same treatment as every other .overview-icon-btn.active state)
+  // whenever the applied filter isn't the tab's default (Active +
+  // current year/month), so a narrowed list is never silently left
+  // that way with nothing on screen hinting at it. `config` = {
+  //   toggleBtnId, popoverId, yearSelectId?, monthSelectId?,
+  //   getYear?, setYear?, getMonth?, setMonth?, — setYear/setMonth
+  //     already re-render on their own, same as setStatus below
+  //   chipsWrapId, chipDefs, getStatus, setStatus, defaultStatus
   // }
-  // toggleBtnId is optional — omit it for a calendar meant to sit
-  // permanently inline (e.g. inside a filter sheet that's already an
-  // explicit, deliberately-opened panel) instead of behind its own
-  // popover toggle; the open/close mechanics below simply don't
-  // apply when there's no toggle button to drive them.
-  function createMiniCalendarWidget(config){
-    const toggleBtn = config.toggleBtnId ? document.getElementById(config.toggleBtnId) : null;
-    const calendar = document.getElementById(config.calendarId);
-    const label = document.getElementById(config.labelId);
-    const grid = document.getElementById(config.gridId);
-    const clearBtn = document.getElementById(config.clearBtnId);
-    const prevBtn = document.getElementById(config.prevBtnId);
-    const nextBtn = document.getElementById(config.nextBtnId);
-    if (!calendar || !grid) return;
+  function createFilterPopoverWidget(config){
+    const toggleBtn = document.getElementById(config.toggleBtnId);
+    const popover = document.getElementById(config.popoverId);
+    if (!toggleBtn || !popover) return;
+    const yearSelect = config.yearSelectId ? document.getElementById(config.yearSelectId) : null;
+    const monthSelect = config.monthSelectId ? document.getElementById(config.monthSelectId) : null;
 
-    // View navigation is separate from the applied filter — browsing
-    // to a different month to look around shouldn't silently change
-    // what's filtered until a day is actually clicked. Starts on
-    // today's month, or the currently-filtered month/year if one's
-    // already set (so opening the calendar shows relevant context,
-    // not always the current month regardless of what's filtered).
-    const initialYear = Number(config.getYear());
-    const initialMonth = Number(config.getMonth());
-    let viewYear = Number.isFinite(initialYear) ? initialYear : new Date().getFullYear();
-    let viewMonth = Number.isFinite(initialMonth) ? initialMonth : (new Date().getMonth() + 1);
-
-    // Whether ANY date narrowing is currently applied — year, month,
-    // or a specific day — regardless of whether the popover happens
-    // to be open right now. The toggle icon needs this on its own:
-    // previously it only lit up while the popover was open and went
-    // back to plain the moment you closed it, even with a filter
-    // (e.g. September) still very much in effect underneath — nothing
-    // then hinted the list was narrowed at all without opening the
-    // calendar again to check.
-    function hasAppliedDateFilter(){
-      return config.getYear() !== 'all' || config.getMonth() !== 'all' || config.getDay() !== null;
+    function isDefault(){
+      const now = new Date();
+      const statusOk = config.getStatus() === config.defaultStatus;
+      const yearOk = !yearSelect || String(config.getYear()) === String(now.getFullYear());
+      const monthOk = !monthSelect || String(config.getMonth()) === String(now.getMonth() + 1);
+      return statusOk && yearOk && monthOk;
     }
-    function syncToggleBtnActive(){
-      if (toggleBtn) toggleBtn.classList.toggle('active', calendar.classList.contains('open') || hasAppliedDateFilter());
+    function syncActiveState(){
+      toggleBtn.classList.toggle('active', !isDefault());
     }
 
-    // Whether the month/year currently being browsed (viewYear/
-    // viewMonth) IS the applied filter, with no specific day
-    // narrowing it further — used both to highlight the label and to
-    // decide what clicking it should do next.
-    function isWholeMonthSelected(){
-      return config.getDay() === null &&
-        String(config.getYear()) === String(viewYear) && String(config.getMonth()) === String(viewMonth);
+    // config.setStatus is one of the tab's own existing setters
+    // (setTicketStatusFilter, setOverviewStatusFilter, ...) — each
+    // already syncs its own chip row's DOM and re-renders the list,
+    // so this only needs to add the one thing those setters don't
+    // know about: whether the Filtre icon itself should light up.
+    function selectStatus(key){
+      config.setStatus(key);
+      syncActiveState();
     }
+    renderChipRow(config.chipsWrapId, config.chipDefs, config.getStatus, selectStatus);
 
-    function render(){
-      label.textContent = `${MINI_CAL_MONTH_NAMES[viewMonth - 1]} ${viewYear}`;
-      // The label doubles as a "select the whole month" action (day
-      // filter cleared, year/month set to whatever's being browsed) —
-      // an explicit third state alongside "no filter" and "one
-      // specific day", since narrowing to a month without picking a
-      // day inside it was previously only reachable through the
-      // separate year/month dropdowns elsewhere on the page, not from
-      // the calendar itself.
-      label.title = isWholeMonthSelected()
-        ? `Șterge filtrul de lună — arată toate lunile`
-        : `Selectează toată luna ${MINI_CAL_MONTH_NAMES[viewMonth - 1]} ${viewYear}`;
-      label.classList.toggle('active-filter', isWholeMonthSelected());
-      const firstOfMonth = new Date(viewYear, viewMonth - 1, 1);
-      // JS getDay() is 0=Sunday..6=Saturday; the grid's week starts on
-      // Monday (matching the L-M-M-J-V-S-D header), so Sunday needs to
-      // land in column 7, not column 1.
-      const startOffset = (firstOfMonth.getDay() + 6) % 7;
-      const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
-      const daysInPrevMonth = new Date(viewYear, viewMonth - 1, 0).getDate();
-      const today = new Date();
-      const isCurrentMonth = today.getFullYear() === viewYear && today.getMonth() + 1 === viewMonth;
-
-      let html = '';
-      for (let i = 0; i < startOffset; i++) {
-        html += `<span class="mini-cal-day outside">${daysInPrevMonth - startOffset + i + 1}</span>`;
-      }
-      for (let d = 1; d <= daysInMonth; d++) {
-        const classes = ['mini-cal-day'];
-        if (isCurrentMonth && d === today.getDate()) classes.push('today');
-        if (config.getDay() === d && String(config.getYear()) === String(viewYear) && String(config.getMonth()) === String(viewMonth)) classes.push('selected');
-        html += `<button type="button" class="${classes.join(' ')}" data-day="${d}">${d}</button>`;
-      }
-      const trailing = (7 - ((startOffset + daysInMonth) % 7)) % 7;
-      for (let i = 1; i <= trailing; i++) {
-        html += `<span class="mini-cal-day outside">${i}</span>`;
-      }
-      grid.innerHTML = html;
-
-      grid.querySelectorAll('.mini-cal-day[data-day]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          config.setDay(Number(btn.dataset.day));
-          config.setYear(String(viewYear));
-          config.setMonth(String(viewMonth));
-          render();
-          config.rerender();
-        });
+    if (yearSelect) {
+      yearSelect.addEventListener('change', () => {
+        config.setYear(yearSelect.value);
+        syncActiveState();
       });
-      if (clearBtn) clearBtn.classList.toggle('active-filter', config.getDay() !== null);
-      syncToggleBtnActive();
+    }
+    if (monthSelect) {
+      monthSelect.addEventListener('change', () => {
+        config.setMonth(monthSelect.value);
+        syncActiveState();
+      });
     }
 
-    render();
-    // Unlike the day buttons (rebuilt fresh every render, so their
-    // listeners never stack), the label itself is never replaced —
-    // this only needs binding once.
-    label.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (isWholeMonthSelected()) {
-        // Clicking it again while it's already the applied filter
-        // clears it back to "every month", instead of just
-        // re-applying the same thing it already is.
-        config.setYear('all');
-        config.setMonth('all');
-        config.setDay(null);
-      } else {
-        config.setYear(String(viewYear));
-        config.setMonth(String(viewMonth));
-        config.setDay(null);
-      }
-      render();
-      config.rerender();
-    });
-    if (toggleBtn) toggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const willOpen = !calendar.classList.contains('open');
-      calendar.classList.toggle('open', willOpen);
-      if (willOpen) {
-        // Jump the browsing view back to whatever's actually applied
-        // right now, then re-render — this widget is set up once,
-        // before login even finishes (when the real filter value
-        // isn't ready yet), and the year/month dropdowns elsewhere on
-        // the page can also change the applied filter without this
-        // calendar knowing. Without this, opening it could keep
-        // showing the month label as "nothing selected" even with a
-        // real filter (e.g. September) already in effect.
-        const y = Number(config.getYear());
-        const m = Number(config.getMonth());
-        if (Number.isFinite(y)) viewYear = y;
-        if (Number.isFinite(m)) viewMonth = m;
-        render();
-      } else {
-        syncToggleBtnActive();
-      }
+    toggleBtn.addEventListener('click', () => {
+      popover.classList.toggle('open');
     });
     document.addEventListener('click', (e) => {
-      if (!calendar.classList.contains('open')) return;
-      // composedPath() (not .contains(e.target)) specifically because
-      // clicking a day rebuilds the grid's innerHTML as part of
-      // handling that same click — by the time this listener runs,
-      // e.target is a detached node no longer inside the calendar at
-      // all, so .contains() would incorrectly say "that was an
-      // outside click" and close the popover right after selecting a
-      // day. composedPath() captures the original propagation path
-      // from when the event actually fired, before anything got
-      // replaced.
-      const path = e.composedPath();
-      if (path.includes(calendar) || (toggleBtn && path.includes(toggleBtn))) return;
-      calendar.classList.remove('open');
-      syncToggleBtnActive();
+      if (popover.classList.contains('open') && !popover.contains(e.target) && !toggleBtn.contains(e.target)) {
+        popover.classList.remove('open');
+      }
     });
-    if (prevBtn) prevBtn.addEventListener('click', () => {
-      viewMonth--; if (viewMonth < 1) { viewMonth = 12; viewYear--; }
-      render();
-    });
-    if (nextBtn) nextBtn.addEventListener('click', () => {
-      viewMonth++; if (viewMonth > 12) { viewMonth = 1; viewYear++; }
-      render();
-    });
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        config.setDay(null);
-        render();
-        config.rerender();
-      });
-    }
 
-    // For an instance with no toggleBtnId (it lives inline inside a
-    // sheet instead of behind its own popover icon) — the sheet's own
-    // open button has no other way to tell this widget "resync before
-    // you're shown," since there's no toggle click here to hook that onto.
-    return {
-      refresh(){
-        const y = Number(config.getYear());
-        const m = Number(config.getMonth());
-        if (Number.isFinite(y)) viewYear = y;
-        if (Number.isFinite(m)) viewMonth = m;
-        render();
-      },
-    };
+    syncActiveState();
+    return { syncActiveState };
   }
+
 
   // Generic search-icon-to-search-box toggle — same "tap the icon,
   // it expands and focuses; leave it empty and blur, it collapses
@@ -3005,29 +2792,11 @@
     });
   }
 
-  // Overview's own calendar + search icons — now shown for every
-  // role (see the CSS above), sharing the exact same
-  // ticketYearFilter/ticketMonthFilter state Sesizări's own icons
-  // use, plus its own day-level filter.
-  let overviewDayFilter = null; // 1-31, or null for "every day"
-  // Both tabs' calendars share this same day-filter state, so
-  // clearing/selecting a day from either one's widget needs to
-  // refresh both tabs' lists — not just the one whose icon was
-  // clicked — or switching to the other tab afterward would show
-  // stale results until something else happened to trigger a render.
-  function rerenderSharedTicketViews(){
-    renderOverviewTable();
-    renderTickets();
-  }
-  createMiniCalendarWidget({
-    toggleBtnId: 'overviewDateToggleBtn', calendarId: 'overviewMiniCalendar',
-    labelId: 'miniCalLabel', gridId: 'miniCalGrid', clearBtnId: 'miniCalClearBtn',
-    prevBtnId: 'miniCalPrevBtn', nextBtnId: 'miniCalNextBtn',
-    getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
-    getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
-    getDay: () => overviewDayFilter, setDay: (d) => { overviewDayFilter = d; },
-    rerender: rerenderSharedTicketViews,
-  });
+  // Overview's own search icon — now shown for every role (see the
+  // CSS above), sharing the exact same ticketYearFilter/
+  // ticketMonthFilter state Sesizări's own Filtre popover uses (see
+  // further down, once setOverviewStatusFilter/setTicketStatusFilter
+  // exist to build the popovers from).
   createSearchToggleWidget({
     toggleBtnId: 'overviewSearchToggleBtn', wrapId: 'overviewSearchWrap', boxId: 'overviewSearchBox',
     setQuery: (v) => { overviewSearchQuery = v; }, rerender: renderOverviewTable,
@@ -3040,34 +2809,15 @@
     toggleBtnId: 'ticketsSearchToggleBtn', wrapId: 'ticketsIconSearchWrap', boxId: 'ticketsIconSearchBox',
     setQuery: (v) => { ticketSearchQuery = v; }, rerender: renderTickets,
   });
-  // Sesizări's calendar — shares the exact same
-  // ticketYearFilter/ticketMonthFilter/overviewDayFilter state as
-  // Overview's (both tabs stay in sync with each other), and now uses
-  // the exact same icon-popover pattern too, instead of living inline
-  // inside a "Filtre" sheet.
-  createMiniCalendarWidget({
-    toggleBtnId: 'ticketsDateToggleBtn', calendarId: 'ticketsMiniCalendar',
-    labelId: 'ticketsMiniCalLabel', gridId: 'ticketsMiniCalGrid', clearBtnId: 'ticketsMiniCalClearBtn',
-    prevBtnId: 'ticketsMiniCalPrevBtn', nextBtnId: 'ticketsMiniCalNextBtn',
-    getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
-    getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
-    getDay: () => overviewDayFilter, setDay: (d) => { overviewDayFilter = d; },
-    rerender: rerenderSharedTicketViews,
-  });
 
-  document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(select => {
+  document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsPopover, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(select => {
     select.addEventListener('change', () => setTicketYearFilter(select.value));
   });
 
   populateMonthFilterSelects();
-  document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(select => {
+  document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsPopover, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(select => {
     select.addEventListener('change', () => setTicketMonthFilter(select.value));
   });
-
-  const overviewFiltersMobileBtn = document.getElementById('overviewFiltersMobileBtn');
-  if (overviewFiltersMobileBtn) {
-    overviewFiltersMobileBtn.addEventListener('click', () => setSheetOpen('overviewFiltersSheet', true));
-  }
 
   // Shared by both the status and type chip rows below — they differ
   // only in which wrap/defs/current-value/setter they use.
@@ -3084,8 +2834,6 @@
       wrap.appendChild(chip);
     });
   }
-  renderChipRow('ticketStatusChipsToolbar', statusChipDefs, () => activeStatusFilter, setTicketStatusFilter);
-
   const overviewStatusChipDefs = [
     { key: 'all', label: 'Toate' },
     { key: 'active', label: 'Active' },
@@ -3109,25 +2857,22 @@
 
   function setOverviewStatusFilter(filterKey){
     overviewStatusFilter = filterKey;
-    document.querySelectorAll('#overviewStatusChipsMobile .chip, #overviewStatusChipsDesktop .chip, #overviewStatusChipsSheet .chip').forEach(chip => {
+    document.querySelectorAll('#overviewStatusChipsDesktop .chip, #overviewStatusChipsPopover .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
+    // Called both from the popover's own chip click (which already
+    // re-syncs its icon right after) and from elsewhere entirely —
+    // syncing here too means the icon is never left stale regardless
+    // of which path changed the filter.
+    if (typeof overviewFilterWidget !== 'undefined' && overviewFilterWidget) overviewFilterWidget.syncActiveState();
     renderOverviewTable();
   }
 
-  const overviewStatusChipsMobile = document.getElementById('overviewStatusChipsMobile');
-  if (overviewStatusChipsMobile) {
-    overviewStatusChipDefs.forEach(c => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip' + (c.key === overviewStatusFilter ? ' active' : '');
-      chip.textContent = c.label;
-      chip.dataset.key = c.key;
-      chip.addEventListener('click', () => setOverviewStatusFilter(c.key));
-      overviewStatusChipsMobile.appendChild(chip);
-    });
-  }
-
+  // Separate, desktop-only chip set — specifically for vlasbogdan@'s
+  // report-focused Overview (see isReportFocusedView()). Untouched by
+  // the Filtre-popover consolidation below: it's its own permanently-
+  // visible row on desktop, not behind any icon, and "Așteaptă raport"
+  // only makes sense in this one dedicated context.
   const overviewStatusChipsDesktop = document.getElementById('overviewStatusChipsDesktop');
   if (overviewStatusChipsDesktop) {
     reportFocusedChipDefs.forEach(c => {
@@ -3141,24 +2886,30 @@
     });
   }
 
-  const overviewStatusChipsSheet = document.getElementById('overviewStatusChipsSheet');
-  if (overviewStatusChipsSheet) {
-    // Standard 3-option set here, not reportFocusedChipDefs — this
-    // sheet is now the year/month/status filter for every mobile
-    // admin, not just the report-focused role, and "Așteaptă raport"
-    // only makes sense for that one account. Added separately, after
-    // login, for that role specifically — see fetchCurrentUserRole's
-    // .then() below.
-    overviewStatusChipDefs.forEach(c => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip' + (c.key === overviewStatusFilter ? ' active' : '');
-      chip.textContent = c.label;
-      chip.dataset.key = c.key;
-      chip.addEventListener('click', () => setOverviewStatusFilter(c.key));
-      overviewStatusChipsSheet.appendChild(chip);
-    });
-  }
+  // Overview and Sesizări's Filtre popovers — both can be built here
+  // since statusChipDefs/overviewStatusChipDefs and
+  // setTicketStatusFilter/setOverviewStatusFilter are all already
+  // available (setTicketStatusFilter is a hoisted function
+  // declaration even though its own definition sits further down).
+  // Proiecte/Avarii's popovers are built near their own chip defs
+  // further down instead, since those are const bindings that don't
+  // exist yet at this point in the script.
+  const overviewFilterWidget = createFilterPopoverWidget({
+    toggleBtnId: 'overviewFilterToggleBtn', popoverId: 'overviewFilterPopover',
+    yearSelectId: 'yearFilterSelectOverviewMobile', monthSelectId: 'monthFilterSelectOverviewMobile',
+    getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
+    getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
+    chipsWrapId: 'overviewStatusChipsPopover', chipDefs: overviewStatusChipDefs,
+    getStatus: () => overviewStatusFilter, setStatus: setOverviewStatusFilter, defaultStatus: 'active',
+  });
+  const ticketsFilterWidget = createFilterPopoverWidget({
+    toggleBtnId: 'ticketsFilterToggleBtn', popoverId: 'ticketsFilterPopover',
+    yearSelectId: 'yearFilterSelectTicketsPopover', monthSelectId: 'monthFilterSelectTicketsPopover',
+    getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
+    getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
+    chipsWrapId: 'ticketStatusChipsPopover', chipDefs: statusChipDefs,
+    getStatus: () => activeStatusFilter, setStatus: setTicketStatusFilter, defaultStatus: 'Ongoing',
+  });
 
   async function loadTickets(silent){
     const list = document.getElementById('ticketList');
@@ -3251,24 +3002,15 @@
   function renderOverviewTable(){
     const tbody = document.getElementById('overviewTableBody');
     const cardsWrap = document.getElementById('overviewCardsMobile');
-    // Archived tickets are deliberately included here (unlike the
-    // Sesizări tab's own "Soluționate" filter, which still excludes
-    // them via getFilteredTickets()'s own !t.archived check, and
-    // unlike the public site, which never sees archived tickets at
-    // all) — archiving only hides a solved ticket from clutter, it
-    // doesn't erase it from this overview, and a ticket's actual
-    // status (virtually always Terminat by the time it's archived)
-    // still drives its green/done styling below exactly as before.
+    // Archived tickets are deliberately included here, same as
+    // Sesizări's own "Toate" now includes them too (see
+    // getFilteredTickets()) — unlike the public site, which never
+    // sees archived tickets at all. Archiving only hides a solved
+    // ticket from clutter, it doesn't erase it from this overview,
+    // and a ticket's actual status (virtually always Terminat by the
+    // time it's archived) still drives its green/done styling below
+    // exactly as before.
     let visible = allTickets.filter(t => matchesSearch(t, overviewSearchQuery.trim().toLowerCase()) && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
-    // Day-level narrowing on top of the shared year/month state —
-    // sesizari@'s mini-calendar only, everyone else's overviewDayFilter
-    // stays null forever since nothing else ever sets it.
-    if (typeof overviewDayFilter !== 'undefined' && overviewDayFilter !== null) {
-      visible = visible.filter(t => {
-        const d = parseTicketDate(t.submitted_on);
-        return !isNaN(d.getTime()) && d.getDate() === overviewDayFilter;
-      });
-    }
 
     // vlasbogdan@'s Overview is a dedicated "what needs my report"
     // table — priority cards/charts are hidden for this account (see
@@ -3401,14 +3143,6 @@
       }).join('');
     }
 
-    // Shows the active year/month right on the button face — you'd
-    // otherwise have to open the sheet just to check what's currently
-    // filtered, which defeats the point of a quick-glance button.
-    if (overviewFiltersMobileBtn) {
-      overviewFiltersMobileBtn.textContent = (ticketYearFilter === 'all' && ticketMonthFilter === 'all')
-        ? 'Filtre'
-        : `Filtre · ${ticketYearFilter === 'all' ? 'toți anii' : ticketYearFilter}${ticketMonthFilter === 'all' ? '' : ', ' + MONTH_FILTER_NAMES[Number(ticketMonthFilter) - 1].slice(0, 3)}`;
-    }
   }
 
   // Plain-text summary of a ticket for the "share" button on the
@@ -3612,9 +3346,13 @@
     activeStatusFilter = filterKey;
     selectedIds.clear();
     updateArchiveBar();
-    document.querySelectorAll('#ticketStatusChipsToolbar .chip').forEach(chip => {
+    document.querySelectorAll('#ticketStatusChipsPopover .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
+    // Same reasoning as setOverviewStatusFilter's own call — this can
+    // be reached from goToTicket() too, not just the popover's own
+    // chip click.
+    if (typeof ticketsFilterWidget !== 'undefined' && ticketsFilterWidget) ticketsFilterWidget.syncActiveState();
     if (!skipRender) renderTickets();
   }
 
@@ -3664,14 +3402,12 @@
     if (ticketsIconSearchBox) ticketsIconSearchBox.value = '';
     if (ticketsIconSearchWrap) ticketsIconSearchWrap.classList.remove('expanded');
     if (ticketsSearchToggleBtn) ticketsSearchToggleBtn.classList.remove('active');
-    // An archived ticket doesn't exist under "Toate" (getFilteredTickets
-    // excludes archived there by design — see its own comment) — landing
-    // on "Toate" for one just showed an empty-feeling Sesizări tab with
-    // no visible ticket and no explanation why. Routing to the
-    // "Arhivate" chip instead means the ticket is actually there to
-    // find and highlight, for a click from either account.
+    // "Toate" now includes archived tickets too (see getFilteredTickets),
+    // so it's always the right filter to land on to make sure the
+    // target ticket is actually there to find and highlight, for a
+    // click from either account.
     const ticket = allTickets.find(t => String(t.id) === String(ticketId));
-    setTicketStatusFilter(ticket && ticket.archived ? 'Archived' : 'Toate', { skipRender: true });
+    setTicketStatusFilter('Toate', { skipRender: true });
     // Sesizări funcționale/accidente are two separate tabs now — route
     // to whichever one actually holds this ticket's type, instead of
     // a single shared "tickets" tab. openAdminTab() locks
@@ -4345,11 +4081,11 @@
   function updateArchiveBar(){
     selectionCount.textContent = selectedIds.size + ' selectate';
     archiveBar.classList.toggle('show', selectedIds.size > 0);
-    archiveSelectedBtn.style.display = activeStatusFilter === 'Archived' ? 'none' : 'inline-flex';
+    archiveSelectedBtn.style.display = 'inline-flex';
     // Editing one ticket's own details at a time makes sense;
     // bulk-editing several at once doesn't, so this only shows when
     // exactly one is selected — with 2+, only Archive remains.
-    editSelectedBtn.style.display = (selectedIds.size === 1 && activeStatusFilter !== 'Archived') ? 'inline-flex' : 'none';
+    editSelectedBtn.style.display = selectedIds.size === 1 ? 'inline-flex' : 'none';
   }
 
   editSelectedBtn.addEventListener('click', () => {
@@ -5552,12 +5288,9 @@
     return String(new Date(p.start_date).getFullYear()) === String(yearFilter);
   }
 
-  // Month/day-level filtering added alongside the calendar icon —
-  // projects previously only had year-level filtering (no month
-  // select existed at all), since the mini-calendar's own month
-  // navigation makes a separate dropdown unnecessary now.
+  // Month-level filtering, added alongside An in the Filtre popover —
+  // projects previously only had year-level filtering.
   let projectMonthFilter = 'all';
-  let projectDayFilter = null;
   function matchesProjectMonth(p, monthFilter){
     if (monthFilter === 'all') return true;
     if (!p.start_date) return false;
@@ -5565,47 +5298,56 @@
   }
   function setProjectYearFilter(value){
     projectYearFilter = value;
-    document.querySelectorAll('#projectYearFilterSelectDesktop').forEach(s => { s.value = value; });
+    document.querySelectorAll('#projectYearFilterSelectDesktop, #projectYearFilterSelectPopover').forEach(s => { s.value = value; });
     updateYearWarning(
-      ['projectYearFilterSelectDesktop'],
+      ['projectYearFilterSelectDesktop', 'projectYearFilterSelectPopover'],
       ['yearWarningProjectsDesktop'],
       projectYearFilter
     );
+    if (typeof projectsFilterWidget !== 'undefined' && projectsFilterWidget) projectsFilterWidget.syncActiveState();
     renderProjects();
   }
   function setProjectMonthFilter(value){
     projectMonthFilter = value;
+    document.querySelectorAll('#projectMonthFilterSelectPopover').forEach(s => { s.value = value; });
+    if (typeof projectsFilterWidget !== 'undefined' && projectsFilterWidget) projectsFilterWidget.syncActiveState();
     renderProjects();
   }
+  // Months are fixed, same list as MONTH_FILTER_NAMES — projects
+  // never had a month select at all before (only year), so this
+  // populates it once rather than going through the shared
+  // populateMonthFilterSelects() (that one sets ticketMonthFilter's
+  // value, not this tab's own separate projectMonthFilter).
+  const projectMonthFilterSelectPopover = document.getElementById('projectMonthFilterSelectPopover');
+  if (projectMonthFilterSelectPopover) {
+    projectMonthFilterSelectPopover.innerHTML = '<option value="all">Toate lunile</option>' +
+      MONTH_FILTER_NAMES.map((name, i) => `<option value="${i + 1}">${name}</option>`).join('');
+    projectMonthFilterSelectPopover.value = projectMonthFilter;
+  }
 
-  // Proiecte publice's own calendar + search icons — year/month state
-  // shared with the tab's existing selects via setProjectYearFilter/
-  // setProjectMonthFilter, day-level and search are new state of
-  // their own (projects never had either before). Placed here,
-  // after projectYearFilter/projectMonthFilter/projectDayFilter are
-  // actually declared, not up near Overview/Sesizări's own instances
-  // — createMiniCalendarWidget's first call is synchronous and reads
-  // these variables immediately, so calling it before their `let`
-  // declarations run would throw a "Cannot access before
-  // initialization" error and take down the rest of the script with
-  // it (this exact mistake got caught during testing, not left in).
-  createMiniCalendarWidget({
-    toggleBtnId: 'projectsDateToggleBtn', calendarId: 'projectsMiniCalendar',
-    labelId: 'projectsMiniCalLabel', gridId: 'projectsMiniCalGrid', clearBtnId: 'projectsMiniCalClearBtn',
-    prevBtnId: 'projectsMiniCalPrevBtn', nextBtnId: 'projectsMiniCalNextBtn',
-    getYear: () => projectYearFilter, setYear: setProjectYearFilter,
-    getMonth: () => projectMonthFilter, setMonth: setProjectMonthFilter,
-    getDay: () => projectDayFilter, setDay: (d) => { projectDayFilter = d; },
-    rerender: renderProjects,
-  });
   createSearchToggleWidget({
     toggleBtnId: 'projectsSearchToggleBtn', wrapId: 'projectsIconSearchWrap', boxId: 'projectsIconSearchBox',
     setQuery: (v) => { projectSearchQuery = v; }, rerender: renderProjects,
   });
 
+  // Single always-visible chip row inside the Filtre popover now,
+  // same consolidation as Sesizări — no more separate "Filtre
+  // proiecte" button/sheet duplicating these into a second
+  // projectsChipsWrapSheet set, and no more separate day-level mini
+  // calendar either (see createFilterPopoverWidget's own comment).
+  const projectsFilterWidget = createFilterPopoverWidget({
+    toggleBtnId: 'projectsFilterToggleBtn', popoverId: 'projectsFilterPopover',
+    yearSelectId: 'projectYearFilterSelectPopover', monthSelectId: 'projectMonthFilterSelectPopover',
+    getYear: () => projectYearFilter, setYear: setProjectYearFilter,
+    getMonth: () => projectMonthFilter, setMonth: setProjectMonthFilter,
+    chipsWrapId: 'projectsChipsWrap', chipDefs: projectChipDefs,
+    getStatus: () => projectsFilter, setStatus: setProjectsFilter, defaultStatus: 'Ongoing',
+  });
+
   function populateProjectYearFilterSelect(){
     const selects = [
       document.getElementById('projectYearFilterSelectDesktop'),
+      document.getElementById('projectYearFilterSelectPopover'),
     ].filter(Boolean);
     if (selects.length === 0) return;
 
@@ -5629,7 +5371,7 @@
 
     selects.forEach(s => { s.value = projectYearFilter; });
     updateYearWarning(
-      ['projectYearFilterSelectDesktop'],
+      ['projectYearFilterSelectDesktop', 'projectYearFilterSelectPopover'],
       ['yearWarningProjectsDesktop'],
       projectYearFilter
     );
@@ -5642,20 +5384,14 @@
   }
 
   function getFilteredProjects(){
-    let base;
-    if (projectsFilter === 'Archived') {
-      base = allProjects.filter(p => p.archived);
-    } else {
-      base = allProjects.filter(p => !p.archived && (projectsFilter === 'Toate' || getProjectStatusFilterKey(p) === projectsFilter));
-    }
+    // No separate "Arhivate" option anymore — "Toate" already means
+    // every project, archived or not, same reasoning and same fix as
+    // getFilteredTickets() above.
+    let base = allProjects.filter(p =>
+      projectsFilter === 'Toate' || getProjectStatusFilterKey(p) === projectsFilter
+    );
     const query = projectSearchQuery.trim().toLowerCase();
     base = base.filter(p => matchesProjectYear(p, projectYearFilter) && matchesProjectMonth(p, projectMonthFilter) && matchesProjectSearch(p, query));
-    if (projectDayFilter !== null) {
-      base = base.filter(p => {
-        if (!p.start_date) return false;
-        return new Date(p.start_date).getDate() === projectDayFilter;
-      });
-    }
     return base;
   }
 
@@ -5663,7 +5399,6 @@
     { key: 'Ongoing', label: 'Active' },
     { key: 'Terminat', label: 'Soluționate' },
     { key: 'Toate', label: 'Toate' },
-    { key: 'Archived', label: 'Arhivate' },
   ];
   // Old in-panel search box (projectSearchBox/searchToggleBtn) is
   // gone — Proiecte publice uses the same icon-row search pattern as
@@ -5674,9 +5409,9 @@
     select.addEventListener('change', () => setProjectYearFilter(select.value));
   });
 
-  // Single always-visible chip row now, same consolidation as
-  // Sesizări — no more separate "Filtre proiecte" button/sheet
-  // duplicating these into a second projectsChipsWrapSheet set.
+  // Single always-visible chip row inside the Filtre popover now —
+  // rendered by createFilterPopoverWidget itself (see below), not
+  // here, since that's what actually owns the DOM for it.
   function setProjectsFilter(filterKey){
     projectsFilter = filterKey;
     projectSelectedIds.clear();
@@ -5684,9 +5419,9 @@
     document.querySelectorAll('#projectsChipsWrap .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
+    if (typeof projectsFilterWidget !== 'undefined' && projectsFilterWidget) projectsFilterWidget.syncActiveState();
     renderProjects();
   }
-  renderChipRow('projectsChipsWrap', projectChipDefs, () => projectsFilter, setProjectsFilter);
 
   async function loadProjects(){
     const { data, error } = await supabaseClient
@@ -5856,6 +5591,14 @@
   const ticketAddForm = document.getElementById('ticketAddForm');
 
   function openTicketAddForm(){
+    // The form itself only ever lives inside panel-overview (moved
+    // there per an earlier request) — the "+" icon is reachable from
+    // both Overview and Sesizări now, so a click from Sesizări needs
+    // to actually switch tabs first, or the form would be expanding
+    // and scrolling into view inside a panel that isn't the visible
+    // one, invisible until the person happens to switch tabs
+    // themselves.
+    if (currentAdminTab !== 'overview') openAdminTab('overview');
     document.getElementById('tf-type').value = 'Sesizare functionala';
     document.getElementById('tf-date').value = '';
     document.getElementById('tf-resolved-date').value = '';
@@ -5880,6 +5623,7 @@
   });
 
   document.getElementById('addTicketBtn').addEventListener('click', openTicketAddForm);
+  document.getElementById('addTicketBtnTickets').addEventListener('click', openTicketAddForm);
   document.getElementById('tfCancelBtn').addEventListener('click', () => {
     ticketAddForm.style.display = 'none';
   });
@@ -6137,17 +5881,24 @@
     { key: 'Terminat', label: 'Soluționate' },
     { key: 'Toate', label: 'Toate' },
   ];
-  // Single always-visible chip row now, same consolidation as
-  // Sesizări/Proiecte — no more separate "Filtre" button/sheet
-  // duplicating these into a second backlogChipsWrapSheet set.
+  // Single always-visible chip row inside the Filtre popover now —
+  // rendered by createFilterPopoverWidget itself (see below), not
+  // here, since that's what actually owns the DOM for it. No
+  // year/month for this tab (Avarii never had that), so its popover
+  // is status-only.
   function setBacklogFilter(filterKey){
     backlogFilter = filterKey;
     document.querySelectorAll('#backlogChipsWrap .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
+    if (typeof backlogFilterWidget !== 'undefined' && backlogFilterWidget) backlogFilterWidget.syncActiveState();
     renderBacklogProjects();
   }
-  renderChipRow('backlogChipsWrap', backlogChipDefs, () => backlogFilter, setBacklogFilter);
+  const backlogFilterWidget = createFilterPopoverWidget({
+    toggleBtnId: 'backlogFilterToggleBtn', popoverId: 'backlogFilterPopover',
+    chipsWrapId: 'backlogChipsWrap', chipDefs: backlogChipDefs,
+    getStatus: () => backlogFilter, setStatus: setBacklogFilter, defaultStatus: 'Ongoing',
+  });
 
   function renderBacklogProjects(){
     const list = document.getElementById('backlogList');
