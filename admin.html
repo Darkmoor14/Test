@@ -441,10 +441,27 @@
   .filter-popover{
     display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:60;
     background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;
-    padding:16px;box-shadow:0 8px 24px rgba(20,24,29,0.15);width:260px;
+    padding:16px;box-shadow:0 8px 24px rgba(20,24,29,0.15);width:280px;
   }
   .filter-popover.open{display:block;}
-  .filter-popover .sheet-grid{margin-bottom:14px;}
+  .filter-popover .sheet-grid{margin-bottom:14px;gap:14px 10px;}
+  /* "Septembrie" (the longest month name) was getting clipped inside
+     the popover's own tighter width — a touch smaller than the
+     13.5px/9px×11px the same select uses everywhere else (a full-
+     width desktop form has room to spare; a 280px popover split into
+     two columns doesn't) is enough to fit it without truncating. */
+  .filter-popover .ctrl-field select{font-size:12.5px;padding:9px 8px;}
+  /* .ctrl-field's own min-width:160px is meant for a full-width
+     desktop form (see the ticket-add form's own pf-grid) — inside
+     this 260px popover, two of them side by side demand 320px+ before
+     the grid's 1fr 1fr track sizing gets any say, which is exactly
+     what was blowing the whole popover out to nearly the width of the
+     phone screen. An/Lună don't need 160px to show a year or a month
+     name; letting the grid track size them down to whatever an even
+     split of the popover's real width comes out to (well under 100px
+     each) is what actually fits two fields side by side in something
+     this narrow. */
+  .filter-popover .ctrl-field{min-width:0;}
   .filter-popover .sheet-filter-status label{
     font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;
     color:var(--ink-600);display:block;margin-bottom:10px;
