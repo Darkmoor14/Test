@@ -2090,6 +2090,19 @@
   // selection bar (see updateArchiveBar/openTicketEdit below).
   let editingTicketId = null;
 
+  // Unsaved, in-progress field edits, keyed by ticket id then by field
+  // selector — e.g. draftEdits[42]['.f-resnote'] = 'text typed but not
+  // saved yet'. Populated only by the field's own input/change
+  // listener (see the render loop below), never by snapshotting
+  // whatever the DOM happens to contain — that distinction matters:
+  // a re-render triggered by fresh server data (another admin's save,
+  // a bulk import) must show that fresh data, not silently overwrite
+  // it with whatever was on screen before, which is exactly what an
+  // unconditional DOM snapshot would do. Only fields actually typed
+  // into end up here, and only those get reapplied after a rebuild.
+  // Cleared for a ticket once its own save succeeds.
+  const draftEdits = {};
+
   function escapeHtml(value){
     return String(value ?? '')
       .replace(/&/g, '&amp;')
@@ -2114,6 +2127,33 @@
   // not something that needs to react to the window being resized
   // afterward.
   let overviewStatusFilter = window.matchMedia('(max-width: 900px)').matches ? 'active' : 'all';
+
+  // A ticket is "awaiting report" when it's solved but nobody's
+  // written up what was done yet — not a real stored status, just
+  // this exact check computed fresh wherever it's needed (the ticket
+  // list filter, Overview's summary, the card display, the
+  // report_needed notification trigger). Kept as one shared function
+  // instead of retyping the same condition in each of those places,
+  // so a future change to the rule can't accidentally apply in only
+  // some of them.
+  function isAwaitingReport(t){
+    return t.status === 'Terminat' && !t.resolution_note;
+  }
+
+  // The resolution-date field only ever makes sense once the status
+  // dropdown actually reads Terminat — kept as one function instead of
+  // duplicating the same enable/disable line in both the change
+  // listener and the draft-restore step below, which is what let
+  // those two drift apart in the first place (restoring a draft
+  // status used to leave the date field's disabled state stuck on
+  // whatever the last real render computed, not the just-restored
+  // value).
+  function syncResolvedDateDisabled(card, isArchived){
+    const statusEl = card.querySelector('.f-status');
+    const dateEl = card.querySelector('.f-resolved-date');
+    if (!statusEl || !dateEl) return;
+    dateEl.disabled = isArchived || statusEl.value !== 'Terminat';
+  }
 
   // A ticket's "effective" month/year for filtering purposes — NOT
   // necessarily when it was actually submitted. Still-active tickets
@@ -2224,10 +2264,8 @@
     if (activeStatusFilter === 'Archived') {
       base = allTickets.filter(t => t.archived);
     } else if (activeStatusFilter === 'AwaitingReport') {
-      // Not a real status of its own — a Terminat ticket with no
-      // resolution_note yet. Derived on the fly rather than stored,
-      // per the "flag on top of the existing status" approach.
-      base = allTickets.filter(t => !t.archived && t.status === 'Terminat' && !t.resolution_note);
+      // Not a real status of its own — see isAwaitingReport() above.
+      base = allTickets.filter(t => !t.archived && isAwaitingReport(t));
     } else {
       // Previously "Terminat" required a filled-in resolution_note
       // too, splitting finished-but-unreported tickets off into
@@ -3067,33 +3105,23 @@
     overviewFiltersMobileBtn.addEventListener('click', () => setSheetOpen('overviewFiltersSheet', true));
   }
 
-  ['ticketStatusChipsMobile'].forEach(wrapId => {
+  // Shared by both the status and type chip rows below — they differ
+  // only in which wrap/defs/current-value/setter they use.
+  function renderChipRow(wrapId, defs, getActiveKey, onSelect){
     const wrap = document.getElementById(wrapId);
     if (!wrap) return;
-    statusChipDefs.forEach(c => {
+    defs.forEach(c => {
       const chip = document.createElement('button');
       chip.type = 'button';
-      chip.className = 'chip' + (c.key === activeStatusFilter ? ' active' : '');
+      chip.className = 'chip' + (c.key === getActiveKey() ? ' active' : '');
       chip.textContent = c.label;
       chip.dataset.key = c.key;
-      chip.addEventListener('click', () => setTicketStatusFilter(c.key));
+      chip.addEventListener('click', () => onSelect(c.key));
       wrap.appendChild(chip);
     });
-  });
-
-  ['ticketTypeChipsMobile'].forEach(wrapId => {
-    const wrap = document.getElementById(wrapId);
-    if (!wrap) return;
-    typeChipDefs.forEach(c => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip' + (c.key === activeTypeFilter ? ' active' : '');
-      chip.textContent = c.label;
-      chip.dataset.key = c.key;
-      chip.addEventListener('click', () => setTicketTypeFilter(c.key));
-      wrap.appendChild(chip);
-    });
-  });
+  }
+  renderChipRow('ticketStatusChipsMobile', statusChipDefs, () => activeStatusFilter, setTicketStatusFilter);
+  renderChipRow('ticketTypeChipsMobile', typeChipDefs, () => activeTypeFilter, setTicketTypeFilter);
 
   const overviewStatusChipDefs = [
     { key: 'all', label: 'Toate' },
@@ -3287,9 +3315,9 @@
       if (overviewStatusFilter === 'active') {
         visible = visible.filter(t => t.status !== 'Terminat');
       } else if (overviewStatusFilter === 'done') {
-        visible = visible.filter(t => t.status === 'Terminat' && !!t.resolution_note);
+        visible = visible.filter(t => t.status === 'Terminat' && !isAwaitingReport(t));
       } else if (overviewStatusFilter === 'awaiting_report') {
-        visible = visible.filter(t => t.status === 'Terminat' && !t.resolution_note);
+        visible = visible.filter(t => isAwaitingReport(t));
       }
     } else {
       if (overviewStatusFilter === 'active') {
@@ -3344,7 +3372,7 @@
       // account (they can't act on it either way), so every Terminat
       // ticket fades uniformly for them — only 'full' accounts see
       // the awaiting-report distinction called out visually.
-      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !!t.resolution_note);
+      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !isAwaitingReport(t));
       const isUrgent = t.type === 'Anunt accident';
       const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
       const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
@@ -3379,7 +3407,7 @@
       // account (they can't act on it either way), so every Terminat
       // ticket fades uniformly for them — only 'full' accounts see
       // the awaiting-report distinction called out visually.
-      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !!t.resolution_note);
+      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !isAwaitingReport(t));
         const isUrgent = t.type === 'Anunt accident';
         const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
         const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
@@ -3580,24 +3608,28 @@
   // whatever page linked here — it doesn't insert an extra step.
   history.replaceState({ adminTab: 'overview' }, '', window.location.pathname + window.location.search + '#overview');
 
-  function setTicketStatusFilter(filterKey){
+  // skipRender lets a caller that's about to change BOTH the status
+  // and type filter in a row (see goToTicket() below) do so with a
+  // single renderTickets() pass at the end, instead of one full
+  // re-render per filter changed.
+  function setTicketStatusFilter(filterKey, { skipRender = false } = {}){
     activeStatusFilter = filterKey;
     selectedIds.clear();
     updateArchiveBar();
     document.querySelectorAll('#ticketStatusChipsMobile .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
-    renderTickets();
+    if (!skipRender) renderTickets();
   }
 
-  function setTicketTypeFilter(filterKey){
+  function setTicketTypeFilter(filterKey, { skipRender = false } = {}){
     activeTypeFilter = filterKey;
     selectedIds.clear();
     updateArchiveBar();
     document.querySelectorAll('#ticketTypeChipsMobile .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
-    renderTickets();
+    if (!skipRender) renderTickets();
   }
 
   function updateActiveNarrowFilterUI(){
@@ -3634,10 +3666,11 @@
     // "Arhivate" chip instead means the ticket is actually there to
     // find and highlight, for a click from either account.
     const ticket = allTickets.find(t => String(t.id) === String(ticketId));
-    setTicketStatusFilter(ticket && ticket.archived ? 'Archived' : 'Toate');
+    setTicketStatusFilter(ticket && ticket.archived ? 'Archived' : 'Toate', { skipRender: true });
     // Type is independent now too — reset it the same way, otherwise
     // e.g. a "Defecte" type filter left over from before could hide
-    // the very accident ticket being navigated to.
+    // the very accident ticket being navigated to. Not skipped, so
+    // this is the one render that covers both changes.
     setTicketTypeFilter('Toate');
     openAdminTab('tickets');
 
@@ -3834,9 +3867,9 @@
   // "Soluționat de" already has unsaved text typed into it below. Any
   // trigger that calls renderTickets() (the edit toggle, a filter
   // change, a fresh loadTickets() from a push notification arriving,
-  // etc.) tears down and rebuilds every card's innerHTML from the last
-  // *saved* ticket data, which used to discard whatever hadn't been
-  // saved yet in any of these.
+  // etc.) tears down and rebuilds every card's innerHTML from the
+  // current ticket data — these are the fields tracked in draftEdits
+  // (declared above) so an actual unsaved edit survives that rebuild.
   const RENDER_DRAFT_FIELD_SELECTORS = [
     '.f-name', '.f-phone', '.f-email', '.f-address', '.f-description', '.f-submitted-date',
     '.f-status', '.f-resolver', '.f-resnote', '.f-resolved-date',
@@ -3844,20 +3877,6 @@
 
   function renderTickets(){
     const list = document.getElementById('ticketList');
-    // Snapshot whatever's currently sitting in each visible card's
-    // editable fields, keyed by ticket id, BEFORE the rebuild below
-    // wipes it — restored onto the freshly-rendered cards further
-    // down so in-progress typing survives the re-render.
-    const draftByTicketId = {};
-    list.querySelectorAll('.ticket-card').forEach(existingCard => {
-      const id = existingCard.id.replace('ticket-card-', '');
-      const draft = {};
-      RENDER_DRAFT_FIELD_SELECTORS.forEach(sel => {
-        const el = existingCard.querySelector(sel);
-        if (el) draft[sel] = el.value;
-      });
-      if (Object.keys(draft).length) draftByTicketId[id] = draft;
-    });
     const filtered = sortTicketsForDisplay(getFilteredTickets());
     document.getElementById('resultCount').textContent = filtered.length + ' din ' + allTickets.length + ' tichete';
     const resultCountMobile = document.getElementById('resultCountMobile');
@@ -3882,7 +3901,7 @@
       // account (they can't act on it either way), so every Terminat
       // ticket fades uniformly for them — only 'full' accounts see
       // the awaiting-report distinction called out visually.
-      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !!t.resolution_note);
+      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !isAwaitingReport(t));
       const isArchived = !!t.archived;
       const card = document.createElement('div');
       card.id = 'ticket-card-' + t.id;
@@ -4001,17 +4020,40 @@
         </div>
       `;
 
-      // Put back whatever was captured above for this ticket, now
-      // that the fresh fields exist again — runs before the autosize
-      // logic below so it sizes to the restored text, not the blank/
-      // saved starting value.
-      const draft = draftByTicketId[String(t.id)];
+      // Re-apply any unsaved edit tracked for this ticket — runs
+      // before the autosize logic below so it sizes to the restored
+      // text, not the blank/saved starting value. A field with no
+      // tracked draft is left exactly as the template above rendered
+      // it (i.e. showing the current, possibly just-refreshed, server
+      // value) — only fields the person actually typed into get
+      // overridden here.
+      const draft = draftEdits[t.id];
       if (draft) {
         Object.entries(draft).forEach(([sel, val]) => {
           const el = card.querySelector(sel);
           if (el) el.value = val;
         });
+        if (draft['.f-status'] != null) syncResolvedDateDisabled(card, isArchived);
       }
+
+      // Tracks each field's own unsaved edits as they happen — not a
+      // blanket snapshot of the whole card, so a re-render caused by
+      // fresh data arriving (not by this person typing) never has
+      // anything to wrongly restore. '.f-status' uses 'change' (it's
+      // a <select>) and also re-syncs the resolution-date field's
+      // disabled state, replacing the old dedicated listener that did
+      // only that second part and could drift out of sync with a
+      // restored draft status.
+      RENDER_DRAFT_FIELD_SELECTORS.forEach(sel => {
+        const el = card.querySelector(sel);
+        if (!el) return;
+        const eventName = sel === '.f-status' ? 'change' : 'input';
+        el.addEventListener(eventName, () => {
+          if (!draftEdits[t.id]) draftEdits[t.id] = {};
+          draftEdits[t.id][sel] = el.value;
+          if (sel === '.f-status') syncResolvedDateDisabled(card, isArchived);
+        });
+      });
 
       // "Ce s-a făcut" grows to fit its content — resets height to
       // auto first so it can shrink back down too (not just grow),
@@ -4057,16 +4099,12 @@
       });
 
       // Resolution date/time only ever gets saved when actually
-      // marking the ticket Terminat (see the save handler above) —
-      // disabled here the rest of the time so that's visible upfront
-      // rather than something to discover after the fact.
-      const statusSelect = card.querySelector('.f-status');
-      if (statusSelect && !isArchived) {
-        statusSelect.addEventListener('change', () => {
-          const nowTerminat = statusSelect.value === 'Terminat';
-          card.querySelector('.f-resolved-date').disabled = !nowTerminat;
-        });
-      }
+      // marking the ticket Terminat (see the save handler below) —
+      // disabled the rest of the time so that's visible upfront
+      // rather than something to discover after the fact. Enforced by
+      // the generic field listener above (the '.f-status' branch),
+      // which also keeps this in sync when a draft status is restored
+      // after a re-render, not just on a live change event.
 
       const restoreBtn = card.querySelector('.f-restore');
       if (restoreBtn) {
@@ -4228,6 +4266,10 @@
             return;
           }
           if (editingTicketId === t.id) editingTicketId = null;
+          // The save just succeeded, so whatever was tracked as
+          // unsaved for this ticket is now exactly what's in the
+          // database — nothing left to protect on the next re-render.
+          delete draftEdits[t.id];
 
           // Fires an email to vlasbogdan@ the moment a ticket actually
           // ENTERS the "awaiting report" state — Terminat with no
@@ -4235,8 +4277,8 @@
           // ticket already sitting in that state. Compares the state
           // just written against what it was before this save to
           // catch the real transition specifically.
-          const wasAwaitingReport = t.status === 'Terminat' && !t.resolution_note;
-          const isNowAwaitingReport = newStatus === 'Terminat' && !resNote;
+          const wasAwaitingReport = isAwaitingReport(t);
+          const isNowAwaitingReport = isAwaitingReport({ status: newStatus, resolution_note: resNote });
           if (isNowAwaitingReport && !wasAwaitingReport) {
             sendNotification({
               type: 'report_needed',
