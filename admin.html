@@ -905,6 +905,7 @@
   }
   .excel-preview-table td{padding:9px 12px;border-top:1px solid var(--line);color:var(--ink-700);}
   .excel-preview-table tr.row-error td{background:var(--signal-red-bg);color:var(--signal-red);}
+  .excel-preview-table tr.row-warning td{background:var(--signal-orange-bg);color:var(--signal-orange);}
   .repair-note-input{
     width:100%;min-height:52px;font:inherit;font-size:13px;padding:6px 8px;
     border:1px solid var(--line-strong);border-radius:3px;resize:vertical;color:var(--ink-900);
@@ -2647,7 +2648,23 @@
     // limited account's hidden fields still hidden for a full one.
     currentUserRole = 'full';
     document.documentElement.classList.remove('report-focused-view', 'limited-view');
-    // Role must be known before the first render, so tickets don't
+    // The role-class reset above only handles CSS-gated elements —
+    // it doesn't touch the previous account's already-rendered ticket
+    // cards, Overview table, or project list, which otherwise stay on
+    // screen exactly as they were until the new fetch below finishes.
+    // That's the actual "glimpse of the other account's page": not a
+    // wrong CSS class, but this account's dashboard opening on top of
+    // literally the last account's rendered data for however long the
+    // role fetch + reload takes. Blanking these immediately means the
+    // gap shows an empty/loading dashboard instead.
+    allTickets = [];
+    allProjects = [];
+    renderTickets();
+    renderOverviewTable();
+    renderOverviewCharts();
+    renderPrioritySummary();
+    renderProjects();
+    // Role must be known before the first real render, so tickets don't
     // briefly flash the "Ce s-a făcut" field for a limited-access
     // account before it gets hidden a moment later.
     fetchCurrentUserRole(email).then(() => {
@@ -2705,6 +2722,11 @@
       runAutoArchiveSweep().finally(() => {
         loadTickets();
         loadProjects();
+        // Actually switch to whatever tab the URL named at load time
+        // (see initialAdminTab above) — everything until now only
+        // loaded data, the visible tab itself is still whatever the
+        // static HTML defaults to (Overview) until this runs.
+        if (initialAdminTab !== 'overview') openAdminTab(initialAdminTab, true);
       });
     });
   }
@@ -3606,7 +3628,17 @@
   // Replaces (not pushes) the current history entry so the very first
   // back-press still correctly leaves admin.html entirely, landing on
   // whatever page linked here — it doesn't insert an extra step.
-  history.replaceState({ adminTab: 'overview' }, '', window.location.pathname + window.location.search + '#overview');
+  //
+  // Reads whichever tab the URL's hash already names instead of
+  // always forcing back to #overview — this used to unconditionally
+  // overwrite the hash on every load, so refreshing the page while on
+  // Sesizări or Proiecte silently bounced back to Overview every
+  // time. openAdminTab() is called once data's loaded, further down
+  // in showDashboard(), to actually switch the visible tab to match.
+  const validAdminTabs = ['overview', 'tickets', 'projects', 'backlog'];
+  const currentHashTab = window.location.hash.replace('#', '');
+  const initialAdminTab = validAdminTabs.includes(currentHashTab) ? currentHashTab : 'overview';
+  history.replaceState({ adminTab: initialAdminTab }, '', window.location.pathname + window.location.search + '#' + initialAdminTab);
 
   // skipRender lets a caller that's about to change BOTH the status
   // and type filter in a row (see goToTicket() below) do so with a
@@ -4228,6 +4260,28 @@
           // element.
           const resnoteEl = card.querySelector('.f-resnote');
           const resNote = resnoteEl ? resnoteEl.value.trim() : (t.resolution_note || '');
+
+          // A resolution note only makes sense once the ticket is
+          // actually marked Terminat — saved as-is otherwise, it lands
+          // in a state nothing in the app accounts for: still shows as
+          // "Activ" everywhere, but already has a report attached, and
+          // never surfaces under "Așteaptă raport" (that requires
+          // Terminat) for anyone to notice. Only asks when the note is
+          // actually being added/changed this save, not on every
+          // unrelated edit of a ticket that was already left in this
+          // state some other way (e.g. the Excel import case below) —
+          // doesn't auto-change the status itself (that would also
+          // need a resolution date, which isn't necessarily filled in
+          // here), just stops the save so the person can go set the
+          // dropdown to "Soluționat" themselves, same as intended.
+          if (resNote && newStatus !== 'Terminat' && resNote !== (t.resolution_note || '')) {
+            const proceedAnyway = confirm(
+              `Ați completat "Ce s-a făcut", dar starea tichetului rămâne "Activ" — tichetul nu va apărea ca soluționat.\n\n` +
+              `Apăsați Anulează pentru a reveni și schimba starea în "Soluționat", sau OK pentru a salva oricum (de ex. o notă de progres pe un tichet încă activ).`
+            );
+            if (!proceedAnyway) return;
+          }
+
           const emailVal = isEditing ? card.querySelector('.f-email').value.trim() : (t.email || '');
           const descriptionVal = isEditing ? card.querySelector('.f-description').value.trim() : (t.description || '');
 
@@ -6732,7 +6786,21 @@
                 return null;
               }
 
-              return { sourceRow, ticketNumber: ticketDigits, street, note, matched, matchedBy, include: !!matched };
+              // A repair report only makes sense on a ticket that's
+              // actually marked Terminat — the whole workflow assumes
+              // a ticket only reaches this sheet once someone's
+              // already closed it. Nothing in the matching above
+              // checks that, though, so flag it here instead of
+              // writing a note onto a still-Ongoing ticket with no
+              // signal anywhere that anything's off.
+              const notTerminatYet = !!matched && matched.status !== 'Terminat';
+
+              // Left unchecked by default when the ticket isn't
+              // Terminat yet — same "make it a deliberate choice, not
+              // a silent default" reasoning as the manual-save warning
+              // above. The checkbox itself stays enabled, so checking
+              // it is a one-click, explicit "yes, this is intentional."
+              return { sourceRow, ticketNumber: ticketDigits, street, note, matched, matchedBy, notTerminatYet, include: !!matched && !notTerminatYet };
             })
             .filter(Boolean);
 
@@ -6764,7 +6832,7 @@
       </tr></thead>
       <tbody>
         ${pendingRepairRows.map((r, i) => `
-          <tr class="${r.matched ? '' : 'row-error'}">
+          <tr class="${!r.matched ? 'row-error' : r.notTerminatYet ? 'row-warning' : ''}">
             <td><input type="checkbox" class="repair-row-include" data-idx="${i}" ${r.include ? 'checked' : ''} ${r.matched ? '' : 'disabled'}></td>
             <td>${r.sourceRow}</td>
             <td>${r.ticketNumber ? escapeHtml(r.ticketNumber) : '<em>(după stradă)</em>'}</td>
@@ -6773,6 +6841,7 @@
               ? escapeHtml(r.matched.address || '—')
                 + (r.matchedBy === 'street' ? ' <strong>(găsit după adresă — verificați)</strong>' : '')
                 + (r.matched.resolution_note ? ' <strong>(are deja raport — va fi înlocuit)</strong>' : '')
+                + (r.notTerminatYet ? ' <strong>(tichetul e încă Activ — nu va fi marcat automat ca soluționat, bifați doar dacă e intenționat)</strong>' : '')
               : r.matchedBy === 'ambiguous'
                 ? 'Mai multe sesizări active pe această stradă — completați numărul de tichet'
                 : 'Nu a fost găsită nicio sesizare'}</td>
