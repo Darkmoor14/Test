@@ -6517,7 +6517,26 @@
 
           repairSkippedUnchangedCount = 0;
           pendingRepairRows = rows.slice(headerRowIdx + 1)
-            .map(r => {
+            .map((r, mapIdx) => {
+              // Multi-page printed sheets often repeat the header row
+              // on later pages (e.g. row 40 has "Nr. Tichet"/"Strada
+              // si nr." in it again, not real data). Only the first
+              // header row is skipped above via headerRowIdx — a
+              // repeated one here would otherwise get misread as a
+              // real row with ticket/street text literally equal to
+              // the column headers, producing a nonsense "ambiguous"
+              // or "not found" entry in the preview. Detected and
+              // skipped the same silent way a blank template row is.
+              if ((ticketCol >= 0 && REPAIR_TICKET_HEADERS.includes(normalizeHeader(r[ticketCol])))
+                || (streetCol >= 0 && REPAIR_STREET_HEADERS.includes(normalizeHeader(r[streetCol])))) {
+                return null;
+              }
+              // Excel/sheet row number (1-indexed, matching what the
+              // person sees when they open the file) so a flagged row
+              // in the preview can be traced back to the source file
+              // instead of just showing a street/ticket value with no
+              // way to locate it.
+              const sourceRow = headerRowIdx + mapIdx + 2;
               const ticketDigits = ticketCol >= 0 ? extractTicketDigits(r[ticketCol]) : '';
               const street = streetCol >= 0 ? String(r[streetCol] || '').trim() : '';
               // A row is worth looking at if it has either a ticket
@@ -6564,7 +6583,7 @@
                 return null;
               }
 
-              return { ticketNumber: ticketDigits, street, note, matched, matchedBy, include: !!matched };
+              return { sourceRow, ticketNumber: ticketDigits, street, note, matched, matchedBy, include: !!matched };
             })
             .filter(Boolean);
 
@@ -6592,12 +6611,13 @@
     const foundCount = pendingRepairRows.filter(r => r.matched).length;
     table.innerHTML = `
       <thead><tr>
-        <th></th><th>Nr. tichet</th><th>Stradă (fișă)</th><th>Sesizare găsită</th><th>Ce s-a făcut</th>
+        <th></th><th>Rând Excel</th><th>Nr. tichet</th><th>Stradă (fișă)</th><th>Sesizare găsită</th><th>Ce s-a făcut</th>
       </tr></thead>
       <tbody>
         ${pendingRepairRows.map((r, i) => `
           <tr class="${r.matched ? '' : 'row-error'}">
             <td><input type="checkbox" class="repair-row-include" data-idx="${i}" ${r.include ? 'checked' : ''} ${r.matched ? '' : 'disabled'}></td>
+            <td>${r.sourceRow}</td>
             <td>${r.ticketNumber ? escapeHtml(r.ticketNumber) : '<em>(după stradă)</em>'}</td>
             <td>${escapeHtml(r.street) || '—'}</td>
             <td>${r.matched
