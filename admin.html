@@ -427,15 +427,19 @@
   /* ===== FILTER POPOVER (An/Lună + status, one per tab that has a
      "Filtre" icon) — replaces the old per-tab mix of a day-level mini
      calendar, a separate "Filtre" text button/sheet, and inline
-     always-visible status chips. Same popover positioning as every
-     other icon-triggered panel on this page (compare .mini-calendar's
-     old position:absolute/top/right pattern, now generalized here
-     instead of duplicated). Plain year+month <select>s, not a day
-     grid — day-level narrowing was more than anyone actually asked
-     for and just added a second, redundant way to pick a date
-     alongside this one. */
+     always-visible status chips. Plain year+month <select>s, not a
+     day grid — day-level narrowing was more than anyone actually
+     asked for and just added a second, redundant way to pick a date
+     alongside this one. Anchored to the LEFT of its trigger, not the
+     right like .mini-calendar's old popovers were — those triggers
+     sat further right in a fuller toolbar, so opening leftward from
+     them stayed on screen. Filtre is the first, leftmost icon in
+     every tab's row now, so a right-anchored 260px popover opened
+     mostly or entirely off the left edge of the viewport instead —
+     exactly the "I can't see the filter button" report, since what
+     was actually cut off was this popover, not the button itself. */
   .filter-popover{
-    display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:60;
+    display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:60;
     background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;
     padding:16px;box-shadow:0 8px 24px rgba(20,24,29,0.15);width:260px;
   }
@@ -5330,20 +5334,6 @@
     setQuery: (v) => { projectSearchQuery = v; }, rerender: renderProjects,
   });
 
-  // Single always-visible chip row inside the Filtre popover now,
-  // same consolidation as Sesizări — no more separate "Filtre
-  // proiecte" button/sheet duplicating these into a second
-  // projectsChipsWrapSheet set, and no more separate day-level mini
-  // calendar either (see createFilterPopoverWidget's own comment).
-  const projectsFilterWidget = createFilterPopoverWidget({
-    toggleBtnId: 'projectsFilterToggleBtn', popoverId: 'projectsFilterPopover',
-    yearSelectId: 'projectYearFilterSelectPopover', monthSelectId: 'projectMonthFilterSelectPopover',
-    getYear: () => projectYearFilter, setYear: setProjectYearFilter,
-    getMonth: () => projectMonthFilter, setMonth: setProjectMonthFilter,
-    chipsWrapId: 'projectsChipsWrap', chipDefs: projectChipDefs,
-    getStatus: () => projectsFilter, setStatus: setProjectsFilter, defaultStatus: 'Ongoing',
-  });
-
   function populateProjectYearFilterSelect(){
     const selects = [
       document.getElementById('projectYearFilterSelectDesktop'),
@@ -5407,6 +5397,25 @@
 
   document.querySelectorAll('#projectYearFilterSelectDesktop').forEach(select => {
     select.addEventListener('change', () => setProjectYearFilter(select.value));
+  });
+
+  // Single always-visible chip row inside the Filtre popover now,
+  // same consolidation as Sesizări — no more separate "Filtre
+  // proiecte" button/sheet duplicating these into a second
+  // projectsChipsWrapSheet set, and no more separate day-level mini
+  // calendar either (see createFilterPopoverWidget's own comment).
+  // Has to come after projectChipDefs above — projectChipDefs is a
+  // const, not a hoisted function declaration, so referencing it any
+  // earlier in the script (even inside a function that isn't called
+  // until later) throws "Cannot access before initialization" the
+  // moment this widget's setup code runs and reads config.chipDefs.
+  const projectsFilterWidget = createFilterPopoverWidget({
+    toggleBtnId: 'projectsFilterToggleBtn', popoverId: 'projectsFilterPopover',
+    yearSelectId: 'projectYearFilterSelectPopover', monthSelectId: 'projectMonthFilterSelectPopover',
+    getYear: () => projectYearFilter, setYear: setProjectYearFilter,
+    getMonth: () => projectMonthFilter, setMonth: setProjectMonthFilter,
+    chipsWrapId: 'projectsChipsWrap', chipDefs: projectChipDefs,
+    getStatus: () => projectsFilter, setStatus: setProjectsFilter, defaultStatus: 'Ongoing',
   });
 
   // Single always-visible chip row inside the Filtre popover now —
