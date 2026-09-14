@@ -286,6 +286,25 @@
   .toast.show{opacity:1;transform:translate(-50%,0);}
   .toast .toast-dot{width:7px;height:7px;border-radius:50%;background:var(--signal-green);flex-shrink:0;}
 
+  /* Persistent "just created this ticket" banner at the top of the
+     Sesizări tab — deliberately NOT the toast above: that fades out
+     after 2.6s, too quick to jot down/read a ticket number off of
+     while already looking away from the screen having just closed the
+     add-ticket form. This stays until manually closed, so the number
+     is still there a minute later without needing a trip to Overview. */
+  .last-created-banner{
+    display:none;align-items:center;justify-content:space-between;gap:12px;
+    background:#eafaf0;border:1px solid var(--signal-green);border-radius:8px;
+    padding:12px 16px;margin-bottom:14px;
+    font-family:var(--body);font-size:14px;color:var(--ink-900);
+  }
+  .last-created-banner.show{display:flex;}
+  .last-created-banner strong{font-family:var(--mono);}
+  .last-created-banner button{
+    background:none;border:none;cursor:pointer;font-size:18px;line-height:1;
+    color:var(--ink-600);padding:0 4px;flex-shrink:0;
+  }
+
   /* Hides these four fixed-bottom elements entirely while the on-
      screen keyboard is open (html.kb-open, toggled in JS via the
      visualViewport API near the end of the page) — see the comment
@@ -1439,6 +1458,10 @@
     </div>
 
     <div class="admin-panel" id="panel-tickets">
+      <div class="last-created-banner" id="lastCreatedTicketBanner">
+        <span id="lastCreatedTicketBannerText"></span>
+        <button type="button" id="lastCreatedTicketBannerClose" aria-label="Închide">&times;</button>
+      </div>
       <div class="toolbar">
         <div style="display:flex; align-items:center; gap:14px;">
           <button class="btn toolbar-desktop-only" id="ticketFiltersDesktopBtn" type="button">Filtre</button>
@@ -1732,6 +1755,10 @@
     <div class="sheet-filter-status">
       <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Stare listă</label>
       <div class="chips" id="ticketStatusChipsMobile"></div>
+    </div>
+    <div class="sheet-filter-status">
+      <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Tip</label>
+      <div class="chips" id="ticketTypeChipsMobile"></div>
     </div>
     <div class="sheet-actions">
       <button type="button" class="btn btn-primary" data-close-sheet="ticketFiltersSheet">Aplică</button>
@@ -2049,7 +2076,13 @@
   }
 
   let allTickets = [];
-  let activeFilter = 'Ongoing';
+  // Two independent axes — status and type — so a status chip
+  // ("Soluționate") and a type chip ("Accidente") can be applied
+  // together, e.g. "Soluționate" + "Accidente" at once, instead of
+  // being one flat mutually-exclusive list where picking a type
+  // meant losing whatever status was selected.
+  let activeStatusFilter = 'Ongoing';
+  let activeTypeFilter = 'Toate';
   const selectedIds = new Set();
   // Set to a ticket's id while its name/phone/email/address/
   // description fields are shown as editable inputs — only one
@@ -2188,20 +2221,13 @@
   function getFilteredTickets(){
     const query = ticketSearchQuery.trim().toLowerCase();
     let base;
-    if (activeFilter === 'Archived') {
+    if (activeStatusFilter === 'Archived') {
       base = allTickets.filter(t => t.archived);
-    } else if (activeFilter === 'AwaitingReport') {
+    } else if (activeStatusFilter === 'AwaitingReport') {
       // Not a real status of its own — a Terminat ticket with no
       // resolution_note yet. Derived on the fly rather than stored,
       // per the "flag on top of the existing status" approach.
       base = allTickets.filter(t => !t.archived && t.status === 'Terminat' && !t.resolution_note);
-    } else if (activeFilter === 'functional' || activeFilter === 'accident') {
-      // Type, not status — "Defecte"/"Accidente" mean every
-      // non-archived ticket of that type regardless of whether it's
-      // still open or already solved, same "Toate" scope just with
-      // an added type constraint, not a narrower status one.
-      base = allTickets.filter(t => !t.archived &&
-        (activeFilter === 'accident' ? t.type === 'Anunt accident' : t.type !== 'Anunt accident'));
     } else {
       // Previously "Terminat" required a filled-in resolution_note
       // too, splitting finished-but-unreported tickets off into
@@ -2216,9 +2242,15 @@
       // a report written), it just no longer controls whether the
       // ticket appears under "Terminat" itself.
       base = allTickets.filter(t => !t.archived && (
-        activeFilter === 'Toate' ? true : t.status === activeFilter
+        activeStatusFilter === 'Toate' ? true : t.status === activeStatusFilter
       ));
     }
+    // Type is a second, independent axis — applied on top of whichever
+    // status branch above ran, so e.g. "Arhivate" + "Accidente" (an
+    // archived accident report) works too, not just the non-archived
+    // branches.
+    if (activeTypeFilter === 'accident') base = base.filter(t => t.type === 'Anunt accident');
+    else if (activeTypeFilter === 'functional') base = base.filter(t => t.type !== 'Anunt accident');
     base = base.filter(t => matchesSearch(t, query) && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
     // Shared with Overview's own calendar (both read/write the same
     // ticketYearFilter/ticketMonthFilter already, so sharing the day
@@ -2658,7 +2690,9 @@
     editingTicketId = null;
     ticketSearchQuery = '';
     projectSearchQuery = '';
-    activeFilter = 'Ongoing';
+    activeStatusFilter = 'Ongoing';
+    activeTypeFilter = 'Toate';
+    if (lastCreatedTicketBanner) lastCreatedTicketBanner.classList.remove('show');
     projectsFilter = 'Ongoing';
     overviewCardFilter = null;
     agingOnlyFilter = false;
@@ -2724,14 +2758,17 @@
     }
   });
 
-  const chipDefs = [
+  const statusChipDefs = [
     { key: 'Ongoing', label: 'Active' },
     { key: 'Terminat', label: 'Soluționate' },
-    { key: 'functional', label: 'Defecte' },
-    { key: 'accident', label: 'Accidente' },
     { key: 'Toate', label: 'Toate' },
     { key: 'Archived', label: 'Arhivate' },
     { key: 'AwaitingReport', label: 'Așteaptă raport' },
+  ];
+  const typeChipDefs = [
+    { key: 'Toate', label: 'Toate' },
+    { key: 'functional', label: 'Defecte' },
+    { key: 'accident', label: 'Accidente' },
   ];
 
   const ticketSearchBox = document.getElementById('ticketSearchBox');
@@ -3030,16 +3067,30 @@
     overviewFiltersMobileBtn.addEventListener('click', () => setSheetOpen('overviewFiltersSheet', true));
   }
 
-  ['chipsWrap', 'ticketStatusChipsMobile'].forEach(wrapId => {
+  ['ticketStatusChipsMobile'].forEach(wrapId => {
     const wrap = document.getElementById(wrapId);
     if (!wrap) return;
-    chipDefs.forEach(c => {
+    statusChipDefs.forEach(c => {
       const chip = document.createElement('button');
       chip.type = 'button';
-      chip.className = 'chip' + (c.key === activeFilter ? ' active' : '');
+      chip.className = 'chip' + (c.key === activeStatusFilter ? ' active' : '');
       chip.textContent = c.label;
       chip.dataset.key = c.key;
-      chip.addEventListener('click', () => setTicketFilter(c.key));
+      chip.addEventListener('click', () => setTicketStatusFilter(c.key));
+      wrap.appendChild(chip);
+    });
+  });
+
+  ['ticketTypeChipsMobile'].forEach(wrapId => {
+    const wrap = document.getElementById(wrapId);
+    if (!wrap) return;
+    typeChipDefs.forEach(c => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip' + (c.key === activeTypeFilter ? ' active' : '');
+      chip.textContent = c.label;
+      chip.dataset.key = c.key;
+      chip.addEventListener('click', () => setTicketTypeFilter(c.key));
       wrap.appendChild(chip);
     });
   });
@@ -3529,11 +3580,21 @@
   // whatever page linked here — it doesn't insert an extra step.
   history.replaceState({ adminTab: 'overview' }, '', window.location.pathname + window.location.search + '#overview');
 
-  function setTicketFilter(filterKey){
-    activeFilter = filterKey;
+  function setTicketStatusFilter(filterKey){
+    activeStatusFilter = filterKey;
     selectedIds.clear();
     updateArchiveBar();
-    document.querySelectorAll('#chipsWrap .chip, #ticketStatusChipsMobile .chip').forEach(chip => {
+    document.querySelectorAll('#ticketStatusChipsMobile .chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.key === filterKey);
+    });
+    renderTickets();
+  }
+
+  function setTicketTypeFilter(filterKey){
+    activeTypeFilter = filterKey;
+    selectedIds.clear();
+    updateArchiveBar();
+    document.querySelectorAll('#ticketTypeChipsMobile .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
     renderTickets();
@@ -3573,7 +3634,11 @@
     // "Arhivate" chip instead means the ticket is actually there to
     // find and highlight, for a click from either account.
     const ticket = allTickets.find(t => String(t.id) === String(ticketId));
-    setTicketFilter(ticket && ticket.archived ? 'Archived' : 'Toate');
+    setTicketStatusFilter(ticket && ticket.archived ? 'Archived' : 'Toate');
+    // Type is independent now too — reset it the same way, otherwise
+    // e.g. a "Defecte" type filter left over from before could hide
+    // the very accident ticket being navigated to.
+    setTicketTypeFilter('Toate');
     openAdminTab('tickets');
 
     requestAnimationFrame(() => {
@@ -3764,8 +3829,35 @@
     }
   }
 
+  // Fields a re-render must not silently blank out mid-edit — e.g.
+  // clicking "Editează" to fix the street name while "Ce s-a făcut"/
+  // "Soluționat de" already has unsaved text typed into it below. Any
+  // trigger that calls renderTickets() (the edit toggle, a filter
+  // change, a fresh loadTickets() from a push notification arriving,
+  // etc.) tears down and rebuilds every card's innerHTML from the last
+  // *saved* ticket data, which used to discard whatever hadn't been
+  // saved yet in any of these.
+  const RENDER_DRAFT_FIELD_SELECTORS = [
+    '.f-name', '.f-phone', '.f-email', '.f-address', '.f-description', '.f-submitted-date',
+    '.f-status', '.f-resolver', '.f-resnote', '.f-resolved-date',
+  ];
+
   function renderTickets(){
     const list = document.getElementById('ticketList');
+    // Snapshot whatever's currently sitting in each visible card's
+    // editable fields, keyed by ticket id, BEFORE the rebuild below
+    // wipes it — restored onto the freshly-rendered cards further
+    // down so in-progress typing survives the re-render.
+    const draftByTicketId = {};
+    list.querySelectorAll('.ticket-card').forEach(existingCard => {
+      const id = existingCard.id.replace('ticket-card-', '');
+      const draft = {};
+      RENDER_DRAFT_FIELD_SELECTORS.forEach(sel => {
+        const el = existingCard.querySelector(sel);
+        if (el) draft[sel] = el.value;
+      });
+      if (Object.keys(draft).length) draftByTicketId[id] = draft;
+    });
     const filtered = sortTicketsForDisplay(getFilteredTickets());
     document.getElementById('resultCount').textContent = filtered.length + ' din ' + allTickets.length + ' tichete';
     const resultCountMobile = document.getElementById('resultCountMobile');
@@ -3908,6 +4000,18 @@
           }
         </div>
       `;
+
+      // Put back whatever was captured above for this ticket, now
+      // that the fresh fields exist again — runs before the autosize
+      // logic below so it sizes to the restored text, not the blank/
+      // saved starting value.
+      const draft = draftByTicketId[String(t.id)];
+      if (draft) {
+        Object.entries(draft).forEach(([sel, val]) => {
+          const el = card.querySelector(sel);
+          if (el) el.value = val;
+        });
+      }
 
       // "Ce s-a făcut" grows to fit its content — resets height to
       // auto first so it can shrink back down too (not just grow),
@@ -4168,11 +4272,11 @@
   function updateArchiveBar(){
     selectionCount.textContent = selectedIds.size + ' selectate';
     archiveBar.classList.toggle('show', selectedIds.size > 0);
-    archiveSelectedBtn.style.display = activeFilter === 'Archived' ? 'none' : 'inline-flex';
+    archiveSelectedBtn.style.display = activeStatusFilter === 'Archived' ? 'none' : 'inline-flex';
     // Editing one ticket's own details at a time makes sense;
     // bulk-editing several at once doesn't, so this only shows when
     // exactly one is selected — with 2+, only Archive remains.
-    editSelectedBtn.style.display = (selectedIds.size === 1 && activeFilter !== 'Archived') ? 'inline-flex' : 'none';
+    editSelectedBtn.style.display = (selectedIds.size === 1 && activeStatusFilter !== 'Archived') ? 'inline-flex' : 'none';
   }
 
   editSelectedBtn.addEventListener('click', () => {
@@ -5872,6 +5976,7 @@
     saveBtn.textContent = 'Salvează sesizarea';
     ticketAddForm.style.display = 'none';
     showToast(`Sesizarea ${ticketNumber} a fost creată.`);
+    showLastCreatedTicketBanner(ticketNumber);
     loadTickets();
   });
 
@@ -6822,6 +6927,24 @@
     toast.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+  }
+
+  // Unlike the toast above (gone after 2.6s), this stays at the top of
+  // the Sesizări tab until manually dismissed — so after logging a
+  // ticket by hand, the new number is still there to read/copy even a
+  // minute later without needing to go find it in Overview.
+  const lastCreatedTicketBanner = document.getElementById('lastCreatedTicketBanner');
+  const lastCreatedTicketBannerText = document.getElementById('lastCreatedTicketBannerText');
+  const lastCreatedTicketBannerClose = document.getElementById('lastCreatedTicketBannerClose');
+  function showLastCreatedTicketBanner(ticketNumber){
+    if (!lastCreatedTicketBanner || !lastCreatedTicketBannerText) return;
+    lastCreatedTicketBannerText.innerHTML = `Sesizare creată: <strong>${escapeHtml(ticketNumber)}</strong>`;
+    lastCreatedTicketBanner.classList.add('show');
+  }
+  if (lastCreatedTicketBannerClose) {
+    lastCreatedTicketBannerClose.addEventListener('click', () => {
+      lastCreatedTicketBanner.classList.remove('show');
+    });
   }
 
   // Known iOS Safari/WKWebView bug: fixed-position elements can end up
