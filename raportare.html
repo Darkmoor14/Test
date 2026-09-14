@@ -587,7 +587,12 @@
 <script>
   const SUPABASE_URL = "https://ebuigyyjifnjiuzsgpih.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_aXC8Q_v2faRB0uEAlZYFog_JreYGXvq";
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // persistSession: false — this page never logs anyone in, and
+  // without it the client silently picks up admin.html's staff login
+  // from the same browser's localStorage (same project, same default
+  // storage key), making a real public submission look staff-created
+  // and silently skipping the citizen-notification path.
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
 
   /* ============================================================
      LEGAL MODALS (GDPR / Termeni și Condiții) — same pattern used

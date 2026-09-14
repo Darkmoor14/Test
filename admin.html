@@ -5897,14 +5897,16 @@
     // public form's own ordering), so a failed/unconfigured
     // notification never affects the ticket itself.
     //
-    // Email always sends regardless of whether a resolution date was
-    // given. Push notification is deliberately skipped when a
+    // Both the "new ticket" email AND the push are skipped when a
     // resolution date IS given — that field being filled in means
     // this ticket is a retroactive/historical record of work already
     // done (e.g. logging a phone call from weeks ago), not something
-    // that just happened, so an "active ticket needs attention" push
-    // alert would be misleading. Per explicit request, this
-    // suppression is important — do not remove without re-confirming.
+    // that just happened, so notifying the whole team about a new
+    // "active" ticket would be pointless — it's already solved before
+    // it ever existed on the site. That scenario gets its own,
+    // narrower notification below (report_needed, to vlasbogdan@
+    // only). Per explicit request, this suppression is important — do
+    // not remove without re-confirming.
     const notifyPayload = {
       type: 'ticket',
       ticket_number: ticketNumber,
@@ -5915,8 +5917,8 @@
       address: address,
       description: description || '-',
     };
-    sendNotification(notifyPayload);
     if (!resolvedDateVal) {
+      sendNotification(notifyPayload);
       sendPushNotification(notifyPayload);
     }
 
