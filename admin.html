@@ -137,12 +137,14 @@
        navigation moved into the sidebar — back to normal padding. */
 
     /* Mobile toolbars keep the inline desktop controls trimmed down:
-       the year/month selects move into sheet-style drawers, the
-       desktop Excel buttons stay hidden, and search collapses to just
-       a magnifying-glass button until tapped. Export is still
-       available on phone, just via the dedicated mobile action row
-       below rather than crammed into the main toolbar line. */
-    #importExcelBtn, #exportExcelBtn, #exportBacklogExcelBtn, #importRepairSheetBtn{display:none;}
+       the year/month selects move into sheet-style drawers, and
+       search collapses to just a magnifying-glass button until
+       tapped. exportExcelBtn/importRepairSheetBtn used to be crammed
+       desktop-style buttons here too, but they've moved into
+       Overview's icon row (visible at every width now), so they're
+       no longer part of this mobile-trim list — only Proiecte's own
+       still-old-style importExcelBtn/exportBacklogExcelBtn are. */
+    #importExcelBtn, #exportBacklogExcelBtn{display:none;}
     .toolbar-mobile-actions{display:flex;}
     .toolbar-mobile-summary{display:flex;}
     .toolbar-mobile-only{display:inline-flex;}
@@ -155,8 +157,7 @@
       color:var(--ink-600);cursor:pointer;
     }
     .search-icon-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
-    #ticketSearchBox, #projectSearchBox, #backlogSearchBox{display:none;width:0;}
-    .ticket-search-wrap.expanded #ticketSearchBox,
+    #projectSearchBox, #backlogSearchBox{display:none;width:0;}
     .ticket-search-wrap.expanded #projectSearchBox,
     .ticket-search-wrap.expanded #backlogSearchBox{display:block;width:100%;margin-left:8px;}
     .ticket-search-wrap.expanded .search-icon-btn{display:none;}
@@ -181,14 +182,6 @@
   .btn-primary{background:var(--copper-500);color:#fff;border-color:var(--copper-500);}
   .btn-primary:hover{background:var(--copper-600);color:#fff;}
   .btn:disabled{opacity:0.5;cursor:not-allowed;}
-  /* Compact circular icon button — same visual language as
-     .search-icon-btn (border/hover already inherited from .btn),
-     just square-cornered padding swapped for a fixed 38px circle so
-     secondary toolbar actions (upload/download) don't each need a
-     full text label competing with the primary "+ Adaugă sesizare"
-     button for attention. */
-  .icon-action-btn{padding:0;width:38px;height:38px;border-radius:50%;justify-content:center;}
-
   /* ===== LOGIN ===== */
   .login-wrap{min-height:calc(100vh - 76px);display:flex;align-items:center;justify-content:center;background:var(--paper-050);}
   .login-card{
@@ -382,70 +375,69 @@
      already reserved site-wide to mean "resolved" — reusing it here
      for something else would break that convention rather than
      reinforce it. */
-  /* sesizari@ specifically gets quick-access calendar/search icons
-     on the tab row itself, right side, same line as the tabs — this
-     account has no other way to search by name/address/phone on
-     Overview at all (it never had a search box, only year/month),
-     and wanted a full day-level calendar rather than just year/month
-     dropdowns for the date side. Desktop only, hidden for every
-     other role — those accounts already have this covered via the
-     existing tab-row year bar and, on Sesizări, the search box.
-     Lives inside .admin-tabs-row (not the panel itself) specifically
-     so it can sit on the tab row's own line — shown/hidden in sync
-     with the "overview" tab via the same .active-class toggle the
-     other tab-row year bars already use (see openAdminTab()'s JS). */
+  /* Quick-access calendar/search (and, on Overview, download/import/
+     add) icons on the tab row itself, right side, same line as the
+     tabs. Used to be desktop-only (≥901px) — moved out of that media
+     query so the exact same icon row is available at every width,
+     for every account, on every tab that has one: what used to
+     require a completely different, narrower "Filtre" sheet on
+     mobile now just works the same way phone or desktop. Lives inside
+     .admin-tabs-row (not the panel itself) specifically so it can sit
+     on the tab row's own line — shown/hidden in sync with whichever
+     tab is open via the same .active-class toggle the other tab-row
+     year bars already use (see openAdminTab()'s JS). */
   .overview-quick-filters{display:none;}
+  .overview-quick-filters.active{
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  }
+  .overview-icon-btn{
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:38px;height:38px;border-radius:50%;
+    border:1px solid var(--line-strong);background:var(--paper-000);
+    color:var(--ink-600);cursor:pointer;
+  }
+  .overview-icon-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
+  /* The primary "create" action stands apart from the neutral
+     search/calendar/download/import icons around it — filled red,
+     white glyph, same circular size so it sits in the row cleanly. */
+  .overview-icon-btn.add-btn{
+    background:var(--copper-500);border-color:var(--copper-500);color:#fff;
+  }
+  .overview-icon-btn.add-btn:hover{background:var(--copper-600);border-color:var(--copper-600);}
+  .overview-date-filter-wrap{position:relative;display:flex;align-items:center;}
+  .overview-search-wrap{position:relative;display:flex;align-items:center;}
+  /* Generic — targets any search input inside .overview-search-wrap
+     by structure, not a specific ID. The original version of this
+     rule only ever hid #overviewSearchBox by name, so Sesizări/
+     Proiecte/Avarii's own search boxes (different IDs each) never
+     actually got hidden at all — they sat permanently visible
+     right next to their icon instead of collapsing behind it like
+     Overview's correctly did. */
+  .overview-search-wrap input[type="search"]{
+    display:none;width:0;font-family:var(--body);font-size:13px;
+    padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;
+  }
+  .overview-search-wrap.expanded input[type="search"]{display:block;width:200px;margin-right:8px;}
+  .overview-search-wrap.expanded .overview-icon-btn{display:none;}
+  /* The tab-row year bar's own Overview instance is redundant with
+     the calendar above and was showing up as a visible duplicate. */
+  .admin-tabs-row .overview-year-bar[data-year-panel="overview"]{display:none;}
+  /* Same for Sesizări's own tab-row year bar — the icon pair (data-
+     year-panel="tickets") replaces it, for every role now, not just
+     on desktop. */
+  .admin-tabs-row .overview-year-bar[data-year-panel="tickets"]{display:none;}
+  /* Same again for Proiecte publice — its tab-row year bar only ever
+     had year (no month), replaced now by the full calendar. */
+  .admin-tabs-row .overview-year-bar[data-year-panel="projects"]{display:none;}
+  #panel-projects .toolbar .overview-year-bar{display:none;}
+  #panel-projects .toolbar .ticket-search-wrap{display:none;}
+  /* Avarii rețele has the exact same old-toolbar-search-box-vs-new-
+     icon-row-search-box duplication Sesizări/Proiecte had — its own
+     search box lives on, just hidden, with the icon row's version now
+     the only one shown, at every width. */
+  #panel-backlog .toolbar .ticket-search-wrap{display:none;}
   @media(min-width:901px){
-    .overview-quick-filters.active{
-      display:flex;gap:10px;align-items:center;
-    }
-    .overview-icon-btn{
-      display:flex;align-items:center;justify-content:center;flex-shrink:0;
-      width:38px;height:38px;border-radius:50%;
-      border:1px solid var(--line-strong);background:var(--paper-000);
-      color:var(--ink-600);cursor:pointer;
-    }
-    .overview-icon-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
-    .overview-date-filter-wrap{position:relative;display:flex;align-items:center;}
-    .overview-search-wrap{position:relative;display:flex;align-items:center;}
-    /* Generic — targets any search input inside .overview-search-wrap
-       by structure, not a specific ID. The original version of this
-       rule only ever hid #overviewSearchBox by name, so Sesizări/
-       Proiecte/Avarii's own search boxes (different IDs each) never
-       actually got hidden at all — they sat permanently visible
-       right next to their icon instead of collapsing behind it like
-       Overview's correctly did. */
-    .overview-search-wrap input[type="search"]{
-      display:none;width:0;font-family:var(--body);font-size:13px;
-      padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;
-    }
-    .overview-search-wrap.expanded input[type="search"]{display:block;width:230px;margin-right:8px;}
-    .overview-search-wrap.expanded .overview-icon-btn{display:none;}
-    /* The tab-row year bar's own Overview instance is redundant with
-       the calendar above and was showing up as a visible duplicate
-       for this one role — same issue as before, same fix. */
-    .admin-tabs-row .overview-year-bar[data-year-panel="overview"]{display:none;}
-    /* Same for Sesizări's own tab-row year bar and its toolbar's old
-       inline year-bar/search box — the new icon pair above (data-
-       year-panel="tickets") replaces both of those now, for every
-       role, not just year-bar's usual desktop-only display. Status
-       chips (#chipsWrap) are untouched — those aren't being
-       replaced, only the year/month controls and the search box. */
-    .admin-tabs-row .overview-year-bar[data-year-panel="tickets"]{display:none;}
-    #panel-tickets .toolbar .overview-year-bar{display:none;}
-    #panel-tickets .toolbar .ticket-search-wrap{display:none;}
-    /* Same again for Proiecte publice — its tab-row year bar only
-       ever had year (no month), replaced now by the full calendar;
-       its own toolbar's inline year-bar and search box are hidden
-       the same way Sesizări's were. */
-    .admin-tabs-row .overview-year-bar[data-year-panel="projects"]{display:none;}
-    #panel-projects .toolbar .overview-year-bar{display:none;}
-    #panel-projects .toolbar .ticket-search-wrap{display:none;}
-    /* Avarii rețele gets search only, no calendar — this tab has no
-       year/month/day concept at all (backlog items are tracked by
-       status only, not a date range), so there's nothing for a
-       calendar icon to filter here. */
-    #panel-backlog .toolbar .ticket-search-wrap{display:none;}
+    .overview-search-wrap.expanded input[type="search"]{width:230px;}
   }
 
   /* ===== MINI CALENDAR (day/month/year, replaces the old plain
@@ -535,13 +527,14 @@
   @media(min-width:901px){
     html.report-focused-view .chips.report-focused-chips{display:flex;}
   }
-  /* "Încarcă fișă remedieri" (Sesizări toolbar) — vlasbogdan@ only,
-     same isReportFocusedView()/report-focused-view class as the rest
-     of his dedicated UI. Compound selector for the same reason as
-     .chips.report-focused-chips above: needs to outweigh the bare
-     .btn{display:inline-flex} rule regardless of file order. */
-  .btn.repair-import-btn{display:none;}
-  html.report-focused-view .btn.repair-import-btn{display:inline-flex;}
+  /* "Încarcă fișă remedieri" (now in Overview's icon row) —
+     vlasbogdan@ only, same isReportFocusedView()/report-focused-view
+     class as the rest of his dedicated UI. Compound selector for the
+     same reason as .chips.report-focused-chips above: needs to
+     outweigh the bare .overview-icon-btn{display:flex} rule
+     regardless of file order. */
+  .overview-icon-btn.repair-import-btn{display:none;}
+  html.report-focused-view .overview-icon-btn.repair-import-btn{display:flex;}
   /* Status filtering now lives inside the "Filtre" sheet for every
      mobile admin (see #overviewSheetStatusSection below), not just
      report-focused — this separate inline chip row is redundant with
@@ -1335,14 +1328,33 @@
           </button>
           <input type="search" id="overviewSearchBox" placeholder="Caută nume, adresă, telefon…">
         </div>
+        <input type="file" id="repairSheetInput" accept=".xlsx,.xls,.csv" style="display:none;">
+        <button type="button" class="overview-icon-btn repair-import-btn" id="importRepairSheetBtn" title="Încarcă fișă remedieri" aria-label="Încarcă fișă remedieri">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
+        <button type="button" class="overview-icon-btn" id="exportExcelBtn" title="Raport Excel" aria-label="Raport Excel">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button type="button" class="overview-icon-btn add-btn" id="addTicketBtn" title="Adaugă sesizare" aria-label="Adaugă sesizare">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
       </div>
       <div class="overview-quick-filters" data-year-panel="tickets">
-        <!-- No date-filter-wrap here (unlike Overview's/Projects' own
-             quick-filters row above/below) — Sesizări's calendar now
-             lives inline inside the Filtre sheet (ticketsSheetMiniCalendar)
-             instead, so a second, separate popover calendar icon here
-             would just be the exact same filter reachable two
-             different, disconnected-looking ways. -->
+        <div class="overview-date-filter-wrap">
+          <button type="button" class="overview-icon-btn" id="ticketsDateToggleBtn" aria-label="Filtrare după dată">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </button>
+          <div class="mini-calendar" id="ticketsMiniCalendar">
+            <div class="mini-cal-header">
+              <button type="button" id="ticketsMiniCalPrevBtn" aria-label="Luna anterioară">‹</button>
+              <button type="button" class="mini-cal-month-label" id="ticketsMiniCalLabel">—</button>
+              <button type="button" id="ticketsMiniCalNextBtn" aria-label="Luna următoare">›</button>
+            </div>
+            <div class="mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+            <div class="mini-cal-grid" id="ticketsMiniCalGrid"></div>
+            <button type="button" class="mini-cal-clear-btn" id="ticketsMiniCalClearBtn">Toate zilele</button>
+          </div>
+        </div>
         <div class="overview-search-wrap" id="ticketsIconSearchWrap">
           <button type="button" class="overview-icon-btn" id="ticketsSearchToggleBtn" aria-label="Căutare">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1415,18 +1427,6 @@
       <div class="last-created-banner" id="lastCreatedTicketBanner">
         <span id="lastCreatedTicketBannerText"></span>
         <button type="button" id="lastCreatedTicketBannerClose" aria-label="Închide">&times;</button>
-      </div>
-      <div class="toolbar">
-        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
-          <button class="btn btn-primary" id="addTicketBtn" type="button">+ Adaugă sesizare</button>
-          <input type="file" id="repairSheetInput" accept=".xlsx,.xls,.csv" style="display:none;">
-          <button class="btn icon-action-btn repair-import-btn" id="importRepairSheetBtn" type="button" title="Încarcă fișă remedieri" aria-label="Încarcă fișă remedieri">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          </button>
-          <button class="btn icon-action-btn" id="exportExcelBtn" type="button" title="Raport Excel" aria-label="Raport Excel">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          </button>
-        </div>
       </div>
       <div class="project-form" id="ticketAddForm" style="display:none;">
         <div class="pf-grid">
@@ -1546,21 +1546,12 @@
     <div class="admin-panel" id="panel-tickets">
       <div class="toolbar">
         <div style="display:flex; align-items:center; gap:14px;">
-          <button class="btn toolbar-desktop-only" id="ticketFiltersDesktopBtn" type="button">Filtre</button>
-          <div class="ticket-search-wrap" id="ticketSearchWrap">
-            <button type="button" class="search-icon-btn" id="searchToggleBtn" aria-label="Căutare">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </button>
-            <input type="search" id="ticketSearchBox" placeholder="Caută adresă, nume, telefon, nr. sesizare…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:230px;">
-          </div>
           <div class="result-count" id="resultCount"></div>
         </div>
+        <div class="chips" id="ticketStatusChipsToolbar"></div>
         <div class="toolbar-mobile-summary">
           <span id="resultCountMobile">0 tichete</span>
           <span id="ticketFilterHintMobile">Folosește filtrele sau căutarea</span>
-        </div>
-        <div class="toolbar-mobile-actions">
-          <button class="btn toolbar-mobile-only" id="ticketFiltersMobileBtn" type="button">Filtre</button>
         </div>
       </div>
       <div class="active-narrow-filter" id="activeNarrowFilter">
@@ -1741,38 +1732,6 @@
     </div>
     <div class="sheet-actions">
       <button type="button" class="btn btn-primary" data-close-sheet="overviewFiltersSheet">Aplică</button>
-    </div>
-  </div>
-</div>
-
-<div class="mobile-sheet" id="ticketFiltersSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="ticketFiltersSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="ticketFiltersSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div>
-        <h3 id="ticketFiltersSheetTitle">Filtre sesizări</h3>
-      </div>
-      <button type="button" class="sheet-close" data-close-sheet="ticketFiltersSheet" aria-label="Închide">×</button>
-    </div>
-    <div class="sheet-filter-status">
-      <div class="sheet-mini-calendar" id="ticketsSheetMiniCalendar">
-        <div class="mini-cal-header">
-          <button type="button" id="ticketsSheetMiniCalPrevBtn" aria-label="Luna anterioară">‹</button>
-          <button type="button" class="mini-cal-month-label" id="ticketsSheetMiniCalLabel">—</button>
-          <button type="button" id="ticketsSheetMiniCalNextBtn" aria-label="Luna următoare">›</button>
-        </div>
-        <div class="mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
-        <div class="mini-cal-grid" id="ticketsSheetMiniCalGrid"></div>
-        <button type="button" class="mini-cal-clear-btn" id="ticketsSheetMiniCalClearBtn">Toate zilele</button>
-      </div>
-    </div>
-    <div class="sheet-filter-status">
-      <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Stare listă</label>
-      <div class="chips" id="ticketStatusChipsMobile"></div>
-    </div>
-    <div class="sheet-actions">
-      <button type="button" class="btn btn-primary" data-close-sheet="ticketFiltersSheet">Aplică</button>
     </div>
   </div>
 </div>
@@ -2851,45 +2810,25 @@
     }
   });
 
-  // "Toate" and "Așteaptă raport" removed per explicit request — this
-  // sheet now only ever offers Active/Soluționate/Arhivate, alongside
-  // the date filters above it. Type is no longer a chip here at all
-  // (see typeChipDefs' removal below) — Sesizări funcționale/accidente
-  // are separate top-level tabs now, each locking activeTypeFilter on
-  // its own via openAdminTab().
+  // Directly visible in the toolbar now — no chip is hidden behind a
+  // "Filtre" button/sheet anymore (date filtering moved to the icon-
+  // popover calendar next to the search icon; see ticketsDateToggleBtn
+  // below). "Toate" is back per explicit request, so the full history
+  // is still reachable without leaving this tab. Type is no longer a
+  // chip here at all — Sesizări funcționale/accidente are separate
+  // top-level tabs now, each locking activeTypeFilter on its own via
+  // openAdminTab().
   const statusChipDefs = [
     { key: 'Ongoing', label: 'Active' },
     { key: 'Terminat', label: 'Soluționate' },
+    { key: 'Toate', label: 'Toate' },
     { key: 'Archived', label: 'Arhivate' },
   ];
 
-  const ticketSearchBox = document.getElementById('ticketSearchBox');
-  if (ticketSearchBox) {
-    ticketSearchBox.addEventListener('input', () => {
-      ticketSearchQuery = ticketSearchBox.value;
-      renderTickets();
-    });
-  }
-
-  // Mobile-only: the magnifying-glass button expands the search box
-  // (which starts collapsed to save space); tapping the icon focuses
-  // it, and it collapses back only if left empty on blur — so a real,
-  // in-progress query never gets hidden out from under someone.
-  const searchToggleBtn = document.getElementById('searchToggleBtn');
-  const ticketSearchWrap = document.getElementById('ticketSearchWrap');
-  if (searchToggleBtn && ticketSearchWrap && ticketSearchBox) {
-    searchToggleBtn.addEventListener('click', () => {
-      ticketSearchWrap.classList.add('expanded');
-      searchToggleBtn.classList.add('active');
-      ticketSearchBox.focus();
-    });
-    ticketSearchBox.addEventListener('blur', () => {
-      if (!ticketSearchBox.value.trim()) {
-        ticketSearchWrap.classList.remove('expanded');
-        searchToggleBtn.classList.remove('active');
-      }
-    });
-  }
+  // The old in-panel search box (ticketSearchBox/searchToggleBtn) is
+  // gone — Sesizări now uses the exact same icon-row search pattern
+  // as every other tab (ticketsIconSearchBox, wired further down via
+  // createSearchToggleWidget) instead of its own separate one.
 
   // A short Romanian month-name list of its own — MONTH_FILTER_NAMES
   // elsewhere is capitalized for dropdown options, this one feeds
@@ -3084,10 +3023,9 @@
     }
 
     // For an instance with no toggleBtnId (it lives inline inside a
-    // sheet instead of behind its own popover icon — see
-    // ticketsSheetMiniCalendar below) — the sheet's own open button
-    // has no other way to tell this widget "resync before you're
-    // shown," since there's no toggle click here to hook that onto.
+    // sheet instead of behind its own popover icon) — the sheet's own
+    // open button has no other way to tell this widget "resync before
+    // you're shown," since there's no toggle click here to hook that onto.
     return {
       refresh(){
         const y = Number(config.getYear());
@@ -3157,23 +3095,20 @@
 
   // Sesizări's own search icon — its own search query, since Sesizări
   // already had its own separate ticketSearchQuery/getFilteredTickets()
-  // search before this (unlike its calendar, which now lives only
-  // inside the Filtre sheet below — see ticketsSheetMiniCalendar).
+  // search before this.
   createSearchToggleWidget({
     toggleBtnId: 'ticketsSearchToggleBtn', wrapId: 'ticketsIconSearchWrap', boxId: 'ticketsIconSearchBox',
     setQuery: (v) => { ticketSearchQuery = v; }, rerender: renderTickets,
   });
   // Sesizări's calendar — shares the exact same
   // ticketYearFilter/ticketMonthFilter/overviewDayFilter state as
-  // Overview's (both tabs stay in sync with each other). Lives inline
-  // inside the Filtre sheet (no toggleBtnId — see
-  // createMiniCalendarWidget's own comment on why that's optional)
-  // rather than behind its own separate popover icon, so there's only
-  // one place to look for it instead of two disconnected ones.
-  const ticketsSheetMiniCal = createMiniCalendarWidget({
-    calendarId: 'ticketsSheetMiniCalendar',
-    labelId: 'ticketsSheetMiniCalLabel', gridId: 'ticketsSheetMiniCalGrid', clearBtnId: 'ticketsSheetMiniCalClearBtn',
-    prevBtnId: 'ticketsSheetMiniCalPrevBtn', nextBtnId: 'ticketsSheetMiniCalNextBtn',
+  // Overview's (both tabs stay in sync with each other), and now uses
+  // the exact same icon-popover pattern too, instead of living inline
+  // inside a "Filtre" sheet.
+  createMiniCalendarWidget({
+    toggleBtnId: 'ticketsDateToggleBtn', calendarId: 'ticketsMiniCalendar',
+    labelId: 'ticketsMiniCalLabel', gridId: 'ticketsMiniCalGrid', clearBtnId: 'ticketsMiniCalClearBtn',
+    prevBtnId: 'ticketsMiniCalPrevBtn', nextBtnId: 'ticketsMiniCalNextBtn',
     getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
     getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
     getDay: () => overviewDayFilter, setDay: (d) => { overviewDayFilter = d; },
@@ -3188,24 +3123,6 @@
   document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(select => {
     select.addEventListener('change', () => setTicketMonthFilter(select.value));
   });
-
-  const ticketFiltersMobileBtn = document.getElementById('ticketFiltersMobileBtn');
-  if (ticketFiltersMobileBtn) {
-    ticketFiltersMobileBtn.addEventListener('click', () => {
-      ticketsSheetMiniCal.refresh();
-      setSheetOpen('ticketFiltersSheet', true);
-    });
-  }
-  // Same sheet, same button behavior as the mobile one above — just
-  // also reachable on desktop now, where the status chips/date
-  // filtering used to sit permanently inline in the toolbar instead.
-  const ticketFiltersDesktopBtn = document.getElementById('ticketFiltersDesktopBtn');
-  if (ticketFiltersDesktopBtn) {
-    ticketFiltersDesktopBtn.addEventListener('click', () => {
-      ticketsSheetMiniCal.refresh();
-      setSheetOpen('ticketFiltersSheet', true, ticketFiltersDesktopBtn);
-    });
-  }
 
   const overviewFiltersMobileBtn = document.getElementById('overviewFiltersMobileBtn');
   if (overviewFiltersMobileBtn) {
@@ -3227,7 +3144,7 @@
       wrap.appendChild(chip);
     });
   }
-  renderChipRow('ticketStatusChipsMobile', statusChipDefs, () => activeStatusFilter, setTicketStatusFilter);
+  renderChipRow('ticketStatusChipsToolbar', statusChipDefs, () => activeStatusFilter, setTicketStatusFilter);
 
   const overviewStatusChipDefs = [
     { key: 'all', label: 'Toate' },
@@ -3755,7 +3672,7 @@
     activeStatusFilter = filterKey;
     selectedIds.clear();
     updateArchiveBar();
-    document.querySelectorAll('#ticketStatusChipsMobile .chip').forEach(chip => {
+    document.querySelectorAll('#ticketStatusChipsToolbar .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
     if (!skipRender) renderTickets();
@@ -3800,7 +3717,13 @@
     agingOnlyFilter = false;
     typeOnlyFilter = null;
     updateActiveNarrowFilterUI();
-    if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
+    ticketSearchQuery = '';
+    const ticketsIconSearchBox = document.getElementById('ticketsIconSearchBox');
+    const ticketsIconSearchWrap = document.getElementById('ticketsIconSearchWrap');
+    const ticketsSearchToggleBtn = document.getElementById('ticketsSearchToggleBtn');
+    if (ticketsIconSearchBox) ticketsIconSearchBox.value = '';
+    if (ticketsIconSearchWrap) ticketsIconSearchWrap.classList.remove('expanded');
+    if (ticketsSearchToggleBtn) ticketsSearchToggleBtn.classList.remove('active');
     // An archived ticket doesn't exist under "Toate" (getFilteredTickets
     // excludes archived there by design — see its own comment) — landing
     // on "Toate" for one just showed an empty-feeling Sesizări tab with
