@@ -919,6 +919,13 @@
   }
   .chip:hover{border-color:var(--copper-500);color:var(--copper-600);}
   .chip.active{background:var(--copper-500);border-color:var(--copper-500);color:#fff;}
+  /* Filter sheets specifically (not the compact desktop toolbar chip
+     rows, which stay left-aligned/shrink-to-fit) — a left-aligned
+     wrap left odd-numbered groups (5 status chips wrapping 3-then-2)
+     with a short, ragged last row and empty space to its right.
+     Letting each chip grow to fill its row instead makes every row —
+     however many chips land in it — use the full width evenly. */
+  .mobile-sheet .chips .chip{flex:1 1 auto;text-align:center;}
   .result-count{font-family:var(--mono);font-size:12.5px;color:var(--ink-400);}
   /* Placed immediately after its own base rule, not just wrapped in a
      media query somewhere else convenient — same reasoning as the
