@@ -469,7 +469,7 @@
      explicit, deliberately-opened panel of its own. */
   .sheet-mini-calendar{
     background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;
-    padding:14px;margin-top:4px;
+    padding:10px;margin-top:4px;max-width:220px;
   }
   .mini-cal-header{
     display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;
@@ -3073,6 +3073,21 @@
         config.rerender();
       });
     }
+
+    // For an instance with no toggleBtnId (it lives inline inside a
+    // sheet instead of behind its own popover icon — see
+    // ticketsSheetMiniCalendar below) — the sheet's own open button
+    // has no other way to tell this widget "resync before you're
+    // shown," since there's no toggle click here to hook that onto.
+    return {
+      refresh(){
+        const y = Number(config.getYear());
+        const m = Number(config.getMonth());
+        if (Number.isFinite(y)) viewYear = y;
+        if (Number.isFinite(m)) viewMonth = m;
+        render();
+      },
+    };
   }
 
   // Generic search-icon-to-search-box toggle — same "tap the icon,
@@ -3146,7 +3161,7 @@
   // createMiniCalendarWidget's own comment on why that's optional)
   // rather than behind its own separate popover icon, so there's only
   // one place to look for it instead of two disconnected ones.
-  createMiniCalendarWidget({
+  const ticketsSheetMiniCal = createMiniCalendarWidget({
     calendarId: 'ticketsSheetMiniCalendar',
     labelId: 'ticketsSheetMiniCalLabel', gridId: 'ticketsSheetMiniCalGrid', clearBtnId: 'ticketsSheetMiniCalClearBtn',
     prevBtnId: 'ticketsSheetMiniCalPrevBtn', nextBtnId: 'ticketsSheetMiniCalNextBtn',
@@ -3167,14 +3182,20 @@
 
   const ticketFiltersMobileBtn = document.getElementById('ticketFiltersMobileBtn');
   if (ticketFiltersMobileBtn) {
-    ticketFiltersMobileBtn.addEventListener('click', () => setSheetOpen('ticketFiltersSheet', true));
+    ticketFiltersMobileBtn.addEventListener('click', () => {
+      ticketsSheetMiniCal.refresh();
+      setSheetOpen('ticketFiltersSheet', true);
+    });
   }
   // Same sheet, same button behavior as the mobile one above — just
   // also reachable on desktop now, where the status chips/date
   // filtering used to sit permanently inline in the toolbar instead.
   const ticketFiltersDesktopBtn = document.getElementById('ticketFiltersDesktopBtn');
   if (ticketFiltersDesktopBtn) {
-    ticketFiltersDesktopBtn.addEventListener('click', () => setSheetOpen('ticketFiltersSheet', true, ticketFiltersDesktopBtn));
+    ticketFiltersDesktopBtn.addEventListener('click', () => {
+      ticketsSheetMiniCal.refresh();
+      setSheetOpen('ticketFiltersSheet', true, ticketFiltersDesktopBtn);
+    });
   }
 
   const overviewFiltersMobileBtn = document.getElementById('overviewFiltersMobileBtn');
