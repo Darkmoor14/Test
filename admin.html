@@ -2923,6 +2923,21 @@
     let viewYear = Number.isFinite(initialYear) ? initialYear : new Date().getFullYear();
     let viewMonth = Number.isFinite(initialMonth) ? initialMonth : (new Date().getMonth() + 1);
 
+    // Whether ANY date narrowing is currently applied — year, month,
+    // or a specific day — regardless of whether the popover happens
+    // to be open right now. The toggle icon needs this on its own:
+    // previously it only lit up while the popover was open and went
+    // back to plain the moment you closed it, even with a filter
+    // (e.g. September) still very much in effect underneath — nothing
+    // then hinted the list was narrowed at all without opening the
+    // calendar again to check.
+    function hasAppliedDateFilter(){
+      return config.getYear() !== 'all' || config.getMonth() !== 'all' || config.getDay() !== null;
+    }
+    function syncToggleBtnActive(){
+      if (toggleBtn) toggleBtn.classList.toggle('active', calendar.classList.contains('open') || hasAppliedDateFilter());
+    }
+
     // Whether the month/year currently being browsed (viewYear/
     // viewMonth) IS the applied filter, with no specific day
     // narrowing it further — used both to highlight the label and to
@@ -2981,6 +2996,7 @@
         });
       });
       if (clearBtn) clearBtn.classList.toggle('active-filter', config.getDay() !== null);
+      syncToggleBtnActive();
     }
 
     render();
@@ -3006,9 +3022,8 @@
     });
     if (toggleBtn) toggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const willOpen = !calendar.classList.contains('open');
-      calendar.classList.toggle('open', willOpen);
-      toggleBtn.classList.toggle('active', willOpen);
+      calendar.classList.toggle('open', !calendar.classList.contains('open'));
+      syncToggleBtnActive();
     });
     document.addEventListener('click', (e) => {
       if (!calendar.classList.contains('open')) return;
@@ -3024,7 +3039,7 @@
       const path = e.composedPath();
       if (path.includes(calendar) || (toggleBtn && path.includes(toggleBtn))) return;
       calendar.classList.remove('open');
-      if (toggleBtn) toggleBtn.classList.remove('active');
+      syncToggleBtnActive();
     });
     if (prevBtn) prevBtn.addEventListener('click', () => {
       viewMonth--; if (viewMonth < 1) { viewMonth = 12; viewYear--; }
