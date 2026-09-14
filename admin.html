@@ -2664,55 +2664,69 @@
     renderOverviewCharts();
     renderPrioritySummary();
     renderProjects();
-    // Role must be known before the first real render, so tickets don't
-    // briefly flash the "Ce s-a făcut" field for a limited-access
-    // account before it gets hidden a moment later.
+    // report-focused-view only ever depends on the logged-in email
+    // itself (see isReportFocusedView() — it's a plain string compare,
+    // not a database lookup), so it's applied right here, synchronously,
+    // instead of waiting on the async role fetch below. That wait was
+    // the actual cause of the "flash" you'd see on every single login
+    // or refresh, not just an account switch: vlasbogdan@'s account
+    // briefly rendered the generic Overview first, then flipped to the
+    // report-focused one the moment the unrelated role fetch happened
+    // to resolve. Nothing below this point needs that fetch.
+    document.documentElement.classList.toggle('report-focused-view', isReportFocusedView());
+    // The sheet's status chips render with the standard 3-option set
+    // at script-load time (no one's logged in yet then) — this adds
+    // the 4th "Așteaptă raport" option specifically for the
+    // report-focused role, once we know who's logged in. Both
+    // branches below are written to be fully reversible, not just
+    // additive — these run again on every login, and with no full
+    // page reload between accounts (see onAuthStateChange), an
+    // account switch within the same tab needs the PREVIOUS account's
+    // role-specific DOM changes actually undone here, not just left
+    // in place because this account doesn't happen to trigger them. A
+    // one-way "add chip" / "hide element" is exactly the kind of
+    // leftover that showed the next person to log in a leftover trace
+    // of whoever was on before them.
+    const existingAwaitingChip = overviewStatusChipsSheet
+      ? overviewStatusChipsSheet.querySelector('[data-key="awaiting_report"]')
+      : null;
+    if (isReportFocusedView() && overviewStatusChipsSheet && !existingAwaitingChip) {
+      const awaitingDef = reportFocusedChipDefs.find(c => c.key === 'awaiting_report');
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip' + (awaitingDef.key === overviewStatusFilter ? ' active' : '');
+      chip.textContent = awaitingDef.label;
+      chip.dataset.key = awaitingDef.key;
+      chip.addEventListener('click', () => setOverviewStatusFilter(awaitingDef.key));
+      overviewStatusChipsSheet.appendChild(chip);
+    } else if (!isReportFocusedView() && existingAwaitingChip) {
+      existingAwaitingChip.remove();
+    }
+    // "Așteaptă raport" isn't relevant for a limited-role account —
+    // they can't fill the report — and isn't vlasbogdan@'s job for
+    // anyone else's account either, so it's specifically gated to the
+    // report-focused view rather than every 'full'-role account. The
+    // ticket itself still shows up under "Toate" either way; only
+    // this specific dedicated view is hidden. Chips render once at
+    // script-load time before login (and therefore before anyone's
+    // identity is known), so this hides the one in question after the
+    // fact rather than restructuring that earlier initialization —
+    // and un-hides it again for vlasbogdan@ specifically, since an
+    // inline style set here for one account otherwise persists for
+    // whoever logs in next. Also not gated on the role fetch — same
+    // reasoning as the class toggle above.
+    document.querySelectorAll('[data-key="AwaitingReport"]').forEach(el => {
+      el.style.display = isReportFocusedView() ? '' : 'none';
+    });
+
+    // currentUserRole ('full' vs 'limited') genuinely does need the
+    // staff_roles lookup below — unlike report-focused-view, this one
+    // can't be known synchronously from the email alone. Role must be
+    // known before the first real ticket render, so a limited-access
+    // account doesn't briefly flash the "Ce s-a făcut" field before it
+    // gets hidden a moment later.
     fetchCurrentUserRole(email).then(() => {
-      document.documentElement.classList.toggle('report-focused-view', isReportFocusedView());
       document.documentElement.classList.toggle('limited-view', currentUserRole === 'limited');
-      // The sheet's status chips render with the standard 3-option
-      // set at script-load time (role isn't known yet then) — this
-      // adds the 4th "Așteaptă raport" option specifically for the
-      // report-focused role, once we actually know who's logged in.
-      // Both branches below are written to be fully reversible, not
-      // just additive — these run again on every login, and with no
-      // full page reload between accounts (see onAuthStateChange),
-      // an account switch within the same tab needs the PREVIOUS
-      // account's role-specific DOM changes actually undone here, not
-      // just left in place because this account doesn't happen to
-      // trigger them. A one-way "add chip" / "hide element" is
-      // exactly the kind of leftover that showed the next person to
-      // log in a leftover trace of whoever was on before them.
-      const existingAwaitingChip = overviewStatusChipsSheet
-        ? overviewStatusChipsSheet.querySelector('[data-key="awaiting_report"]')
-        : null;
-      if (isReportFocusedView() && overviewStatusChipsSheet && !existingAwaitingChip) {
-        const awaitingDef = reportFocusedChipDefs.find(c => c.key === 'awaiting_report');
-        const chip = document.createElement('button');
-        chip.type = 'button';
-        chip.className = 'chip' + (awaitingDef.key === overviewStatusFilter ? ' active' : '');
-        chip.textContent = awaitingDef.label;
-        chip.dataset.key = awaitingDef.key;
-        chip.addEventListener('click', () => setOverviewStatusFilter(awaitingDef.key));
-        overviewStatusChipsSheet.appendChild(chip);
-      } else if (!isReportFocusedView() && existingAwaitingChip) {
-        existingAwaitingChip.remove();
-      }
-      // "Așteaptă raport" isn't relevant for a limited-role account —
-      // they can't fill the report — and isn't vlasbogdan@'s job for
-      // anyone else's account either, so it's specifically gated to
-      // the report-focused view rather than every 'full'-role
-      // account. The ticket itself still shows up under "Toate"
-      // either way; only this specific dedicated view is hidden.
-      // Chips render once at script-load time before login (and
-      // therefore before the role is known), so this hides the one
-      // in question after the fact rather than restructuring that
-      // earlier initialization — and un-hides it again for
-      // vlasbogdan@ specifically, since an inline style set here for
-      // one account otherwise persists for whoever logs in next.
-      document.querySelectorAll('[data-key="AwaitingReport"]').forEach(el => {
-        el.style.display = isReportFocusedView() ? '' : 'none';
-      });
       // The mobile Overview status filter (Toate/Active/Soluționate)
       // used to be hidden here, on the theory that sesizari@ should
       // just work from the full, unfiltered table on Overview —
