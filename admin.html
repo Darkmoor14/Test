@@ -2116,7 +2116,16 @@
   let ticketSearchQuery = '';
   let overviewSearchQuery = '';
   let ticketYearFilter = 'all';
-  let ticketMonthFilter = 'all';
+  // Defaults to the current month, not "every month" — with a couple
+  // hundred tickets accumulated, landing on the full unfiltered list
+  // (both here on Overview and on Sesizări, since the two tabs
+  // deliberately share this same filter — see its other uses) made it
+  // hard to find anything without a lot of scrolling. Fixed months
+  // (unlike years, which are derived from actual ticket data — see
+  // populateYearFilterSelect's own current-year default) so this can
+  // just be set directly, no data-driven fallback needed. Someone
+  // wanting the full history still has "Toate lunile" one click away.
+  let ticketMonthFilter = String(new Date().getMonth() + 1);
   // Defaults to "Active" on phone specifically — a phone screen is
   // small enough that "everything, including tickets already closed"
   // isn't a useful first view the way it can be on a wider desktop
