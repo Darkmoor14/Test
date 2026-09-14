@@ -139,28 +139,15 @@
     /* Mobile toolbars keep the inline desktop controls trimmed down:
        the year/month selects move into sheet-style drawers, and
        search collapses to just a magnifying-glass button until
-       tapped. exportExcelBtn/importRepairSheetBtn used to be crammed
-       desktop-style buttons here too, but they've moved into
-       Overview's icon row (visible at every width now), so they're
-       no longer part of this mobile-trim list — only Proiecte's own
-       still-old-style importExcelBtn/exportBacklogExcelBtn are. */
-    #importExcelBtn, #exportBacklogExcelBtn{display:none;}
+       tapped. importExcelBtn/exportExcelBtn/exportBacklogExcelBtn/
+       importRepairSheetBtn used to be crammed desktop-style buttons
+       here too, but every one of them has since moved into its tab's
+       icon row (visible at every width now), so none of them belong
+       in this mobile-trim list anymore. */
     .toolbar-mobile-actions{display:flex;}
     .toolbar-mobile-summary{display:flex;}
     .toolbar-mobile-only{display:inline-flex;}
     .toolbar .overview-year-bar.mobile-hidden{display:none;}
-    .ticket-search-wrap{display:flex;align-items:center;position:relative;}
-    .search-icon-btn{
-      display:flex;align-items:center;justify-content:center;flex-shrink:0;
-      width:38px;height:38px;border-radius:50%;
-      border:1px solid var(--line-strong);background:var(--paper-000);
-      color:var(--ink-600);cursor:pointer;
-    }
-    .search-icon-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
-    #projectSearchBox, #backlogSearchBox{display:none;width:0;}
-    .ticket-search-wrap.expanded #projectSearchBox,
-    .ticket-search-wrap.expanded #backlogSearchBox{display:block;width:100%;margin-left:8px;}
-    .ticket-search-wrap.expanded .search-icon-btn{display:none;}
     .toolbar-mobile-actions{
       width:100%;gap:10px;order:3;
     }
@@ -218,11 +205,20 @@
   @media(max-width:900px){
     header{display:none;}
     .admin-tabs{display:none !important;}
-    /* Both children of .admin-tabs-row (.admin-tabs above, and the
-       desktop-only duplicate year-bars) are already hidden on mobile
-       independently — this just collapses the now-empty row itself
-       so it can't leave any stray gap/margin behind. */
-    .admin-tabs-row{display:none !important;}
+    /* .admin-tabs-row itself used to collapse here too — true back
+       when its only other children were .admin-tabs (hidden just
+       above) and the desktop-only duplicate year-bars (each hidden
+       individually via their own [data-year-panel] rules), making the
+       row genuinely empty on mobile. It's not empty anymore: the
+       calendar/search/download/import/add icon row
+       (.overview-quick-filters) lives in here too, and that one IS
+       meant to show on mobile — it's the only way to reach those
+       actions on a phone now that Sesizări/Proiecte/Avarii's old
+       "Filtre" sheets and toolbar buttons are gone. Forcing the whole
+       row to display:none silently took the icon row down with it,
+       regardless of its own .active{display:flex} rule — this is
+       what made the "+" button (and every other icon) invisible on
+       phones despite looking right in every other check. */
     .dash-head{
       display:flex;align-items:center;justify-content:space-between;gap:12px;
       /* header is gone on mobile, so this is now the top of the page —
@@ -328,12 +324,6 @@
   }
 
   .toolbar{padding:20px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
-  /* Desktop default: the wrapper adds no box of its own (children lay
-     out directly in the toolbar's flex row, unchanged from before),
-     so the icon-only toggle button stays hidden — that's a
-     mobile-only affordance, added below in the 900px breakpoint. */
-  .ticket-search-wrap{display:contents;}
-  .search-icon-btn{display:none;}
 
   .admin-tabs-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;}
   .admin-tabs{display:flex;gap:6px;margin:24px 0 4px;border-bottom:1px solid var(--line);}
@@ -430,12 +420,6 @@
      had year (no month), replaced now by the full calendar. */
   .admin-tabs-row .overview-year-bar[data-year-panel="projects"]{display:none;}
   #panel-projects .toolbar .overview-year-bar{display:none;}
-  #panel-projects .toolbar .ticket-search-wrap{display:none;}
-  /* Avarii rețele has the exact same old-toolbar-search-box-vs-new-
-     icon-row-search-box duplication Sesizări/Proiecte had — its own
-     search box lives on, just hidden, with the icon row's version now
-     the only one shown, at every width. */
-  #panel-backlog .toolbar .ticket-search-wrap{display:none;}
   @media(min-width:901px){
     .overview-search-wrap.expanded input[type="search"]{width:230px;}
   }
@@ -912,13 +896,14 @@
   }
   .chip:hover{border-color:var(--copper-500);color:var(--copper-600);}
   .chip.active{background:var(--copper-500);border-color:var(--copper-500);color:#fff;}
-  /* Filter sheets specifically (not the compact desktop toolbar chip
-     rows, which stay left-aligned/shrink-to-fit) — a left-aligned
-     wrap left odd-numbered groups (5 status chips wrapping 3-then-2)
-     with a short, ragged last row and empty space to its right.
-     Letting each chip grow to fill its row instead makes every row —
-     however many chips land in it — use the full width evenly. */
-  .mobile-sheet .chips .chip{flex:1 1 auto;text-align:center;}
+  /* Used to stretch every sheet chip to fill its row (flex:1 1 auto)
+     to fix a specific 5-chip ragged-wrap case on Sesizări's old
+     "Filtre" sheet — that sheet is gone now (status chips live inline
+     in the toolbar instead, see ticketStatusChipsToolbar), and the
+     remaining sheets' 2-4-chip status rows have plenty of spare width
+     per row, so stretching them just turned normal compact pill
+     buttons into oversized full-width blocks. Sizing chips by their
+     own content again, same as every other chip row on the page. */
   .result-count{font-family:var(--mono);font-size:12.5px;color:var(--ink-400);}
   /* Placed immediately after its own base rule, not just wrapped in a
      media query somewhere else convenient — same reasoning as the
@@ -933,14 +918,6 @@
      Sesizări/Proiecte publice/Avarii rețele. */
   @media(max-width:900px){
     .result-count{display:none;}
-    /* Status chips move into the "Filtre" sheet on mobile now,
-       same consolidation as Overview/Sesizări — ID selectors here
-       (not the shared .chips class), so specificity alone keeps
-       these hidden regardless of source order, unlike the
-       class-vs-class rules elsewhere in this file that needed
-       careful placement. */
-    #projectsChipsWrap{display:none;}
-    #backlogChipsWrap{display:none;}
   }
   .overview-mobile-status-filter{display:none;}
   .overview-mobile-status-filter .chips{gap:10px;}
@@ -966,7 +943,6 @@
     .toolbar-mobile-summary{display:flex;}
     .toolbar-mobile-only{display:inline-flex;}
     .toolbar-desktop-only{display:none;}
-    #chipsWrap{display:none;}
     .filter-inline-group{width:100%;}
     .overview-mobile-status-filter{display:block;}
   }
@@ -1064,7 +1040,13 @@
   .report-type-option strong{display:block;font-size:14px;color:var(--ink-900);}
   .report-type-option span{display:block;font-size:12.5px;color:var(--ink-600);margin-top:4px;}
   @media(max-width:640px){
-    .sheet-grid, .month-picker-list{grid-template-columns:1fr;}
+    /* .sheet-grid used to collapse to one column here too — An/Lună
+       are short <select>s, not text fields, so forcing them to stack
+       just made a two-field row look like a much taller, "very large"
+       sheet for no reason. .month-picker-list holds 12 month options
+       though, genuinely needs the narrower single column on a small
+       phone. */
+    .month-picker-list{grid-template-columns:1fr;}
     .sheet-actions{flex-direction:column-reverse;}
     .sheet-actions .btn{width:100%;justify-content:center;}
   }
@@ -1384,6 +1366,13 @@
           </button>
           <input type="search" id="projectsIconSearchBox" placeholder="Caută titlu, adresă…">
         </div>
+        <input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none;">
+        <button type="button" class="overview-icon-btn" id="importExcelBtn" title="Importă din Excel" aria-label="Importă din Excel">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
+        <button type="button" class="overview-icon-btn add-btn" id="addProjectBtn" title="Adaugă proiect" aria-label="Adaugă proiect">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
       </div>
       <div class="overview-quick-filters" data-year-panel="backlog">
         <div class="overview-search-wrap" id="backlogIconSearchWrap">
@@ -1392,6 +1381,12 @@
           </button>
           <input type="search" id="backlogIconSearchBox" placeholder="Caută titlu, adresă, angajat…">
         </div>
+        <button type="button" class="overview-icon-btn" id="exportBacklogExcelBtn" title="Exportă Excel" aria-label="Exportă Excel">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button type="button" class="overview-icon-btn add-btn" id="addBacklogBtn" title="Adaugă lucrare" aria-label="Adaugă lucrare">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
       </div>
     </div>
 
@@ -1576,30 +1571,13 @@
 
     <div class="admin-panel" id="panel-projects">
       <div class="toolbar">
-        <div class="chips" id="projectsChipsWrap"></div>
         <div style="display:flex; align-items:center; gap:14px;">
-          <div class="overview-year-bar mobile-hidden" style="margin-top:0;">
-            <label for="projectYearFilterSelect">An:</label>
-            <select id="projectYearFilterSelect"></select>
-            <span class="year-warning" id="yearWarningProjects">⚠ Nu e anul curent</span>
-          </div>
-          <div class="ticket-search-wrap" id="projectSearchWrap">
-            <button type="button" class="search-icon-btn" id="projectSearchToggleBtn" aria-label="Căutare">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </button>
-            <input type="search" id="projectSearchBox" placeholder="Caută titlu, adresă…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:200px;">
-          </div>
           <div class="result-count" id="projectsCount"></div>
-          <input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none;">
-          <button class="btn" id="importExcelBtn" type="button">⭳ Importă din Excel</button>
-          <button class="btn btn-primary" id="addProjectBtn" type="button">+ Adaugă proiect</button>
         </div>
+        <div class="chips" id="projectsChipsWrap"></div>
         <div class="toolbar-mobile-summary">
           <span id="projectsCountMobile">0 proiecte</span>
-          <span id="projectFilterHintMobile">Filtrează lista rapid</span>
-        </div>
-        <div class="toolbar-mobile-actions">
-          <button class="btn toolbar-mobile-only" id="projectFiltersMobileBtn" type="button">Filtre proiecte</button>
+          <span id="projectFilterHintMobile">Folosește filtrele sau căutarea</span>
         </div>
       </div>
       <div class="archive-bar" id="projectsArchiveBar">
@@ -1652,21 +1630,12 @@
 
     <div class="admin-panel" id="panel-backlog">
       <div class="toolbar">
-        <div class="chips" id="backlogChipsWrap"></div>
-        <div class="ticket-search-wrap" id="backlogSearchWrap">
-          <button type="button" class="search-icon-btn" id="backlogSearchToggleBtn" aria-label="Căutare">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
-          <input type="search" id="backlogSearchBox" placeholder="Caută titlu, adresă, angajat…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:220px;">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="result-count" id="backlogCount"></div>
         </div>
-        <div class="result-count" id="backlogCount"></div>
-        <button class="btn" id="exportBacklogExcelBtn" type="button">⭳ Exportă Excel</button>
-        <button class="btn btn-primary" id="addBacklogBtn" type="button">+ Adaugă lucrare</button>
+        <div class="chips" id="backlogChipsWrap"></div>
         <div class="toolbar-mobile-summary">
           <span id="backlogCountMobile">0 lucrări</span>
-        </div>
-        <div class="toolbar-mobile-actions">
-          <button class="btn toolbar-mobile-only" id="backlogFiltersMobileBtn" type="button">Filtre</button>
         </div>
       </div>
 
@@ -1732,54 +1701,6 @@
     </div>
     <div class="sheet-actions">
       <button type="button" class="btn btn-primary" data-close-sheet="overviewFiltersSheet">Aplică</button>
-    </div>
-  </div>
-</div>
-
-<div class="mobile-sheet" id="projectFiltersSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="projectFiltersSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="projectFiltersSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div>
-        <h3 id="projectFiltersSheetTitle">Filtre proiecte</h3>
-        <p>Controlezi rapid anul și starea listei fără să aglomerezi bara de sus pe telefon.</p>
-      </div>
-      <button type="button" class="sheet-close" data-close-sheet="projectFiltersSheet" aria-label="Închide">×</button>
-    </div>
-    <div class="sheet-grid">
-      <div class="ctrl-field">
-        <label for="projectYearFilterSelectMobile">An</label>
-        <select id="projectYearFilterSelectMobile"></select>
-      </div>
-    </div>
-    <div class="sheet-filter-status">
-      <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Stare listă</label>
-      <div class="chips" id="projectsChipsWrapSheet"></div>
-    </div>
-    <div class="sheet-actions">
-      <button type="button" class="btn btn-primary" data-close-sheet="projectFiltersSheet">Aplică</button>
-    </div>
-  </div>
-</div>
-
-<div class="mobile-sheet" id="backlogFiltersSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="backlogFiltersSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="backlogFiltersSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div>
-        <h3 id="backlogFiltersSheetTitle">Filtre avarii rețele</h3>
-        <p>Controlezi rapid starea listei fără să aglomerezi bara de sus pe telefon.</p>
-      </div>
-      <button type="button" class="sheet-close" data-close-sheet="backlogFiltersSheet" aria-label="Închide">×</button>
-    </div>
-    <div class="sheet-filter-status">
-      <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Stare listă</label>
-      <div class="chips" id="backlogChipsWrapSheet"></div>
-    </div>
-    <div class="sheet-actions">
-      <button type="button" class="btn btn-primary" data-close-sheet="backlogFiltersSheet">Aplică</button>
     </div>
   </div>
 </div>
@@ -5644,10 +5565,10 @@
   }
   function setProjectYearFilter(value){
     projectYearFilter = value;
-    document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectMobile, #projectYearFilterSelectDesktop').forEach(s => { s.value = value; });
+    document.querySelectorAll('#projectYearFilterSelectDesktop').forEach(s => { s.value = value; });
     updateYearWarning(
-      ['projectYearFilterSelect', 'projectYearFilterSelectMobile', 'projectYearFilterSelectDesktop'],
-      ['yearWarningProjects', 'yearWarningProjectsDesktop'],
+      ['projectYearFilterSelectDesktop'],
+      ['yearWarningProjectsDesktop'],
       projectYearFilter
     );
     renderProjects();
@@ -5684,8 +5605,6 @@
 
   function populateProjectYearFilterSelect(){
     const selects = [
-      document.getElementById('projectYearFilterSelect'),
-      document.getElementById('projectYearFilterSelectMobile'),
       document.getElementById('projectYearFilterSelectDesktop'),
     ].filter(Boolean);
     if (selects.length === 0) return;
@@ -5710,8 +5629,8 @@
 
     selects.forEach(s => { s.value = projectYearFilter; });
     updateYearWarning(
-      ['projectYearFilterSelect', 'projectYearFilterSelectMobile', 'projectYearFilterSelectDesktop'],
-      ['yearWarningProjects', 'yearWarningProjectsDesktop'],
+      ['projectYearFilterSelectDesktop'],
+      ['yearWarningProjectsDesktop'],
       projectYearFilter
     );
   }
@@ -5746,61 +5665,28 @@
     { key: 'Toate', label: 'Toate' },
     { key: 'Archived', label: 'Arhivate' },
   ];
-  const projectSearchBox = document.getElementById('projectSearchBox');
-  if (projectSearchBox) {
-    projectSearchBox.addEventListener('input', () => {
-      projectSearchQuery = projectSearchBox.value;
-      renderProjects();
-    });
-  }
+  // Old in-panel search box (projectSearchBox/searchToggleBtn) is
+  // gone — Proiecte publice uses the same icon-row search pattern as
+  // every other tab now (projectsIconSearchBox, registered above via
+  // createSearchToggleWidget).
 
-  const projectSearchToggleBtn = document.getElementById('projectSearchToggleBtn');
-  const projectSearchWrap = document.getElementById('projectSearchWrap');
-  if (projectSearchToggleBtn && projectSearchWrap && projectSearchBox) {
-    projectSearchToggleBtn.addEventListener('click', () => {
-      projectSearchWrap.classList.add('expanded');
-      projectSearchToggleBtn.classList.add('active');
-      projectSearchBox.focus();
-    });
-    projectSearchBox.addEventListener('blur', () => {
-      if (!projectSearchBox.value.trim()) {
-        projectSearchWrap.classList.remove('expanded');
-        projectSearchToggleBtn.classList.remove('active');
-      }
-    });
-  }
-
-  const projectFiltersMobileBtn = document.getElementById('projectFiltersMobileBtn');
-  if (projectFiltersMobileBtn) {
-    projectFiltersMobileBtn.addEventListener('click', () => setSheetOpen('projectFiltersSheet', true));
-  }
-
-  document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectMobile, #projectYearFilterSelectDesktop').forEach(select => {
+  document.querySelectorAll('#projectYearFilterSelectDesktop').forEach(select => {
     select.addEventListener('change', () => setProjectYearFilter(select.value));
   });
 
-  const projectsChipsWrap = document.getElementById('projectsChipsWrap');
-  const projectsChipsWrapSheet = document.getElementById('projectsChipsWrapSheet');
-  function buildProjectChip(c, container){
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'chip' + (c.key === projectsFilter ? ' active' : '');
-    chip.textContent = c.label;
-    chip.dataset.key = c.key;
-    chip.addEventListener('click', () => {
-      projectsFilter = c.key;
-      projectSelectedIds.clear();
-      updateProjectsArchiveBar();
-      document.querySelectorAll('#projectsChipsWrap .chip, #projectsChipsWrapSheet .chip').forEach(x => x.classList.remove('active'));
-      document.querySelectorAll(`#projectsChipsWrap [data-key="${c.key}"], #projectsChipsWrapSheet [data-key="${c.key}"]`).forEach(x => x.classList.add('active'));
-      renderProjects();
+  // Single always-visible chip row now, same consolidation as
+  // Sesizări — no more separate "Filtre proiecte" button/sheet
+  // duplicating these into a second projectsChipsWrapSheet set.
+  function setProjectsFilter(filterKey){
+    projectsFilter = filterKey;
+    projectSelectedIds.clear();
+    updateProjectsArchiveBar();
+    document.querySelectorAll('#projectsChipsWrap .chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
-    container.appendChild(chip);
+    renderProjects();
   }
-  projectChipDefs.forEach(c => {
-    buildProjectChip(c, projectsChipsWrap);
-    if (projectsChipsWrapSheet) buildProjectChip(c, projectsChipsWrapSheet);
-  });
+  renderChipRow('projectsChipsWrap', projectChipDefs, () => projectsFilter, setProjectsFilter);
 
   async function loadProjects(){
     const { data, error } = await supabaseClient
@@ -6251,31 +6137,17 @@
     { key: 'Terminat', label: 'Soluționate' },
     { key: 'Toate', label: 'Toate' },
   ];
-  const backlogChipsWrap = document.getElementById('backlogChipsWrap');
-  const backlogChipsWrapSheet = document.getElementById('backlogChipsWrapSheet');
-  function buildBacklogChip(c, container){
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'chip' + (c.key === backlogFilter ? ' active' : '');
-    chip.textContent = c.label;
-    chip.dataset.key = c.key;
-    chip.addEventListener('click', () => {
-      backlogFilter = c.key;
-      document.querySelectorAll('#backlogChipsWrap .chip, #backlogChipsWrapSheet .chip').forEach(x => x.classList.remove('active'));
-      document.querySelectorAll(`#backlogChipsWrap [data-key="${c.key}"], #backlogChipsWrapSheet [data-key="${c.key}"]`).forEach(x => x.classList.add('active'));
-      renderBacklogProjects();
+  // Single always-visible chip row now, same consolidation as
+  // Sesizări/Proiecte — no more separate "Filtre" button/sheet
+  // duplicating these into a second backlogChipsWrapSheet set.
+  function setBacklogFilter(filterKey){
+    backlogFilter = filterKey;
+    document.querySelectorAll('#backlogChipsWrap .chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
-    container.appendChild(chip);
+    renderBacklogProjects();
   }
-  backlogChipDefs.forEach(c => {
-    buildBacklogChip(c, backlogChipsWrap);
-    if (backlogChipsWrapSheet) buildBacklogChip(c, backlogChipsWrapSheet);
-  });
-
-  const backlogFiltersMobileBtn = document.getElementById('backlogFiltersMobileBtn');
-  if (backlogFiltersMobileBtn) {
-    backlogFiltersMobileBtn.addEventListener('click', () => setSheetOpen('backlogFiltersSheet', true));
-  }
+  renderChipRow('backlogChipsWrap', backlogChipDefs, () => backlogFilter, setBacklogFilter);
 
   function renderBacklogProjects(){
     const list = document.getElementById('backlogList');
@@ -6388,26 +6260,10 @@
     loadBacklogProjects();
   });
 
-  const backlogSearchBox = document.getElementById('backlogSearchBox');
-  backlogSearchBox.addEventListener('input', () => {
-    backlogSearchQuery = backlogSearchBox.value;
-    renderBacklogProjects();
-  });
-  const backlogSearchToggleBtn = document.getElementById('backlogSearchToggleBtn');
-  const backlogSearchWrap = document.getElementById('backlogSearchWrap');
-  if (backlogSearchToggleBtn && backlogSearchWrap) {
-    backlogSearchToggleBtn.addEventListener('click', () => {
-      backlogSearchWrap.classList.add('expanded');
-      backlogSearchToggleBtn.classList.add('active');
-      backlogSearchBox.focus();
-    });
-    backlogSearchBox.addEventListener('blur', () => {
-      if (!backlogSearchBox.value.trim()) {
-        backlogSearchWrap.classList.remove('expanded');
-        backlogSearchToggleBtn.classList.remove('active');
-      }
-    });
-  }
+  // Old in-panel search box (backlogSearchBox/searchToggleBtn) is
+  // gone — Avarii rețele uses the same icon-row search pattern as
+  // every other tab now (backlogIconSearchBox, registered above via
+  // createSearchToggleWidget).
 
   /* ============================================================
      EXCEL EXPORT — same client-side XLSX mechanism as the "Raport
