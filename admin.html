@@ -3022,8 +3022,25 @@
     });
     if (toggleBtn) toggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      calendar.classList.toggle('open', !calendar.classList.contains('open'));
-      syncToggleBtnActive();
+      const willOpen = !calendar.classList.contains('open');
+      calendar.classList.toggle('open', willOpen);
+      if (willOpen) {
+        // Jump the browsing view back to whatever's actually applied
+        // right now, then re-render — this widget is set up once,
+        // before login even finishes (when the real filter value
+        // isn't ready yet), and the year/month dropdowns elsewhere on
+        // the page can also change the applied filter without this
+        // calendar knowing. Without this, opening it could keep
+        // showing the month label as "nothing selected" even with a
+        // real filter (e.g. September) already in effect.
+        const y = Number(config.getYear());
+        const m = Number(config.getMonth());
+        if (Number.isFinite(y)) viewYear = y;
+        if (Number.isFinite(m)) viewMonth = m;
+        render();
+      } else {
+        syncToggleBtnActive();
+      }
     });
     document.addEventListener('click', (e) => {
       if (!calendar.classList.contains('open')) return;
