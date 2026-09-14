@@ -2751,7 +2751,26 @@
     typeOnlyFilter = null;
     ticketYearFilter = 'all';
     projectYearFilter = 'all';
-    overviewStatusFilter = 'all';
+    // Has to match the SAME viewport-aware default used at initial
+    // declaration (line ~2108), not just hardcode 'all' — and has to
+    // sync the chip DOM right here too, not leave that to whichever
+    // render happens to run next. The chips themselves are only ever
+    // created once, at page-load, showing whatever overviewStatusFilter
+    // was at that moment; a raw reassignment here with no matching DOM
+    // sync is exactly how the two drift apart — chips still showing
+    // "Active" selected (correct at creation time, on a phone) while
+    // this reset silently switched the actual filter to 'all', which
+    // the very next showDashboard() render would then use, without
+    // ever re-touching the chips to reveal the mismatch. That's the
+    // "chip says Active, list shows everything, need to click it again
+    // to fix" bug — showLogin() can run mid-session (a transient
+    // auth-state hiccup, more common on mobile), not just on an actual
+    // logout, so this has to stay correct every time, not just on the
+    // very first page load before any chip exists to go stale.
+    overviewStatusFilter = window.matchMedia('(max-width: 900px)').matches ? 'active' : 'all';
+    document.querySelectorAll('#overviewStatusChipsMobile .chip, #overviewStatusChipsDesktop .chip, #overviewStatusChipsSheet .chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.key === overviewStatusFilter);
+    });
     ticketYearFilterInitialized = false;
     projectYearFilterInitialized = false;
     currentAdminTab = 'overview';
