@@ -986,18 +986,43 @@
   }
   /* Replaces .toolbar-mobile-summary — the "X din Y" count now sits
      on the same line as the Filtre/Add/Search icons instead of on its
-     own row below them, and the "Filtru: an, lună" hint text next to
-     it is gone entirely (the Filtre icon's own copper highlight
-     already shows a non-default filter is applied, see
-     createFilterPopoverWidget — restating it as text here too was
-     redundant). margin-left:auto pushes it to the end of the row;
-     desktop keeps using .result-count instead (same count, its own
-     spot in the toolbar), so this only needs to show below 900px. */
+     own row below them. margin-left:auto pushes it to the end of the
+     row; desktop keeps using .result-count instead (same count, its
+     own spot in the toolbar), so this only needs to show below 900px. */
   .overview-quick-filters-count{
     margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink-400);white-space:nowrap;
   }
   @media(min-width:901px){
     .overview-quick-filters-count{display:none;}
+  }
+  /* The "· Filtru: ..." note right after the count, only populated
+     (see createFilterPopoverWidget's syncActiveState) when the applied
+     filter isn't the tab's default — an earlier pass removed a similar
+     always-a-hint version of this as redundant with the Filtre icon's
+     own copper highlight, but text-only was never actionable; this one
+     carries its own × that resets straight back to default, which the
+     icon alone can't offer. Two copies exist (mobile inline here,
+     desktop inside .toolbar next to .result-count) for the same reason
+     the count itself has two copies — see .overview-quick-filters-count
+     just above. */
+  .filter-status-note{
+    display:inline-flex;align-items:center;gap:4px;
+    font-family:var(--mono);font-size:12px;color:var(--copper-600);white-space:nowrap;
+  }
+  .filter-status-note:empty{display:none;}
+  .filter-status-note button{
+    background:none;border:none;color:var(--copper-600);cursor:pointer;
+    font-size:15px;line-height:1;padding:0;font-family:inherit;
+  }
+  .filter-status-note button:hover{color:var(--copper-500);}
+  /* The mobile copy lives inside .overview-quick-filters (rendered at
+     every width, same as its sibling count span) — hidden on desktop
+     since the toolbar's own copy shows there instead. Higher
+     specificity than the base rule above, so this wins regardless of
+     source order (see this file's other media-query-vs-specificity
+     notes, e.g. .result-count just above). */
+  @media(min-width:901px){
+    .overview-quick-filters .filter-status-note{display:none;}
   }
   .mobile-sheet{
     position:fixed;inset:0;z-index:320;display:none;
@@ -1424,6 +1449,7 @@
           <input type="search" id="ticketsIconSearchBox" placeholder="Caută nume, adresă, telefon…">
         </div>
         <span class="overview-quick-filters-count" id="resultCountMobile">0 tichete</span>
+        <span class="filter-status-note" id="ticketsFilterNoteMobile"></span>
       </div>
       <div class="overview-quick-filters" data-year-panel="projects">
         <div class="overview-popover-wrap">
@@ -1467,6 +1493,7 @@
           <input type="search" id="projectsIconSearchBox" placeholder="Caută titlu, adresă…">
         </div>
         <span class="overview-quick-filters-count" id="projectsCountMobile">0 proiecte</span>
+        <span class="filter-status-note" id="projectsFilterNoteMobile"></span>
         <input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none;">
         <button type="button" class="overview-icon-btn excel-icon-btn" id="importExcelBtn" title="Importă din Excel" aria-label="Importă din Excel">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1494,6 +1521,7 @@
           <input type="search" id="backlogIconSearchBox" placeholder="Caută titlu, adresă, angajat…">
         </div>
         <span class="overview-quick-filters-count" id="backlogCountMobile">0 lucrări</span>
+        <span class="filter-status-note" id="backlogFilterNoteMobile"></span>
         <button type="button" class="overview-icon-btn excel-icon-btn" id="exportBacklogExcelBtn" title="Exportă Excel" aria-label="Exportă Excel">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </button>
@@ -1648,6 +1676,7 @@
       <div class="toolbar">
         <div style="display:flex; align-items:center; gap:14px;">
           <div class="result-count" id="resultCount"></div>
+          <span class="filter-status-note" id="ticketsFilterNoteDesktop"></span>
         </div>
       </div>
       <div class="active-narrow-filter" id="activeNarrowFilter">
@@ -1674,6 +1703,7 @@
       <div class="toolbar">
         <div style="display:flex; align-items:center; gap:14px;">
           <div class="result-count" id="projectsCount"></div>
+          <span class="filter-status-note" id="projectsFilterNoteDesktop"></span>
         </div>
       </div>
       <div class="archive-bar" id="projectsArchiveBar">
@@ -1728,6 +1758,7 @@
       <div class="toolbar">
         <div style="display:flex; align-items:center; gap:14px;">
           <div class="result-count" id="backlogCount"></div>
+          <span class="filter-status-note" id="backlogFilterNoteDesktop"></span>
         </div>
       </div>
 
@@ -2862,6 +2893,13 @@
     if (!toggleBtn || !popover) return;
     const yearSelect = config.yearSelectId ? document.getElementById(config.yearSelectId) : null;
     const monthSelect = config.monthSelectId ? document.getElementById(config.monthSelectId) : null;
+    // Optional — the small "· Filtru: ..." note shown right after the
+    // "X din Y" count whenever the applied filter isn't the tab's
+    // default, with its own × to clear it. Two copies (mobile/desktop,
+    // same reasoning as the count text itself having two copies) kept
+    // in sync together; tabs without a count line (none currently)
+    // just pass no noteIds and get none of this.
+    const noteEls = (config.noteIds || []).map(id => document.getElementById(id)).filter(Boolean);
 
     function isDefault(){
       const now = new Date();
@@ -2871,8 +2909,69 @@
       const dayOk = !config.getDayFilter || config.getDayFilter() === null;
       return statusOk && yearOk && monthOk && dayOk;
     }
+
+    // Describes whatever's currently non-default, in the order a
+    // person would think to check them: which list (status chip),
+    // then which date range. A specific day (from the desktop
+    // calendar) already implies its own month/year, so it replaces
+    // the month/year description rather than joining it.
+    function describeFilter(){
+      const now = new Date();
+      const parts = [];
+      if (config.getStatus() !== config.defaultStatus) {
+        const chip = (config.chipDefs || []).find(c => c.key === config.getStatus());
+        if (chip) parts.push(chip.label);
+      }
+      const day = config.getDayFilter ? config.getDayFilter() : null;
+      if (day !== null && day !== undefined) {
+        const y = config.getYear(), m = Number(config.getMonth());
+        const monthName = MONTH_FILTER_NAMES[m - 1] || '';
+        parts.push(`${day} ${monthName} ${y}`.trim());
+      } else {
+        const yearVal = yearSelect ? String(config.getYear()) : null;
+        const monthVal = monthSelect ? String(config.getMonth()) : null;
+        const yearOk = !yearSelect || yearVal === String(now.getFullYear());
+        const monthOk = !monthSelect || monthVal === String(now.getMonth() + 1);
+        if (monthSelect && !monthOk) {
+          const monthLabel = monthVal === 'all' ? 'toate lunile' : (MONTH_FILTER_NAMES[Number(monthVal) - 1] || '');
+          if (monthLabel && yearOk) {
+            parts.push(monthLabel);
+          } else if (monthLabel) {
+            parts.push(`${monthLabel}, ${yearVal === 'all' ? 'toți anii' : yearVal}`);
+          }
+        } else if (yearSelect && !yearOk) {
+          parts.push(yearVal === 'all' ? 'toți anii' : `an ${yearVal}`);
+        }
+      }
+      return parts.filter(Boolean).join(', ');
+    }
+
+    // Clears everything back to this tab's default in one go — status,
+    // year/month (if this tab has them), and the day filter (if set) —
+    // then re-syncs the icon + note. Reuses the tab's own existing
+    // setters so every side effect they already carry (re-rendering
+    // the list, syncing the other tab sharing the same year/month,
+    // etc.) still happens exactly as if picked by hand in the popover.
+    function resetFilter(){
+      const now = new Date();
+      config.setStatus(config.defaultStatus);
+      if (yearSelect) config.setYear(String(now.getFullYear()));
+      if (monthSelect) config.setMonth(String(now.getMonth() + 1));
+      if (config.setDayFilter) config.setDayFilter(null);
+      syncActiveState();
+    }
+
     function syncActiveState(){
-      toggleBtn.classList.toggle('active', !isDefault());
+      const isDef = isDefault();
+      toggleBtn.classList.toggle('active', !isDef);
+      if (!noteEls.length) return;
+      const text = isDef ? '' : describeFilter();
+      noteEls.forEach(el => {
+        if (!text) { el.innerHTML = ''; return; }
+        el.innerHTML = `· Filtru: ${escapeHtml(text)} <button type="button" aria-label="Elimină filtrul">×</button>`;
+        const dismissBtn = el.querySelector('button');
+        if (dismissBtn) dismissBtn.onclick = resetFilter;
+      });
     }
 
     // config.setStatus is one of the tab's own existing setters
@@ -3220,6 +3319,7 @@
     getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
     getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
     getDayFilter: () => overviewDayFilter,
+    setDayFilter: (d) => { overviewDayFilter = d; rerenderSharedTicketViews(); },
     onOpen: () => overviewMiniCal && overviewMiniCal.refresh(),
     chipsWrapId: 'overviewStatusChipsPopover', chipDefs: overviewStatusChipDefs,
     getStatus: () => overviewStatusFilter, setStatus: setOverviewStatusFilter, defaultStatus: 'active',
@@ -3238,9 +3338,11 @@
     getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
     getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
     getDayFilter: () => overviewDayFilter,
+    setDayFilter: (d) => { overviewDayFilter = d; rerenderSharedTicketViews(); },
     onOpen: () => ticketsMiniCal && ticketsMiniCal.refresh(),
     chipsWrapId: 'ticketStatusChipsPopover', chipDefs: statusChipDefs,
     getStatus: () => activeStatusFilter, setStatus: setTicketStatusFilter, defaultStatus: 'Ongoing',
+    noteIds: ['ticketsFilterNoteDesktop', 'ticketsFilterNoteMobile'],
   });
 
   async function loadTickets(silent){
@@ -5748,9 +5850,11 @@
     getYear: () => projectYearFilter, setYear: setProjectYearFilter,
     getMonth: () => projectMonthFilter, setMonth: setProjectMonthFilter,
     getDayFilter: () => projectDayFilter,
+    setDayFilter: (d) => { projectDayFilter = d; renderProjects(); },
     onOpen: () => projectsMiniCal && projectsMiniCal.refresh(),
     chipsWrapId: 'projectsChipsWrap', chipDefs: projectChipDefs,
     getStatus: () => projectsFilter, setStatus: setProjectsFilter, defaultStatus: 'Ongoing',
+    noteIds: ['projectsFilterNoteDesktop', 'projectsFilterNoteMobile'],
   });
 
   // Single always-visible chip row inside the Filtre popover now —
@@ -6246,6 +6350,7 @@
     toggleBtnId: 'backlogFilterToggleBtn', popoverId: 'backlogFilterPopover',
     chipsWrapId: 'backlogChipsWrap', chipDefs: backlogChipDefs,
     getStatus: () => backlogFilter, setStatus: setBacklogFilter, defaultStatus: 'Ongoing',
+    noteIds: ['backlogFilterNoteDesktop', 'backlogFilterNoteMobile'],
   });
 
   function renderBacklogProjects(){
