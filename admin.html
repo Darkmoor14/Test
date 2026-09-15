@@ -5873,7 +5873,7 @@
     // person already is. "ticketAddFormHome" marks its original spot
     // in Overview so it can move back there rather than drifting to
     // wherever it was last opened from.
-    if (currentAdminTab === 'tickets') {
+    if (panelIdForTab(currentAdminTab) === 'tickets') {
       const ticketsPanel = document.getElementById('panel-tickets');
       if (ticketAddForm.parentElement !== ticketsPanel) {
         ticketsPanel.insertBefore(ticketAddForm, ticketsPanel.firstChild);
