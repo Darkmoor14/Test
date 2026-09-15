@@ -382,6 +382,25 @@
        wrapped onto line two, hiding it. */
     position:relative;
   }
+  /* Desktop only. .admin-tabs-row's own justify-content:space-between
+     normally keeps .admin-tabs on the left and this block on the
+     right, on the same line — but that only holds while both fit on
+     one line. Expanding the search box (adds ~190px) can push the
+     combined width past the row's available space on ordinary laptop
+     widths (~1280-1366px), and .admin-tabs-row's flex-wrap:wrap then
+     drops this block onto its own second line — where, being the only
+     item on that line, space-between has nothing to space it FROM and
+     sits it at the line's start (far left) instead, taking the Filtre
+     popover with it and rendering most of it off-screen past the left
+     edge. margin-left:auto keeps it pinned to the right side of
+     whichever line it ends up on, wrapped or not.
+     Not applied on mobile: .admin-tabs is display:none there, making
+     this the row's only visible item — margin-left:auto would shove
+     it to the right, undoing the intentional left-aligned mobile
+     layout. */
+  @media(min-width:901px){
+    .overview-quick-filters.active{margin-left:auto;}
+  }
   .overview-icon-btn{
     display:flex;align-items:center;justify-content:center;flex-shrink:0;
     width:38px;height:38px;border-radius:50%;
