@@ -135,39 +135,6 @@
     /* No more fixed bottom bar to reserve space for now that
        navigation moved into the sidebar — back to normal padding. */
 
-    /* Mobile toolbars keep the inline desktop controls trimmed down:
-       the year/month selects move into sheet-style drawers, the
-       desktop Excel buttons stay hidden, and search collapses to just
-       a magnifying-glass button until tapped. Export is still
-       available on phone, just via the dedicated mobile action row
-       below rather than crammed into the main toolbar line. */
-    #importExcelBtn, #exportExcelBtn, #exportBacklogExcelBtn{display:none;}
-    .toolbar-mobile-actions{display:flex;}
-    .toolbar-mobile-summary{display:flex;}
-    .toolbar-mobile-only{display:inline-flex;}
-    .toolbar .overview-year-bar.mobile-hidden{display:none;}
-    .ticket-search-wrap{display:flex;align-items:center;position:relative;}
-    .search-icon-btn{
-      display:flex;align-items:center;justify-content:center;flex-shrink:0;
-      width:38px;height:38px;border-radius:50%;
-      border:1px solid var(--line-strong);background:var(--paper-000);
-      color:var(--ink-600);cursor:pointer;
-    }
-    .search-icon-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
-    #ticketSearchBox, #projectSearchBox, #backlogSearchBox{display:none;width:0;}
-    .ticket-search-wrap.expanded #ticketSearchBox,
-    .ticket-search-wrap.expanded #projectSearchBox,
-    .ticket-search-wrap.expanded #backlogSearchBox{display:block;width:100%;margin-left:8px;}
-    .ticket-search-wrap.expanded .search-icon-btn{display:none;}
-    .toolbar-mobile-actions{
-      width:100%;gap:10px;order:3;
-    }
-    .toolbar-mobile-actions .btn{flex:1;justify-content:center;}
-    .toolbar-mobile-summary{
-      width:100%;justify-content:space-between;align-items:center;
-      font-family:var(--mono);font-size:12px;color:var(--ink-600);
-      order:2;
-    }
   }
   .nav-right{display:flex;align-items:center;gap:16px;}
   .nav-tag{font-family:var(--mono);font-size:12px;color:var(--ink-400);}
@@ -373,9 +340,16 @@
      report), then a row of secondary cards for the other three tabs,
      each with its own live count so this screen is useful at a
      glance, not just a navigation menu. */
-  /* vlasbogdan@ uses the menu below as the single navigation system,
-     so the old desktop tab strip never competes with the focused view. */
-  html.report-focused-view .admin-tabs-row{display:none;}
+  /* vlasbogdan@ uses the breadcrumb/menu/home page as her navigation
+     system instead of clicking through tabs directly, so only the
+     text tab strip itself is hidden here — .admin-tabs-row is also
+     where .overview-quick-filters (the Filtre/Add/Search icon row —
+     see its own CSS) and .overview-year-bar live, and those aren't
+     optional navigation chrome, they're how she adds a ticket,
+     searches, and filters on every panel. Used to hide the whole row
+     (before the icon row existed here), which also silently took the
+     "+" button and search out with it. */
+  html.report-focused-view .admin-tabs{display:none;}
   html:not(.report-focused-view) #panel-home{display:none!important;}
   html:not(.report-focused-view) #panel-lps{display:none!important;}
   .dash.home-active .dash-head{border-bottom:none;padding-bottom:16px;}
@@ -630,42 +604,6 @@
      exactly rather than leaving this one entry subtly
      inconsistent with the others next to it. */
   html.report-focused-view .mobile-sidebar-nav .home-icon-btn{display:flex;}
-  /* .chips.report-focused-chips (compound, not the bare class alone)
-     — the generic .chips{display:flex;...} rule further down the file
-     is EQUAL specificity to a bare ".report-focused-chips", and being
-     later in the file, was silently winning and forcing this visible
-     for every account regardless of the report-focused-view class —
-     the exact reason it was showing up for sesizari@ too. Compounding
-     both classes together here genuinely outweighs the bare .chips
-     rule regardless of file order, same fix pattern as elsewhere in
-     this file after being bitten by this more than once already. */
-  .chips.report-focused-chips{display:none;margin-bottom:16px;}
-  /* Desktop only — this is genuinely why the duplicate-row bug
-     happened: this rule had no width restriction at all, so on
-     mobile it showed alongside .overview-mobile-status-filter (the
-     existing mobile chip row) AND the year/month bar, stacking three
-     redundant filter rows on top of each other. Below 900px, all
-     three of those are replaced by a single "Filtre" button opening
-     a sheet instead — same pattern already used on Sesizări. */
-  @media(min-width:901px){
-    html.report-focused-view .chips.report-focused-chips{display:flex;}
-  }
-  /* Status filtering now lives inside the "Filtre" sheet for every
-     mobile admin (see #overviewSheetStatusSection below), not just
-     report-focused — this separate inline chip row is redundant with
-     that and hidden unconditionally now instead of only for one
-     role. The actual display:none for it lives further down, right
-     after its own base rule (same reason .overview-year-bar's
-     override has to sit right after its base rule too — a media
-     query alone doesn't win a same-specificity tie against a rule
-     that simply comes later in the file). Year/month bar hidden the
-     same way, for the same reason. */
-  /* Sheet's status-chip section — shown to every mobile admin now.
-     Chips themselves are populated with the standard 3-option set at
-     script-load time; the report-focused role's extra 4th option
-     ("Așteaptă raport") gets appended separately once login resolves
-     who's actually logged in (see fetchCurrentUserRole's .then()). */
-  #overviewSheetStatusSection{display:block;}
   /* Desktop only — on mobile, .admin-tabs-row (the tabs this spacing
      is meant to separate from) is hidden entirely, replaced by the
      bottom tab bar, so this specific relationship doesn't apply
@@ -988,31 +926,131 @@
   }
   .chip:hover{border-color:var(--copper-500);color:var(--copper-600);}
   .chip.active{background:var(--copper-500);border-color:var(--copper-500);color:#fff;}
+  /* ===== ICON ROW + FILTER POPOVER — ported from admin.html, which
+     replaced the old mobile bottom-sheet "Filtre" pattern with this
+     same icon row + popover at every width. Kept 1:1 with admin.html's
+     own classes/structure/comments so both files can be diffed
+     against each other and stay in sync going forward. */
+  .overview-quick-filters{display:none;}
+  .overview-quick-filters.active{
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    position:relative;
+  }
+  @media(min-width:901px){
+    .overview-quick-filters.active{margin-left:auto;}
+  }
+  .overview-icon-btn{
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:38px;height:38px;border-radius:50%;
+    border:1px solid var(--line-strong);background:var(--paper-000);
+    color:var(--ink-600);cursor:pointer;
+  }
+  .overview-icon-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
+  .overview-icon-btn.add-btn{
+    background:var(--copper-500);border-color:var(--copper-500);color:#fff;
+  }
+  .overview-icon-btn.add-btn:hover{background:var(--copper-600);border-color:var(--copper-600);}
+  .overview-popover-wrap{display:flex;align-items:center;}
+  @media(min-width:901px){
+    .overview-popover-wrap{position:relative;}
+  }
+  .overview-search-wrap{position:relative;display:flex;align-items:center;}
+  .overview-search-wrap input[type="search"]{
+    display:none;width:0;font-family:var(--body);font-size:13px;
+    padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;
+  }
+  .overview-search-wrap.expanded input[type="search"]{display:block;width:200px;margin-right:8px;}
+  .overview-search-wrap.expanded .overview-icon-btn{display:none;}
+  .admin-tabs-row .overview-year-bar[data-year-panel="overview"]{display:none;}
+  .admin-tabs-row .overview-year-bar[data-year-panel="tickets"]{display:none;}
+  .admin-tabs-row .overview-year-bar[data-year-panel="projects"]{display:none;}
+  #panel-projects .toolbar .overview-year-bar{display:none;}
+  @media(min-width:901px){
+    .overview-search-wrap.expanded input[type="search"]{width:230px;}
+  }
+  .filter-popover{
+    display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:60;
+    background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;
+    padding:16px;box-shadow:0 8px 24px rgba(20,24,29,0.15);width:280px;
+  }
+  .filter-popover.open{display:block;}
+  @media(min-width:901px){
+    .filter-popover{left:auto;right:0;}
+  }
+  .filter-popover .sheet-grid{margin-bottom:14px;gap:14px 10px;}
+  .filter-popover .ctrl-field select{font-size:12.5px;padding:9px 8px;}
+  .filter-popover .ctrl-field{min-width:0;}
+  .filter-popover .sheet-filter-status label{
+    font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;
+    color:var(--ink-600);display:block;margin-bottom:10px;
+  }
+  .filter-popover .popover-daygrid{display:none;}
+  @media(min-width:901px){
+    .filter-popover .popover-yearmonth{display:none;}
+    .filter-popover .popover-daygrid{display:block;}
+  }
+  .sheet-mini-calendar{margin-bottom:14px;}
+  .mini-cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .mini-cal-month-label{font-family:var(--mono);font-size:13px;color:var(--ink-900);text-transform:capitalize;background:none;border:none;border-radius:4px;padding:2px 7px;cursor:pointer;}
+  .mini-cal-month-label:hover{background:var(--paper-050);color:var(--copper-600);}
+  .mini-cal-month-label.active-filter{background:var(--copper-050);color:var(--copper-600);}
+  .mini-cal-header button:not(.mini-cal-month-label){
+    width:26px;height:26px;flex-shrink:0;border-radius:50%;border:1px solid var(--line-strong);
+    background:var(--paper-000);color:var(--ink-700);cursor:pointer;font-size:14px;line-height:1;
+  }
+  .mini-cal-header button:not(.mini-cal-month-label):hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .mini-cal-month-label{white-space:nowrap;}
+  .mini-cal-weekdays{
+    display:grid;grid-template-columns:repeat(7,1fr);
+    font-family:var(--mono);font-size:10.5px;color:var(--ink-400);
+    text-align:center;margin-bottom:4px;
+  }
+  .mini-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+  .mini-cal-day{
+    width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+    font-size:12.5px;color:var(--ink-900);background:none;border:none;border-radius:4px;
+    cursor:pointer;
+  }
+  .mini-cal-day:hover{background:var(--paper-050);}
+  .mini-cal-day.outside{color:var(--ink-300);}
+  .mini-cal-day.today{font-weight:700;color:var(--copper-600);}
+  .mini-cal-day.selected{background:var(--copper-500);color:#fff;}
+  .mini-cal-clear-btn{
+    width:100%;margin-top:10px;padding:7px;font-family:var(--mono);font-size:11px;
+    text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-600);
+    background:none;border:1px solid var(--line-strong);border-radius:4px;cursor:pointer;
+  }
+  .mini-cal-clear-btn:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .mini-cal-clear-btn.active-filter{border-color:var(--copper-500);color:var(--copper-600);background:var(--copper-050);}
+  .overview-quick-filters-count{
+    margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink-400);white-space:nowrap;
+  }
+  @media(min-width:901px){
+    .overview-quick-filters-count{display:none;}
+  }
+  .filter-status-note{
+    display:inline-flex;align-items:center;gap:4px;
+    font-family:var(--mono);font-size:12px;color:var(--copper-600);white-space:nowrap;
+  }
+  .filter-status-note:empty{display:none;}
+  .filter-status-note button{
+    background:none;border:none;color:var(--copper-600);cursor:pointer;
+    font-size:15px;line-height:1;padding:0;font-family:inherit;
+  }
+  .filter-status-note button:hover{color:var(--copper-500);}
+  @media(min-width:901px){
+    .overview-quick-filters .filter-status-note{display:none;}
+  }
+  @media(min-width:901px){
+    .overview-quick-filters .filter-status-note.filter-status-note-overview{display:inline-flex;}
+  }
   .result-count{font-family:var(--mono);font-size:12.5px;color:var(--ink-400);}
-  /* Placed immediately after its own base rule, not just wrapped in a
-     media query somewhere else convenient — same reasoning as the
-     other display:none overrides elsewhere in this file (see
-     .overview-year-bar and .overview-mobile-status-filter): a media
-     query alone doesn't win a same-specificity tie against a rule
-     that simply appears later in the stylesheet, only source order
-     does. This one was actually missing entirely before (not just
-     mis-ordered) — .result-count had no mobile-hide rule at all, so
-     it sat alongside .toolbar-mobile-summary's own count the whole
-     time, showing the same "X din Y" text twice, side by side, on
-     Sesizări/Proiecte curente/Avarii rețele. */
+  /* Hidden on mobile — the icon row's own .overview-quick-filters-count
+     shows the same "X din Y" text there instead, so this desktop-only
+     .toolbar count doesn't double up with it. */
   @media(max-width:900px){
     .result-count{display:none;}
-    /* Status chips move into the "Filtre" sheet on mobile now,
-       same consolidation as Overview/Sesizări — ID selectors here
-       (not the shared .chips class), so specificity alone keeps
-       these hidden regardless of source order, unlike the
-       class-vs-class rules elsewhere in this file that needed
-       careful placement. */
-    #projectsChipsWrap{display:none;}
-    #backlogChipsWrap{display:none;}
   }
-  .overview-mobile-status-filter{display:none;}
-  .overview-mobile-status-filter .chips{gap:10px;}
   .filter-inline-group{
     display:flex;align-items:center;gap:14px;flex-wrap:wrap;
   }
@@ -1025,30 +1063,6 @@
   }
   .sheet-filter-status .chip{
     text-align:center;
-  }
-  .toolbar-mobile-actions,
-  .toolbar-mobile-summary,
-  .toolbar-mobile-only{display:none;}
-  @media(max-width:900px){
-    .toolbar-mobile-actions{display:flex;}
-    .toolbar-mobile-summary{display:flex;}
-    .toolbar-mobile-only{display:inline-flex;}
-    #chipsWrap{display:none;}
-    .filter-inline-group{width:100%;}
-    .overview-mobile-status-filter{display:block;}
-  }
-  /* Has to come after the display:block rule right above, not just be
-     wrapped in its own media query — see the comment near this
-     element's other reference higher up in the file for why a media
-     query alone doesn't win a same-specificity tie against a rule
-     that simply appears later in the stylesheet. */
-  @media(max-width:900px){
-    .overview-mobile-status-filter{display:none;}
-  }
-  @media(min-width:901px){
-    .toolbar-mobile-actions,
-    .toolbar-mobile-summary,
-    .toolbar-mobile-only{display:none !important;}
   }
   .mobile-sheet{
     position:fixed;inset:0;z-index:320;display:none;
@@ -1146,16 +1160,20 @@
   }
   .ticket-card.urgent{border-color:rgba(181,80,47,0.4);background:var(--signal-red-bg);}
   .ticket-card.done{opacity:0.6;}
-  .ticket-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
+  /* nowrap + min-width:0 on .ticket-meta + shrink:0/nowrap on
+     .ticket-date — ported from admin.html: without these, "Trimis:
+     <date>" wrapped to its own line below the ticket number/type
+     instead of staying on the same line as them. */
+  .ticket-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:nowrap;margin-bottom:10px;}
   .ticket-return-row{margin:-2px 0 16px;}
-  .ticket-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .ticket-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;}
   .ticket-num{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink-900);}
   .ticket-tag{
     font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
     padding:4px 9px;border-radius:3px;background:var(--paper-100);color:var(--ink-600);
   }
   .ticket-tag.urgent-tag{background:var(--signal-red-bg);color:var(--signal-red);}
-  .ticket-date{font-family:var(--mono);font-size:11.5px;color:var(--ink-400);}
+  .ticket-date{font-family:var(--mono);font-size:11.5px;color:var(--ink-400);white-space:nowrap;flex-shrink:0;}
   .ticket-body{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;font-size:14px;color:var(--ink-700);margin-bottom:16px;}
   .ticket-body .full{grid-column:1/-1;}
   .ticket-body .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;color:var(--ink-400);letter-spacing:0.04em;display:block;margin-bottom:2px;}
@@ -1342,10 +1360,161 @@
         <select id="monthFilterSelectTicketsDesktop"></select>
         <span class="year-warning" id="yearWarningTicketsDesktop">⚠ Nu e anul curent</span>
       </div>
+      <div class="overview-quick-filters active" data-year-panel="overview">
+        <div class="overview-popover-wrap">
+          <button type="button" class="overview-icon-btn" id="overviewFilterToggleBtn" aria-label="Filtre">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          </button>
+          <div class="filter-popover" id="overviewFilterPopover">
+            <div class="sheet-grid popover-yearmonth">
+              <div class="ctrl-field">
+                <label for="yearFilterSelectOverviewMobile">An</label>
+                <select id="yearFilterSelectOverviewMobile"></select>
+              </div>
+              <div class="ctrl-field">
+                <label for="monthFilterSelectOverviewMobile">Lună</label>
+                <select id="monthFilterSelectOverviewMobile"></select>
+              </div>
+            </div>
+            <div class="sheet-mini-calendar popover-daygrid" id="overviewMiniCalendar">
+              <div class="mini-cal-header">
+                <button type="button" id="miniCalPrevBtn" aria-label="Luna anterioară">‹</button>
+                <button type="button" class="mini-cal-month-label" id="miniCalLabel">—</button>
+                <button type="button" id="miniCalNextBtn" aria-label="Luna următoare">›</button>
+              </div>
+              <div class="mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+              <div class="mini-cal-grid" id="miniCalGrid"></div>
+              <button type="button" class="mini-cal-clear-btn" id="miniCalClearBtn">Toate zilele</button>
+            </div>
+            <div class="sheet-filter-status">
+              <label>Stare listă</label>
+              <div class="chips" id="overviewStatusChipsSheet"></div>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="overview-icon-btn add-btn" id="addTicketBtnOverview" title="Adaugă sesizare" aria-label="Adaugă sesizare">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <div class="overview-search-wrap" id="overviewSearchWrap">
+          <button type="button" class="overview-icon-btn" id="overviewSearchToggleBtn" aria-label="Căutare">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <input type="search" id="overviewSearchBox" placeholder="Caută nume, adresă, telefon…">
+        </div>
+        <span class="filter-status-note filter-status-note-overview" id="overviewFilterNote"></span>
+        <button type="button" class="overview-icon-btn excel-icon-btn" id="exportExcelBtn" title="Raport Excel" aria-label="Raport Excel">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+      </div>
+      <div class="overview-quick-filters" data-year-panel="tickets">
+        <div class="overview-popover-wrap">
+          <button type="button" class="overview-icon-btn" id="ticketsFilterToggleBtn" aria-label="Filtre">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          </button>
+          <div class="filter-popover" id="ticketsFilterPopover">
+            <div class="sheet-grid popover-yearmonth">
+              <div class="ctrl-field">
+                <label for="yearFilterSelectTicketsMobile">An</label>
+                <select id="yearFilterSelectTicketsMobile"></select>
+              </div>
+              <div class="ctrl-field">
+                <label for="monthFilterSelectTicketsMobile">Lună</label>
+                <select id="monthFilterSelectTicketsMobile"></select>
+              </div>
+            </div>
+            <div class="sheet-mini-calendar popover-daygrid" id="ticketsMiniCalendar">
+              <div class="mini-cal-header">
+                <button type="button" id="ticketsMiniCalPrevBtn" aria-label="Luna anterioară">‹</button>
+                <button type="button" class="mini-cal-month-label" id="ticketsMiniCalLabel">—</button>
+                <button type="button" id="ticketsMiniCalNextBtn" aria-label="Luna următoare">›</button>
+              </div>
+              <div class="mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+              <div class="mini-cal-grid" id="ticketsMiniCalGrid"></div>
+              <button type="button" class="mini-cal-clear-btn" id="ticketsMiniCalClearBtn">Toate zilele</button>
+            </div>
+            <div class="sheet-filter-status">
+              <label>Stare listă</label>
+              <div class="chips" id="ticketStatusChipsMobile"></div>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="overview-icon-btn add-btn" id="addTicketBtn" title="Adaugă sesizare" aria-label="Adaugă sesizare">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <div class="overview-search-wrap" id="ticketSearchWrap">
+          <button type="button" class="overview-icon-btn" id="searchToggleBtn" aria-label="Căutare">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <input type="search" id="ticketSearchBox" placeholder="Caută adresă, nume, telefon, nr. sesizare…">
+        </div>
+        <span class="overview-quick-filters-count" id="resultCountMobile">0 tichete</span>
+        <span class="filter-status-note" id="ticketsFilterNoteMobile"></span>
+      </div>
       <div class="overview-year-bar admin-tabs-row-year" data-year-panel="projects">
         <label for="projectYearFilterSelectDesktop">An:</label>
         <select id="projectYearFilterSelectDesktop"></select>
         <span class="year-warning" id="yearWarningProjectsDesktop">⚠ Nu e anul curent</span>
+      </div>
+      <div class="overview-quick-filters" data-year-panel="projects">
+        <div class="overview-popover-wrap">
+          <button type="button" class="overview-icon-btn" id="projectsFilterToggleBtn" aria-label="Filtre">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          </button>
+          <div class="filter-popover" id="projectsFilterPopover">
+            <div class="sheet-grid popover-yearmonth">
+              <div class="ctrl-field">
+                <label for="projectYearFilterSelectMobile">An</label>
+                <select id="projectYearFilterSelectMobile"></select>
+              </div>
+            </div>
+            <div class="sheet-filter-status">
+              <label>Stare listă</label>
+              <div class="chips" id="projectsChipsWrapSheet"></div>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="overview-icon-btn add-btn" id="addProjectBtn" title="Adaugă proiect" aria-label="Adaugă proiect">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <div class="overview-search-wrap" id="projectSearchWrap">
+          <button type="button" class="overview-icon-btn" id="projectSearchToggleBtn" aria-label="Căutare">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <input type="search" id="projectSearchBox" placeholder="Caută titlu, adresă…">
+        </div>
+        <span class="overview-quick-filters-count" id="projectsCountMobile">0 proiecte</span>
+        <span class="filter-status-note" id="projectsFilterNoteMobile"></span>
+        <input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none;">
+        <button type="button" class="overview-icon-btn excel-icon-btn" id="importExcelBtn" title="Importă din Excel" aria-label="Importă din Excel">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
+      </div>
+      <div class="overview-quick-filters" data-year-panel="backlog">
+        <div class="overview-popover-wrap">
+          <button type="button" class="overview-icon-btn" id="backlogFilterToggleBtn" aria-label="Filtre">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          </button>
+          <div class="filter-popover" id="backlogFilterPopover">
+            <div class="sheet-filter-status">
+              <label>Stare listă</label>
+              <div class="chips" id="backlogChipsWrap"></div>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="overview-icon-btn add-btn" id="addBacklogBtn" title="Adaugă lucrare" aria-label="Adaugă lucrare">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <div class="overview-search-wrap" id="backlogSearchWrap">
+          <button type="button" class="overview-icon-btn" id="backlogSearchToggleBtn" aria-label="Căutare">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <input type="search" id="backlogSearchBox" placeholder="Caută titlu, adresă, angajat…">
+        </div>
+        <span class="overview-quick-filters-count" id="backlogCountMobile">0 lucrări</span>
+        <span class="filter-status-note" id="backlogFilterNoteMobile"></span>
+        <button type="button" class="overview-icon-btn excel-icon-btn" id="exportBacklogExcelBtn" title="Exportă Excel" aria-label="Exportă Excel">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
       </div>
     </div>
 
@@ -1500,10 +1669,7 @@
         </button>
       </div>
 
-      <div class="overview-mobile-status-filter">
-        <div class="chips" id="overviewStatusChipsMobile"></div>
-      </div>
-      <button class="btn toolbar-mobile-only" id="overviewFiltersMobileBtn" type="button">Filtre</button>
+      <span id="ticketAddFormHome" style="display:none;"></span>
       <div class="overview-year-bar">
         <label for="yearFilterSelect">An:</label>
         <select id="yearFilterSelect"></select>
@@ -1516,7 +1682,6 @@
           <span id="overviewNarrowFilterLabel"></span>
           <button type="button" id="clearOverviewNarrowFilterBtn">✕ Elimină acest filtru</button>
         </div>
-        <div class="chips report-focused-chips" id="overviewStatusChipsDesktop"></div>
         <div class="overview-table-wrap">
           <table class="overview-table" id="overviewTable">
             <colgroup>
@@ -1561,31 +1726,9 @@
         <button type="button" class="ticket-type-switch-btn" data-tab="tickets-accident">Sesizări accidente</button>
       </div>
       <div class="toolbar">
-        <div class="filter-inline-group">
-          <div class="overview-year-bar mobile-hidden" style="margin-top:0;">
-            <label for="yearFilterSelectTickets">An:</label>
-            <select id="yearFilterSelectTickets"></select>
-            <label for="monthFilterSelectTickets">Lună:</label>
-            <select id="monthFilterSelectTickets"></select>
-            <span class="year-warning" id="yearWarningTickets">⚠ Nu e anul curent</span>
-          </div>
-          <div class="chips" id="chipsWrap"></div>
-          <div class="ticket-search-wrap" id="ticketSearchWrap">
-            <button type="button" class="search-icon-btn" id="searchToggleBtn" aria-label="Căutare">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </button>
-            <input type="search" id="ticketSearchBox" placeholder="Caută adresă, nume, telefon, nr. sesizare…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:230px;">
-          </div>
+        <div style="display:flex; align-items:center; gap:14px;">
           <div class="result-count" id="resultCount"></div>
-          <button class="btn btn-primary" id="addTicketBtn" type="button">+ Adaugă sesizare</button>
-          <button class="btn" id="exportExcelBtn" type="button">⭳ Raport Excel</button>
-        </div>
-        <div class="toolbar-mobile-summary">
-          <span id="resultCountMobile">0 tichete</span>
-          <span id="ticketFilterHintMobile">Folosește filtrele sau căutarea</span>
-        </div>
-        <div class="toolbar-mobile-actions">
-          <button class="btn toolbar-mobile-only" id="ticketFiltersMobileBtn" type="button">Filtre</button>
+          <span class="filter-status-note" id="ticketsFilterNoteDesktop"></span>
         </div>
       </div>
       <div class="project-form" id="ticketAddForm" style="display:none;">
@@ -1661,30 +1804,9 @@
 
     <div class="admin-panel" id="panel-projects">
       <div class="toolbar">
-        <div class="chips" id="projectsChipsWrap"></div>
         <div style="display:flex; align-items:center; gap:14px;">
-          <div class="overview-year-bar mobile-hidden" style="margin-top:0;">
-            <label for="projectYearFilterSelect">An:</label>
-            <select id="projectYearFilterSelect"></select>
-            <span class="year-warning" id="yearWarningProjects">⚠ Nu e anul curent</span>
-          </div>
-          <div class="ticket-search-wrap" id="projectSearchWrap">
-            <button type="button" class="search-icon-btn" id="projectSearchToggleBtn" aria-label="Căutare">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </button>
-            <input type="search" id="projectSearchBox" placeholder="Caută titlu, adresă…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:200px;">
-          </div>
           <div class="result-count" id="projectsCount"></div>
-          <input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none;">
-          <button class="btn" id="importExcelBtn" type="button">⭳ Importă din Excel</button>
-          <button class="btn btn-primary" id="addProjectBtn" type="button">+ Adaugă proiect</button>
-        </div>
-        <div class="toolbar-mobile-summary">
-          <span id="projectsCountMobile">0 proiecte</span>
-          <span id="projectFilterHintMobile">Filtrează lista rapid</span>
-        </div>
-        <div class="toolbar-mobile-actions">
-          <button class="btn toolbar-mobile-only" id="projectFiltersMobileBtn" type="button">Filtre proiecte</button>
+          <span class="filter-status-note" id="projectsFilterNoteDesktop"></span>
         </div>
       </div>
       <div class="archive-bar" id="projectsArchiveBar">
@@ -1737,21 +1859,9 @@
 
     <div class="admin-panel" id="panel-backlog">
       <div class="toolbar">
-        <div class="chips" id="backlogChipsWrap"></div>
-        <div class="ticket-search-wrap" id="backlogSearchWrap">
-          <button type="button" class="search-icon-btn" id="backlogSearchToggleBtn" aria-label="Căutare">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
-          <input type="search" id="backlogSearchBox" placeholder="Caută titlu, adresă, angajat…" style="font-family:var(--body);font-size:13px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;width:220px;">
-        </div>
-        <div class="result-count" id="backlogCount"></div>
-        <button class="btn" id="exportBacklogExcelBtn" type="button">⭳ Exportă Excel</button>
-        <button class="btn btn-primary" id="addBacklogBtn" type="button">+ Adaugă lucrare</button>
-        <div class="toolbar-mobile-summary">
-          <span id="backlogCountMobile">0 lucrări</span>
-        </div>
-        <div class="toolbar-mobile-actions">
-          <button class="btn toolbar-mobile-only" id="backlogFiltersMobileBtn" type="button">Filtre</button>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="result-count" id="backlogCount"></div>
+          <span class="filter-status-note" id="backlogFilterNoteDesktop"></span>
         </div>
       </div>
 
@@ -1788,116 +1898,6 @@
       <div class="backlog-list" id="backlogList"></div>
     </div>
 </div>
-</div>
-
-<div class="mobile-sheet" id="overviewFiltersSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="overviewFiltersSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="overviewFiltersSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div>
-        <h3 id="overviewFiltersSheetTitle">Filtre prezentare generală</h3>
-        <p>Controlezi rapid anul, luna și starea listei fără să aglomerezi bara de sus pe telefon.</p>
-      </div>
-      <button type="button" class="sheet-close" data-close-sheet="overviewFiltersSheet" aria-label="Închide">×</button>
-    </div>
-    <div class="sheet-grid">
-      <div class="ctrl-field">
-        <label for="yearFilterSelectOverviewMobile">An</label>
-        <select id="yearFilterSelectOverviewMobile"></select>
-      </div>
-      <div class="ctrl-field">
-        <label for="monthFilterSelectOverviewMobile">Lună</label>
-        <select id="monthFilterSelectOverviewMobile"></select>
-      </div>
-    </div>
-    <div class="sheet-filter-status" id="overviewSheetStatusSection">
-      <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Stare listă</label>
-      <div class="chips" id="overviewStatusChipsSheet"></div>
-    </div>
-    <div class="sheet-actions">
-      <button type="button" class="btn btn-primary" data-close-sheet="overviewFiltersSheet">Aplică</button>
-    </div>
-  </div>
-</div>
-
-<div class="mobile-sheet" id="ticketFiltersSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="ticketFiltersSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="ticketFiltersSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div>
-        <h3 id="ticketFiltersSheetTitle">Filtre sesizări</h3>
-        <p>Controlezi rapid anul, luna și starea listei fără să aglomerezi bara de sus pe telefon.</p>
-      </div>
-      <button type="button" class="sheet-close" data-close-sheet="ticketFiltersSheet" aria-label="Închide">×</button>
-    </div>
-    <div class="sheet-grid">
-      <div class="ctrl-field">
-        <label for="yearFilterSelectTicketsMobile">An</label>
-        <select id="yearFilterSelectTicketsMobile"></select>
-      </div>
-      <div class="ctrl-field">
-        <label for="monthFilterSelectTicketsMobile">Lună</label>
-        <select id="monthFilterSelectTicketsMobile"></select>
-      </div>
-    </div>
-    <div class="sheet-filter-status">
-      <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Stare listă</label>
-      <div class="chips" id="ticketStatusChipsMobile"></div>
-    </div>
-    <div class="sheet-actions">
-      <button type="button" class="btn btn-primary" data-close-sheet="ticketFiltersSheet">Aplică</button>
-    </div>
-  </div>
-</div>
-
-<div class="mobile-sheet" id="projectFiltersSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="projectFiltersSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="projectFiltersSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div>
-        <h3 id="projectFiltersSheetTitle">Filtre proiecte</h3>
-        <p>Controlezi rapid anul și starea listei fără să aglomerezi bara de sus pe telefon.</p>
-      </div>
-      <button type="button" class="sheet-close" data-close-sheet="projectFiltersSheet" aria-label="Închide">×</button>
-    </div>
-    <div class="sheet-grid">
-      <div class="ctrl-field">
-        <label for="projectYearFilterSelectMobile">An</label>
-        <select id="projectYearFilterSelectMobile"></select>
-      </div>
-    </div>
-    <div class="sheet-filter-status">
-      <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Stare listă</label>
-      <div class="chips" id="projectsChipsWrapSheet"></div>
-    </div>
-    <div class="sheet-actions">
-      <button type="button" class="btn btn-primary" data-close-sheet="projectFiltersSheet">Aplică</button>
-    </div>
-  </div>
-</div>
-
-<div class="mobile-sheet" id="backlogFiltersSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="backlogFiltersSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="backlogFiltersSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div>
-        <h3 id="backlogFiltersSheetTitle">Filtre avarii rețele</h3>
-        <p>Controlezi rapid starea listei fără să aglomerezi bara de sus pe telefon.</p>
-      </div>
-      <button type="button" class="sheet-close" data-close-sheet="backlogFiltersSheet" aria-label="Închide">×</button>
-    </div>
-    <div class="sheet-filter-status">
-      <label style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:10px;">Stare listă</label>
-      <div class="chips" id="backlogChipsWrapSheet"></div>
-    </div>
-    <div class="sheet-actions">
-      <button type="button" class="btn btn-primary" data-close-sheet="backlogFiltersSheet">Aplică</button>
-    </div>
-  </div>
 </div>
 
 <div class="mobile-sheet" id="reportMonthSheet" aria-hidden="true">
@@ -2164,6 +2164,16 @@
   let ticketSearchQuery = '';
   let ticketYearFilter = 'all';
   let ticketMonthFilter = 'all';
+  // Whether the person has actually picked a year/month themselves
+  // (via a dropdown or the desktop calendar) — set only inside
+  // setTicketYearFilter/setTicketMonthFilter, never by any automatic
+  // fallback. Used by the Filtre note (see createFilterPopoverWidget)
+  // to tell "the person picked this" apart from "it's just sitting at
+  // its untouched starting value ('all' for both here)" — without it,
+  // the note would show "Filtru: toți anii, toate lunile" on every
+  // fresh load, despite nobody having touched anything.
+  let ticketYearFilterTouched = false;
+  let ticketMonthFilterTouched = false;
   // Defaults to "Active" on phone specifically — a phone screen is
   // small enough that "everything, including tickets already closed"
   // isn't a useful first view the way it can be on a wider desktop
@@ -2175,6 +2185,7 @@
   // not something that needs to react to the window being resized
   // afterward.
   let overviewStatusFilter = window.matchMedia('(max-width: 900px)').matches ? 'active' : 'all';
+  let overviewSearchQuery = '';
 
   // A ticket's "effective" month/year for filtering purposes — NOT
   // necessarily when it was actually submitted. Still-active tickets
@@ -2305,6 +2316,15 @@
     if (typeOnlyFilter === 'functional') base = base.filter(t => t.type !== 'Anunt accident');
     if (typeOnlyFilter === 'accident') base = base.filter(t => t.type === 'Anunt accident');
 
+    // Set only via the desktop day-grid calendar (see
+    // createMiniCalendarWidget) — stays null forever on phone.
+    if (typeof overviewDayFilter !== 'undefined' && overviewDayFilter !== null) {
+      base = base.filter(t => {
+        const d = parseTicketDate(t.submitted_on);
+        return !isNaN(d.getTime()) && d.getDate() === overviewDayFilter;
+      });
+    }
+
     return base;
   }
 
@@ -2372,14 +2392,27 @@
     );
   }
 
+  // Overview and Sesizări share ticketYearFilter/ticketMonthFilter,
+  // but each has its own Filtre icon — changing the year from either
+  // tab's popover needs to re-check BOTH icons' "non-default filter"
+  // highlight, not just the one whose own select fired the change
+  // event. Called defensively (typeof guard) since these widgets
+  // aren't created until further down the script.
+  function syncSharedFilterButtons(){
+    if (typeof overviewFilterWidget !== 'undefined' && overviewFilterWidget) overviewFilterWidget.syncActiveState();
+    if (typeof ticketsFilterWidget !== 'undefined' && ticketsFilterWidget) ticketsFilterWidget.syncActiveState();
+  }
+
   function setTicketYearFilter(value){
     ticketYearFilter = value;
+    ticketYearFilterTouched = true;
     document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
     updateYearWarning(
       ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectTicketsMobile', 'yearFilterSelectOverviewMobile', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
       ['yearWarningOverview', 'yearWarningTickets', 'yearWarningOverviewDesktop', 'yearWarningTicketsDesktop'],
       ticketYearFilter
     );
+    syncSharedFilterButtons();
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
@@ -2398,7 +2431,9 @@
 
   function setTicketMonthFilter(value){
     ticketMonthFilter = value;
+    ticketMonthFilterTouched = true;
     document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsMobile, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
+    syncSharedFilterButtons();
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
@@ -2806,28 +2841,298 @@
     select.addEventListener('change', () => setTicketMonthFilter(select.value));
   });
 
-  const ticketFiltersMobileBtn = document.getElementById('ticketFiltersMobileBtn');
-  if (ticketFiltersMobileBtn) {
-    ticketFiltersMobileBtn.addEventListener('click', () => setSheetOpen('ticketFiltersSheet', true));
+  // ============================================================
+  // ICON ROW + FILTER POPOVER SYSTEM — ported 1:1 from admin.html.
+  // Comments trimmed here since the full reasoning already lives
+  // there; see that file for the complete history of each piece.
+  // ============================================================
+  function createFilterPopoverWidget(config){
+    const toggleBtn = document.getElementById(config.toggleBtnId);
+    const popover = document.getElementById(config.popoverId);
+    if (!toggleBtn || !popover) return;
+    const yearSelect = config.yearSelectId ? document.getElementById(config.yearSelectId) : null;
+    const monthSelect = config.monthSelectId ? document.getElementById(config.monthSelectId) : null;
+    const noteEls = (config.noteIds || []).map(id => document.getElementById(id)).filter(Boolean);
+
+    function isDefault(){
+      const now = new Date();
+      const statusOk = config.getStatus() === config.defaultStatus;
+      const yearOk = !yearSelect || String(config.getYear()) === String(now.getFullYear());
+      const monthOk = !monthSelect || String(config.getMonth()) === String(now.getMonth() + 1);
+      const dayOk = !config.getDayFilter || config.getDayFilter() === null;
+      return statusOk && yearOk && monthOk && dayOk;
+    }
+
+    function getNoteDateOk(){
+      const now = new Date();
+      const yearTouched = config.getYearTouched ? config.getYearTouched() : true;
+      const monthTouched = config.getMonthTouched ? config.getMonthTouched() : true;
+      const yearOk = !yearSelect || !yearTouched || String(config.getYear()) === String(now.getFullYear());
+      const monthOk = !monthSelect || !monthTouched || String(config.getMonth()) === String(now.getMonth() + 1);
+      return { yearOk, monthOk };
+    }
+
+    function isNoteDefault(){
+      const statusOk = config.getStatus() === config.defaultStatus;
+      const day = config.getDayFilter ? config.getDayFilter() : null;
+      const dayOk = day === null || day === undefined;
+      const { yearOk, monthOk } = getNoteDateOk();
+      return statusOk && yearOk && monthOk && dayOk;
+    }
+
+    function describeFilter(){
+      const parts = [];
+      if (config.getStatus() !== config.defaultStatus) {
+        const chip = (config.chipDefs || []).find(c => c.key === config.getStatus());
+        if (chip) parts.push(chip.label);
+      }
+      const day = config.getDayFilter ? config.getDayFilter() : null;
+      if (day !== null && day !== undefined) {
+        const y = config.getYear(), m = Number(config.getMonth());
+        const monthName = MONTH_FILTER_NAMES[m - 1] || '';
+        parts.push(`${day} ${monthName} ${y}`.trim());
+      } else {
+        const yearVal = yearSelect ? String(config.getYear()) : null;
+        const monthVal = monthSelect ? String(config.getMonth()) : null;
+        const { yearOk, monthOk } = getNoteDateOk();
+        if (monthSelect && !monthOk) {
+          parts.push(monthVal === 'all' ? 'toate lunile' : (MONTH_FILTER_NAMES[Number(monthVal) - 1] || ''));
+        }
+        if (yearSelect && !yearOk) {
+          parts.push(yearVal === 'all' ? 'toți anii' : `an ${yearVal}`);
+        }
+      }
+      return parts.filter(Boolean).join(', ');
+    }
+
+    function resetFilter(){
+      const now = new Date();
+      config.setStatus(config.defaultStatus);
+      if (yearSelect) config.setYear(String(now.getFullYear()));
+      if (monthSelect) config.setMonth(String(now.getMonth() + 1));
+      if (config.setDayFilter) config.setDayFilter(null);
+      syncActiveState();
+    }
+
+    function syncActiveState(){
+      toggleBtn.classList.toggle('active', !isDefault());
+      if (!noteEls.length) return;
+      const text = isNoteDefault() ? '' : describeFilter();
+      noteEls.forEach(el => {
+        if (!text) { el.innerHTML = ''; return; }
+        el.innerHTML = `· Filtru: ${escapeHtml(text)} <button type="button" aria-label="Elimină filtrul">×</button>`;
+        const dismissBtn = el.querySelector('button');
+        if (dismissBtn) dismissBtn.onclick = resetFilter;
+      });
+    }
+
+    function selectStatus(key){
+      config.setStatus(key);
+      syncActiveState();
+    }
+    renderChipRow(config.chipsWrapId, config.chipDefs, config.getStatus, selectStatus);
+
+    if (yearSelect) {
+      yearSelect.addEventListener('change', () => {
+        config.setYear(yearSelect.value);
+        syncActiveState();
+      });
+    }
+    if (monthSelect) {
+      monthSelect.addEventListener('change', () => {
+        config.setMonth(monthSelect.value);
+        syncActiveState();
+      });
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      const willOpen = !popover.classList.contains('open');
+      popover.classList.toggle('open', willOpen);
+      if (willOpen && config.onOpen) config.onOpen();
+    });
+    document.addEventListener('click', (e) => {
+      if (!popover.classList.contains('open')) return;
+      const path = e.composedPath();
+      if (path.includes(popover) || path.includes(toggleBtn)) return;
+      popover.classList.remove('open');
+    });
+
+    syncActiveState();
+    return { syncActiveState };
   }
 
-  const overviewFiltersMobileBtn = document.getElementById('overviewFiltersMobileBtn');
-  if (overviewFiltersMobileBtn) {
-    overviewFiltersMobileBtn.addEventListener('click', () => setSheetOpen('overviewFiltersSheet', true));
+  const MINI_CAL_MONTH_NAMES = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
+  function createMiniCalendarWidget(config){
+    const calendar = document.getElementById(config.calendarId);
+    const label = document.getElementById(config.labelId);
+    const grid = document.getElementById(config.gridId);
+    const clearBtn = document.getElementById(config.clearBtnId);
+    const prevBtn = document.getElementById(config.prevBtnId);
+    const nextBtn = document.getElementById(config.nextBtnId);
+    if (!calendar || !grid) return;
+
+    const initialYear = Number(config.getYear());
+    const initialMonth = Number(config.getMonth());
+    let viewYear = Number.isFinite(initialYear) ? initialYear : new Date().getFullYear();
+    let viewMonth = Number.isFinite(initialMonth) ? initialMonth : (new Date().getMonth() + 1);
+
+    function isWholeMonthSelected(){
+      return config.getDay() === null &&
+        String(config.getYear()) === String(viewYear) && String(config.getMonth()) === String(viewMonth);
+    }
+
+    function render(){
+      label.textContent = `${MINI_CAL_MONTH_NAMES[viewMonth - 1]} ${viewYear}`;
+      label.title = isWholeMonthSelected()
+        ? `Șterge filtrul de lună — arată toate lunile`
+        : `Selectează toată luna ${MINI_CAL_MONTH_NAMES[viewMonth - 1]} ${viewYear}`;
+      label.classList.toggle('active-filter', isWholeMonthSelected());
+      const firstOfMonth = new Date(viewYear, viewMonth - 1, 1);
+      const startOffset = (firstOfMonth.getDay() + 6) % 7;
+      const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
+      const daysInPrevMonth = new Date(viewYear, viewMonth - 1, 0).getDate();
+      const today = new Date();
+      const isCurrentMonth = today.getFullYear() === viewYear && today.getMonth() + 1 === viewMonth;
+
+      let html = '';
+      for (let i = 0; i < startOffset; i++) {
+        html += `<span class="mini-cal-day outside">${daysInPrevMonth - startOffset + i + 1}</span>`;
+      }
+      for (let d = 1; d <= daysInMonth; d++) {
+        const classes = ['mini-cal-day'];
+        if (isCurrentMonth && d === today.getDate()) classes.push('today');
+        if (config.getDay() === d && String(config.getYear()) === String(viewYear) && String(config.getMonth()) === String(viewMonth)) classes.push('selected');
+        html += `<button type="button" class="${classes.join(' ')}" data-day="${d}">${d}</button>`;
+      }
+      const trailing = (7 - ((startOffset + daysInMonth) % 7)) % 7;
+      for (let i = 1; i <= trailing; i++) {
+        html += `<span class="mini-cal-day outside">${i}</span>`;
+      }
+      grid.innerHTML = html;
+
+      grid.querySelectorAll('.mini-cal-day[data-day]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          config.setDay(Number(btn.dataset.day));
+          config.setYear(String(viewYear));
+          config.setMonth(String(viewMonth));
+          render();
+          config.rerender();
+        });
+      });
+      if (clearBtn) clearBtn.classList.toggle('active-filter', config.getDay() !== null);
+    }
+
+    render();
+    label.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (isWholeMonthSelected()) {
+        config.setYear('all');
+        config.setMonth('all');
+        config.setDay(null);
+      } else {
+        config.setYear(String(viewYear));
+        config.setMonth(String(viewMonth));
+        config.setDay(null);
+      }
+      render();
+      config.rerender();
+    });
+    if (prevBtn) prevBtn.addEventListener('click', () => {
+      viewMonth--; if (viewMonth < 1) { viewMonth = 12; viewYear--; }
+      render();
+    });
+    if (nextBtn) nextBtn.addEventListener('click', () => {
+      viewMonth++; if (viewMonth > 12) { viewMonth = 1; viewYear++; }
+      render();
+    });
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        config.setDay(null);
+        render();
+        config.rerender();
+      });
+    }
+
+    return {
+      refresh(){
+        const y = Number(config.getYear());
+        const m = Number(config.getMonth());
+        if (Number.isFinite(y)) viewYear = y;
+        if (Number.isFinite(m)) viewMonth = m;
+        render();
+      },
+    };
   }
 
-  ['chipsWrap', 'ticketStatusChipsMobile'].forEach(wrapId => {
+  function createSearchToggleWidget(config){
+    const toggleBtn = document.getElementById(config.toggleBtnId);
+    const wrap = document.getElementById(config.wrapId);
+    const box = document.getElementById(config.boxId);
+    if (!toggleBtn || !wrap || !box) return;
+    toggleBtn.addEventListener('click', () => {
+      wrap.classList.add('expanded');
+      toggleBtn.classList.add('active');
+      box.focus();
+    });
+    box.addEventListener('blur', () => {
+      if (!box.value.trim()) {
+        wrap.classList.remove('expanded');
+        toggleBtn.classList.remove('active');
+      }
+    });
+    box.addEventListener('input', () => {
+      config.setQuery(box.value);
+      config.rerender();
+    });
+  }
+
+  function renderChipRow(wrapId, defs, getActiveKey, onSelect){
     const wrap = document.getElementById(wrapId);
     if (!wrap) return;
-    chipDefs.forEach(c => {
+    defs.forEach(c => {
       const chip = document.createElement('button');
       chip.type = 'button';
-      chip.className = 'chip' + (c.key === activeFilter ? ' active' : '');
+      chip.className = 'chip' + (c.key === getActiveKey() ? ' active' : '');
       chip.textContent = c.label;
       chip.dataset.key = c.key;
-      chip.addEventListener('click', () => setTicketFilter(c.key));
+      chip.addEventListener('click', () => onSelect(c.key));
       wrap.appendChild(chip);
     });
+  }
+
+  // Icon-row Filtre popover for Sesizări — ported from admin.html
+  // (createFilterPopoverWidget/createMiniCalendarWidget, see their own
+  // definitions). Overview and Sesizări share this same day-level
+  // filter, same reasoning as admin.html: both read/write the same
+  // ticketYearFilter/ticketMonthFilter already, so sharing the day too
+  // keeps date filtering fully consistent between them. Only ever set
+  // via the desktop day-grid calendar — the phone dropdowns don't have
+  // a day concept, so this stays null forever there.
+  let overviewDayFilter = null;
+  function rerenderSharedTicketViews(){
+    renderOverviewTable();
+    renderTickets();
+  }
+  const ticketsMiniCal = createMiniCalendarWidget({
+    calendarId: 'ticketsMiniCalendar', labelId: 'ticketsMiniCalLabel', gridId: 'ticketsMiniCalGrid',
+    clearBtnId: 'ticketsMiniCalClearBtn', prevBtnId: 'ticketsMiniCalPrevBtn', nextBtnId: 'ticketsMiniCalNextBtn',
+    getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
+    getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
+    getDay: () => overviewDayFilter, setDay: (d) => { overviewDayFilter = d; },
+    rerender: rerenderSharedTicketViews,
+  });
+  const ticketsFilterWidget = createFilterPopoverWidget({
+    toggleBtnId: 'ticketsFilterToggleBtn', popoverId: 'ticketsFilterPopover',
+    yearSelectId: 'yearFilterSelectTicketsMobile', monthSelectId: 'monthFilterSelectTicketsMobile',
+    getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
+    getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
+    getYearTouched: () => ticketYearFilterTouched, getMonthTouched: () => ticketMonthFilterTouched,
+    getDayFilter: () => overviewDayFilter,
+    setDayFilter: (d) => { overviewDayFilter = d; rerenderSharedTicketViews(); },
+    onOpen: () => ticketsMiniCal && ticketsMiniCal.refresh(),
+    chipsWrapId: 'ticketStatusChipsMobile', chipDefs: chipDefs,
+    getStatus: () => activeFilter, setStatus: setTicketFilter, defaultStatus: 'Ongoing',
+    noteIds: ['ticketsFilterNoteDesktop', 'ticketsFilterNoteMobile'],
   });
 
   const overviewStatusChipDefs = [
@@ -2853,56 +3158,50 @@
 
   function setOverviewStatusFilter(filterKey){
     overviewStatusFilter = filterKey;
-    document.querySelectorAll('#overviewStatusChipsMobile .chip, #overviewStatusChipsDesktop .chip, #overviewStatusChipsSheet .chip').forEach(chip => {
+    document.querySelectorAll('#overviewStatusChipsSheet .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
+    if (typeof overviewFilterWidget !== 'undefined' && overviewFilterWidget) overviewFilterWidget.syncActiveState();
     renderOverviewTable();
   }
 
-  const overviewStatusChipsMobile = document.getElementById('overviewStatusChipsMobile');
-  if (overviewStatusChipsMobile) {
-    overviewStatusChipDefs.forEach(c => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip' + (c.key === overviewStatusFilter ? ' active' : '');
-      chip.textContent = c.label;
-      chip.dataset.key = c.key;
-      chip.addEventListener('click', () => setOverviewStatusFilter(c.key));
-      overviewStatusChipsMobile.appendChild(chip);
-    });
-  }
-
-  const overviewStatusChipsDesktop = document.getElementById('overviewStatusChipsDesktop');
-  if (overviewStatusChipsDesktop) {
-    reportFocusedChipDefs.forEach(c => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip' + (c.key === overviewStatusFilter ? ' active' : '');
-      chip.textContent = c.label;
-      chip.dataset.key = c.key;
-      chip.addEventListener('click', () => setOverviewStatusFilter(c.key));
-      overviewStatusChipsDesktop.appendChild(chip);
-    });
-  }
-
+  // Standard 3-option set here, not reportFocusedChipDefs — this
+  // popover is the year/month/status filter for every admin, not just
+  // the report-focused role, and "Așteaptă raport" only makes sense
+  // for that one account. Added separately, after login, for that
+  // role specifically — see fetchCurrentUserRole's .then() below.
+  // Populated by createFilterPopoverWidget's own renderChipRow call
+  // below (chipsWrapId/chipDefs), not manually here.
   const overviewStatusChipsSheet = document.getElementById('overviewStatusChipsSheet');
-  if (overviewStatusChipsSheet) {
-    // Standard 3-option set here, not reportFocusedChipDefs — this
-    // sheet is now the year/month/status filter for every mobile
-    // admin, not just the report-focused role, and "Așteaptă raport"
-    // only makes sense for that one account. Added separately, after
-    // login, for that role specifically — see fetchCurrentUserRole's
-    // .then() below.
-    overviewStatusChipDefs.forEach(c => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip' + (c.key === overviewStatusFilter ? ' active' : '');
-      chip.textContent = c.label;
-      chip.dataset.key = c.key;
-      chip.addEventListener('click', () => setOverviewStatusFilter(c.key));
-      overviewStatusChipsSheet.appendChild(chip);
-    });
-  }
+
+  // Overview's own Filtre popover — shares ticketYearFilter/
+  // ticketMonthFilter and overviewDayFilter with Sesizări's, same as
+  // admin.html, so date filtering stays consistent between both tabs.
+  const overviewMiniCal = createMiniCalendarWidget({
+    calendarId: 'overviewMiniCalendar', labelId: 'miniCalLabel', gridId: 'miniCalGrid',
+    clearBtnId: 'miniCalClearBtn', prevBtnId: 'miniCalPrevBtn', nextBtnId: 'miniCalNextBtn',
+    getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
+    getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
+    getDay: () => overviewDayFilter, setDay: (d) => { overviewDayFilter = d; },
+    rerender: rerenderSharedTicketViews,
+  });
+  const overviewFilterWidget = createFilterPopoverWidget({
+    toggleBtnId: 'overviewFilterToggleBtn', popoverId: 'overviewFilterPopover',
+    yearSelectId: 'yearFilterSelectOverviewMobile', monthSelectId: 'monthFilterSelectOverviewMobile',
+    getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
+    getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
+    getYearTouched: () => ticketYearFilterTouched, getMonthTouched: () => ticketMonthFilterTouched,
+    getDayFilter: () => overviewDayFilter,
+    setDayFilter: (d) => { overviewDayFilter = d; rerenderSharedTicketViews(); },
+    onOpen: () => overviewMiniCal && overviewMiniCal.refresh(),
+    chipsWrapId: 'overviewStatusChipsSheet', chipDefs: overviewStatusChipDefs,
+    getStatus: () => overviewStatusFilter, setStatus: setOverviewStatusFilter, defaultStatus: 'active',
+    noteIds: ['overviewFilterNote'],
+  });
+  createSearchToggleWidget({
+    toggleBtnId: 'overviewSearchToggleBtn', wrapId: 'overviewSearchWrap', boxId: 'overviewSearchBox',
+    setQuery: (v) => { overviewSearchQuery = v; }, rerender: renderOverviewTable,
+  });
 
   async function loadTickets(silent){
     const list = document.getElementById('ticketList');
@@ -3002,7 +3301,17 @@
     // doesn't erase it from this overview, and a ticket's actual
     // status (virtually always Terminat by the time it's archived)
     // still drives its green/done styling below exactly as before.
-    let visible = allTickets.filter(t => matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
+    let visible = allTickets.filter(t => matchesSearch(t, overviewSearchQuery.trim().toLowerCase()) && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
+    // Day-level narrowing on top of the shared year/month state — set
+    // only via the desktop day-grid calendar (Sesizări's own or this
+    // tab's, both write the same overviewDayFilter); stays null
+    // forever on phone.
+    if (overviewDayFilter !== null) {
+      visible = visible.filter(t => {
+        const d = parseTicketDate(t.submitted_on);
+        return !isNaN(d.getTime()) && d.getDate() === overviewDayFilter;
+      });
+    }
 
     // Every account uses the same Overview logic. vlasbogdan@ only
     // gains one extra filter: solved tickets that still need a report.
@@ -3104,15 +3413,6 @@
         `;
       }).join('');
     }
-
-    // Shows the active year/month right on the button face — you'd
-    // otherwise have to open the sheet just to check what's currently
-    // filtered, which defeats the point of a quick-glance button.
-    if (overviewFiltersMobileBtn) {
-      overviewFiltersMobileBtn.textContent = (ticketYearFilter === 'all' && ticketMonthFilter === 'all')
-        ? 'Filtre'
-        : `Filtre · ${ticketYearFilter === 'all' ? 'toți anii' : ticketYearFilter}${ticketMonthFilter === 'all' ? '' : ', ' + MONTH_FILTER_NAMES[Number(ticketMonthFilter) - 1].slice(0, 3)}`;
-    }
   }
 
   const overviewCardsMobileEl = document.getElementById('overviewCardsMobile');
@@ -3167,23 +3467,14 @@
       setOverviewStatusFilter('active');
       tabKey = 'overview';
     } else if (tabKey === 'projects') {
-      projectsFilter = 'Ongoing';
       projectSearchQuery = '';
       if (projectSearchBox) projectSearchBox.value = '';
-      projectYearFilter = 'all';
-      document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectMobile, #projectYearFilterSelectDesktop').forEach(select => { select.value = 'all'; });
-      document.querySelectorAll('#projectsChipsWrap .chip, #projectsChipsWrapSheet .chip').forEach(chip => {
-        chip.classList.toggle('active', chip.dataset.key === projectsFilter);
-      });
-      renderProjects();
+      setProjectYearFilter('all');
+      setProjectsFilter('Ongoing');
     } else if (tabKey === 'backlog') {
-      backlogFilter = 'Ongoing';
       backlogSearchQuery = '';
       if (backlogSearchBox) backlogSearchBox.value = '';
-      document.querySelectorAll('#backlogChipsWrap .chip, #backlogChipsWrapSheet .chip').forEach(chip => {
-        chip.classList.toggle('active', chip.dataset.key === backlogFilter);
-      });
-      renderBacklogProjects();
+      setBacklogFilter('Ongoing');
     } else if (tabKey === 'reports') {
       editingTicketId = null;
       if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
@@ -3215,12 +3506,20 @@
   const homeNavTicketsBtn = document.getElementById('homeNavTickets');
   if (homeNavTicketsBtn) {
     homeNavTicketsBtn.addEventListener('click', () => {
+      // Lands on Overview now that Sesizări has a proper Overview
+      // sub-view — matches the breadcrumb's own middle "Sesizări"
+      // crumb (see renderBreadcrumb below), so both entry points into
+      // Sesizări agree on where "Sesizări" itself actually means.
+      // Lands on the tab's own default view (Active, current year/
+      // month) rather than forcing "Toate"/every year/every month —
+      // that used to be harmless, but now shows up as a permanent
+      // "Filtru: Toate, toate lunile, toți anii" note (see
+      // createFilterPopoverWidget) every single time, which reads as
+      // her having deliberately broadened the filter when she just
+      // clicked a nav button.
       editingTicketId = null;
       if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
-      setTicketYearFilter('all');
-      setTicketMonthFilter('all');
-      setTicketFilter('Toate');
-      openAdminTab('tickets-functional');
+      openAdminTab('overview');
     });
   }
   const homeNavProjectsBtn = document.getElementById('homeNavProjects');
@@ -3855,8 +4154,15 @@
     const bc = document.getElementById('navBreadcrumb');
     if (!bc || !isReportFocusedView()) return;
     const crumbs = [{ label: 'Acasă', tab: 'home' }];
-    if (tabKey === 'tickets-functional' || tabKey === 'tickets-accident') {
-      crumbs.push({ label: 'Sesizări', tab: 'tickets-functional' });
+    if (tabKey === 'overview') {
+      // Overview is now what "Sesizări" itself lands on (see
+      // homeNavTickets' click handler above and this same crumb's
+      // target below) — a proper sub-view of Sesizări, not a
+      // separate top-level destination, so it renders as the
+      // "Sesizări" crumb rather than "Prezentare generală".
+      crumbs.push({ label: 'Sesizări', tab: 'overview' });
+    } else if (tabKey === 'tickets-functional' || tabKey === 'tickets-accident') {
+      crumbs.push({ label: 'Sesizări', tab: 'overview' });
       crumbs.push({ label: tabKey === 'tickets-functional' ? 'Funcționale' : 'Accidente', tab: tabKey });
     } else if (BREADCRUMB_TABS[tabKey]) {
       crumbs.push({ label: BREADCRUMB_TABS[tabKey], tab: tabKey });
@@ -3898,6 +4204,9 @@
     });
     document.querySelectorAll('.admin-tabs-row .overview-year-bar').forEach(bar => {
       bar.classList.toggle('active', bar.dataset.yearPanel === panelId);
+    });
+    document.querySelectorAll('.overview-quick-filters').forEach(qf => {
+      qf.classList.toggle('active', qf.dataset.yearPanel === panelId);
     });
     // Locks which type shows on the shared Sesizări panel — whichever
     // of the two tabs was actually clicked. skipRender: true since
@@ -3945,9 +4254,10 @@
     activeFilter = filterKey;
     selectedIds.clear();
     updateArchiveBar();
-    document.querySelectorAll('#chipsWrap .chip, #ticketStatusChipsMobile .chip').forEach(chip => {
+    document.querySelectorAll('#ticketStatusChipsMobile .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
+    if (typeof ticketsFilterWidget !== 'undefined' && ticketsFilterWidget) ticketsFilterWidget.syncActiveState();
     renderTickets();
   }
 
@@ -4326,19 +4636,12 @@
             <label>Soluționat de</label>
             <input type="text" class="f-resolver" placeholder="Nume angajat" value="${safeResolvedBy}" ${isArchived ? 'disabled' : ''}>
           </div>
-          ${currentUserRole === 'limited'
-            ? (t.resolution_note ? `
+          ${t.resolution_note ? `
           <div class="ctrl-field resnote-field">
             <label>Ce s-a făcut</label>
             <div class="resnote-readonly">${escapeHtml(t.resolution_note)}</div>
           </div>
-            ` : '')
-            : `
-          <div class="ctrl-field resnote-field">
-            <label>Ce s-a făcut (opțional)</label>
-            <textarea class="f-resnote autogrow" rows="1" placeholder="ex: Bec înlocuit" ${isArchived ? 'disabled' : ''}>${escapeHtml(t.resolution_note || '')}</textarea>
-          </div>
-            `}
+          ` : ''}
           <div class="ctrl-field resolved-date-field">
             <label>Data soluționării</label>
             <input type="date" class="f-resolved-date" value="${resolvedDateParts.date}" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>
@@ -4354,32 +4657,6 @@
           }
         </div>
       `;
-
-      // "Ce s-a făcut" grows to fit its content — resets height to
-      // auto first so it can shrink back down too (not just grow),
-      // e.g. after deleting a long note back to something short.
-      // Runs once immediately on render (so a ticket that already has
-      // a long saved note starts at the correct height, not just
-      // after the next keystroke), then again on every input.
-      const resnoteEl = card.querySelector('.f-resnote.autogrow');
-      if (resnoteEl) {
-        // Only forces an explicit pixel height when content genuinely
-        // needs more than one line — clearing to '' first (rather
-        // than always writing scrollHeight as an inline style, even
-        // for short/empty content) means a short note is left to the
-        // plain CSS single-line height, which now exactly matches its
-        // sibling inputs (same padding/line-height/border), instead
-        // of a JS-computed number that could come out a pixel or two
-        // different and throw off the row's alignment.
-        const autoResize = () => {
-          resnoteEl.style.height = '';
-          if (resnoteEl.scrollHeight > resnoteEl.clientHeight) {
-            resnoteEl.style.height = resnoteEl.scrollHeight + 'px';
-          }
-        };
-        resnoteEl.addEventListener('input', autoResize);
-        autoResize();
-      }
 
       const checkbox = card.querySelector('.f-select');
       const returnOverviewBtn = card.querySelector('.ticket-return-overview');
@@ -4527,13 +4804,13 @@
           saveBtn.disabled = true;
           saveBtn.textContent = 'Se salvează...';
           const resolver = card.querySelector('.f-resolver').value.trim();
-          // No .f-resnote element exists for a limited-role user (see
-          // the read-only rendering above) — keep whatever the
-          // ticket's current value already is rather than reading a
-          // field that isn't there. The database trigger would reject
-          // an actual change anyway, but this avoids even attempting
-          // one, and avoids a null-reference error on the missing
-          // element.
+          // "Ce s-a făcut" is read-only here now for every role — it's
+          // filled in via the Excel repair-sheet import or the public
+          // site, not typed by hand in this card — so .f-resnote never
+          // actually exists in the DOM to read from. This just keeps
+          // whatever the ticket's current value already is rather than
+          // reading a field that isn't there, and avoids a null-
+          // reference error doing so.
           const resnoteEl = card.querySelector('.f-resnote');
           const resNote = resnoteEl ? resnoteEl.value.trim() : (t.resolution_note || '');
           const emailVal = isEditing ? card.querySelector('.f-email').value.trim() : (t.email || '');
@@ -5216,6 +5493,7 @@
   let projectsFilter = 'Ongoing';
   let projectYearFilter = 'all';
   let projectYearFilterInitialized = false;
+  let projectYearFilterTouched = false;
   let projectSearchQuery = '';
   const projectSelectedIds = new Set();
 
@@ -5267,7 +5545,6 @@
 
   function populateProjectYearFilterSelect(){
     const selects = [
-      document.getElementById('projectYearFilterSelect'),
       document.getElementById('projectYearFilterSelectMobile'),
       document.getElementById('projectYearFilterSelectDesktop'),
     ].filter(Boolean);
@@ -5293,10 +5570,34 @@
 
     selects.forEach(s => { s.value = projectYearFilter; });
     updateYearWarning(
-      ['projectYearFilterSelect', 'projectYearFilterSelectMobile', 'projectYearFilterSelectDesktop'],
+      ['projectYearFilterSelectMobile', 'projectYearFilterSelectDesktop'],
       ['yearWarningProjects', 'yearWarningProjectsDesktop'],
       projectYearFilter
     );
+  }
+
+  function setProjectYearFilter(value){
+    projectYearFilter = value;
+    projectYearFilterTouched = true;
+    document.querySelectorAll('#projectYearFilterSelectMobile, #projectYearFilterSelectDesktop').forEach(s => { s.value = projectYearFilter; });
+    updateYearWarning(
+      ['projectYearFilterSelectMobile', 'projectYearFilterSelectDesktop'],
+      ['yearWarningProjects', 'yearWarningProjectsDesktop'],
+      projectYearFilter
+    );
+    if (typeof projectsFilterWidget !== 'undefined' && projectsFilterWidget) projectsFilterWidget.syncActiveState();
+    renderProjects();
+  }
+
+  function setProjectsFilter(key){
+    projectsFilter = key;
+    projectSelectedIds.clear();
+    updateProjectsArchiveBar();
+    document.querySelectorAll('#projectsChipsWrapSheet .chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.key === key);
+    });
+    if (typeof projectsFilterWidget !== 'undefined' && projectsFilterWidget) projectsFilterWidget.syncActiveState();
+    renderProjects();
   }
 
   function matchesProjectSearch(p, query){
@@ -5346,45 +5647,19 @@
     });
   }
 
-  const projectFiltersMobileBtn = document.getElementById('projectFiltersMobileBtn');
-  if (projectFiltersMobileBtn) {
-    projectFiltersMobileBtn.addEventListener('click', () => setSheetOpen('projectFiltersSheet', true));
-  }
-
-  document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectMobile, #projectYearFilterSelectDesktop').forEach(select => {
-    select.addEventListener('change', () => {
-      projectYearFilter = select.value;
-      document.querySelectorAll('#projectYearFilterSelect, #projectYearFilterSelectMobile, #projectYearFilterSelectDesktop').forEach(s => { s.value = projectYearFilter; });
-      updateYearWarning(
-        ['projectYearFilterSelect', 'projectYearFilterSelectMobile', 'projectYearFilterSelectDesktop'],
-        ['yearWarningProjects', 'yearWarningProjectsDesktop'],
-        projectYearFilter
-      );
-      renderProjects();
-    });
-  });
-
-  const projectsChipsWrap = document.getElementById('projectsChipsWrap');
-  const projectsChipsWrapSheet = document.getElementById('projectsChipsWrapSheet');
-  function buildProjectChip(c, container){
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'chip' + (c.key === projectsFilter ? ' active' : '');
-    chip.textContent = c.label;
-    chip.dataset.key = c.key;
-    chip.addEventListener('click', () => {
-      projectsFilter = c.key;
-      projectSelectedIds.clear();
-      updateProjectsArchiveBar();
-      document.querySelectorAll('#projectsChipsWrap .chip, #projectsChipsWrapSheet .chip').forEach(x => x.classList.remove('active'));
-      document.querySelectorAll(`#projectsChipsWrap [data-key="${c.key}"], #projectsChipsWrapSheet [data-key="${c.key}"]`).forEach(x => x.classList.add('active'));
-      renderProjects();
-    });
-    container.appendChild(chip);
-  }
-  projectChipDefs.forEach(c => {
-    buildProjectChip(c, projectsChipsWrap);
-    if (projectsChipsWrapSheet) buildProjectChip(c, projectsChipsWrapSheet);
+  // Proiecte's own Filtre popover — year-only (no month/day: Proiecte
+  // publice never had that granularity in this file, unlike
+  // admin.html's own version) plus the same status chips as before,
+  // now rendered by the widget itself via chipsWrapId/chipDefs rather
+  // than the old buildProjectChip loop.
+  const projectsFilterWidget = createFilterPopoverWidget({
+    toggleBtnId: 'projectsFilterToggleBtn', popoverId: 'projectsFilterPopover',
+    yearSelectId: 'projectYearFilterSelectMobile',
+    getYear: () => projectYearFilter, setYear: setProjectYearFilter,
+    getYearTouched: () => projectYearFilterTouched,
+    chipsWrapId: 'projectsChipsWrapSheet', chipDefs: projectChipDefs,
+    getStatus: () => projectsFilter, setStatus: setProjectsFilter, defaultStatus: 'Ongoing',
+    noteIds: ['projectsFilterNoteDesktop', 'projectsFilterNoteMobile'],
   });
 
   async function loadProjects(){
@@ -5407,12 +5682,6 @@
     document.getElementById('projectsCount').textContent = filtered.length + ' din ' + allProjects.length + ' proiecte';
     const projectsCountMobile = document.getElementById('projectsCountMobile');
     if (projectsCountMobile) projectsCountMobile.textContent = filtered.length + ' din ' + allProjects.length + ' proiecte';
-    const projectFilterHintMobile = document.getElementById('projectFilterHintMobile');
-    if (projectFilterHintMobile) {
-      projectFilterHintMobile.textContent = projectYearFilter === 'all'
-        ? 'Filtrează lista rapid'
-        : `An selectat: ${projectYearFilter}`;
-    }
 
     if (filtered.length === 0) {
       list.innerHTML = '<div class="no-results" style="padding:40px 0;text-align:center;color:var(--ink-400);">Niciun proiect în această categorie.</div>';
@@ -5555,6 +5824,24 @@
   const ticketAddForm = document.getElementById('ticketAddForm');
 
   function openTicketAddForm(){
+    // The form's one DOM node is shared between Overview and Sesizări
+    // (same "+" icon, same fields) — rather than switching the admin
+    // to Overview just to show it, relocate the node into whichever
+    // panel is currently visible so the form opens right where the
+    // person already is. "ticketAddFormHome" marks its original spot
+    // in Overview so it can move back there rather than drifting to
+    // wherever it was last opened from.
+    if (panelIdForTab(currentAdminTab) === 'tickets') {
+      const ticketsPanel = document.getElementById('panel-tickets');
+      if (ticketAddForm.parentElement !== ticketsPanel) {
+        ticketsPanel.insertBefore(ticketAddForm, ticketsPanel.firstChild);
+      }
+    } else {
+      const homeAnchor = document.getElementById('ticketAddFormHome');
+      if (ticketAddForm.previousElementSibling !== homeAnchor) {
+        homeAnchor.parentElement.insertBefore(ticketAddForm, homeAnchor.nextSibling);
+      }
+    }
     document.getElementById('tf-type').value = 'Sesizare functionala';
     document.getElementById('tf-date').value = '';
     document.getElementById('tf-resolved-date').value = '';
@@ -5579,6 +5866,7 @@
   });
 
   document.getElementById('addTicketBtn').addEventListener('click', openTicketAddForm);
+  document.getElementById('addTicketBtnOverview').addEventListener('click', openTicketAddForm);
   document.getElementById('tfCancelBtn').addEventListener('click', () => {
     ticketAddForm.style.display = 'none';
   });
@@ -5819,31 +6107,25 @@
     { key: 'Terminat', label: 'Soluționate' },
     { key: 'Toate', label: 'Toate' },
   ];
-  const backlogChipsWrap = document.getElementById('backlogChipsWrap');
-  const backlogChipsWrapSheet = document.getElementById('backlogChipsWrapSheet');
-  function buildBacklogChip(c, container){
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'chip' + (c.key === backlogFilter ? ' active' : '');
-    chip.textContent = c.label;
-    chip.dataset.key = c.key;
-    chip.addEventListener('click', () => {
-      backlogFilter = c.key;
-      document.querySelectorAll('#backlogChipsWrap .chip, #backlogChipsWrapSheet .chip').forEach(x => x.classList.remove('active'));
-      document.querySelectorAll(`#backlogChipsWrap [data-key="${c.key}"], #backlogChipsWrapSheet [data-key="${c.key}"]`).forEach(x => x.classList.add('active'));
-      renderBacklogProjects();
-    });
-    container.appendChild(chip);
-  }
-  backlogChipDefs.forEach(c => {
-    buildBacklogChip(c, backlogChipsWrap);
-    if (backlogChipsWrapSheet) buildBacklogChip(c, backlogChipsWrapSheet);
-  });
 
-  const backlogFiltersMobileBtn = document.getElementById('backlogFiltersMobileBtn');
-  if (backlogFiltersMobileBtn) {
-    backlogFiltersMobileBtn.addEventListener('click', () => setSheetOpen('backlogFiltersSheet', true));
+  function setBacklogFilter(key){
+    backlogFilter = key;
+    document.querySelectorAll('#backlogChipsWrap .chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.key === key);
+    });
+    if (typeof backlogFilterWidget !== 'undefined' && backlogFilterWidget) backlogFilterWidget.syncActiveState();
+    renderBacklogProjects();
   }
+
+  // Avarii rețele's own Filtre popover — status-only, no year/month/day
+  // (Avarii never had that granularity in this file, matching
+  // admin.html's own version, which also keeps it status-only here).
+  const backlogFilterWidget = createFilterPopoverWidget({
+    toggleBtnId: 'backlogFilterToggleBtn', popoverId: 'backlogFilterPopover',
+    chipsWrapId: 'backlogChipsWrap', chipDefs: backlogChipDefs,
+    getStatus: () => backlogFilter, setStatus: setBacklogFilter, defaultStatus: 'Ongoing',
+    noteIds: ['backlogFilterNoteDesktop', 'backlogFilterNoteMobile'],
+  });
 
   function renderBacklogProjects(){
     const list = document.getElementById('backlogList');
