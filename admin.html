@@ -1481,6 +1481,7 @@
         <span id="lastCreatedTicketBannerText"></span>
         <button type="button" id="lastCreatedTicketBannerClose" aria-label="Închide">&times;</button>
       </div>
+      <span id="ticketAddFormHome" style="display:none;"></span>
       <div class="project-form" id="ticketAddForm" style="display:none;">
         <div class="pf-grid">
           <div class="ctrl-field-stack">
@@ -5865,14 +5866,24 @@
   const ticketAddForm = document.getElementById('ticketAddForm');
 
   function openTicketAddForm(){
-    // The form itself only ever lives inside panel-overview (moved
-    // there per an earlier request) — the "+" icon is reachable from
-    // both Overview and Sesizări now, so a click from Sesizări needs
-    // to actually switch tabs first, or the form would be expanding
-    // and scrolling into view inside a panel that isn't the visible
-    // one, invisible until the person happens to switch tabs
-    // themselves.
-    if (currentAdminTab !== 'overview') openAdminTab('overview');
+    // The form's one DOM node is shared between Overview and Sesizări
+    // (same "+" icon, same fields) — rather than switching the admin
+    // to Overview just to show it, relocate the node into whichever
+    // panel is currently visible so the form opens right where the
+    // person already is. "ticketAddFormHome" marks its original spot
+    // in Overview so it can move back there rather than drifting to
+    // wherever it was last opened from.
+    if (currentAdminTab === 'tickets') {
+      const ticketsPanel = document.getElementById('panel-tickets');
+      if (ticketAddForm.parentElement !== ticketsPanel) {
+        ticketsPanel.insertBefore(ticketAddForm, ticketsPanel.firstChild);
+      }
+    } else {
+      const homeAnchor = document.getElementById('ticketAddFormHome');
+      if (ticketAddForm.previousElementSibling !== homeAnchor) {
+        homeAnchor.parentElement.insertBefore(ticketAddForm, homeAnchor.nextSibling);
+      }
+    }
     document.getElementById('tf-type').value = 'Sesizare functionala';
     document.getElementById('tf-date').value = '';
     document.getElementById('tf-resolved-date').value = '';
