@@ -3608,6 +3608,17 @@
     if (tabKey !== currentAdminTab) {
       refreshAllAdminData();
     }
+    // The add-report form is a single shared DOM node that relocates
+    // into whichever tab opened it (see openTicketAddForm) — left open
+    // while switching tabs, it would sit invisible inside whichever
+    // panel it last moved to while looking "still open" if the admin
+    // switched back, an inconsistent state depending on which tab you
+    // check from. Closing it on every real tab change keeps it simple:
+    // switching tabs always closes it, regardless of direction.
+    if (tabKey !== currentAdminTab) {
+      const openTicketForm = document.getElementById('ticketAddForm');
+      if (openTicketForm) openTicketForm.style.display = 'none';
+    }
     currentAdminTab = tabKey;
   }
 
