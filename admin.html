@@ -373,6 +373,14 @@
   .overview-quick-filters{display:none;}
   .overview-quick-filters.active{
     display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    /* Positioned ancestor for .filter-popover on mobile (see below) —
+       its own icon row wraps to a second line once the search box is
+       expanded (200px input plus a few icons rarely fits one line on
+       a phone), and the popover needs to open below ALL of that
+       wrapped content, not just below the Filtre button's own
+       single-line position, or it renders on top of / behind whatever
+       wrapped onto line two, hiding it. */
+    position:relative;
   }
   .overview-icon-btn{
     display:flex;align-items:center;justify-content:center;flex-shrink:0;
@@ -388,7 +396,17 @@
     background:var(--copper-500);border-color:var(--copper-500);color:#fff;
   }
   .overview-icon-btn.add-btn:hover{background:var(--copper-600);border-color:var(--copper-600);}
-  .overview-popover-wrap{position:relative;display:flex;align-items:center;}
+  .overview-popover-wrap{display:flex;align-items:center;}
+  /* Desktop only — .filter-popover anchors to this narrow wrap (just
+     the Filtre button) there, since the row never wraps at that width
+     and right:0 below needs to measure from the button itself, not
+     the whole row. Mobile deliberately leaves this NOT positioned, so
+     the popover instead anchors to .overview-quick-filters itself
+     (see its own position:relative above) and opens below the row's
+     actual wrapped height. */
+  @media(min-width:901px){
+    .overview-popover-wrap{position:relative;}
+  }
   .overview-search-wrap{position:relative;display:flex;align-items:center;}
   /* Generic — targets any search input inside .overview-search-wrap
      by structure, not a specific ID. The original version of this
