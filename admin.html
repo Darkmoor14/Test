@@ -305,6 +305,13 @@
   .toolbar{padding:20px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
 
   .admin-tabs-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  /* On mobile, .admin-tabs (the text tabs) is hidden and this row's
+     only visible content is the icon row right below — it used to sit
+     flush against .dash-head's border-bottom with zero gap, looking
+     like it was touching the divider line. */
+  @media(max-width:900px){
+    .admin-tabs-row{margin-top:16px;}
+  }
   .admin-tabs{display:flex;gap:6px;margin:24px 0 4px;border-bottom:1px solid var(--line);}
   .admin-tab{
     font-family:var(--mono);font-size:13px;font-weight:500;color:var(--ink-400);
