@@ -2120,6 +2120,20 @@
   // just be set directly, no data-driven fallback needed. Someone
   // wanting the full history still has "Toate lunile" one click away.
   let ticketMonthFilter = String(new Date().getMonth() + 1);
+  // Whether the person has actually picked a year/month themselves
+  // (via a dropdown or the desktop calendar) — set only inside
+  // setTicketYearFilter/setTicketMonthFilter, the shared entry points
+  // every real interaction goes through. Deliberately NOT set by
+  // populateYearFilterSelects' own data-driven fallback (it assigns
+  // ticketYearFilter directly, bypassing the setter — see its own
+  // comment) — used so the Filtre note can tell "the person picked a
+  // non-default year/month" apart from "there's simply no ticket data
+  // for the current year yet, so it silently fell back to 'all'",
+  // and only explain the former. Without this, an account with no
+  // current-year tickets would show "Filtru: toți anii" on the very
+  // first load, despite nobody having touched anything.
+  let ticketYearFilterTouched = false;
+  let ticketMonthFilterTouched = false;
   // "Active" by default everywhere now, not just on phone — same
   // default as Sesizări/Proiecte's own status filter (Ongoing), and
   // matches what the Filtre popover's own "non-default filter" accent
@@ -2394,6 +2408,7 @@
 
   function setTicketYearFilter(value){
     ticketYearFilter = value;
+    ticketYearFilterTouched = true;
     document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsPopover, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
     updateYearWarning(
       ['yearFilterSelect', 'yearFilterSelectTickets', 'yearFilterSelectTicketsPopover', 'yearFilterSelectOverviewMobile', 'yearFilterSelectDesktop', 'yearFilterSelectTicketsDesktop'],
@@ -2419,6 +2434,7 @@
 
   function setTicketMonthFilter(value){
     ticketMonthFilter = value;
+    ticketMonthFilterTouched = true;
     document.querySelectorAll('#monthFilterSelect, #monthFilterSelectTickets, #monthFilterSelectTicketsPopover, #monthFilterSelectOverviewMobile, #monthFilterSelectDesktop, #monthFilterSelectTicketsDesktop').forEach(s => { s.value = value; });
     syncSharedFilterButtons();
     renderTickets();
@@ -2922,13 +2938,45 @@
       return statusOk && yearOk && monthOk && dayOk;
     }
 
-    // Describes whatever's currently non-default, in the order a
-    // person would think to check them: which list (status chip),
-    // then which date range. A specific day (from the desktop
-    // calendar) already implies its own month/year, so it replaces
-    // the month/year description rather than joining it.
-    function describeFilter(){
+    // Year/month "ok" for note purposes, same comparison isDefault()
+    // uses but gated behind whether the person actually touched that
+    // control (see ticketYearFilterTouched and friends) — a year or
+    // month that silently isn't "current" because of a data-driven
+    // fallback (no tickets yet this year) or an always-'all' starting
+    // value (Proiecte's month) isn't something to explain in the note,
+    // since nobody selected it. getYearTouched/getMonthTouched are
+    // only passed by tabs that actually have this quirk; other tabs
+    // default to "touched" (i.e. the raw comparison always applies).
+    function getNoteDateOk(){
       const now = new Date();
+      const yearTouched = config.getYearTouched ? config.getYearTouched() : true;
+      const monthTouched = config.getMonthTouched ? config.getMonthTouched() : true;
+      const yearOk = !yearSelect || !yearTouched || String(config.getYear()) === String(now.getFullYear());
+      const monthOk = !monthSelect || !monthTouched || String(config.getMonth()) === String(now.getMonth() + 1);
+      return { yearOk, monthOk };
+    }
+
+    // Whether the note should show anything at all — same shape as
+    // isDefault() but using the touched-gated year/month check above,
+    // so the icon (still driven by isDefault() itself) and the note
+    // can disagree: the icon reflects the raw applied state, the note
+    // only explains what the person actually chose.
+    function isNoteDefault(){
+      const statusOk = config.getStatus() === config.defaultStatus;
+      const day = config.getDayFilter ? config.getDayFilter() : null;
+      const dayOk = day === null || day === undefined;
+      const { yearOk, monthOk } = getNoteDateOk();
+      return statusOk && yearOk && monthOk && dayOk;
+    }
+
+    // Describes whatever's currently non-default (and actually
+    // selected — see getNoteDateOk), in the order a person would
+    // think to check them: which list (status chip), then which date
+    // range. A specific day (from the desktop calendar) already
+    // implies its own month/year, so it replaces the month/year
+    // description rather than joining it — picking a day is always a
+    // deliberate action, never a silent fallback, so it's never gated.
+    function describeFilter(){
       const parts = [];
       if (config.getStatus() !== config.defaultStatus) {
         const chip = (config.chipDefs || []).find(c => c.key === config.getStatus());
@@ -2942,18 +2990,12 @@
       } else {
         const yearVal = yearSelect ? String(config.getYear()) : null;
         const monthVal = monthSelect ? String(config.getMonth()) : null;
-        const yearOk = !yearSelect || yearVal === String(now.getFullYear());
-        const monthOk = !monthSelect || monthVal === String(now.getMonth() + 1);
-        // Whenever EITHER deviates, name both together — year and month
-        // are independent selects here, so "toți anii" alone while a
-        // specific month is still quietly applied underneath it (e.g.
-        // month happens to already be the current one) reads as "no
-        // date narrowing at all", when a month restriction is still
-        // very much in effect. Naming both leaves nothing hidden.
-        if (!yearOk || !monthOk) {
-          const monthLabel = !monthSelect ? '' : (monthVal === 'all' ? 'toate lunile' : (MONTH_FILTER_NAMES[Number(monthVal) - 1] || ''));
-          const yearLabel = !yearSelect ? '' : (yearVal === 'all' ? 'toți anii' : yearVal);
-          parts.push([monthLabel, yearLabel].filter(Boolean).join(', '));
+        const { yearOk, monthOk } = getNoteDateOk();
+        if (monthSelect && !monthOk) {
+          parts.push(monthVal === 'all' ? 'toate lunile' : (MONTH_FILTER_NAMES[Number(monthVal) - 1] || ''));
+        }
+        if (yearSelect && !yearOk) {
+          parts.push(yearVal === 'all' ? 'toți anii' : `an ${yearVal}`);
         }
       }
       return parts.filter(Boolean).join(', ');
@@ -2975,10 +3017,9 @@
     }
 
     function syncActiveState(){
-      const isDef = isDefault();
-      toggleBtn.classList.toggle('active', !isDef);
+      toggleBtn.classList.toggle('active', !isDefault());
       if (!noteEls.length) return;
-      const text = isDef ? '' : describeFilter();
+      const text = isNoteDefault() ? '' : describeFilter();
       noteEls.forEach(el => {
         if (!text) { el.innerHTML = ''; return; }
         el.innerHTML = `· Filtru: ${escapeHtml(text)} <button type="button" aria-label="Elimină filtrul">×</button>`;
@@ -3331,6 +3372,7 @@
     yearSelectId: 'yearFilterSelectOverviewMobile', monthSelectId: 'monthFilterSelectOverviewMobile',
     getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
     getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
+    getYearTouched: () => ticketYearFilterTouched, getMonthTouched: () => ticketMonthFilterTouched,
     getDayFilter: () => overviewDayFilter,
     setDayFilter: (d) => { overviewDayFilter = d; rerenderSharedTicketViews(); },
     onOpen: () => overviewMiniCal && overviewMiniCal.refresh(),
@@ -3355,6 +3397,7 @@
     yearSelectId: 'yearFilterSelectTicketsPopover', monthSelectId: 'monthFilterSelectTicketsPopover',
     getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
     getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
+    getYearTouched: () => ticketYearFilterTouched, getMonthTouched: () => ticketMonthFilterTouched,
     getDayFilter: () => overviewDayFilter,
     setDayFilter: (d) => { overviewDayFilter = d; rerenderSharedTicketViews(); },
     onOpen: () => ticketsMiniCal && ticketsMiniCal.refresh(),
@@ -5676,6 +5719,15 @@
   let projectsFilter = 'Ongoing';
   let projectYearFilter = 'all';
   let projectYearFilterInitialized = false;
+  // Same reasoning as ticketYearFilterTouched/ticketMonthFilterTouched
+  // above — set only inside setProjectYearFilter/setProjectMonthFilter,
+  // not by populateProjectYearFilterSelects' own data-driven fallback,
+  // so the Filtre note can tell a genuine pick apart from an automatic
+  // default (projectMonthFilter in particular starts at 'all', not the
+  // current month, so without this it would show as "non-default" on
+  // every fresh load regardless of anything the person did).
+  let projectYearFilterTouched = false;
+  let projectMonthFilterTouched = false;
   let projectSearchQuery = '';
   const projectSelectedIds = new Set();
 
@@ -5739,6 +5791,7 @@
   }
   function setProjectYearFilter(value){
     projectYearFilter = value;
+    projectYearFilterTouched = true;
     document.querySelectorAll('#projectYearFilterSelectDesktop, #projectYearFilterSelectPopover').forEach(s => { s.value = value; });
     updateYearWarning(
       ['projectYearFilterSelectDesktop', 'projectYearFilterSelectPopover'],
@@ -5750,6 +5803,7 @@
   }
   function setProjectMonthFilter(value){
     projectMonthFilter = value;
+    projectMonthFilterTouched = true;
     document.querySelectorAll('#projectMonthFilterSelectPopover').forEach(s => { s.value = value; });
     if (typeof projectsFilterWidget !== 'undefined' && projectsFilterWidget) projectsFilterWidget.syncActiveState();
     renderProjects();
@@ -5867,6 +5921,7 @@
     yearSelectId: 'projectYearFilterSelectPopover', monthSelectId: 'projectMonthFilterSelectPopover',
     getYear: () => projectYearFilter, setYear: setProjectYearFilter,
     getMonth: () => projectMonthFilter, setMonth: setProjectMonthFilter,
+    getYearTouched: () => projectYearFilterTouched, getMonthTouched: () => projectMonthFilterTouched,
     getDayFilter: () => projectDayFilter,
     setDayFilter: (d) => { projectDayFilter = d; renderProjects(); },
     onOpen: () => projectsMiniCal && projectsMiniCal.refresh(),
