@@ -2944,15 +2944,16 @@
         const monthVal = monthSelect ? String(config.getMonth()) : null;
         const yearOk = !yearSelect || yearVal === String(now.getFullYear());
         const monthOk = !monthSelect || monthVal === String(now.getMonth() + 1);
-        if (monthSelect && !monthOk) {
-          const monthLabel = monthVal === 'all' ? 'toate lunile' : (MONTH_FILTER_NAMES[Number(monthVal) - 1] || '');
-          if (monthLabel && yearOk) {
-            parts.push(monthLabel);
-          } else if (monthLabel) {
-            parts.push(`${monthLabel}, ${yearVal === 'all' ? 'toți anii' : yearVal}`);
-          }
-        } else if (yearSelect && !yearOk) {
-          parts.push(yearVal === 'all' ? 'toți anii' : `an ${yearVal}`);
+        // Whenever EITHER deviates, name both together — year and month
+        // are independent selects here, so "toți anii" alone while a
+        // specific month is still quietly applied underneath it (e.g.
+        // month happens to already be the current one) reads as "no
+        // date narrowing at all", when a month restriction is still
+        // very much in effect. Naming both leaves nothing hidden.
+        if (!yearOk || !monthOk) {
+          const monthLabel = !monthSelect ? '' : (monthVal === 'all' ? 'toate lunile' : (MONTH_FILTER_NAMES[Number(monthVal) - 1] || ''));
+          const yearLabel = !yearSelect ? '' : (yearVal === 'all' ? 'toți anii' : yearVal);
+          parts.push([monthLabel, yearLabel].filter(Boolean).join(', '));
         }
       }
       return parts.filter(Boolean).join(', ');
