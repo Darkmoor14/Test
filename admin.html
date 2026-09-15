@@ -518,32 +518,14 @@
      login) — the priority cards describe a different kind of
      at-a-glance triage that doesn't apply to that dedicated context. */
   html.report-focused-view .priority-grid{display:none;}
-  /* .chips.report-focused-chips (compound, not the bare class alone)
-     — the generic .chips{display:flex;...} rule further down the file
-     is EQUAL specificity to a bare ".report-focused-chips", and being
-     later in the file, was silently winning and forcing this visible
-     for every account regardless of the report-focused-view class —
-     the exact reason it was showing up for sesizari@ too. Compounding
-     both classes together here genuinely outweighs the bare .chips
-     rule regardless of file order, same fix pattern as elsewhere in
-     this file after being bitten by this more than once already. */
-  .chips.report-focused-chips{display:none;margin-bottom:16px;}
-  /* Desktop only — this is genuinely why the duplicate-row bug
-     happened: this rule had no width restriction at all, so on
-     mobile it showed alongside .overview-mobile-status-filter (the
-     existing mobile chip row) AND the year/month bar, stacking three
-     redundant filter rows on top of each other. Below 900px, all
-     three of those are replaced by a single "Filtre" button opening
-     a sheet instead — same pattern already used on Sesizări. */
-  @media(min-width:901px){
-    html.report-focused-view .chips.report-focused-chips{display:flex;}
-  }
   /* "Încarcă fișă remedieri" (now in Overview's icon row) —
      vlasbogdan@ only, same isReportFocusedView()/report-focused-view
-     class as the rest of his dedicated UI. Compound selector for the
-     same reason as .chips.report-focused-chips above: needs to
-     outweigh the bare .overview-icon-btn{display:flex} rule
-     regardless of file order. */
+     class as the rest of his dedicated UI. Compound selector so this
+     genuinely outweighs the bare .overview-icon-btn{display:flex}
+     rule regardless of file order — a media query or role class alone
+     doesn't win a same-specificity tie against a rule that simply
+     appears later in the stylesheet, a recurring gotcha elsewhere in
+     this file too. */
   .overview-icon-btn.repair-import-btn{display:none;}
   html.report-focused-view .overview-icon-btn.repair-import-btn{display:flex;}
   /* Excel import/export icons (repair sheet, Raport Excel, Proiecte's
@@ -1571,7 +1553,6 @@
           <span id="overviewNarrowFilterLabel"></span>
           <button type="button" id="clearOverviewNarrowFilterBtn">✕ Elimină acest filtru</button>
         </div>
-        <div class="chips report-focused-chips" id="overviewStatusChipsDesktop"></div>
         <div class="overview-table-wrap">
           <table class="overview-table" id="overviewTable">
             <colgroup>
@@ -2720,7 +2701,7 @@
     // correct every time, not just on the very first page load before
     // any chip exists to go stale.
     overviewStatusFilter = 'active';
-    document.querySelectorAll('#overviewStatusChipsDesktop .chip, #overviewStatusChipsPopover .chip').forEach(chip => {
+    document.querySelectorAll('#overviewStatusChipsPopover .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === overviewStatusFilter);
     });
     ticketYearFilterInitialized = false;
@@ -3140,7 +3121,7 @@
 
   function setOverviewStatusFilter(filterKey){
     overviewStatusFilter = filterKey;
-    document.querySelectorAll('#overviewStatusChipsDesktop .chip, #overviewStatusChipsPopover .chip').forEach(chip => {
+    document.querySelectorAll('#overviewStatusChipsPopover .chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.key === filterKey);
     });
     // Called both from the popover's own chip click (which already
@@ -3149,24 +3130,6 @@
     // of which path changed the filter.
     if (typeof overviewFilterWidget !== 'undefined' && overviewFilterWidget) overviewFilterWidget.syncActiveState();
     renderOverviewTable();
-  }
-
-  // Separate, desktop-only chip set — specifically for vlasbogdan@'s
-  // report-focused Overview (see isReportFocusedView()). Untouched by
-  // the Filtre-popover consolidation below: it's its own permanently-
-  // visible row on desktop, not behind any icon, and "Așteaptă raport"
-  // only makes sense in this one dedicated context.
-  const overviewStatusChipsDesktop = document.getElementById('overviewStatusChipsDesktop');
-  if (overviewStatusChipsDesktop) {
-    reportFocusedChipDefs.forEach(c => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip' + (c.key === overviewStatusFilter ? ' active' : '');
-      chip.textContent = c.label;
-      chip.dataset.key = c.key;
-      chip.addEventListener('click', () => setOverviewStatusFilter(c.key));
-      overviewStatusChipsDesktop.appendChild(chip);
-    });
   }
 
   // Overview and Sesizări share this same day-level filter (both
@@ -3340,13 +3303,15 @@
 
     // vlasbogdan@'s Overview is a dedicated "what needs my report"
     // table — priority cards/charts are hidden for this account (see
-    // the CSS), and a separate 3-way chip row (reportFocusedChipDefs
-    // above) replaces the normal priority-card narrowing entirely,
+    // the CSS), and the Filtre popover's own 4-way chip set
+    // (reportFocusedChipDefs above, appended in showDashboard()'s
+    // .then()) replaces the normal priority-card narrowing entirely,
     // since those don't apply to this dedicated context. "Soluționate"
     // here specifically means truly complete (Terminat AND has a
     // report) — consistent with "Așteaptă raport" meaning the other
     // Terminat tickets, so every ticket falls into exactly one of the
-    // three states, none left out and none double-counted.
+    // three visible states (Toate being the fourth, not a state of
+    // its own), none left out and none double-counted.
     if (isReportFocusedView()) {
       if (overviewStatusFilter === 'active') {
         visible = visible.filter(t => t.status !== 'Terminat');
