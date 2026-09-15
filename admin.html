@@ -303,6 +303,14 @@
   }
 
   .toolbar{padding:20px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+  /* Its only content, .result-count, is already hidden on mobile (the
+     count moved into the icon row itself — .overview-quick-filters-count)
+     — left visible, this was just an empty 20px-padded, bordered bar
+     eating ~41px between the icon row and the first ticket/project/
+     backlog item for nothing. */
+  @media(max-width:900px){
+    .toolbar{display:none;}
+  }
 
   .admin-tabs-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;}
   /* On mobile, .admin-tabs (the text tabs) is hidden and this row's
