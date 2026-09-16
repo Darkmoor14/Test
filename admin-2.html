@@ -1397,6 +1397,19 @@
         <button class="admin-tab" type="button" data-tab="projects">Proiecte curente</button>
         <button class="admin-tab" type="button" data-tab="backlog">Avarii rețele</button>
       </div>
+      <!-- vlasbogdan@'s own tab strip, replacing .admin-tabs above
+           (hidden for her — see .admin-tabs{display:none} — since a
+           5-tab admin strip doesn't fit her simplified home/breadcrumb
+           navigation model). Always visible regardless of which of
+           the three it's currently on, same as .admin-tabs is for
+           everyone else, so she can jump directly between Prezentare
+           generală/Funcționale/Accidente without going through the
+           breadcrumb or back to the home page first. -->
+      <div class="ticket-type-switch vlas-only" id="ticketTypeSwitch">
+        <button type="button" class="ticket-type-switch-btn" data-tab="overview">Prezentare generală</button>
+        <button type="button" class="ticket-type-switch-btn" data-tab="tickets-functional">Sesizări funcționale</button>
+        <button type="button" class="ticket-type-switch-btn" data-tab="tickets-accident">Sesizări accidente</button>
+      </div>
       <!-- Desktop-only year/month shortcuts for the first two panels. -->
       <div class="overview-year-bar admin-tabs-row-year active" data-year-panel="overview">
         <label for="yearFilterSelectDesktop">An:</label>
@@ -1777,10 +1790,6 @@
     </div>
 
     <div class="admin-panel" id="panel-tickets">
-      <div class="ticket-type-switch vlas-only" id="ticketTypeSwitch">
-        <button type="button" class="ticket-type-switch-btn" data-tab="tickets-functional">Sesizări funcționale</button>
-        <button type="button" class="ticket-type-switch-btn" data-tab="tickets-accident">Sesizări accidente</button>
-      </div>
       <div class="toolbar">
         <div style="display:flex; align-items:center; gap:14px;">
           <div class="result-count" id="resultCount"></div>
@@ -2985,15 +2994,6 @@
     const monthSelect = config.monthSelectId ? document.getElementById(config.monthSelectId) : null;
     const noteEls = (config.noteIds || []).map(id => document.getElementById(id)).filter(Boolean);
 
-    function isDefault(){
-      const now = new Date();
-      const statusOk = config.getStatus() === config.defaultStatus;
-      const yearOk = !yearSelect || String(config.getYear()) === String(now.getFullYear());
-      const monthOk = !monthSelect || String(config.getMonth()) === String(now.getMonth() + 1);
-      const dayOk = !config.getDayFilter || config.getDayFilter() === null;
-      return statusOk && yearOk && monthOk && dayOk;
-    }
-
     function getNoteDateOk(){
       const now = new Date();
       const yearTouched = config.getYearTouched ? config.getYearTouched() : true;
@@ -3003,6 +3003,17 @@
       return { yearOk, monthOk };
     }
 
+    // "Default" for the icon's own active-ring and for the note's
+    // "should this show at all" check are the same question — an
+    // untouched year/month select (e.g. admin-2's ticketMonthFilter,
+    // which starts at 'all' rather than the current month, unlike
+    // admin.html's own) is still "default" even though it doesn't
+    // literally equal today's year/month. Answering that only for the
+    // note (via getNoteDateOk's touched-awareness) while the icon ring
+    // used a stricter, non-touched-aware check was exactly the bug: the
+    // icon would glow "active" — implying a filter was applied — while
+    // the note correctly showed nothing, because nothing actually was.
+    // One shared definition now, so the two surfaces can never disagree.
     function isNoteDefault(){
       const statusOk = config.getStatus() === config.defaultStatus;
       const day = config.getDayFilter ? config.getDayFilter() : null;
@@ -3010,6 +3021,7 @@
       const { yearOk, monthOk } = getNoteDateOk();
       return statusOk && yearOk && monthOk && dayOk;
     }
+    const isDefault = isNoteDefault;
 
     function describeFilter(){
       const parts = [];
