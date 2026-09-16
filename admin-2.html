@@ -497,6 +497,36 @@
   }
   .cef-actions{display:flex;gap:10px;}
   .cef-actions #cefSaveBtn{flex:1;}
+  /* The day-detail/add-event sheets are small by nature (one card's
+     worth of content) — full-width edge-to-edge bottom sheets, the
+     same pattern used for the much bigger Filtre/report sheets, look
+     oversized for them, especially on a wide desktop screen. Smaller
+     fields/spacing throughout, and a compact centered pop-up instead
+     of a full-width bottom sheet once there's room for one. */
+  #calendarDaySheet .ctrl-field,
+  #calendarEventFormSheet .ctrl-field{min-width:0;}
+  #calendarEventFormSheet .ctrl-field{margin-bottom:12px;}
+  #calendarEventFormSheet .ctrl-field label{font-size:10px;margin-bottom:4px;}
+  #calendarEventFormSheet .ctrl-field input,
+  #calendarEventFormSheet .ctrl-field select{
+    font-size:12.5px;padding:7px 9px;height:34px;
+  }
+  #calendarEventFormSheet .sheet-grid{grid-template-columns:1fr;gap:0;}
+  #calendarDaySheet .sheet-head h3,
+  #calendarEventFormSheet .sheet-head h3{font-size:16px;}
+  #calendarDaySheet .calendar-day-event{padding:9px 10px;}
+  @media(min-width:901px){
+    #calendarDaySheet .mobile-sheet-panel,
+    #calendarEventFormSheet .mobile-sheet-panel{
+      position:fixed;top:50%;left:50%;right:auto;bottom:auto;
+      transform:translate(-50%,-50%);
+      width:340px;max-width:calc(100vw - 40px);
+      border-radius:14px;padding:18px 20px;max-height:82vh;
+      box-shadow:0 20px 60px rgba(20,24,29,0.28);
+    }
+    #calendarDaySheet .sheet-handle,
+    #calendarEventFormSheet .sheet-handle{display:none;}
+  }
   .home-todo-card{
     background:var(--paper-000);border:1px solid var(--line-strong);border-radius:9px;
     padding:22px;
