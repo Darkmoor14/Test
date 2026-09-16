@@ -497,6 +497,50 @@
   }
   .cef-actions{display:flex;gap:10px;}
   .cef-actions #cefSaveBtn{flex:1;}
+  /* ===== Stare sistem — live health checks run from the browser
+     itself (DB round-trip, auth session, an Edge Functions ping, the
+     calendar-reminder cron job's recent runs, push subscription
+     state) plus a row-count snapshot. Deliberately does NOT show
+     server CPU/memory/bandwidth — those need a privileged Supabase
+     Management API token, which must never be embedded in a page
+     that ships to the browser; that's what Supabase's own dashboard
+     is for. */
+  .status-grid{
+    display:grid;grid-template-columns:repeat(3, 1fr);gap:18px;
+  }
+  @media(max-width:900px){
+    .status-grid{grid-template-columns:1fr;}
+  }
+  .status-card{
+    background:var(--paper-000);border:1px solid var(--line-strong);border-radius:9px;
+    padding:18px;
+  }
+  .status-card-wide{grid-column:1/-1;}
+  .status-card-head{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+  .status-card-head h4{font-size:14px;margin:0;}
+  .status-dot{
+    width:9px;height:9px;border-radius:50%;background:var(--ink-300);flex-shrink:0;
+  }
+  .status-dot.ok{background:var(--signal-green-bright);}
+  .status-dot.bad{background:var(--signal-red);}
+  .status-dot.checking{background:var(--signal-orange);}
+  .status-card-body{margin-bottom:10px;}
+  .status-stat{font-family:var(--display);font-size:22px;font-weight:700;color:var(--ink-900);}
+  .status-stat-label{font-size:11.5px;color:var(--ink-600);margin-top:2px;}
+  .status-chart{width:100%;max-height:60px;}
+  .status-chart-tall{max-height:180px;}
+  .status-function-list{list-style:none;margin:0;padding:0;font-size:12px;color:var(--ink-600);}
+  .status-function-list li{
+    display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid var(--line);
+  }
+  .status-function-list li:first-child{border-top:none;}
+  .status-refresh-row{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    margin-top:18px;font-size:12px;color:var(--ink-400);
+  }
+  .status-note{
+    margin-top:14px;font-size:12px;color:var(--ink-400);max-width:640px;
+  }
   /* The day-detail/add-event sheets are small by nature (one card's
      worth of content) — full-width edge-to-edge bottom sheets, the
      same pattern used for the much bigger Filtre/report sheets, look
@@ -1367,6 +1411,7 @@
         <button type="button" class="header-tab-btn" data-tab="tickets-accident">Sesizări accidente</button>
         <button type="button" class="header-tab-btn" data-tab="projects">Proiecte curente</button>
         <button type="button" class="header-tab-btn" data-tab="backlog">Avarii rețele</button>
+        <button type="button" class="header-tab-btn" data-tab="status">Stare sistem</button>
       </div>
     </div>
     <div class="nav-right">
@@ -1426,6 +1471,7 @@
         <button class="admin-tab" type="button" data-tab="tickets-accident">Sesizări accidente</button>
         <button class="admin-tab" type="button" data-tab="projects">Proiecte curente</button>
         <button class="admin-tab" type="button" data-tab="backlog">Avarii rețele</button>
+        <button class="admin-tab" type="button" data-tab="status">Stare sistem</button>
       </div>
       <!-- vlasbogdan@'s own tab strip, replacing .admin-tabs above
            (hidden for her — see .admin-tabs{display:none} — since a
@@ -1992,7 +2038,80 @@
 
       <div class="backlog-list" id="backlogList"></div>
     </div>
-</div>
+
+    <div class="admin-panel" id="panel-status">
+      <div class="status-grid">
+        <div class="status-card" id="statusCardDb">
+          <div class="status-card-head">
+            <span class="status-dot" id="statusDotDb"></span>
+            <h4>Bază de date</h4>
+          </div>
+          <div class="status-card-body">
+            <div class="status-stat" id="statusDbLatency">—</div>
+            <div class="status-stat-label">Timp de răspuns</div>
+          </div>
+          <canvas class="status-chart" id="statusDbChart" height="60"></canvas>
+        </div>
+
+        <div class="status-card" id="statusCardAuth">
+          <div class="status-card-head">
+            <span class="status-dot" id="statusDotAuth"></span>
+            <h4>Autentificare</h4>
+          </div>
+          <div class="status-card-body">
+            <div class="status-stat" id="statusAuthState">—</div>
+            <div class="status-stat-label" id="statusAuthLabel">Sesiune</div>
+          </div>
+        </div>
+
+        <div class="status-card" id="statusCardFunctions">
+          <div class="status-card-head">
+            <span class="status-dot" id="statusDotFunctions"></span>
+            <h4>Funcții Edge</h4>
+          </div>
+          <div class="status-card-body">
+            <div class="status-stat" id="statusFunctionsLatency">—</div>
+            <div class="status-stat-label">status-ping — timp de răspuns</div>
+          </div>
+          <ul class="status-function-list" id="statusFunctionsList"></ul>
+        </div>
+
+        <div class="status-card" id="statusCardCron">
+          <div class="status-card-head">
+            <span class="status-dot" id="statusDotCron"></span>
+            <h4>Memento-uri calendar</h4>
+          </div>
+          <div class="status-card-body">
+            <div class="status-stat" id="statusCronState">—</div>
+            <div class="status-stat-label">Job programat (la fiecare minut)</div>
+          </div>
+          <canvas class="status-chart" id="statusCronChart" height="60"></canvas>
+        </div>
+
+        <div class="status-card" id="statusCardPush">
+          <div class="status-card-head">
+            <span class="status-dot" id="statusDotPush"></span>
+            <h4>Notificări push</h4>
+          </div>
+          <div class="status-card-body">
+            <div class="status-stat" id="statusPushState">—</div>
+            <div class="status-stat-label" id="statusPushLabel">Permisiune browser</div>
+          </div>
+        </div>
+
+        <div class="status-card status-card-wide" id="statusCardCounts">
+          <div class="status-card-head">
+            <h4>Date în platformă</h4>
+          </div>
+          <canvas class="status-chart status-chart-tall" id="statusCountsChart" height="140"></canvas>
+        </div>
+      </div>
+      <div class="status-refresh-row">
+        <span id="statusLastChecked"></span>
+        <button type="button" class="btn" id="statusRefreshBtn">Reîmprospătează</button>
+      </div>
+      <p class="status-note">Memoria/CPU-ul serverului nu pot fi verificate în siguranță din browser (necesită un token de administrare Supabase care nu ar trebui expus aici) — pentru acele metrici, vezi dashboard-ul Supabase direct.</p>
+    </div>
 </div>
 
 <div class="mobile-sheet" id="calendarDaySheet" aria-hidden="true">
@@ -3741,6 +3860,211 @@
     if (selectedCalendarDate) renderCalendarDayEvents();
   }
 
+  /* ============================================================
+     STARE SISTEM — live health checks, run from the browser with
+     whatever the logged-in admin's own session can already reach
+     (no separate credentials). Genuinely tests: a DB round trip, the
+     current auth session, the Edge Functions runtime (via the
+     side-effect-free status-ping function — NOT send-push/
+     bright-processor, which have real effects if invoked), the
+     calendar-reminder cron job's own recent run history (via
+     get_system_status()), and the browser's push-notification
+     permission. Deliberately does not attempt server CPU/memory/
+     bandwidth — see the panel's own on-screen note for why.
+     ============================================================ */
+  let statusDbHistory = [];
+  let statusDbChartInstance = null;
+  let statusCronChartInstance = null;
+  let statusCountsChartInstance = null;
+
+  function setStatusDot(id, state){
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('ok', 'bad', 'checking');
+    if (state) el.classList.add(state);
+  }
+
+  async function checkStatusDb(){
+    setStatusDot('statusDotDb', 'checking');
+    const start = performance.now();
+    const { error } = await supabaseClient.from('tickets').select('id', { count: 'exact', head: true });
+    const elapsed = Math.round(performance.now() - start);
+    document.getElementById('statusDbLatency').textContent = error ? 'Eroare' : elapsed + ' ms';
+    setStatusDot('statusDotDb', error ? 'bad' : 'ok');
+    statusDbHistory.push(error ? null : elapsed);
+    if (statusDbHistory.length > 12) statusDbHistory.shift();
+    renderStatusDbChart();
+    return !error;
+  }
+
+  function renderStatusDbChart(){
+    const canvas = document.getElementById('statusDbChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    if (statusDbChartInstance) statusDbChartInstance.destroy();
+    statusDbChartInstance = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: statusDbHistory.map((_, i) => i + 1),
+        datasets: [{
+          data: statusDbHistory,
+          borderColor: '#D11F24',
+          backgroundColor: 'rgba(209,31,36,0.08)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { font: { size: 9 } } },
+          x: { display: false },
+        },
+      },
+    });
+  }
+
+  async function checkStatusAuth(){
+    setStatusDot('statusDotAuth', 'checking');
+    const { data, error } = await supabaseClient.auth.getSession();
+    const hasSession = !error && data && data.session;
+    document.getElementById('statusAuthState').textContent = hasSession ? 'Activă' : 'Fără sesiune';
+    document.getElementById('statusAuthLabel').textContent = hasSession
+      ? currentSessionEmail || 'Sesiune activă'
+      : 'Niciun utilizator autentificat';
+    setStatusDot('statusDotAuth', hasSession ? 'ok' : 'bad');
+  }
+
+  async function checkStatusFunctions(){
+    setStatusDot('statusDotFunctions', 'checking');
+    const start = performance.now();
+    let ok = false;
+    try {
+      const { error } = await supabaseClient.functions.invoke('status-ping');
+      ok = !error;
+    } catch (_) {
+      ok = false;
+    }
+    const elapsed = Math.round(performance.now() - start);
+    document.getElementById('statusFunctionsLatency').textContent = ok ? elapsed + ' ms' : 'Eroare';
+    setStatusDot('statusDotFunctions', ok ? 'ok' : 'bad');
+    const list = document.getElementById('statusFunctionsList');
+    if (list) {
+      const known = [
+        { name: 'status-ping', note: ok ? elapsed + ' ms' : 'eroare', tested: true },
+        { name: 'send-push', note: 'nu e testat direct — vezi jobul de memento-uri mai jos', tested: false },
+        { name: 'bright-processor', note: 'nu e testat direct (e-mail)', tested: false },
+      ];
+      list.innerHTML = known.map(f => `<li><span>${escapeHtml(f.name)}</span><span>${escapeHtml(f.note)}</span></li>`).join('');
+    }
+    return ok;
+  }
+
+  async function checkStatusSystem(){
+    // get_system_status() covers both the cron/reminder job and the
+    // table-count snapshot in one call — see calendar_events_setup.sql
+    // (or the migration applied directly) for its definition.
+    setStatusDot('statusDotCron', 'checking');
+    const { data, error } = await supabaseClient.rpc('get_system_status');
+    if (error || !data) {
+      document.getElementById('statusCronState').textContent = 'Eroare';
+      setStatusDot('statusDotCron', 'bad');
+      return;
+    }
+    const scheduled = !!data.cron_job_scheduled;
+    const runs = data.cron_recent_runs || [];
+    const lastRun = runs[0];
+    document.getElementById('statusCronState').textContent = scheduled
+      ? (lastRun ? (lastRun.status === 'succeeded' ? 'Activ' : 'Eroare la ultima rulare') : 'Programat, fără rulări încă')
+      : 'Nu e programat';
+    setStatusDot('statusDotCron', scheduled && (!lastRun || lastRun.status === 'succeeded') ? 'ok' : 'bad');
+
+    const cronCanvas = document.getElementById('statusCronChart');
+    if (cronCanvas && typeof Chart !== 'undefined') {
+      if (statusCronChartInstance) statusCronChartInstance.destroy();
+      const ordered = runs.slice().reverse();
+      statusCronChartInstance = new Chart(cronCanvas, {
+        type: 'bar',
+        data: {
+          labels: ordered.map((_, i) => i + 1),
+          datasets: [{
+            data: ordered.map(r => r.status === 'succeeded' ? 1 : (r.status ? 0.15 : 0)),
+            backgroundColor: ordered.map(r => r.status === 'succeeded' ? '#1E9E5A' : '#B5502F'),
+            borderRadius: 2,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { display: false, max: 1 }, x: { display: false } },
+        },
+      });
+    }
+
+    const counts = data.table_counts || {};
+    const countsCanvas = document.getElementById('statusCountsChart');
+    if (countsCanvas && typeof Chart !== 'undefined') {
+      if (statusCountsChartInstance) statusCountsChartInstance.destroy();
+      statusCountsChartInstance = new Chart(countsCanvas, {
+        type: 'bar',
+        data: {
+          labels: ['Sesizări', 'Proiecte publice', 'Avarii rețele', 'Evenimente calendar', 'Dispozitive push'],
+          datasets: [{
+            data: [
+              counts.tickets || 0, counts.current_projects || 0, counts.backlog_projects || 0,
+              counts.calendar_events || 0, counts.push_subscriptions || 0,
+            ],
+            backgroundColor: '#D11F24',
+            borderRadius: 3,
+          }],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } },
+            y: { ticks: { font: { size: 10 } } },
+          },
+        },
+      });
+    }
+
+    checkStatusPush(counts.push_subscriptions || 0);
+  }
+
+  function checkStatusPush(deviceCount){
+    setStatusDot('statusDotPush', 'checking');
+    const supported = 'Notification' in window;
+    const permission = supported ? Notification.permission : 'unsupported';
+    const label = { granted: 'Permise', denied: 'Blocate', default: 'Neconfigurate', unsupported: 'Nesuportate' }[permission] || permission;
+    document.getElementById('statusPushState').textContent = label;
+    document.getElementById('statusPushLabel').textContent = `${deviceCount} dispozitiv${deviceCount === 1 ? '' : 'e'} înregistrat${deviceCount === 1 ? '' : 'e'}`;
+    setStatusDot('statusDotPush', permission === 'granted' ? 'ok' : (permission === 'denied' ? 'bad' : 'checking'));
+  }
+
+  async function loadSystemStatus(){
+    const lastCheckedEl = document.getElementById('statusLastChecked');
+    if (lastCheckedEl) lastCheckedEl.textContent = 'Se verifică...';
+    await Promise.all([
+      checkStatusDb(),
+      checkStatusAuth(),
+      checkStatusFunctions(),
+      checkStatusSystem(),
+    ]);
+    if (lastCheckedEl) {
+      const now = new Date();
+      lastCheckedEl.textContent = 'Ultima verificare: ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+    }
+  }
+
+  const statusRefreshBtn = document.getElementById('statusRefreshBtn');
+  if (statusRefreshBtn) statusRefreshBtn.addEventListener('click', loadSystemStatus);
+
   function renderHomeMiniCal(){
     const monthEl = document.getElementById('homeMiniCalMonth');
     const gridEl = document.getElementById('homeMiniCalGrid');
@@ -4674,6 +4998,7 @@
     // explicit renderTickets()).
     if (tabKey === 'tickets-functional') setTicketTypeFilter('functional', { skipRender: true });
     else if (tabKey === 'tickets-accident') setTicketTypeFilter('accident', { skipRender: true });
+    else if (tabKey === 'status') loadSystemStatus();
 
     // Browser back/forward support — each real tab switch becomes its
     // own history entry, so pressing back steps back through
@@ -6944,6 +7269,10 @@
     <button type="button" class="mobile-tab-btn" data-tab="backlog">
       <span class="mtb-dash"></span>
       <span>Avarii rețele</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="status">
+      <span class="mtb-dash"></span>
+      <span>Stare sistem</span>
     </button>
   </nav>
   <div class="mobile-sidebar-foot">
