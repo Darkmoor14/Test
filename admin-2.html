@@ -447,17 +447,56 @@
   .home-clock-time{font-family:var(--display);font-size:34px;font-weight:700;color:var(--ink-900);letter-spacing:.02em;font-variant-numeric:tabular-nums;}
   .home-clock-date{margin-top:4px;font-size:13px;color:var(--ink-600);text-transform:capitalize;}
   .home-mini-cal{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);}
-  .home-mini-cal-head{margin-bottom:8px;}
+  .home-mini-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
   .home-mini-cal-month{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--ink-900);text-transform:capitalize;}
+  .home-mini-cal-nav{
+    display:flex;align-items:center;justify-content:center;
+    width:22px;height:22px;border-radius:50%;border:1px solid var(--line-strong);
+    background:var(--paper-000);color:var(--ink-600);cursor:pointer;font-size:13px;line-height:1;padding:0;
+  }
+  .home-mini-cal-nav:hover{border-color:var(--copper-500);color:var(--copper-600);}
   .home-mini-cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px;}
   .home-mini-cal-weekdays span{font-family:var(--mono);font-size:10px;color:var(--ink-400);}
   .home-mini-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);row-gap:3px;}
   .home-mini-cal-day{
-    display:flex;align-items:center;justify-content:center;
+    position:relative;display:flex;align-items:center;justify-content:center;
     aspect-ratio:1;font-size:11.5px;color:var(--ink-700);border-radius:50%;
+    border:none;background:none;font-family:inherit;cursor:pointer;
   }
+  .home-mini-cal-day:hover{background:var(--copper-050);}
   .home-mini-cal-day.outside{color:var(--ink-300);}
   .home-mini-cal-day.today{background:var(--copper-500);color:#fff;font-weight:600;}
+  .home-mini-cal-day.has-events::after{
+    content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);
+    width:4px;height:4px;border-radius:50%;background:var(--copper-500);
+  }
+  .home-mini-cal-day.today.has-events::after{background:#fff;}
+  .home-cal-upcoming{
+    margin-top:14px;padding-top:14px;border-top:1px solid var(--line);
+    text-align:left;font-size:12px;color:var(--ink-600);cursor:pointer;
+  }
+  .home-cal-upcoming .k{
+    display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;
+    letter-spacing:0.04em;color:var(--ink-400);margin-bottom:3px;
+  }
+  .home-cal-upcoming .home-cal-upcoming-title{font-weight:600;color:var(--ink-900);}
+  .home-cal-add-btn{width:100%;justify-content:center;margin-top:14px;}
+  .calendar-day-events{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+  .calendar-day-event{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+    padding:12px;border:1px solid var(--line-strong);border-radius:6px;cursor:pointer;
+  }
+  .calendar-day-event:hover{border-color:var(--copper-500);}
+  .calendar-day-event-time{font-family:var(--mono);font-size:11.5px;color:var(--ink-400);white-space:nowrap;}
+  .calendar-day-event-title{font-weight:600;color:var(--ink-900);margin-bottom:2px;}
+  .calendar-day-event-meta{font-size:12px;color:var(--ink-600);}
+  .calendar-day-events-empty{color:var(--ink-400);font-size:13px;padding:8px 0;}
+  .cef-allday-field{
+    display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-700);
+    margin:4px 0 16px;cursor:pointer;
+  }
+  .cef-actions{display:flex;gap:10px;}
+  .cef-actions #cefSaveBtn{flex:1;}
   .home-todo-card{
     background:var(--paper-000);border:1px solid var(--line-strong);border-radius:9px;
     padding:22px;
@@ -1538,11 +1577,15 @@
           <div class="home-clock-date" id="homeClockDate">—</div>
           <div class="home-mini-cal">
             <div class="home-mini-cal-head">
+              <button type="button" class="home-mini-cal-nav" id="homeMiniCalPrevBtn" aria-label="Luna anterioară">‹</button>
               <span class="home-mini-cal-month" id="homeMiniCalMonth">—</span>
+              <button type="button" class="home-mini-cal-nav" id="homeMiniCalNextBtn" aria-label="Luna următoare">›</button>
             </div>
             <div class="home-mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
             <div class="home-mini-cal-grid" id="homeMiniCalGrid"></div>
           </div>
+          <div class="home-cal-upcoming" id="homeCalUpcoming" hidden></div>
+          <button type="button" class="btn home-cal-add-btn" id="homeCalAddBtn">+ Eveniment</button>
         </div>
         <div class="home-start-main">
           <div class="home-intro">
@@ -1911,6 +1954,81 @@
       <div class="backlog-list" id="backlogList"></div>
     </div>
 </div>
+</div>
+
+<div class="mobile-sheet" id="calendarDaySheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="calendarDaySheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="calendarDaySheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h3 id="calendarDaySheetTitle">—</h3>
+      </div>
+      <button type="button" class="sheet-close" data-close-sheet="calendarDaySheet" aria-label="Închide">×</button>
+    </div>
+    <div class="calendar-day-events" id="calendarDayEventsList"></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-primary" id="calendarDayAddBtn">+ Eveniment nou</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="calendarEventFormSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="calendarEventFormSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="calendarEventFormSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h3 id="calendarEventFormSheetTitle">Eveniment nou</h3>
+      </div>
+      <button type="button" class="sheet-close" data-close-sheet="calendarEventFormSheet" aria-label="Închide">×</button>
+    </div>
+    <input type="hidden" id="cef-id">
+    <div class="ctrl-field">
+      <label>Titlu</label>
+      <input type="text" id="cef-title" placeholder="ex: Întâlnire șantier">
+    </div>
+    <label class="cef-allday-field">
+      <input type="checkbox" id="cef-allday"> Toată ziua
+    </label>
+    <div class="sheet-grid">
+      <div class="ctrl-field">
+        <label for="cef-date">Data</label>
+        <input type="date" id="cef-date">
+      </div>
+      <div class="ctrl-field" id="cef-start-time-field">
+        <label for="cef-start-time">Ora început</label>
+        <input type="time" id="cef-start-time">
+      </div>
+      <div class="ctrl-field" id="cef-end-time-field">
+        <label for="cef-end-time">Ora sfârșit (opțional)</label>
+        <input type="time" id="cef-end-time">
+      </div>
+    </div>
+    <div class="ctrl-field">
+      <label for="cef-location">Locație (opțional)</label>
+      <input type="text" id="cef-location" placeholder="ex: Str. Gh. Doja nr. 4">
+    </div>
+    <div class="ctrl-field">
+      <label for="cef-description">Descriere (opțional)</label>
+      <input type="text" id="cef-description" placeholder="Detalii">
+    </div>
+    <div class="ctrl-field">
+      <label for="cef-reminder">Memento</label>
+      <select id="cef-reminder">
+        <option value="">Fără memento</option>
+        <option value="5">Cu 5 minute înainte</option>
+        <option value="15">Cu 15 minute înainte</option>
+        <option value="30">Cu 30 minute înainte</option>
+        <option value="60">Cu 1 oră înainte</option>
+        <option value="1440">Cu 1 zi înainte</option>
+      </select>
+    </div>
+    <div class="sheet-actions cef-actions">
+      <button type="button" class="btn" id="cefDeleteBtn" style="display:none;">Șterge</button>
+      <button type="button" class="btn btn-primary" id="cefSaveBtn">Salvează</button>
+    </div>
+  </div>
 </div>
 
 <div class="mobile-sheet" id="reportMonthSheet" aria-hidden="true">
@@ -3467,6 +3585,7 @@
     loadTickets(true);
     loadProjects();
     loadBacklogProjects();
+    loadCalendarEvents();
   }
 
   function setHomeTabFilter(tabKey){
@@ -3542,18 +3661,52 @@
   const homeNavLpsBtn = document.getElementById('homeNavLps');
   if (homeNavLpsBtn) homeNavLpsBtn.addEventListener('click', () => setHomeTabFilter('lps'));
 
-  // Live clock + read-only "today" calendar on the start page —
-  // purely informational, no filter state involved.
+  // Live clock + fully interactive calendar on the start page — click
+  // a day to see/add/edit/delete events for it. Events persist in
+  // Supabase (calendar_events table — see calendar_events_setup.sql)
+  // so they survive across devices/browsers, same as tickets/projects.
   const HOME_CLOCK_MONTH_NAMES = ['ianuarie','februarie','martie','aprilie','mai','iunie','iulie','august','septembrie','octombrie','noiembrie','decembrie'];
   const HOME_CLOCK_DAY_NAMES = ['duminică','luni','marți','miercuri','joi','vineri','sâmbătă'];
+
+  let calendarEvents = [];
+  const today0 = new Date();
+  let calendarViewYear = today0.getFullYear();
+  let calendarViewMonth = today0.getMonth();
+  let selectedCalendarDate = null; // 'YYYY-MM-DD'
+
+  function dateKey(d){
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  function eventsOnDate(dateKeyStr){
+    return calendarEvents
+      .filter(e => e.start_time && dateKey(new Date(e.start_time)) === dateKeyStr)
+      .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+  }
+
+  async function loadCalendarEvents(){
+    if (!document.getElementById('homeClockTime')) return;
+    const { data, error } = await supabaseClient
+      .from('calendar_events')
+      .select('*')
+      .order('start_time', { ascending: true });
+    if (error) {
+      console.error('loadCalendarEvents failed:', error);
+      return;
+    }
+    calendarEvents = data || [];
+    renderHomeMiniCal();
+    renderCalendarUpcoming();
+    if (selectedCalendarDate) renderCalendarDayEvents();
+  }
+
   function renderHomeMiniCal(){
     const monthEl = document.getElementById('homeMiniCalMonth');
     const gridEl = document.getElementById('homeMiniCalGrid');
     if (!monthEl || !gridEl) return;
     const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const today = now.getDate();
+    const todayKey = dateKey(now);
+    const year = calendarViewYear;
+    const month = calendarViewMonth;
     monthEl.textContent = `${HOME_CLOCK_MONTH_NAMES[month]} ${year}`;
     const firstOfMonth = new Date(year, month, 1);
     // Monday-first week, matching the L-M-M-J-V-S-D header.
@@ -3565,14 +3718,67 @@
       html += `<span class="home-mini-cal-day outside">${daysInPrevMonth - startOffset + i + 1}</span>`;
     }
     for (let d = 1; d <= daysInMonth; d++) {
-      html += `<span class="home-mini-cal-day${d === today ? ' today' : ''}">${d}</span>`;
+      const thisKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const hasEvents = eventsOnDate(thisKey).length > 0;
+      html += `<button type="button" class="home-mini-cal-day${thisKey === todayKey ? ' today' : ''}${hasEvents ? ' has-events' : ''}" data-date="${thisKey}">${d}</button>`;
     }
     const trailing = (7 - ((startOffset + daysInMonth) % 7)) % 7;
     for (let i = 1; i <= trailing; i++) {
       html += `<span class="home-mini-cal-day outside">${i}</span>`;
     }
     gridEl.innerHTML = html;
+    gridEl.querySelectorAll('.home-mini-cal-day[data-date]').forEach(btn => {
+      btn.addEventListener('click', () => openCalendarDay(btn.dataset.date));
+    });
   }
+
+  // Reminder engine — foreground only (fires while this tab/PWA is
+  // actually open and running): checks once a minute for events whose
+  // reminder time just arrived, shows a toast plus a real OS
+  // notification via the same service worker the ticket push
+  // notifications already use. Each event only ever fires once per
+  // browser (tracked here, separately from reminder_sent_at, which is
+  // what the optional server-side cron dispatcher uses instead — see
+  // calendar_events_setup.sql — so the two never double up or
+  // conflict with each other). Declared before tickHomeClock (which
+  // calls checkCalendarReminders on every tick, including its own
+  // first immediate call right below) rather than after it — a
+  // let/const referenced before its own declaration line has run is a
+  // ReferenceError, not just undefined, so this genuinely has to come
+  // first, not just anywhere earlier in the same scope.
+  const CAL_REMINDER_NOTIFIED_KEY = 'insta-grup-vlas-cal-reminders-notified-v1';
+  let calReminderNotifiedIds = [];
+  try {
+    calReminderNotifiedIds = JSON.parse(localStorage.getItem(CAL_REMINDER_NOTIFIED_KEY) || '[]');
+  } catch (_) { calReminderNotifiedIds = []; }
+  let lastCalReminderCheckMinute = null;
+  function checkCalendarReminders(now){
+    const minuteKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}`;
+    if (minuteKey === lastCalReminderCheckMinute) return;
+    lastCalReminderCheckMinute = minuteKey;
+    calendarEvents.forEach(e => {
+      if (!e.reminder_minutes_before || calReminderNotifiedIds.includes(e.id)) return;
+      const start = new Date(e.start_time);
+      const dueAt = new Date(start.getTime() - e.reminder_minutes_before * 60000);
+      if (now >= dueAt && now < start) {
+        calReminderNotifiedIds.push(e.id);
+        try { localStorage.setItem(CAL_REMINDER_NOTIFIED_KEY, JSON.stringify(calReminderNotifiedIds)); } catch (_) {}
+        const body = e.location || `${pad2(start.getHours())}:${pad2(start.getMinutes())}`;
+        showToast(`Memento: ${e.title}`);
+        const notifTitle = `Memento: ${e.title}`;
+        if (swRegistration && swRegistration.showNotification) {
+          swRegistration.showNotification(notifTitle, {
+            body,
+            icon: 'icons/icon-192.png',
+            badge: 'icons/icon-192.png',
+          }).catch(() => {});
+        } else if ('Notification' in window && Notification.permission === 'granted') {
+          try { new Notification(notifTitle, { body }); } catch (_) {}
+        }
+      }
+    });
+  }
+
   function tickHomeClock(){
     const timeEl = document.getElementById('homeClockTime');
     const dateEl = document.getElementById('homeClockDate');
@@ -3585,12 +3791,210 @@
     // wasted work.
     if (now.getSeconds() === 0 || dateEl.textContent === '—') {
       dateEl.textContent = `${HOME_CLOCK_DAY_NAMES[now.getDay()]}, ${now.getDate()} ${HOME_CLOCK_MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`;
-      renderHomeMiniCal();
+      // Only snap the mini-cal's own month back to "today" on a real
+      // day rollover if she's currently looking at the current month
+      // anyway — never yanks her back to today while she's navigated
+      // to a different month via the ‹/› buttons.
+      if (calendarViewYear === now.getFullYear() && calendarViewMonth === now.getMonth()) {
+        renderHomeMiniCal();
+      }
+      renderCalendarUpcoming();
     }
+    checkCalendarReminders(now);
   }
   if (document.getElementById('homeClockTime')) {
     tickHomeClock();
     setInterval(tickHomeClock, 1000);
+    loadCalendarEvents();
+  }
+
+  const homeMiniCalPrevBtn = document.getElementById('homeMiniCalPrevBtn');
+  const homeMiniCalNextBtn = document.getElementById('homeMiniCalNextBtn');
+  if (homeMiniCalPrevBtn) {
+    homeMiniCalPrevBtn.addEventListener('click', () => {
+      calendarViewMonth -= 1;
+      if (calendarViewMonth < 0) { calendarViewMonth = 11; calendarViewYear -= 1; }
+      renderHomeMiniCal();
+    });
+  }
+  if (homeMiniCalNextBtn) {
+    homeMiniCalNextBtn.addEventListener('click', () => {
+      calendarViewMonth += 1;
+      if (calendarViewMonth > 11) { calendarViewMonth = 0; calendarViewYear += 1; }
+      renderHomeMiniCal();
+    });
+  }
+
+  // "Următor" — the single soonest upcoming event, shown right under
+  // the mini-calendar so the next commitment is visible at a glance
+  // without opening anything.
+  function renderCalendarUpcoming(){
+    const wrap = document.getElementById('homeCalUpcoming');
+    if (!wrap) return;
+    const now = new Date();
+    const next = calendarEvents
+      .filter(e => e.start_time && new Date(e.end_time || e.start_time) >= now)
+      .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))[0];
+    if (!next) {
+      wrap.hidden = true;
+      wrap.innerHTML = '';
+      return;
+    }
+    wrap.hidden = false;
+    const start = new Date(next.start_time);
+    const diffMs = start - now;
+    const diffMin = Math.round(diffMs / 60000);
+    let countdown;
+    if (diffMin <= 0) countdown = 'acum';
+    else if (diffMin < 60) countdown = `în ${diffMin} min`;
+    else if (diffMin < 1440) countdown = `în ${Math.round(diffMin / 60)} h`;
+    else countdown = `în ${Math.round(diffMin / 1440)} zile`;
+    const timeLabel = next.all_day
+      ? fmtDateOnly(next.start_time)
+      : `${fmtDateOnly(next.start_time)}, ${pad2(start.getHours())}:${pad2(start.getMinutes())}`;
+    wrap.innerHTML = `
+      <span class="k">Următor · ${escapeHtml(countdown)}</span>
+      <div class="home-cal-upcoming-title">${escapeHtml(next.title)}</div>
+      <div>${escapeHtml(timeLabel)}${next.location ? ' · ' + escapeHtml(next.location) : ''}</div>
+    `;
+    wrap.onclick = () => openCalendarDay(dateKey(start));
+  }
+  function pad2(n){ return String(n).padStart(2, '0'); }
+
+  const homeCalAddBtn = document.getElementById('homeCalAddBtn');
+  if (homeCalAddBtn) {
+    homeCalAddBtn.addEventListener('click', () => openCalendarEventForm(null, dateKey(new Date())));
+  }
+
+  function openCalendarDay(dateKeyStr){
+    selectedCalendarDate = dateKeyStr;
+    const [y, m, d] = dateKeyStr.split('-').map(Number);
+    const label = new Date(y, m - 1, d);
+    document.getElementById('calendarDaySheetTitle').textContent =
+      `${HOME_CLOCK_DAY_NAMES[label.getDay()]}, ${d} ${HOME_CLOCK_MONTH_NAMES[m - 1]} ${y}`;
+    renderCalendarDayEvents();
+    setSheetOpen('calendarDaySheet', true);
+  }
+
+  function renderCalendarDayEvents(){
+    const list = document.getElementById('calendarDayEventsList');
+    if (!list) return;
+    const events = eventsOnDate(selectedCalendarDate);
+    if (events.length === 0) {
+      list.innerHTML = '<div class="calendar-day-events-empty">Nicio programare în această zi.</div>';
+      return;
+    }
+    list.innerHTML = events.map(e => {
+      const start = new Date(e.start_time);
+      const timeLabel = e.all_day ? 'Toată ziua' : pad2(start.getHours()) + ':' + pad2(start.getMinutes());
+      return `
+        <div class="calendar-day-event" data-event-id="${e.id}">
+          <div>
+            <div class="calendar-day-event-title">${escapeHtml(e.title)}</div>
+            ${e.location ? `<div class="calendar-day-event-meta">📍 ${escapeHtml(e.location)}</div>` : ''}
+            ${e.description ? `<div class="calendar-day-event-meta">${escapeHtml(e.description)}</div>` : ''}
+          </div>
+          <span class="calendar-day-event-time">${escapeHtml(timeLabel)}</span>
+        </div>
+      `;
+    }).join('');
+    list.querySelectorAll('.calendar-day-event').forEach(el => {
+      el.addEventListener('click', () => {
+        const ev = calendarEvents.find(e => String(e.id) === el.dataset.eventId);
+        if (ev) openCalendarEventForm(ev, selectedCalendarDate);
+      });
+    });
+  }
+
+  const calendarDayAddBtn = document.getElementById('calendarDayAddBtn');
+  if (calendarDayAddBtn) {
+    calendarDayAddBtn.addEventListener('click', () => openCalendarEventForm(null, selectedCalendarDate));
+  }
+
+  function openCalendarEventForm(event, defaultDateKey){
+    document.getElementById('calendarEventFormSheetTitle').textContent = event ? 'Editează eveniment' : 'Eveniment nou';
+    document.getElementById('cef-id').value = event ? event.id : '';
+    document.getElementById('cef-title').value = event ? event.title : '';
+    document.getElementById('cef-allday').checked = event ? !!event.all_day : false;
+    const start = event ? new Date(event.start_time) : null;
+    const end = event && event.end_time ? new Date(event.end_time) : null;
+    document.getElementById('cef-date').value = event ? dateKey(start) : (defaultDateKey || dateKey(new Date()));
+    document.getElementById('cef-start-time').value = start ? `${pad2(start.getHours())}:${pad2(start.getMinutes())}` : '';
+    document.getElementById('cef-end-time').value = end ? `${pad2(end.getHours())}:${pad2(end.getMinutes())}` : '';
+    document.getElementById('cef-location').value = event ? (event.location || '') : '';
+    document.getElementById('cef-description').value = event ? (event.description || '') : '';
+    document.getElementById('cef-reminder').value = event && event.reminder_minutes_before ? String(event.reminder_minutes_before) : '';
+    document.getElementById('cefDeleteBtn').style.display = event ? '' : 'none';
+    toggleCefTimeFields();
+    setSheetOpen('calendarEventFormSheet', true);
+  }
+
+  function toggleCefTimeFields(){
+    const allDay = document.getElementById('cef-allday').checked;
+    document.getElementById('cef-start-time-field').style.display = allDay ? 'none' : '';
+    document.getElementById('cef-end-time-field').style.display = allDay ? 'none' : '';
+  }
+  const cefAllDayCheckbox = document.getElementById('cef-allday');
+  if (cefAllDayCheckbox) cefAllDayCheckbox.addEventListener('change', toggleCefTimeFields);
+
+  const cefSaveBtn = document.getElementById('cefSaveBtn');
+  if (cefSaveBtn) {
+    cefSaveBtn.addEventListener('click', async () => {
+      const id = document.getElementById('cef-id').value;
+      const title = document.getElementById('cef-title').value.trim();
+      if (!title) { document.getElementById('cef-title').focus(); return; }
+      const allDay = document.getElementById('cef-allday').checked;
+      const dateVal = document.getElementById('cef-date').value;
+      if (!dateVal) { document.getElementById('cef-date').focus(); return; }
+      const startTimeVal = document.getElementById('cef-start-time').value || '00:00';
+      const endTimeVal = document.getElementById('cef-end-time').value;
+      const startISO = new Date(`${dateVal}T${allDay ? '00:00' : startTimeVal}`).toISOString();
+      const endISO = (!allDay && endTimeVal) ? new Date(`${dateVal}T${endTimeVal}`).toISOString() : null;
+      const reminderVal = document.getElementById('cef-reminder').value;
+      const payload = {
+        title,
+        description: document.getElementById('cef-description').value.trim() || null,
+        location: document.getElementById('cef-location').value.trim() || null,
+        start_time: startISO,
+        end_time: endISO,
+        all_day: allDay,
+        reminder_minutes_before: reminderVal ? Number(reminderVal) : null,
+        reminder_sent_at: null,
+      };
+      cefSaveBtn.disabled = true;
+      try {
+        if (id) {
+          const { error } = await supabaseClient.from('calendar_events').update(payload).eq('id', id);
+          if (error) throw error;
+        } else {
+          payload.created_by = currentSessionEmail || null;
+          const { error } = await supabaseClient.from('calendar_events').insert(payload);
+          if (error) throw error;
+        }
+        await loadCalendarEvents();
+        setSheetOpen('calendarEventFormSheet', false);
+        if (selectedCalendarDate) openCalendarDay(dateKey(new Date(startISO)));
+        showToast('Eveniment salvat.');
+      } catch (err) {
+        console.error('Salvarea evenimentului a eșuat:', err);
+        alert('Salvarea evenimentului a eșuat. Încearcă din nou.');
+      } finally {
+        cefSaveBtn.disabled = false;
+      }
+    });
+  }
+
+  const cefDeleteBtn = document.getElementById('cefDeleteBtn');
+  if (cefDeleteBtn) {
+    cefDeleteBtn.addEventListener('click', async () => {
+      const id = document.getElementById('cef-id').value;
+      if (!id) return;
+      if (!confirm('Ștergi acest eveniment?')) return;
+      const { error } = await supabaseClient.from('calendar_events').delete().eq('id', id);
+      if (error) { console.error('Ștergerea a eșuat:', error); alert('Ștergerea a eșuat.'); return; }
+      await loadCalendarEvents();
+      setSheetOpen('calendarEventFormSheet', false);
+    });
   }
 
   // Sticky-notes to-do list (vlasbogdan@ only) — same browser-storage
