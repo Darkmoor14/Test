@@ -350,6 +350,13 @@
      (before the icon row existed here), which also silently took the
      "+" button and search out with it. */
   html.report-focused-view .admin-tabs{display:none;}
+  /* With .admin-tabs (the text tab strip) hidden for her at every
+     width, not just below 900px like admin.html's own mobile-only
+     version of this same fix, .admin-tabs-row's only visible content
+     is the icon row right below — it would otherwise sit flush
+     against the header's divider line, looking cramped/touching it,
+     on desktop too. */
+  html.report-focused-view .admin-tabs-row{margin-top:16px;}
   html:not(.report-focused-view) #panel-home{display:none!important;}
   html:not(.report-focused-view) #panel-lps{display:none!important;}
   .dash.home-active .dash-head{border-bottom:none;padding-bottom:16px;}
@@ -1177,6 +1184,12 @@
   .ticket-body{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;font-size:14px;color:var(--ink-700);margin-bottom:16px;}
   .ticket-body .full{grid-column:1/-1;}
   .ticket-body .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;color:var(--ink-400);letter-spacing:0.04em;display:block;margin-bottom:2px;}
+  /* Three columns instead of two once there's enough room, matching
+     admin.html — fewer wrapped rows per card across a long list means
+     noticeably less scrolling on desktop. */
+  @media(min-width:901px){
+    .ticket-body{grid-template-columns:repeat(3, 1fr);}
+  }
   .ticket-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding-top:14px;border-top:1px solid var(--line);}
   /* Salvează/Dezarhivează live in their own row below the other
      controls (see the HTML — a separate div, not a flex item inside
