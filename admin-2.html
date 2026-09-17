@@ -500,20 +500,21 @@
   .home-mini-cal-day:hover{background:var(--copper-050);}
   .home-mini-cal-day.outside{color:var(--ink-300);}
   .home-mini-cal-day.today{background:var(--copper-500);color:#fff;font-weight:600;}
-  .home-mini-cal-day.has-events::after{
-    content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);
-    width:4px;height:4px;border-radius:50%;background:var(--copper-500);
+  .home-mini-cal-day-dots{
+    position:absolute;bottom:2px;left:50%;transform:translateX(-50%);
+    display:flex;gap:2px;
   }
-  .home-mini-cal-day.today.has-events::after{background:#fff;}
-  .home-cal-upcoming{
+  .home-mini-cal-day-dot{width:3.5px;height:3.5px;border-radius:50%;background:var(--copper-500);flex-shrink:0;}
+  .home-mini-cal-day.today .home-mini-cal-day-dot{background:#fff;}
+  .home-cal-today{
     margin-top:14px;padding-top:14px;border-top:1px solid var(--line);
-    text-align:left;font-size:12px;color:var(--ink-600);cursor:pointer;
+    text-align:left;font-size:12px;color:var(--ink-600);
   }
-  .home-cal-upcoming .k{
+  .home-cal-today > .k{
     display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;
-    letter-spacing:0.04em;color:var(--ink-400);margin-bottom:3px;
+    letter-spacing:0.04em;color:var(--ink-400);margin-bottom:8px;
   }
-  .home-cal-upcoming .home-cal-upcoming-title{font-weight:600;color:var(--ink-900);}
+  .home-cal-today .calendar-day-events{margin-top:0;max-height:260px;overflow-y:auto;}
   .home-cal-add-btn{width:100%;justify-content:center;margin-top:14px;}
   .calendar-day-events{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
   .calendar-day-event{
@@ -521,6 +522,7 @@
     padding:12px;border:1px solid var(--line-strong);border-radius:6px;cursor:pointer;
   }
   .calendar-day-event:hover{border-color:var(--copper-500);}
+  .calendar-day-event.happening-now{border-color:var(--copper-500);background:var(--copper-050);}
   .calendar-day-event-time{font-family:var(--mono);font-size:11.5px;color:var(--ink-400);white-space:nowrap;}
   .calendar-day-event-title{font-weight:600;color:var(--ink-900);margin-bottom:2px;}
   .calendar-day-event-meta{font-size:12px;color:var(--ink-600);}
@@ -531,6 +533,23 @@
   }
   .cef-actions{display:flex;gap:10px;}
   .cef-actions #cefSaveBtn{flex:1;}
+  /* Ora început/sfârșit default to a quick 15-min-increment select (or
+     a relative-duration select for the end time) — the native
+     type="time" picker's scroll-wheel UI is the "annoying" part this
+     replaces for the common case. The clock button swaps in that same
+     native input, hidden the rest of the time, for anyone who needs a
+     time that isn't on the grid. */
+  .cef-time-row{display:flex;align-items:center;gap:6px;}
+  .cef-time-row select,
+  .cef-time-row .cef-time-precise{flex:1;min-width:0;}
+  .cef-time-edit-btn{
+    flex-shrink:0;width:34px;height:34px;border-radius:6px;
+    border:1px solid var(--line-strong);background:var(--paper-000);
+    cursor:pointer;font-size:14px;line-height:1;padding:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .cef-time-edit-btn:hover{border-color:var(--copper-500);}
+  .cef-time-edit-btn.active{border-color:var(--copper-500);background:var(--copper-050);color:var(--copper-600);}
   /* ===== Stare sistem — live health checks run from the browser
      itself (DB round-trip, auth session, an Edge Functions ping, the
      calendar-reminder cron job's recent runs, push subscription
@@ -1805,7 +1824,10 @@
             <div class="home-mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
             <div class="home-mini-cal-grid" id="homeMiniCalGrid"></div>
           </div>
-          <div class="home-cal-upcoming" id="homeCalUpcoming" hidden></div>
+          <div class="home-cal-today">
+            <span class="k">Astăzi</span>
+            <div class="calendar-day-events" id="homeCalTodayList"></div>
+          </div>
           <button type="button" class="btn home-cal-add-btn" id="homeCalAddBtn">+ Eveniment</button>
         </div>
         <div class="home-start-main">
@@ -2546,7 +2568,7 @@
     <input type="hidden" id="cef-id">
     <div class="ctrl-field">
       <label>Titlu</label>
-      <input type="text" id="cef-title" placeholder="ex: Întâlnire șantier">
+      <input type="text" id="cef-title" placeholder="ex: Întâlnire șantier" autocomplete="off">
     </div>
     <label class="cef-allday-field">
       <input type="checkbox" id="cef-allday"> Toată ziua
@@ -2557,21 +2579,26 @@
         <input type="date" id="cef-date">
       </div>
       <div class="ctrl-field" id="cef-start-time-field">
-        <label for="cef-start-time">Ora început</label>
-        <input type="time" id="cef-start-time">
+        <label for="cef-start-time-select">Ora început</label>
+        <div class="cef-time-row">
+          <select id="cef-start-time-select"></select>
+          <button type="button" class="cef-time-edit-btn" id="cef-start-time-toggle" title="Editează o oră exactă" aria-label="Editează o oră exactă">🕐</button>
+          <input type="time" id="cef-start-time" class="cef-time-precise" hidden>
+        </div>
       </div>
       <div class="ctrl-field" id="cef-end-time-field">
-        <label for="cef-end-time">Ora sfârșit (opțional)</label>
-        <input type="time" id="cef-end-time">
+        <label for="cef-end-duration-select">Ora sfârșit</label>
+        <div class="cef-time-row">
+          <select id="cef-end-duration-select">
+            <option value="30">30 minute</option>
+            <option value="60">1 oră</option>
+            <option value="90">1,5 ore</option>
+            <option value="120">2 ore</option>
+          </select>
+          <button type="button" class="cef-time-edit-btn" id="cef-end-time-toggle" title="Editează o oră exactă" aria-label="Editează o oră exactă">🕐</button>
+          <input type="time" id="cef-end-time" class="cef-time-precise" hidden>
+        </div>
       </div>
-    </div>
-    <div class="ctrl-field">
-      <label for="cef-location">Locație (opțional)</label>
-      <input type="text" id="cef-location" placeholder="ex: Str. Gh. Doja nr. 4">
-    </div>
-    <div class="ctrl-field">
-      <label for="cef-description">Descriere (opțional)</label>
-      <input type="text" id="cef-description" placeholder="Detalii">
     </div>
     <div class="ctrl-field">
       <label for="cef-reminder">Memento</label>
@@ -2583,6 +2610,14 @@
         <option value="60">Cu 1 oră înainte</option>
         <option value="1440">Cu 1 zi înainte</option>
       </select>
+    </div>
+    <div class="ctrl-field">
+      <label for="cef-location">Locație (opțional)</label>
+      <input type="text" id="cef-location" placeholder="ex: Str. Gh. Doja nr. 4" autocomplete="off">
+    </div>
+    <div class="ctrl-field">
+      <label for="cef-description">Descriere (opțional)</label>
+      <input type="text" id="cef-description" placeholder="Detalii" autocomplete="off">
     </div>
     <div class="sheet-actions cef-actions">
       <button type="button" class="btn" id="cefDeleteBtn" style="display:none;">Șterge</button>
@@ -4363,7 +4398,7 @@
     }
     calendarEvents = data || [];
     renderHomeMiniCal();
-    renderCalendarUpcoming();
+    renderHomeCalToday();
     if (selectedCalendarDate) renderCalendarDayEvents();
   }
 
@@ -4715,8 +4750,13 @@
     }
     for (let d = 1; d <= daysInMonth; d++) {
       const thisKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const hasEvents = eventsOnDate(thisKey).length > 0;
-      html += `<button type="button" class="home-mini-cal-day${thisKey === todayKey ? ' today' : ''}${hasEvents ? ' has-events' : ''}" data-date="${thisKey}">${d}</button>`;
+      const dayEventCount = eventsOnDate(thisKey).length;
+      // Capped at 4 dots — a 5th+ event on the same day would just
+      // overflow the tiny cell rather than convey anything more.
+      const dotsHtml = dayEventCount > 0
+        ? `<span class="home-mini-cal-day-dots">${'<span class="home-mini-cal-day-dot"></span>'.repeat(Math.min(dayEventCount, 4))}</span>`
+        : '';
+      html += `<button type="button" class="home-mini-cal-day${thisKey === todayKey ? ' today' : ''}${dayEventCount > 0 ? ' has-events' : ''}" data-date="${thisKey}">${d}${dotsHtml}</button>`;
     }
     const trailing = (7 - ((startOffset + daysInMonth) % 7)) % 7;
     for (let i = 1; i <= trailing; i++) {
@@ -4794,7 +4834,7 @@
       if (calendarViewYear === now.getFullYear() && calendarViewMonth === now.getMonth()) {
         renderHomeMiniCal();
       }
-      renderCalendarUpcoming();
+      renderHomeCalToday();
     }
     checkCalendarReminders(now);
   }
@@ -4821,41 +4861,64 @@
     });
   }
 
-  // "Următor" — the single soonest upcoming event, shown right under
-  // the mini-calendar so the next commitment is visible at a glance
-  // without opening anything.
-  function renderCalendarUpcoming(){
-    const wrap = document.getElementById('homeCalUpcoming');
+  function pad2(n){ return String(n).padStart(2, '0'); }
+
+  // An event with no explicit end_time still counts as "happening
+  // now" for a 10-minute grace period past its start, rather than
+  // instantly losing that state the moment the clock ticks past —
+  // otherwise a quick glance right after something started would
+  // make it look like it never happened.
+  const EVENT_ACTIVE_GRACE_MS = 10 * 60 * 1000;
+  function isEventHappeningNow(e, now){
+    if (!e.start_time) return false;
+    const start = new Date(e.start_time);
+    const end = e.end_time ? new Date(e.end_time) : new Date(start.getTime() + EVENT_ACTIVE_GRACE_MS);
+    return now >= start && now <= end;
+  }
+
+  // Shared card markup for an event, used both by the always-visible
+  // "Astăzi" list under the mini-calendar and the day-detail sheet —
+  // title, location, and description (not just the title), so seeing
+  // an event anywhere shows what it's actually about.
+  function buildCalendarEventCardHtml(e, now){
+    const start = new Date(e.start_time);
+    const timeLabel = e.all_day ? 'Toată ziua' : pad2(start.getHours()) + ':' + pad2(start.getMinutes());
+    const activeClass = isEventHappeningNow(e, now || new Date()) ? ' happening-now' : '';
+    return `
+      <div class="calendar-day-event${activeClass}" data-event-id="${e.id}">
+        <div>
+          <div class="calendar-day-event-title">${escapeHtml(e.title)}</div>
+          ${e.location ? `<div class="calendar-day-event-meta">📍 ${escapeHtml(e.location)}</div>` : ''}
+          ${e.description ? `<div class="calendar-day-event-meta">${escapeHtml(e.description)}</div>` : ''}
+        </div>
+        <span class="calendar-day-event-time">${escapeHtml(timeLabel)}</span>
+      </div>
+    `;
+  }
+  function wireCalendarEventCardClicks(container){
+    container.querySelectorAll('.calendar-day-event').forEach(el => {
+      el.addEventListener('click', () => {
+        const ev = calendarEvents.find(e => String(e.id) === el.dataset.eventId);
+        if (ev) openCalendarEventForm(ev, dateKey(new Date(ev.start_time)));
+      });
+    });
+  }
+
+  // "Astăzi" — every one of today's events, shown right under the
+  // mini-calendar so the day's whole schedule is visible at a glance
+  // without opening anything, not just the single next one.
+  function renderHomeCalToday(){
+    const wrap = document.getElementById('homeCalTodayList');
     if (!wrap) return;
     const now = new Date();
-    const next = calendarEvents
-      .filter(e => e.start_time && new Date(e.end_time || e.start_time) >= now)
-      .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))[0];
-    if (!next) {
-      wrap.hidden = true;
-      wrap.innerHTML = '';
+    const todayEvents = eventsOnDate(dateKey(now));
+    if (todayEvents.length === 0) {
+      wrap.innerHTML = '<div class="calendar-day-events-empty">Nicio programare azi.</div>';
       return;
     }
-    wrap.hidden = false;
-    const start = new Date(next.start_time);
-    const diffMs = start - now;
-    const diffMin = Math.round(diffMs / 60000);
-    let countdown;
-    if (diffMin <= 0) countdown = 'acum';
-    else if (diffMin < 60) countdown = `în ${diffMin} min`;
-    else if (diffMin < 1440) countdown = `în ${Math.round(diffMin / 60)} h`;
-    else countdown = `în ${Math.round(diffMin / 1440)} zile`;
-    const timeLabel = next.all_day
-      ? fmtDateOnly(next.start_time)
-      : `${fmtDateOnly(next.start_time)}, ${pad2(start.getHours())}:${pad2(start.getMinutes())}`;
-    wrap.innerHTML = `
-      <span class="k">Următor · ${escapeHtml(countdown)}</span>
-      <div class="home-cal-upcoming-title">${escapeHtml(next.title)}</div>
-      <div>${escapeHtml(timeLabel)}${next.location ? ' · ' + escapeHtml(next.location) : ''}</div>
-    `;
-    wrap.onclick = () => openCalendarDay(dateKey(start));
+    wrap.innerHTML = todayEvents.map(e => buildCalendarEventCardHtml(e, now)).join('');
+    wireCalendarEventCardClicks(wrap);
   }
-  function pad2(n){ return String(n).padStart(2, '0'); }
 
   const homeCalAddBtn = document.getElementById('homeCalAddBtn');
   if (homeCalAddBtn) {
@@ -4880,32 +4943,76 @@
       list.innerHTML = '<div class="calendar-day-events-empty">Nicio programare în această zi.</div>';
       return;
     }
-    list.innerHTML = events.map(e => {
-      const start = new Date(e.start_time);
-      const timeLabel = e.all_day ? 'Toată ziua' : pad2(start.getHours()) + ':' + pad2(start.getMinutes());
-      return `
-        <div class="calendar-day-event" data-event-id="${e.id}">
-          <div>
-            <div class="calendar-day-event-title">${escapeHtml(e.title)}</div>
-            ${e.location ? `<div class="calendar-day-event-meta">📍 ${escapeHtml(e.location)}</div>` : ''}
-            ${e.description ? `<div class="calendar-day-event-meta">${escapeHtml(e.description)}</div>` : ''}
-          </div>
-          <span class="calendar-day-event-time">${escapeHtml(timeLabel)}</span>
-        </div>
-      `;
-    }).join('');
-    list.querySelectorAll('.calendar-day-event').forEach(el => {
-      el.addEventListener('click', () => {
-        const ev = calendarEvents.find(e => String(e.id) === el.dataset.eventId);
-        if (ev) openCalendarEventForm(ev, selectedCalendarDate);
-      });
-    });
+    const now = new Date();
+    list.innerHTML = events.map(e => buildCalendarEventCardHtml(e, now)).join('');
+    wireCalendarEventCardClicks(list);
   }
 
   const calendarDayAddBtn = document.getElementById('calendarDayAddBtn');
   if (calendarDayAddBtn) {
     calendarDayAddBtn.addEventListener('click', () => openCalendarEventForm(null, selectedCalendarDate));
   }
+
+  // Ora început defaults to a 15-minute-increment <select> — the
+  // native type="time" scroll-wheel picker is what this replaces for
+  // the common case. Populated once; the options never change.
+  function populateCefStartTimeSelect(){
+    const select = document.getElementById('cef-start-time-select');
+    if (!select) return;
+    let html = '';
+    for (let h = 0; h < 24; h++) {
+      for (let m = 0; m < 60; m += 15) {
+        const val = pad2(h) + ':' + pad2(m);
+        html += `<option value="${val}">${val}</option>`;
+      }
+    }
+    select.innerHTML = html;
+  }
+  populateCefStartTimeSelect();
+
+  // which: 'start' | 'end'. precise=true shows the native time input
+  // (exact entry); precise=false shows the quick-pick select.
+  function setCefTimeMode(which, precise){
+    const selectEl = document.getElementById(which === 'start' ? 'cef-start-time-select' : 'cef-end-duration-select');
+    const preciseEl = document.getElementById(which === 'start' ? 'cef-start-time' : 'cef-end-time');
+    const toggleBtn = document.getElementById(which === 'start' ? 'cef-start-time-toggle' : 'cef-end-time-toggle');
+    selectEl.hidden = precise;
+    preciseEl.hidden = !precise;
+    if (toggleBtn) toggleBtn.classList.toggle('active', precise);
+  }
+  // Effective current value ('HH:MM') for whichever mode is active.
+  function getCefStartValue(){
+    const precise = document.getElementById('cef-start-time');
+    return !precise.hidden ? (precise.value || null) : document.getElementById('cef-start-time-select').value;
+  }
+  function getCefEndValue(dateVal, startVal){
+    const precise = document.getElementById('cef-end-time');
+    if (!precise.hidden) return precise.value || null;
+    const duration = document.getElementById('cef-end-duration-select').value;
+    if (!dateVal || !startVal || !duration) return null;
+    const endDt = new Date(new Date(`${dateVal}T${startVal}`).getTime() + Number(duration) * 60000);
+    return pad2(endDt.getHours()) + ':' + pad2(endDt.getMinutes());
+  }
+
+  const cefStartTimeToggle = document.getElementById('cef-start-time-toggle');
+  if (cefStartTimeToggle) cefStartTimeToggle.addEventListener('click', () => {
+    const precise = document.getElementById('cef-start-time');
+    const willBePrecise = precise.hidden;
+    if (willBePrecise && !precise.value) {
+      precise.value = document.getElementById('cef-start-time-select').value;
+    }
+    setCefTimeMode('start', willBePrecise);
+  });
+  const cefEndTimeToggle = document.getElementById('cef-end-time-toggle');
+  if (cefEndTimeToggle) cefEndTimeToggle.addEventListener('click', () => {
+    const precise = document.getElementById('cef-end-time');
+    const willBePrecise = precise.hidden;
+    if (willBePrecise && !precise.value) {
+      const dateVal = document.getElementById('cef-date').value;
+      precise.value = getCefEndValue(dateVal, getCefStartValue()) || '';
+    }
+    setCefTimeMode('end', willBePrecise);
+  });
 
   function openCalendarEventForm(event, defaultDateKey){
     document.getElementById('calendarEventFormSheetTitle').textContent = event ? 'Editează eveniment' : 'Eveniment nou';
@@ -4915,8 +5022,57 @@
     const start = event ? new Date(event.start_time) : null;
     const end = event && event.end_time ? new Date(event.end_time) : null;
     document.getElementById('cef-date').value = event ? dateKey(start) : (defaultDateKey || dateKey(new Date()));
-    document.getElementById('cef-start-time').value = start ? `${pad2(start.getHours())}:${pad2(start.getMinutes())}` : '';
-    document.getElementById('cef-end-time').value = end ? `${pad2(end.getHours())}:${pad2(end.getMinutes())}` : '';
+
+    // Ora început: snap to the 15-min select when the existing value
+    // lands exactly on the grid (or there's no event yet — default to
+    // the next 15-min slot from now); otherwise fall back to the
+    // precise input, pre-filled, so an odd existing time is never
+    // silently rounded off when just reopening the form to edit
+    // something else.
+    const startPrecise = document.getElementById('cef-start-time');
+    const startSelect = document.getElementById('cef-start-time-select');
+    if (start) {
+      const hhmm = pad2(start.getHours()) + ':' + pad2(start.getMinutes());
+      startPrecise.value = hhmm;
+      if (start.getMinutes() % 15 === 0) {
+        startSelect.value = hhmm;
+        setCefTimeMode('start', false);
+      } else {
+        setCefTimeMode('start', true);
+      }
+    } else {
+      const now = new Date();
+      let mins = Math.ceil(now.getMinutes() / 15) * 15;
+      let hrs = now.getHours();
+      if (mins === 60) { mins = 0; hrs = (hrs + 1) % 24; }
+      const hhmm = pad2(hrs) + ':' + pad2(mins);
+      startSelect.value = hhmm;
+      startPrecise.value = hhmm;
+      setCefTimeMode('start', false);
+    }
+
+    // Ora sfârșit: a relative duration (30 min by default) rather than
+    // an absolute time — snapped to one of the offered durations when
+    // the existing end_time matches one exactly, otherwise the
+    // precise input.
+    const endPrecise = document.getElementById('cef-end-time');
+    const endDurationSelect = document.getElementById('cef-end-duration-select');
+    if (end && start) {
+      const hhmm = pad2(end.getHours()) + ':' + pad2(end.getMinutes());
+      endPrecise.value = hhmm;
+      const diffMin = Math.round((end - start) / 60000);
+      if ([30, 60, 90, 120].includes(diffMin)) {
+        endDurationSelect.value = String(diffMin);
+        setCefTimeMode('end', false);
+      } else {
+        setCefTimeMode('end', true);
+      }
+    } else {
+      endDurationSelect.value = '30';
+      endPrecise.value = '';
+      setCefTimeMode('end', false);
+    }
+
     document.getElementById('cef-location').value = event ? (event.location || '') : '';
     document.getElementById('cef-description').value = event ? (event.description || '') : '';
     document.getElementById('cef-reminder').value = event && event.reminder_minutes_before ? String(event.reminder_minutes_before) : '';
@@ -4942,8 +5098,8 @@
       const allDay = document.getElementById('cef-allday').checked;
       const dateVal = document.getElementById('cef-date').value;
       if (!dateVal) { document.getElementById('cef-date').focus(); return; }
-      const startTimeVal = document.getElementById('cef-start-time').value || '00:00';
-      const endTimeVal = document.getElementById('cef-end-time').value;
+      const startTimeVal = getCefStartValue() || '00:00';
+      const endTimeVal = getCefEndValue(dateVal, startTimeVal);
       const startISO = new Date(`${dateVal}T${allDay ? '00:00' : startTimeVal}`).toISOString();
       const endISO = (!allDay && endTimeVal) ? new Date(`${dateVal}T${endTimeVal}`).toISOString() : null;
       const reminderVal = document.getElementById('cef-reminder').value;
