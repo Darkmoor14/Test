@@ -606,7 +606,15 @@
      (see docsToc's click handler) instead of real #anchors, which
      would collide with the tab-restore system's own use of the URL
      hash. */
-  .docs-intro{color:var(--ink-600);font-size:14px;max-width:760px;margin:0 0 22px;}
+  .docs-intro{color:var(--ink-600);font-size:14px;max-width:760px;margin:0 0 18px;}
+  .docs-search-wrap{position:relative;max-width:420px;margin-bottom:18px;}
+  .docs-search-wrap svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--ink-400);pointer-events:none;}
+  .docs-search-wrap input{
+    width:100%;box-sizing:border-box;padding:10px 14px 10px 38px;
+    border:1px solid var(--line-strong);border-radius:6px;font:inherit;font-size:13.5px;color:var(--ink-900);
+  }
+  .docs-search-wrap input:focus{outline:none;border-color:var(--copper-500);}
+  .docs-search-empty{padding:24px 0;text-align:center;color:var(--ink-400);font-size:13px;}
   .docs-toc{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:28px;max-width:980px;}
   @media(max-width:900px){.docs-toc{grid-template-columns:1fr 1fr;}}
   @media(max-width:600px){.docs-toc{grid-template-columns:1fr;}}
@@ -629,6 +637,13 @@
     margin-top:12px;padding:12px 14px;background:var(--copper-050);
     border:1px solid var(--copper-300);border-radius:6px;font-size:13px;color:var(--ink-700);
   }
+  .docs-pdf-box{
+    margin-top:14px;padding:16px 18px;background:var(--paper-050);border:1px solid var(--line-strong);
+    border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  }
+  .docs-pdf-box strong{display:block;font-size:13.5px;color:var(--ink-900);margin-bottom:4px;}
+  .docs-pdf-box p{margin:0;font-size:13px;color:var(--ink-600);max-width:480px;}
+  .docs-pdf-download{flex-shrink:0;white-space:nowrap;}
   /* The day-detail/add-event sheets are small by nature (one card's
      worth of content) — full-width edge-to-edge bottom sheets, the
      same pattern used for the much bigger Filtre/report sheets, look
@@ -2245,6 +2260,12 @@
       </div>
       <p class="docs-intro">Acest ghid explică, pas cu pas, fiecare pagină și fiecare buton din platformă — de la pagina de start până la Planificarea LPS. Apasă pe o secțiune din lista de mai jos ca să sari direct la ea, sau citește tot, de sus în jos.</p>
 
+      <div class="docs-search-wrap">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="docsSearchBox" placeholder="Caută în documentație… (ex: raport, calendar, LPS)">
+      </div>
+      <p class="docs-search-empty" id="docsSearchEmpty" style="display:none;">Niciun rezultat pentru această căutare.</p>
+
       <div class="docs-toc" id="docsToc">
         <button type="button" class="docs-toc-link" data-docs-target="docs-nav">Cum navighezi</button>
         <button type="button" class="docs-toc-link" data-docs-target="docs-home">Pagina de start (Acasă)</button>
@@ -2427,6 +2448,16 @@
             <li><strong>Huddle și învățare</strong> — notează pe scurt discuția de coordonare din teren (data, facilitatorul, blocajele și deciziile) și urmărește PPC-ul (procentul de promisiuni respectate) și motivele de variație de la o săptămână la alta.</li>
           </ul>
           <div class="docs-callout">Regula de calitate a unei promisiuni: are un responsabil clar și o zi exactă; intră în plan doar dacă e definită, în secvența corectă și chiar pregătită; o promisiune ratată primește un motiv de variație, nu dispare pur și simplu din listă.</div>
+          <div class="docs-pdf-box">
+            <div>
+              <strong>Vrei detalii complete, cu exemple pentru fiecare câmp?</strong>
+              <p>Ghidul PDF de mai jos explică pe larg ce scrii în fiecare câmp, ce înseamnă fiecare buton din toate cele șapte tab-uri, și un exemplu de ritm săptămânal recomandat pentru folosirea LPS.</p>
+            </div>
+            <a class="btn btn-primary docs-pdf-download" href="docs/ghid-utilizare-lps.pdf" download="Ghid utilizare LPS.pdf">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Descarcă ghidul PDF
+            </a>
+          </div>
         </section>
 
         <section class="docs-section" id="docs-status">
@@ -4201,6 +4232,32 @@
       if (!btn) return;
       const target = document.getElementById(btn.dataset.docsTarget);
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  // Documentație's search box — filters sections (and their matching
+  // TOC entries) by plain text content, diacritic-insensitive via the
+  // same normalizeRomanianText() the repair-sheet street-matching
+  // already uses, so "sesizari" finds "sesizări" too.
+  const docsSearchBox = document.getElementById('docsSearchBox');
+  if (docsSearchBox) {
+    docsSearchBox.addEventListener('input', () => {
+      const query = normalizeRomanianText(docsSearchBox.value.trim());
+      let anyVisible = false;
+      document.querySelectorAll('.docs-section').forEach(sec => {
+        const matches = !query || normalizeRomanianText(sec.textContent).includes(query);
+        sec.style.display = matches ? '' : 'none';
+        if (matches) anyVisible = true;
+      });
+      document.querySelectorAll('.docs-toc-link').forEach(link => {
+        const target = document.getElementById(link.dataset.docsTarget);
+        const targetVisible = !target || target.style.display !== 'none';
+        link.style.display = (query && !targetVisible) ? 'none' : '';
+      });
+      const emptyEl = document.getElementById('docsSearchEmpty');
+      if (emptyEl) emptyEl.style.display = (query && !anyVisible) ? '' : 'none';
+      const tocEl = document.getElementById('docsToc');
+      if (tocEl) tocEl.style.display = (query && !anyVisible) ? 'none' : '';
     });
   }
 
