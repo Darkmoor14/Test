@@ -379,15 +379,27 @@
   .report-nav-link:hover{background:var(--paper-050);color:var(--copper-600);}
   .vlas-only{display:none!important;}
   html.report-focused-view .vlas-only{display:block!important;}
-  /* Sesizări funcționale/accidente switcher — only needed by
-     vlasbogdan@: everyone else already has both as separate tabs in
-     .admin-tabs-row, but that whole row is hidden in report-focused-
-     view (see its own display:none rule), leaving no way to reach
-     "accidente" once already on the shared Sesizări panel other than
-     this. Overrides .vlas-only's own display:block!important above
-     with a more specific selector, since this needs flex, not block. */
-  .ticket-type-switch{display:flex;gap:8px;margin-bottom:16px;}
-  html.report-focused-view .ticket-type-switch.vlas-only{display:flex!important;}
+  /* Sesizări switcher (Prezentare generală/Funcționale/Accidente) —
+     only needed by vlasbogdan@: everyone else already has all three
+     as separate tabs in .admin-tabs, but that's hidden in
+     report-focused-view, leaving no way to reach them from the shared
+     Sesizări panel other than this. Only shown on the three panels it
+     actually covers (Prezentare generală/Sesizări), same
+     active-toggle pattern as .overview-quick-filters right below —
+     showing it on Proiecte/Avarii/Stare sistem too would be
+     misleading, since clicking any of its three buttons from there
+     wouldn't land on whichever of those she was actually looking at.
+     The .active requirement (added on top of .vlas-only's own
+     display:block!important above) needs a more specific selector,
+     since this needs flex, not block, and only when actually active. */
+  .ticket-type-switch{display:none;gap:8px;}
+  /* .vlas-only's own display:block!important above (an !important
+     rule) beats a plain display:none regardless of specificity, so
+     hiding this needs its own !important too, at higher specificity
+     than .vlas-only's bare version — then .active layers an even
+     more specific override on top of that. */
+  html.report-focused-view .ticket-type-switch.vlas-only{display:none!important;}
+  html.report-focused-view .ticket-type-switch.vlas-only.active{display:flex!important;}
   .ticket-type-switch-btn{
     padding:8px 14px;border:1px solid var(--line-strong);border-radius:20px;
     background:var(--paper-000);font:inherit;font-size:13px;color:var(--ink-700);cursor:pointer;
@@ -423,7 +435,26 @@
      a bigger sticky-notes to-do list on the right. Source order
      (clock, main, todo) matches left-to-right on desktop; the mobile
      breakpoint below reorders so the nav buttons come first there. */
-  .home-start-grid{display:grid;grid-template-columns:260px minmax(0,1fr) 380px;gap:22px;align-items:start;}
+  /* The home page (clock+calendar/nav/to-do) breaks out of .wrap's
+     1180px cap — everywhere else on this page is a list or a form,
+     where a narrower reading width actually helps, but this is three
+     side-by-side cards with real content of their own, and capping
+     them the same way just left a lot of empty margin on anything
+     wider than a laptop screen while the clock/calendar and to-do
+     list stayed squeezed into comparatively narrow side columns.
+     Width:100vw + the negative-margin trick pulls it out to the true
+     viewport edges regardless of .wrap's own centering/padding; its
+     own max-width below then re-centers it with a still-generous but
+     not absurd cap on very wide monitors, and re-applies .wrap's own
+     32px side padding so the edges still line up with the header
+     above it. */
+  #panel-home{
+    width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);
+  }
+  #panel-home .home-start-grid{
+    max-width:1680px;margin:0 auto;padding:0 32px;box-sizing:border-box;
+  }
+  .home-start-grid{display:grid;grid-template-columns:300px minmax(0,1fr) 440px;gap:26px;align-items:start;}
   .home-nav-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:22px;}
   .home-nav-btn{
     display:flex;flex-direction:column;align-items:flex-start;gap:10px;
@@ -1038,6 +1069,12 @@
   }
   .excel-preview-table td{padding:9px 12px;border-top:1px solid var(--line);color:var(--ink-700);}
   .excel-preview-table tr.row-error td{background:var(--signal-red-bg);color:var(--signal-red);}
+  .excel-preview-table tr.row-warning td{background:var(--signal-orange-bg);color:var(--signal-orange);}
+  .repair-note-input{
+    width:100%;min-height:52px;font:inherit;font-size:13px;padding:6px 8px;
+    border:1px solid var(--line-strong);border-radius:3px;resize:vertical;color:var(--ink-900);
+  }
+  .repair-note-input:disabled{background:var(--paper-050);color:var(--ink-600);}
   .chips{display:flex;gap:8px;flex-wrap:wrap;}
   .chip{
     font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:20px;
@@ -1590,6 +1627,10 @@
         </div>
         <span class="overview-quick-filters-count" id="resultCountMobile">0 tichete</span>
         <span class="filter-status-note" id="ticketsFilterNoteMobile"></span>
+        <input type="file" id="repairSheetInput" accept=".xlsx,.xls,.csv" style="display:none;">
+        <button type="button" class="overview-icon-btn repair-import-btn excel-icon-btn" id="importRepairSheetBtn" title="Încarcă fișă remedieri" aria-label="Încarcă fișă remedieri">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
       </div>
       <div class="overview-year-bar admin-tabs-row-year" data-year-panel="projects">
         <label for="projectYearFilterSelectDesktop">An:</label>
@@ -1709,6 +1750,13 @@
               </span>
               <span class="home-nav-label">Proiecte LPS</span>
               <span class="home-nav-sub">Planificare Last Planner</span>
+            </button>
+            <button type="button" class="home-nav-btn" id="homeNavStatus">
+              <span class="home-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              </span>
+              <span class="home-nav-label">Stare sistem</span>
+              <span class="home-nav-sub">Conexiune, funcții, memento-uri</span>
             </button>
           </div>
         </div>
@@ -1921,6 +1969,14 @@
         <div class="pf-actions">
           <button class="btn" id="tfCancelBtn" type="button">Anulează</button>
           <button class="btn btn-primary" id="tfSaveBtn" type="button">Salvează sesizarea</button>
+        </div>
+      </div>
+      <div class="excel-preview" id="repairSheetPreview" style="display:none;">
+        <p class="excel-preview-note" id="repairSheetPreviewNote">Previzualizare — verificați rândurile înainte de a confirma.</p>
+        <div class="excel-preview-table-wrap"><table class="excel-preview-table" id="repairSheetPreviewTable"></table></div>
+        <div class="pf-actions">
+          <button class="btn" id="repairSheetCancelBtn" type="button">Anulează</button>
+          <button class="btn btn-primary" id="repairSheetConfirmBtn" type="button">Confirmă și salvează</button>
         </div>
       </div>
       <div class="active-narrow-filter" id="activeNarrowFilter">
@@ -3821,6 +3877,8 @@
   if (homeNavBacklogBtn) homeNavBacklogBtn.addEventListener('click', () => setHomeTabFilter('backlog'));
   const homeNavLpsBtn = document.getElementById('homeNavLps');
   if (homeNavLpsBtn) homeNavLpsBtn.addEventListener('click', () => setHomeTabFilter('lps'));
+  const homeNavStatusBtn = document.getElementById('homeNavStatus');
+  if (homeNavStatusBtn) homeNavStatusBtn.addEventListener('click', () => openAdminTab('status'));
 
   // Live clock + fully interactive calendar on the start page — click
   // a day to see/add/edit/delete events for it. Events persist in
@@ -4932,6 +4990,7 @@
     projects: 'Proiecte publice',
     backlog: 'Avarii rețele',
     lps: 'Proiecte LPS',
+    status: 'Stare sistem',
   };
   function renderBreadcrumb(tabKey){
     const bc = document.getElementById('navBreadcrumb');
@@ -4990,6 +5049,9 @@
     });
     document.querySelectorAll('.overview-quick-filters').forEach(qf => {
       qf.classList.toggle('active', qf.dataset.yearPanel === panelId);
+    });
+    document.querySelectorAll('.ticket-type-switch').forEach(sw => {
+      sw.classList.toggle('active', panelId === 'overview' || panelId === 'tickets');
     });
     // Locks which type shows on the shared Sesizări panel — whichever
     // of the two tabs was actually clicked. skipRender: true since
@@ -7226,6 +7288,276 @@
     excelPreviewWrap.style.display = 'none';
     loadProjects();
   });
+
+  /* ============================================================
+     REPAIR SHEET IMPORT ("Fișă remedieri IP") — ported 1:1 from
+     admin.html (comments trimmed, same reasoning applies here — see
+     that file for the full history). Lets vlasbogdan@ upload the
+     field team's Excel repair sheet and auto-fill "Ce s-a făcut" for
+     every ticket it lists, instead of typing each one in by hand.
+     Deliberately only ever writes resolution_note — never touches
+     status/resolved_by/resolved_on.
+     ============================================================ */
+  const REPAIR_FIELD_GROUPS = [
+    { title: 'Verificări', fields: [
+        { header: 'scos/repus sub tensiune', label: 'Scos/Repus sub tensiune' },
+        { header: 'verificat corp de iluminat', label: 'Verificat corp de iluminat' },
+      ]},
+    { title: 'Demontat/Montat', fields: [
+        { header: 'glob olimp', label: 'Glob OLIMP' },
+        { header: 'corp iluminat', label: 'Corp iluminat' },
+        { header: 'capac stalp', label: 'Capac stâlp' },
+        { header: 'stalp', label: 'Stâlp' },
+        { header: 'burlan protectie', label: 'Burlan protecție' },
+      ]},
+    { title: 'Inlocuit', fields: [
+        { header: 'skd 578', label: 'SKD 578' },
+        { header: 'bec (w)', label: 'Bec' },
+        { header: 'driver (w)', label: 'Driver' },
+        { header: 'bobine (w)', label: 'Bobine' },
+      ]},
+    { title: 'Legături', fields: [
+        { header: 'refacute/verificate', label: 'Refăcute/Verificate' },
+        { header: 'sigurante schimbate', label: 'Siguranțe schimbate' },
+        { header: 'cleme', label: 'Cleme' },
+      ]},
+    { title: 'Diverse', fields: [
+        { header: 'contact slab refacut', label: 'Contact slab refăcut' },
+        { header: 'defrisari', label: 'Defrișări' },
+        { header: 'curatat corp iluminat', label: 'Curățat corp iluminat' },
+      ]},
+  ];
+  const REPAIR_TICKET_HEADERS = ['nr. tichet', 'nr tichet', 'numar tichet', 'nr tichet.', 'ticket'];
+  const REPAIR_STREET_HEADERS = ['strada si nr.', 'strada si nr', 'strada', 'adresa'];
+  const REPAIR_OBS_HEADERS = ['observatii', 'observatii.', 'obs'];
+
+  let pendingRepairRows = [];
+  let repairSkippedUnchangedCount = 0;
+
+  function isRepairCellChecked(value){
+    return String(value == null ? '' : value).trim() !== '';
+  }
+
+  function extractTicketDigits(value){
+    const match = String(value == null ? '' : value).match(/\d+/);
+    return match ? String(parseInt(match[0], 10)) : '';
+  }
+
+  const STREET_MATCH_STOPWORDS = new Set(['str', 'strada', 'nr', 'numarul', 'bd', 'bdul', 'aleea', 'sos', 'soseaua']);
+  function streetWordSet(value){
+    return new Set(
+      normalizeRomanianText(value)
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()
+        .split(' ')
+        .filter(w => w && !STREET_MATCH_STOPWORDS.has(w))
+    );
+  }
+  function streetWordsMatch(needleWords, hayWords){
+    if (needleWords.size === 0) return false;
+    for (const w of needleWords) {
+      if (!hayWords.has(w)) return false;
+    }
+    return true;
+  }
+
+  function findTicketByStreet(street){
+    const needleWords = streetWordSet(street);
+    const candidates = allTickets.filter(t =>
+      !t.archived && !t.resolution_note && t.address &&
+      streetWordsMatch(needleWords, streetWordSet(t.address))
+    );
+    if (candidates.length === 1) return { matched: candidates[0], matchedBy: 'street' };
+    if (candidates.length > 1) return { matched: null, matchedBy: 'ambiguous' };
+    return { matched: null, matchedBy: null };
+  }
+
+  function buildRepairNote(rowArr, colIndex, observatiiText){
+    const parts = [];
+    REPAIR_FIELD_GROUPS.forEach(group => {
+      const doneLabels = group.fields
+        .filter(f => colIndex[f.header] != null && isRepairCellChecked(rowArr[colIndex[f.header]]))
+        .map(f => f.label);
+      if (doneLabels.length) parts.push(`${group.title}: ${doneLabels.join(', ')}.`);
+    });
+    if (observatiiText) parts.push(`Observații: ${observatiiText}.`);
+    return parts.join(' ');
+  }
+
+  const repairSheetInput = document.getElementById('repairSheetInput');
+  const importRepairSheetBtn = document.getElementById('importRepairSheetBtn');
+  if (importRepairSheetBtn && repairSheetInput) {
+    importRepairSheetBtn.addEventListener('click', () => repairSheetInput.click());
+
+    repairSheetInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const workbook = XLSX.read(evt.target.result, { type: 'array' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+          const headerRowIdx = rows.findIndex(r =>
+            r.some(cell => REPAIR_TICKET_HEADERS.includes(normalizeHeader(cell)))
+          );
+          if (headerRowIdx === -1) {
+            alert('Nu am găsit coloana "Nr. Tichet" în acest fișier. Verificați că este fișa de remedieri corectă.');
+            repairSheetInput.value = '';
+            return;
+          }
+          const headers = rows[headerRowIdx].map(normalizeHeader);
+          const colIndex = {};
+          headers.forEach((h, i) => { if (h && colIndex[h] == null) colIndex[h] = i; });
+
+          const ticketCol = headers.findIndex(h => REPAIR_TICKET_HEADERS.includes(h));
+          const streetCol = headers.findIndex(h => REPAIR_STREET_HEADERS.includes(h));
+          const obsCol = headers.findIndex(h => REPAIR_OBS_HEADERS.includes(h));
+
+          repairSkippedUnchangedCount = 0;
+          pendingRepairRows = rows.slice(headerRowIdx + 1)
+            .map((r, mapIdx) => {
+              if ((ticketCol >= 0 && REPAIR_TICKET_HEADERS.includes(normalizeHeader(r[ticketCol])))
+                || (streetCol >= 0 && REPAIR_STREET_HEADERS.includes(normalizeHeader(r[streetCol])))) {
+                return null;
+              }
+              const sourceRow = headerRowIdx + mapIdx + 2;
+              const ticketDigits = ticketCol >= 0 ? extractTicketDigits(r[ticketCol]) : '';
+              const street = streetCol >= 0 ? String(r[streetCol] || '').trim() : '';
+              if (!ticketDigits && !street) return null;
+              const obsText = obsCol >= 0 ? String(r[obsCol] || '').trim() : '';
+              const note = buildRepairNote(r, colIndex, obsText);
+
+              let matched = null;
+              let matchedBy = null;
+              if (ticketDigits) {
+                matched = allTickets.find(t => !t.archived && extractTicketDigits(t.ticket_number) === ticketDigits) || null;
+                if (matched) matchedBy = 'number';
+              }
+              if (!matched && street) {
+                const byStreet = findTicketByStreet(street);
+                matched = byStreet.matched;
+                matchedBy = byStreet.matchedBy;
+              }
+
+              if (matched && matched.resolution_note && matched.resolution_note.trim() === note.trim()) {
+                repairSkippedUnchangedCount++;
+                return null;
+              }
+
+              const notTerminatYet = !!matched && matched.status !== 'Terminat';
+
+              return { sourceRow, ticketNumber: ticketDigits, street, note, matched, matchedBy, notTerminatYet, include: !!matched && !notTerminatYet };
+            })
+            .filter(Boolean);
+
+          if (pendingRepairRows.length === 0) {
+            alert(repairSkippedUnchangedCount > 0
+              ? 'Toate rândurile din fișier corespund unor rapoarte deja existente și identice — nimic de actualizat.'
+              : 'Niciun rând din fișier are un număr de tichet sau o stradă completată.');
+            repairSheetInput.value = '';
+            return;
+          }
+          renderRepairPreview();
+        } catch (err) {
+          console.error(err);
+          alert('Nu am putut citi acest fișier. Verificați că este un .xlsx, .xls sau .csv valid.');
+        }
+        repairSheetInput.value = '';
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function renderRepairPreview(){
+    const wrap = document.getElementById('repairSheetPreview');
+    const table = document.getElementById('repairSheetPreviewTable');
+    const foundCount = pendingRepairRows.filter(r => r.matched).length;
+    table.innerHTML = `
+      <thead><tr>
+        <th></th><th>Rând Excel</th><th>Nr. tichet</th><th>Stradă (fișă)</th><th>Sesizare găsită</th><th>Ce s-a făcut</th>
+      </tr></thead>
+      <tbody>
+        ${pendingRepairRows.map((r, i) => `
+          <tr class="${!r.matched ? 'row-error' : r.notTerminatYet ? 'row-warning' : ''}">
+            <td><input type="checkbox" class="repair-row-include" data-idx="${i}" ${r.include ? 'checked' : ''} ${r.matched ? '' : 'disabled'}></td>
+            <td>${r.sourceRow}</td>
+            <td>${r.ticketNumber ? escapeHtml(r.ticketNumber) : '<em>(după stradă)</em>'}</td>
+            <td>${escapeHtml(r.street) || '—'}</td>
+            <td>${r.matched
+              ? escapeHtml(r.matched.address || '—')
+                + (r.matchedBy === 'street' ? ' <strong>(găsit după adresă — verificați)</strong>' : '')
+                + (r.matched.resolution_note ? ' <strong>(are deja raport — va fi înlocuit)</strong>' : '')
+                + (r.notTerminatYet ? ' <strong>(tichetul e încă Activ — nu va fi marcat automat ca soluționat, bifați doar dacă e intenționat)</strong>' : '')
+              : r.matchedBy === 'ambiguous'
+                ? 'Mai multe sesizări active pe această stradă — completați numărul de tichet'
+                : 'Nu a fost găsită nicio sesizare'}</td>
+            <td><textarea class="repair-note-input" data-idx="${i}" rows="2" ${r.matched ? '' : 'disabled'}>${escapeHtml(r.note)}</textarea></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    `;
+    document.getElementById('repairSheetPreviewNote').textContent =
+      `Previzualizare — ${foundCount} din ${pendingRepairRows.length} rânduri au fost asociate unei sesizări existente. Debifați un rând pentru a-l exclude, sau editați textul înainte de a confirma.`
+      + (repairSkippedUnchangedCount > 0
+        ? ` (${repairSkippedUnchangedCount} rând${repairSkippedUnchangedCount === 1 ? '' : 'uri'} cu raport identic celui existent ${repairSkippedUnchangedCount === 1 ? 'a fost omis' : 'au fost omise'} automat.)`
+        : '');
+    table.querySelectorAll('.repair-row-include').forEach(cb => {
+      cb.addEventListener('change', () => {
+        pendingRepairRows[Number(cb.dataset.idx)].include = cb.checked;
+      });
+    });
+    table.querySelectorAll('.repair-note-input').forEach(ta => {
+      ta.addEventListener('input', () => {
+        pendingRepairRows[Number(ta.dataset.idx)].note = ta.value;
+      });
+    });
+    wrap.style.display = 'block';
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  const repairSheetCancelBtn = document.getElementById('repairSheetCancelBtn');
+  if (repairSheetCancelBtn) {
+    repairSheetCancelBtn.addEventListener('click', () => {
+      pendingRepairRows = [];
+      document.getElementById('repairSheetPreview').style.display = 'none';
+    });
+  }
+
+  const repairSheetConfirmBtn = document.getElementById('repairSheetConfirmBtn');
+  if (repairSheetConfirmBtn) {
+    repairSheetConfirmBtn.addEventListener('click', async () => {
+      const toSave = pendingRepairRows.filter(r => r.matched && r.include);
+      if (toSave.length === 0) {
+        alert('Niciun rând selectat de salvat.');
+        return;
+      }
+      repairSheetConfirmBtn.disabled = true;
+      repairSheetConfirmBtn.textContent = 'Se salvează...';
+      const results = await Promise.allSettled(toSave.map(r =>
+        supabaseClient
+          .from('tickets')
+          .update({ resolution_note: r.note.trim() || null })
+          .eq('id', r.matched.id)
+      ));
+      let failCount = 0;
+      results.forEach(result => {
+        const error = result.status === 'fulfilled' ? result.value.error : result.reason;
+        if (error) { console.error(error); failCount++; }
+      });
+      repairSheetConfirmBtn.disabled = false;
+      repairSheetConfirmBtn.textContent = 'Confirmă și salvează';
+      pendingRepairRows = [];
+      document.getElementById('repairSheetPreview').style.display = 'none';
+      if (failCount > 0) {
+        alert(`${failCount} rapoarte nu au putut fi salvate. Încercați din nou.`);
+      } else {
+        showToast(`${toSave.length} rapoarte au fost salvate.`);
+      }
+      loadTickets();
+    });
+  }
 
   checkSession();
 </script>
