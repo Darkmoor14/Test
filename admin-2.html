@@ -1427,14 +1427,15 @@
     .ticket-body{grid-template-columns:repeat(3, 1fr);}
   }
   .ticket-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding-top:14px;border-top:1px solid var(--line);}
-  /* Salvează/Dezarhivează live in their own row below the other
-     controls (see the HTML — a separate div, not a flex item inside
-     .ticket-controls), so they never compete for space with the
-     other fields at all — a real block-level element on its own line
-     naturally, not a flex-basis trick that ends up stretching it full
-     width just to force the wrap. */
-  .ticket-save-row{margin-top:14px;}
-  .ticket-save-row .btn{width:auto;}
+  /* Salvează/Dezarhivează is a flex item right alongside the other
+     fields, not split onto its own row below — Stare/Soluționat
+     de/Ce s-a făcut/Data soluționării are shrunk specifically so
+     there's room for it to fit on the same line instead of always
+     wrapping down. flex-wrap above still lets it drop to its own row
+     when the card genuinely isn't wide enough (mobile in particular —
+     see the @media(max-width:600px) block, where every .ctrl-field
+     already forces itself to 100% width, which pushes the button
+     below them the same way regardless). */
   /* "Soluționat" is longer than "Terminat" was — the base
      .ctrl-field min-width:160px left this dropdown too narrow to
      show the full word once the row got crowded with its neighbors,
@@ -1444,9 +1445,10 @@
      order — same specificity pattern as the fields below it, after
      getting bitten by the equal-specificity version of this exact
      mistake more than once already in this file. */
-  .ctrl-field.stare-field{min-width:190px;}
-  .ctrl-field.resolved-date-field{min-width:150px;}
-  .ctrl-field.resnote-field{min-width:320px;}
+  .ctrl-field.stare-field{min-width:115px;}
+  .ctrl-field.resolver-field{min-width:130px;}
+  .ctrl-field.resolved-date-field{min-width:135px;}
+  .ctrl-field.resnote-field{min-width:220px;}
 
   @media(max-width:600px){
     /* .ticket-controls uses flex, not grid (unlike .pf-grid/
@@ -2612,6 +2614,37 @@
     </div>
     <div class="sheet-actions">
       <button type="button" class="btn" id="reportTypeCancelBtn">Anulează</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="repairScopeSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="repairScopeSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h3 id="repairScopeSheetTitle">Fișă remedieri</h3>
+        <p>Alege ce sesizări active vrei să incluzi.</p>
+      </div>
+      <button type="button" class="sheet-close" id="repairScopeCloseBtn" aria-label="Închide">×</button>
+    </div>
+    <div class="report-type-list">
+      <button type="button" class="report-type-option" id="repairScopeAllBtn">
+        <strong>Toate sesizările active</strong>
+        <span>Defecte și accidente, împreună.</span>
+      </button>
+      <button type="button" class="report-type-option" id="repairScopeFuncBtn">
+        <strong>Doar defecte</strong>
+        <span>Sesizări funcționale active, fără accidente.</span>
+      </button>
+      <button type="button" class="report-type-option" id="repairScopeAccidentBtn">
+        <strong>Doar accidente</strong>
+        <span>Doar accidentele active.</span>
+      </button>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="repairScopeCancelBtn">Anulează</button>
     </div>
   </div>
 </div>
@@ -5992,7 +6025,7 @@
             <label>Data trimiterii</label>
             <input type="date" class="f-submitted-date" value="${submittedDateParts.date}" ${isArchived ? 'disabled' : ''}>
           </div>
-          <div class="ctrl-field full">
+          <div class="ctrl-field">
             <label>Descriere</label>
             <input type="text" class="f-description" value="${safeDescription}" ${isArchived ? 'disabled' : ''}>
           </div>
@@ -6001,7 +6034,7 @@
           <div><span class="k">Telefon</span>${safePhone || '—'}</div>
           <div><span class="k">Email</span>${safeEmail || '—'}</div>
           <div><span class="k">Adresă</span>${safeAddress || '—'}</div>
-          ${t.description ? `<div class="full"><span class="k">Descriere</span>${safeDescription}</div>` : ''}
+          ${t.description ? `<div><span class="k">Descriere</span>${safeDescription}</div>` : ''}
           `}
           ${t.resolved_on ? `<div class="full"><span class="k">Soluționat</span>${fmtDate(t.resolved_on)}</div>` : ''}
         </div>
@@ -6011,7 +6044,7 @@
             <label>Stare</label>
             <div class="resnote-readonly">Soluționat</div>
           </div>
-          <div class="ctrl-field">
+          <div class="ctrl-field resolver-field">
             <label>Soluționat de</label>
             <div class="resnote-readonly">${safeResolvedBy || '—'}</div>
           </div>
@@ -6031,7 +6064,7 @@
               <option value="Terminat" ${t.status === 'Terminat' ? 'selected' : ''}>Soluționat</option>
             </select>
           </div>
-          <div class="ctrl-field">
+          <div class="ctrl-field resolver-field">
             <label>Soluționat de</label>
             <input type="text" class="f-resolver" placeholder="Nume angajat" value="${safeResolvedBy}" ${isArchived ? 'disabled' : ''}>
           </div>
@@ -6046,8 +6079,6 @@
             <input type="date" class="f-resolved-date" value="${resolvedDateParts.date}" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>
           </div>
           `}
-        </div>
-        <div class="ticket-save-row">
           ${isArchived
             ? `<button class="btn f-restore">Dezarhivează</button>`
             : (isDone && !isEditing)
@@ -6551,6 +6582,52 @@
     });
   }
 
+  // Second step of the "Fișă remedieri" export — which active
+  // tickets to include (all of them, only defecte, or only
+  // accidente). Same open/resolve(null on cancel) pattern as
+  // openReportTypeSelection just above.
+  function openRepairScopeSelection(){
+    const sheet = document.getElementById('repairScopeSheet');
+    const allBtn = document.getElementById('repairScopeAllBtn');
+    const funcBtn = document.getElementById('repairScopeFuncBtn');
+    const accidentBtn = document.getElementById('repairScopeAccidentBtn');
+    const cancelBtn = document.getElementById('repairScopeCancelBtn');
+    const closeBtn = document.getElementById('repairScopeCloseBtn');
+    const backdrop = sheet ? sheet.querySelector('.mobile-sheet-backdrop') : null;
+    if (!sheet || !allBtn || !funcBtn || !accidentBtn || !cancelBtn || !closeBtn || !backdrop) {
+      return Promise.resolve('all');
+    }
+    setSheetOpen('repairScopeSheet', true);
+    return new Promise(resolve => {
+      let settled = false;
+      const cleanup = (result) => {
+        if (settled) return;
+        settled = true;
+        setSheetOpen('repairScopeSheet', false);
+        allBtn.removeEventListener('click', handleAll);
+        funcBtn.removeEventListener('click', handleFunc);
+        accidentBtn.removeEventListener('click', handleAccident);
+        cancelBtn.removeEventListener('click', handleCancel);
+        closeBtn.removeEventListener('click', handleCancel);
+        backdrop.removeEventListener('click', handleCancel);
+        document.removeEventListener('keydown', handleKeydown);
+        resolve(result);
+      };
+      const handleAll = () => cleanup('all');
+      const handleFunc = () => cleanup('functional');
+      const handleAccident = () => cleanup('accident');
+      const handleCancel = () => cleanup(null);
+      const handleKeydown = (event) => { if (event.key === 'Escape') handleCancel(); };
+      allBtn.addEventListener('click', handleAll);
+      funcBtn.addEventListener('click', handleFunc);
+      accidentBtn.addEventListener('click', handleAccident);
+      cancelBtn.addEventListener('click', handleCancel);
+      closeBtn.addEventListener('click', handleCancel);
+      backdrop.addEventListener('click', handleCancel);
+      document.addEventListener('keydown', handleKeydown);
+    });
+  }
+
   // Insta Grup's own logo, embedded as base64 so the generated file
   // doesn't depend on fetching a separate image asset — extracted
   // once from the real "Fișă remedierilor IP" template's own
@@ -6989,7 +7066,12 @@
     return workbook.xlsx.writeBuffer();
   }
 
-  async function exportRepairTemplate(btn){
+  const REPAIR_SCOPE_LABELS = {
+    all: 'sesizări active',
+    functional: 'defecte active',
+    accident: 'accidente active',
+  };
+  async function exportRepairTemplate(btn, scope){
     // Icon-only button now (see the toolbar cleanup) — disabling it
     // is feedback enough (.btn:disabled dims it) without swapping
     // its content for loading text and permanently losing the icon
@@ -7004,10 +7086,16 @@
       // (those show up under "Așteaptă raport" instead, not here).
       // The repair-sheet *import* matching further down searches
       // both sets, since an uploaded sheet can cover either kind —
-      // only this download is scoped to active-only.
-      const activeTickets = allTickets.filter(t => t.status !== 'Terminat' && !t.archived);
+      // only this download is scoped to active-only. Further narrowed
+      // to just defecte or just accidente when that's what was picked
+      // in openRepairScopeSelection.
+      const activeTickets = allTickets.filter(t => t.status !== 'Terminat' && !t.archived
+        && (scope === 'functional' ? t.type !== 'Anunt accident'
+          : scope === 'accident' ? t.type === 'Anunt accident'
+          : true));
+      const scopeLabel = REPAIR_SCOPE_LABELS[scope] || REPAIR_SCOPE_LABELS.all;
       if (activeTickets.length === 0) {
-        alert('Nu există sesizări active în acest moment.');
+        alert(`Nu există ${scopeLabel} în acest moment.`);
         return;
       }
       await loadExcelJs();
@@ -7017,12 +7105,13 @@
       const a = document.createElement('a');
       a.href = url;
       const today = new Date().toISOString().slice(0, 10);
-      a.download = `fisa-remedieri-active-${today}.xlsx`;
+      const scopeSuffix = scope === 'functional' ? '-defecte' : scope === 'accident' ? '-accidente' : '';
+      a.download = `fisa-remedieri-active${scopeSuffix}-${today}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast(`Fișa de remedieri a fost descărcată (${activeTickets.length} sesizări active).`);
+      showToast(`Fișa de remedieri a fost descărcată (${activeTickets.length} ${scopeLabel}).`);
     } catch (err) {
       console.error('Repair template export failed:', err);
       alert('Eroare la generarea fișei: ' + (err && err.message ? err.message : 'motiv necunoscut'));
@@ -7217,7 +7306,9 @@
       const reportType = await openReportTypeSelection();
       if (reportType === null) return;
       if (reportType === 'repair') {
-        await exportRepairTemplate(btn);
+        const scope = await openRepairScopeSelection();
+        if (scope === null) return;
+        await exportRepairTemplate(btn, scope);
         return;
       }
       btn.textContent = 'Se generează...';
