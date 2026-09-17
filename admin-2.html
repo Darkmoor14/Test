@@ -552,8 +552,6 @@
   .cef-time-edit-btn.active{border-color:var(--copper-500);background:var(--copper-050);color:var(--copper-600);}
   .cef-recur-btn{width:100%;justify-content:flex-start;}
   .cef-recur-btn.active{border-color:var(--copper-500);color:var(--copper-600);background:var(--copper-050);}
-  .cef-attendees-row{display:flex;flex-wrap:wrap;gap:12px 16px;padding:4px 0;}
-  .cef-attendee-check{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-700);cursor:pointer;}
   .recur-section{margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--line);}
   .recur-section:last-of-type{border-bottom:none;}
   .recur-section-label{
@@ -576,26 +574,6 @@
   }
   .recur-radio-row input[type="number"]{width:56px;}
   #recurStartDate{padding:7px 9px;border:1px solid var(--line-strong);border-radius:4px;font:inherit;font-size:12.5px;width:100%;box-sizing:border-box;}
-  .schedule-assist-busy{display:flex;flex-direction:column;gap:12px;margin-bottom:18px;}
-  .schedule-assist-person{padding:12px;border:1px solid var(--line-strong);border-radius:6px;}
-  .schedule-assist-person-name{font-weight:600;font-size:13px;color:var(--ink-900);margin-bottom:6px;}
-  .schedule-assist-busy-block{
-    display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink-600);
-    padding:4px 0;
-  }
-  .schedule-assist-busy-empty{font-size:12px;color:var(--ink-400);}
-  .schedule-assist-free-label{
-    font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.04em;
-    color:var(--ink-400);margin-bottom:8px;
-  }
-  .schedule-assist-free{display:flex;flex-direction:column;gap:8px;}
-  .schedule-assist-free-slot{
-    display:flex;justify-content:space-between;align-items:center;gap:10px;
-    padding:10px 12px;border:1px solid var(--line-strong);border-radius:6px;
-    cursor:pointer;font-size:13px;color:var(--ink-900);
-  }
-  .schedule-assist-free-slot:hover{border-color:var(--copper-500);background:var(--copper-050);}
-  .schedule-assist-free-empty{color:var(--ink-400);font-size:13px;padding:8px 0;}
   /* ===== Stare sistem — live health checks run from the browser
      itself (DB round-trip, auth session, an Edge Functions ping, the
      calendar-reminder cron job's recent runs, push subscription
@@ -2661,13 +2639,6 @@
       </select>
     </div>
     <div class="ctrl-field">
-      <label>Participanți</label>
-      <div class="cef-attendees-row" id="cefAttendeesRow"></div>
-    </div>
-    <div class="ctrl-field">
-      <button type="button" class="btn" id="cefScheduleAssistBtn">🔍 Asistent programare</button>
-    </div>
-    <div class="ctrl-field">
       <label for="cef-location">Locație (opțional)</label>
       <input type="text" id="cef-location" placeholder="ex: Str. Gh. Doja nr. 4" autocomplete="off">
     </div>
@@ -2728,23 +2699,6 @@
       <button type="button" class="btn" id="recurCancelBtn">Anulează</button>
       <button type="button" class="btn btn-primary" id="recurOkBtn">OK</button>
     </div>
-  </div>
-</div>
-
-<div class="mobile-sheet" id="scheduleAssistSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="scheduleAssistSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="scheduleAssistSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div>
-        <h3 id="scheduleAssistSheetTitle">Asistent programare</h3>
-        <p>Vezi orele ocupate ale participanților selectați și alege un interval liber pentru ziua din formular.</p>
-      </div>
-      <button type="button" class="sheet-close" id="scheduleAssistCloseBtn" aria-label="Închide">×</button>
-    </div>
-    <div class="schedule-assist-busy" id="scheduleAssistBusy"></div>
-    <div class="schedule-assist-free-label">Intervale libere (08:00–18:00)</div>
-    <div class="schedule-assist-free" id="scheduleAssistFree"></div>
   </div>
 </div>
 
@@ -5334,129 +5288,6 @@
     setSheetOpen('recurrenceSheet', false);
   });
 
-  /* ============================================================
-     PARTICIPANȚI / SCHEDULING ASSISTANT — a small fixed list (the
-     two real staff accounts this app has) rather than a general
-     invite system. "Asistent programare" reads straight off the
-     shared calendar_events table (already visible to any
-     authenticated account — see calendar_events' own RLS policy),
-     so no separate sharing step is needed to check someone else's
-     busy times, only that events tag who they're for.
-     ============================================================ */
-  const KNOWN_ATTENDEES = [
-    { email: 'vlasbogdan@insta-grup.ro', label: 'Bogdan Vlas' },
-    { email: 'admin@insta-grup.ro', label: 'Admin' },
-  ];
-  function populateCefAttendees(){
-    const wrap = document.getElementById('cefAttendeesRow');
-    if (!wrap) return;
-    wrap.innerHTML = KNOWN_ATTENDEES.map(a => `
-      <label class="cef-attendee-check">
-        <input type="checkbox" value="${escapeHtml(a.email)}" class="cef-attendee-checkbox">
-        ${escapeHtml(a.label)}
-      </label>
-    `).join('');
-  }
-  populateCefAttendees();
-  function getCefAttendees(){
-    return [...document.querySelectorAll('.cef-attendee-checkbox:checked')].map(cb => cb.value);
-  }
-  function setCefAttendees(emails){
-    document.querySelectorAll('.cef-attendee-checkbox').forEach(cb => {
-      cb.checked = emails.includes(cb.value);
-    });
-  }
-
-  function computeBusyIntervals(dateKeyStr, attendeeEmails, excludeEventId){
-    return eventsOnDate(dateKeyStr)
-      .filter(e => String(e.id) !== String(excludeEventId))
-      .filter(e => !e.all_day && Array.isArray(e.attendees) && e.attendees.some(a => attendeeEmails.includes(a)))
-      .map(e => {
-        const start = new Date(e.start_time);
-        const end = e.end_time ? new Date(e.end_time) : new Date(start.getTime() + EVENT_ACTIVE_GRACE_MS);
-        return { start, end, title: e.title, attendees: e.attendees };
-      })
-      .sort((a, b) => a.start - b.start);
-  }
-  const SCHEDULE_ASSIST_DAY_START_HOUR = 8;
-  const SCHEDULE_ASSIST_DAY_END_HOUR = 18;
-  const SCHEDULE_ASSIST_MIN_SLOT_MIN = 30;
-  function computeFreeSlots(dateKeyStr, attendeeEmails, excludeEventId){
-    const [y, m, d] = dateKeyStr.split('-').map(Number);
-    const dayStart = new Date(y, m - 1, d, SCHEDULE_ASSIST_DAY_START_HOUR, 0);
-    const dayEnd = new Date(y, m - 1, d, SCHEDULE_ASSIST_DAY_END_HOUR, 0);
-    const busy = computeBusyIntervals(dateKeyStr, attendeeEmails, excludeEventId);
-    const merged = [];
-    busy.forEach(b => {
-      const last = merged[merged.length - 1];
-      if (last && b.start <= last.end) {
-        if (b.end > last.end) last.end = new Date(b.end);
-      } else {
-        merged.push({ start: new Date(b.start), end: new Date(b.end) });
-      }
-    });
-    const free = [];
-    let cursor = dayStart;
-    merged.forEach(b => {
-      if (b.start > cursor) free.push({ start: new Date(cursor), end: new Date(Math.min(b.start, dayEnd)) });
-      if (b.end > cursor) cursor = new Date(b.end);
-    });
-    if (cursor < dayEnd) free.push({ start: new Date(cursor), end: dayEnd });
-    return free.filter(f => (f.end - f.start) >= SCHEDULE_ASSIST_MIN_SLOT_MIN * 60000);
-  }
-
-  function renderScheduleAssist(){
-    const dateVal = document.getElementById('cef-date').value || dateKey(new Date());
-    const attendeeEmails = getCefAttendees();
-    const excludeId = document.getElementById('cef-id').value;
-    const busyWrap = document.getElementById('scheduleAssistBusy');
-    const freeWrap = document.getElementById('scheduleAssistFree');
-    if (attendeeEmails.length === 0) {
-      busyWrap.innerHTML = '<div class="schedule-assist-busy-empty">Bifează cel puțin un participant ca să vezi orele ocupate.</div>';
-      freeWrap.innerHTML = '';
-      return;
-    }
-    busyWrap.innerHTML = KNOWN_ATTENDEES.filter(a => attendeeEmails.includes(a.email)).map(a => {
-      const busy = computeBusyIntervals(dateVal, [a.email], excludeId);
-      const items = busy.length
-        ? busy.map(b => `<div class="schedule-assist-busy-block"><span>${escapeHtml(b.title)}</span><span>${pad2(b.start.getHours())}:${pad2(b.start.getMinutes())}–${pad2(b.end.getHours())}:${pad2(b.end.getMinutes())}</span></div>`).join('')
-        : '<div class="schedule-assist-busy-empty">Nicio programare în acea zi.</div>';
-      return `<div class="schedule-assist-person"><div class="schedule-assist-person-name">${escapeHtml(a.label)}</div>${items}</div>`;
-    }).join('');
-    const freeSlots = computeFreeSlots(dateVal, attendeeEmails, excludeId);
-    freeWrap.innerHTML = freeSlots.length
-      ? freeSlots.map((f, i) => `
-          <div class="schedule-assist-free-slot" data-start="${pad2(f.start.getHours())}:${pad2(f.start.getMinutes())}">
-            <span>${pad2(f.start.getHours())}:${pad2(f.start.getMinutes())} – ${pad2(f.end.getHours())}:${pad2(f.end.getMinutes())}</span>
-            <span>Alege</span>
-          </div>
-        `).join('')
-      : '<div class="schedule-assist-free-empty">Niciun interval liber comun în acea zi.</div>';
-    freeWrap.querySelectorAll('.schedule-assist-free-slot').forEach(el => {
-      el.addEventListener('click', () => {
-        const hhmm = el.dataset.start;
-        // Snap to the nearest 15-min grid option for the quick-pick
-        // select (free slots can start on any 30-min boundary here,
-        // which already lands on the grid — this just guards against
-        // that assumption changing later).
-        const [hh, mm] = hhmm.split(':').map(Number);
-        const snappedMin = Math.round(mm / 15) * 15;
-        const snapped = pad2(hh + Math.floor(snappedMin / 60)) + ':' + pad2(snappedMin % 60);
-        document.getElementById('cef-start-time-select').value = snapped;
-        document.getElementById('cef-start-time').value = snapped;
-        setCefTimeMode('start', false);
-        setSheetOpen('scheduleAssistSheet', false);
-      });
-    });
-  }
-  const cefScheduleAssistBtn = document.getElementById('cefScheduleAssistBtn');
-  if (cefScheduleAssistBtn) cefScheduleAssistBtn.addEventListener('click', () => {
-    renderScheduleAssist();
-    setSheetOpen('scheduleAssistSheet', true);
-  });
-  const scheduleAssistCloseBtn = document.getElementById('scheduleAssistCloseBtn');
-  if (scheduleAssistCloseBtn) scheduleAssistCloseBtn.addEventListener('click', () => setSheetOpen('scheduleAssistSheet', false));
-
   function openCalendarEventForm(event, defaultDateKey){
     document.getElementById('calendarEventFormSheetTitle').textContent = event ? 'Editează eveniment' : 'Eveniment nou';
     document.getElementById('cef-id').value = event ? event.id : '';
@@ -5531,11 +5362,6 @@
     } : null;
     updateCefRecurBtn();
 
-    // New events default to the current user as the only attendee
-    // (same as any calendar inviting yourself by default); editing an
-    // existing event restores exactly who was on it.
-    setCefAttendees(event ? (event.attendees || []) : (currentSessionEmail ? [currentSessionEmail] : []));
-
     toggleCefTimeFields();
     setSheetOpen('calendarEventFormSheet', true);
   }
@@ -5571,7 +5397,6 @@
         all_day: allDay,
         reminder_minutes_before: reminderVal ? Number(reminderVal) : null,
         reminder_sent_at: null,
-        attendees: getCefAttendees(),
         recurrence_freq: pendingRecurrence ? pendingRecurrence.recurrence_freq : null,
         recurrence_interval: pendingRecurrence ? pendingRecurrence.recurrence_interval : null,
         recurrence_days_of_week: pendingRecurrence ? pendingRecurrence.recurrence_days_of_week : null,
