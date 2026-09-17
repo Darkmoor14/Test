@@ -359,6 +359,7 @@
   html.report-focused-view .admin-tabs-row{margin-top:16px;}
   html:not(.report-focused-view) #panel-home{display:none!important;}
   html:not(.report-focused-view) #panel-lps{display:none!important;}
+  html:not(.report-focused-view) #panel-docs{display:none!important;}
   .dash.home-active .dash-head{border-bottom:none;padding-bottom:16px;}
   html.report-focused-view header.scrolled .nav-header-tabs{display:none;}
   html.report-focused-view header.scrolled .logo-img{display:block;}
@@ -599,6 +600,35 @@
   .status-history-check{font-size:13px;font-weight:600;color:var(--ink-900);}
   .status-history-message{font-size:12.5px;color:var(--ink-600);margin-top:2px;}
   .status-history-empty{padding:30px 0;text-align:center;color:var(--ink-400);font-size:13px;}
+
+  /* ===== Documentație — a plain in-app help article, not fetched from
+     anywhere external. TOC entries scroll within the panel via JS
+     (see docsToc's click handler) instead of real #anchors, which
+     would collide with the tab-restore system's own use of the URL
+     hash. */
+  .docs-intro{color:var(--ink-600);font-size:14px;max-width:760px;margin:0 0 22px;}
+  .docs-toc{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:28px;max-width:980px;}
+  @media(max-width:900px){.docs-toc{grid-template-columns:1fr 1fr;}}
+  @media(max-width:600px){.docs-toc{grid-template-columns:1fr;}}
+  .docs-toc-link{
+    text-align:left;padding:10px 14px;border:1px solid var(--line-strong);border-radius:6px;
+    background:var(--paper-000);color:var(--ink-700);font:inherit;font-size:13px;cursor:pointer;
+  }
+  .docs-toc-link:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .docs-body{display:flex;flex-direction:column;gap:22px;max-width:860px;}
+  .docs-section{
+    padding:20px 22px;background:var(--paper-000);border:1px solid var(--line-strong);border-radius:9px;
+    scroll-margin-top:20px;
+  }
+  .docs-section h3{margin:0 0 10px;font-size:17px;}
+  .docs-section h4{margin:16px 0 6px;font-size:13.5px;color:var(--ink-700);}
+  .docs-section p{margin:0 0 10px;font-size:13.5px;color:var(--ink-700);line-height:1.55;}
+  .docs-section ul,.docs-section ol{margin:0 0 10px;padding-left:20px;font-size:13.5px;color:var(--ink-700);line-height:1.6;}
+  .docs-section li{margin-bottom:6px;}
+  .docs-callout{
+    margin-top:12px;padding:12px 14px;background:var(--copper-050);
+    border:1px solid var(--copper-300);border-radius:6px;font-size:13px;color:var(--ink-700);
+  }
   /* The day-detail/add-event sheets are small by nature (one card's
      worth of content) — full-width edge-to-edge bottom sheets, the
      same pattern used for the much bigger Filtre/report sheets, look
@@ -1788,6 +1818,12 @@
               </span>
               <span class="home-nav-text"><span class="home-nav-label">Stare sistem</span><span class="home-nav-sub">Conexiune, funcții, memento-uri</span></span>
             </button>
+            <button type="button" class="home-nav-btn" id="homeNavDocs">
+              <span class="home-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+              </span>
+              <span class="home-nav-text"><span class="home-nav-label">Documentație</span><span class="home-nav-sub">Ghid de utilizare a platformei</span></span>
+            </button>
           </div>
         </div>
         <div class="home-todo-card">
@@ -2201,6 +2237,223 @@
         <button type="button" class="btn" id="statusRefreshBtn">Reîmprospătează</button>
       </div>
       <p class="status-note">Memoria/CPU-ul serverului nu pot fi verificate în siguranță din browser (necesită un token de administrare Supabase care nu ar trebui expus aici) — pentru acele metrici, vezi dashboard-ul Supabase direct.</p>
+    </div>
+
+    <div class="admin-panel" id="panel-docs">
+      <div class="internal-projects-head">
+        <div><div class="home-eyebrow">Ghid</div><h2>Documentație</h2></div>
+      </div>
+      <p class="docs-intro">Acest ghid explică, pas cu pas, fiecare pagină și fiecare buton din platformă — de la pagina de start până la Planificarea LPS. Apasă pe o secțiune din lista de mai jos ca să sari direct la ea, sau citește tot, de sus în jos.</p>
+
+      <div class="docs-toc" id="docsToc">
+        <button type="button" class="docs-toc-link" data-docs-target="docs-nav">Cum navighezi</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-home">Pagina de start (Acasă)</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-calendar">Calendarul</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-todo">Notițele</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-overview">Sesizări — Prezentare generală</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-tickets">Sesizări — Funcționale și Accidente</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-report">Cum adaugi un raport</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-projects">Proiecte publice</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-backlog">Avarii rețele</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-lps">Proiecte LPS</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-status">Stare sistem</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-push">Notificări push</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-faq">Întrebări frecvente</button>
+      </div>
+
+      <div class="docs-body">
+
+        <section class="docs-section" id="docs-nav">
+          <h3>Cum navighezi</h3>
+          <p>Platforma este organizată pe pagini: <strong>Acasă</strong>, <strong>Sesizări</strong> (cu trei vederi — Prezentare generală, Funcționale, Accidente), <strong>Proiecte publice</strong>, <strong>Avarii rețele</strong>, <strong>Proiecte LPS</strong>, <strong>Stare sistem</strong> și această pagină, <strong>Documentație</strong>.</p>
+          <ul>
+            <li><strong>⌂ Acasă</strong> (colțul stânga sus, lângă siglă) — te duce oricând înapoi la pagina de start, din orice altă pagină te-ai afla.</li>
+            <li><strong>☰ Meniu</strong> — o listă rapidă cu Acasă, Sesizări active, Proiecte în lucru, Planificare LPS și Avarii deschise, disponibilă din orice pagină, fără să te întorci mai întâi la Acasă.</li>
+            <li><strong>Traseul din stânga</strong> (ex: „Acasă / Sesizări funcționale”) — arată mereu unde te afli. Poți apăsa pe „Acasă” din el ca să te întorci direct.</li>
+            <li>Pe paginile de Sesizări, cele trei butoane de sus — <strong>Prezentare generală / Sesizări funcționale / Sesizări accidente</strong> — comută între cele trei vederi fără să părăsești pagina.</li>
+            <li><strong>Deconectare</strong> (colțul dreapta sus) — închide sesiunea curentă.</li>
+          </ul>
+        </section>
+
+        <section class="docs-section" id="docs-home">
+          <h3>Pagina de start (Acasă)</h3>
+          <p>Este prima pagină pe care o vezi după autentificare și cea la care te întorci mereu cu butonul „⌂ Acasă”. Este împărțită în trei zone.</p>
+          <h4>Ceasul și calendarul (stânga)</h4>
+          <p>Ora și data curentă, plus un calendar lunar cu programările tale. Explicat pe larg mai jos, în secțiunea „Calendarul”.</p>
+          <h4>Butoanele de navigare (mijloc)</h4>
+          <p>Fiecare buton te duce direct la pagina corespunzătoare, deja pregătită pe ce contează de obicei — de exemplu, „Sesizări” te duce direct la sesizările active, nu la toate din istoric:</p>
+          <ul>
+            <li><strong>Sesizări</strong> — Prezentare generală, cu sesizările funcționale și accidentele deja filtrate pe cele active.</li>
+            <li><strong>Proiecte publice</strong> — lista de proiecte, filtrată pe „Active”.</li>
+            <li><strong>Avarii rețele</strong> — lucrările din teren, filtrate pe „Active”.</li>
+            <li><strong>Proiecte LPS</strong> — planificarea Last Planner System.</li>
+            <li><strong>Stare sistem</strong> — verificări live ale conexiunii, funcțiilor și notificărilor.</li>
+            <li><strong>Documentație</strong> — pagina de față.</li>
+          </ul>
+          <h4>Notițele (dreapta)</h4>
+          <p>Spațiul tău personal de notițe tip post-it. Vezi secțiunea „Notițele” de mai jos pentru detalii.</p>
+        </section>
+
+        <section class="docs-section" id="docs-calendar">
+          <h3>Calendarul</h3>
+          <p>Calendarul lunar stă chiar pe pagina de start, deasupra notițelor. Zilele cu un <strong>punct</strong> sub cifră au cel puțin o programare; ziua de azi este evidențiată. Săgețile <strong>‹</strong> / <strong>›</strong> din capul calendarului schimbă luna afișată.</p>
+          <h4>Cum vezi programările unei zile</h4>
+          <p>Apasă pe orice zi din calendar — se deschide o fereastră cu toate programările din acea zi (sau un mesaj că nu există niciuna). De acolo poți apăsa pe o programare existentă ca s-o editezi, sau pe „+ Eveniment nou” ca să adaugi una.</p>
+          <h4>Cum adaugi o întâlnire</h4>
+          <p>Din fereastra unei zile, apasă „+ Eveniment nou” (sau butonul „+ Eveniment” de sub calendarul de pe pagina de start, pentru ziua de azi). Completează:</p>
+          <ul>
+            <li><strong>Titlu</strong> — numele întâlnirii.</li>
+            <li><strong>Toată ziua</strong> — bifează dacă evenimentul nu are o oră exactă (ex: un termen, nu o întâlnire).</li>
+            <li><strong>Data</strong>, <strong>Ora început</strong> și, opțional, <strong>Ora sfârșit</strong>.</li>
+            <li><strong>Locație</strong> (opțional) — ex: adresa șantierului.</li>
+            <li><strong>Descriere</strong> (opțional) — orice detaliu suplimentar.</li>
+            <li><strong>Memento</strong> — cu cât timp înainte vrei să fii anunțat (5 minute, 15 minute, 30 minute, 1 oră, 1 zi, sau deloc).</li>
+          </ul>
+          <p>Apasă „Salvează”. Ziua respectivă va căpăta imediat punctul din calendar.</p>
+          <h4>Cum editezi sau ștergi o întâlnire</h4>
+          <p>Deschide ziua respectivă din calendar și apasă pe programarea dorită — se deschide același formular, deja completat, cu un buton suplimentar „Șterge” jos, în stânga.</p>
+          <h4>Cum funcționează mementourile</h4>
+          <p>Când se apropie ora aleasă la „Memento”, primești o notificare — vizual, pe pagină, chiar dacă doar ai lăsat tab-ul deschis, și ca notificare reală a telefonului/calculatorului dacă ai activat notificările push (vezi secțiunea „Notificări push” mai jos).</p>
+        </section>
+
+        <section class="docs-section" id="docs-todo">
+          <h3>Notițele</h3>
+          <p>În dreapta paginii de start ai un spațiu personal de notițe tip post-it, pentru lucruri de reținut care nu au nevoie de o sesizare sau un proiect formal.</p>
+          <ul>
+            <li><strong>+ Notiță</strong> — adaugă un bilet nou, gol, gata de scris.</li>
+            <li>Scrii direct în bilet — se salvează automat, la scurt timp după ce te oprești din scris.</li>
+            <li><strong>×</strong> (colțul biletului) — șterge acea notiță.</li>
+          </ul>
+          <div class="docs-callout">Notițele se păstrează doar în acest browser, pe acest dispozitiv — nu sunt trimise către server și nu apar dacă te conectezi de pe alt telefon sau calculator.</div>
+        </section>
+
+        <section class="docs-section" id="docs-overview">
+          <h3>Sesizări — Prezentare generală</h3>
+          <p>Arată, într-un singur tabel, toate sesizările — atât cele funcționale (defecte), cât și accidentele — cu numărul sesizării, data, tipul, reclamantul, adresa, starea și timpul de soluționare. Sub tabel ai un grafic cu numărul de sesizări pe an și unul cu timpul mediu de rezolvare.</p>
+          <h4>Cartonașele de sus</h4>
+          <p>„Active”, „Peste 7 zile”, „Defecte”, „Accidente” și „Soluționate” — apasă pe oricare pentru a filtra tabelul instant pe acea categorie.</p>
+          <h4>Iconițele din colțul dreapta sus</h4>
+          <ul>
+            <li><strong>Filtre</strong> (pâlnia) — alege anul, luna sau chiar o zi exactă, plus starea listei (Active / Soluționate / Toate / Așteaptă raport).</li>
+            <li><strong>+</strong> — adaugă o sesizare direct din admin (pentru cazul în care o preiei telefonic, de exemplu).</li>
+            <li><strong>Căutare</strong> (lupa) — caută după nume, adresă sau telefon.</li>
+            <li><strong>Raport Excel</strong> — descarcă un fișier Excel cu sesizările, după ce alegi luna sau lunile dorite.</li>
+          </ul>
+        </section>
+
+        <section class="docs-section" id="docs-tickets">
+          <h3>Sesizări — Funcționale și Accidente</h3>
+          <p>Aceleași sesizări ca la Prezentare generală, dar despărțite pe cele două tipuri și afișate ca fișe individuale, pe care le poți edita. Comuți între ele cu butoanele „Sesizări funcționale” / „Sesizări accidente” de sus.</p>
+          <h4>Iconițele din colțul dreapta sus</h4>
+          <ul>
+            <li><strong>Filtre</strong> — an, lună, zi și starea listei.</li>
+            <li><strong>+</strong> — adaugă o sesizare nouă.</li>
+            <li><strong>Căutare</strong> — caută după adresă, nume, telefon sau număr de sesizare.</li>
+            <li><strong>Încarcă fișă remedieri</strong> (săgeata în sus) — importă fișa Excel de remedieri de la echipa din teren. Explicat în detaliu în secțiunea „Cum adaugi un raport” de mai jos.</li>
+          </ul>
+          <h4>O fișă de sesizare</h4>
+          <ul>
+            <li>Bifează căsuța din stânga unei sesizări (sau a mai multora) ca să apară o bară cu opțiuni: <strong>Editează</strong> (îți dă voie să modifici numele, telefonul, adresa etc. ale sesizării selectate) și <strong>Arhivează selectate</strong>.</li>
+            <li><strong>Stare</strong> — „Activ” sau „Soluționat”. Când o treci pe „Soluționat”, ți se cere confirmarea, iar câmpul „Data soluționării” devine editabil.</li>
+            <li><strong>Soluționat de</strong> — numele angajatului care a rezolvat-o.</li>
+            <li><strong>Ce s-a făcut</strong> — apare doar dacă există deja un raport (vezi mai jos cum se completează).</li>
+            <li><strong>Salvează</strong> — salvează modificările făcute pe acea fișă.</li>
+            <li>O sesizare arhivată arată doar un buton <strong>Dezarhivează</strong>.</li>
+          </ul>
+        </section>
+
+        <section class="docs-section" id="docs-report">
+          <h3>Cum adaugi un raport (rezolvare) la o sesizare</h3>
+          <p>Câmpul „Ce s-a făcut” nu se scrie direct pe fișa sesizării — este completat automat, prin încărcarea fișei Excel de remedieri pe care echipa din teren o folosește deja pe hârtie. Așa se face, pas cu pas:</p>
+          <ol>
+            <li>Pe pagina <strong>Sesizări funcționale</strong> sau <strong>Sesizări accidente</strong>, apasă iconița <strong>„Încarcă fișă remedieri”</strong> (săgeata în sus) din colțul dreapta sus.</li>
+            <li>Alege fișierul Excel (.xlsx, .xls sau .csv). Trebuie să aibă o coloană cu numărul tichetului (<em>„Nr. Tichet”</em>) sau cu strada (<em>„Strada și nr.”</em>) — pe oricare din cele două se face potrivirea cu sesizarea din sistem — plus, opțional, o coloană <em>„Observații”</em> și coloanele bifabile de pe fișa fizică (Verificări, Demontat/Montat, Înlocuit, Legături, Diverse).</li>
+            <li>Se deschide o previzualizare cu toate rândurile găsite. Pentru fiecare rând vezi: dacă a fost găsită o sesizare (după număr sau, dacă lipsește, după stradă), textul „Ce s-a făcut” generat automat din bifele fișei, și o căsuță de bifat ca să incluzi sau nu acel rând.</li>
+            <li>Poți edita direct textul din coloana „Ce s-a făcut” înainte să confirmi, dacă vrei să-l ajustezi. Rândurile fără nicio sesizare găsită, sau cu mai multe sesizări posibile pe aceeași stradă, sunt marcate — pentru acestea din urmă, completează numărul tichetului în fișierul Excel și reîncarcă-l.</li>
+            <li>Apasă <strong>„Confirmă și salvează”</strong>. Raportul se salvează pe fiecare sesizare bifată.</li>
+          </ol>
+          <div class="docs-callout">Importul completează doar câmpul „Ce s-a făcut” — nu schimbă automat starea sesizării în „Soluționat”. Dacă sesizarea e încă „Activă”, treci-o manual pe „Soluționat” din fișa ei (vezi secțiunea de mai sus), altfel rămâne mai departe în „Așteaptă raport”.</div>
+          <div class="docs-callout">Pentru o singură sesizare, nu ai nevoie de fișa fizică întreagă — un Excel cu doar o linie, având numărul tichetului și o coloană „Observații” cu ce s-a făcut, este suficient.</div>
+          <p>O sesizare „Soluționată” fără raport încă apare la filtrul <strong>„Așteaptă raport”</strong> (din Filtre, pe Prezentare generală) — acolo găsești mereu tot ce mai ai de completat.</p>
+        </section>
+
+        <section class="docs-section" id="docs-projects">
+          <h3>Proiecte publice</h3>
+          <p>Lucrările mai mari, vizibile și pe site-ul public, cu progres calculat automat între data de început și cea de finalizare estimată.</p>
+          <h4>Cum adaugi un proiect</h4>
+          <ol>
+            <li>Apasă iconița <strong>+</strong> din colțul dreapta sus.</li>
+            <li>Completează <strong>Tip lucrare / Titlu</strong>, <strong>Adresă</strong>, <strong>Data început</strong>, <strong>Data finalizare estimată</strong> și, opțional, <strong>Note</strong> (vizibile doar aici, niciodată pe site).</li>
+            <li>Apasă <strong>„Salvează proiectul”</strong>.</li>
+          </ol>
+          <h4>Restul iconițelor</h4>
+          <ul>
+            <li><strong>Filtre</strong> — anul și starea (Active / Soluționate / Toate / Arhivate).</li>
+            <li><strong>Căutare</strong> — după titlu sau adresă.</li>
+            <li><strong>Importă din Excel</strong> — adaugă mai multe proiecte deodată, dintr-un fișier Excel.</li>
+          </ul>
+          <p>Fiecare proiect are butoanele <strong>Editează</strong> și <strong>Șterge</strong> (sau <strong>Dezarhivează</strong>, dacă e arhivat). Poți selecta mai multe și le poți arhiva deodată din bara care apare la selectare.</p>
+        </section>
+
+        <section class="docs-section" id="docs-backlog">
+          <h3>Avarii rețele</h3>
+          <p>Lucrările din teren, gen intervenții și reparații, separate de proiectele publice. Funcționează la fel de simplu:</p>
+          <ol>
+            <li>Apasă <strong>+</strong> pentru a adăuga o lucrare nouă.</li>
+            <li>Completează <strong>Tipul lucrării</strong>, <strong>Adresă</strong>, <strong>Nume angajat</strong>, <strong>Data înregistrării</strong> și, opțional, o <strong>Descriere</strong>.</li>
+            <li>Apasă <strong>„Salvează lucrarea”</strong>.</li>
+          </ol>
+          <p>Restul iconițelor — <strong>Filtre</strong> (stare: Active / Soluționate / Toate), <strong>Căutare</strong> și <strong>Exportă Excel</strong> — funcționează la fel ca pe celelalte pagini.</p>
+        </section>
+
+        <section class="docs-section" id="docs-lps">
+          <h3>Proiecte LPS</h3>
+          <p><strong>Last Planner System (LPS)</strong> este o metodă de planificare pentru proiecte interne, gândită să transforme planurile mari în promisiuni săptămânale realiste, verificate înainte să fie promise. Ideea, pe scurt: fixezi reperele mari ale proiectului, planifici înapoi handoff-urile necesare, analizezi din timp următoarele 6 săptămâni ca să elimini blocajele, promiți doar lucru chiar pregătit pentru săptămâna care vine, iar la finalul săptămânii verifici ce s-a promis și ce nu, ca să înveți de ce.</p>
+          <h4>Cum adaugi un proiect LPS</h4>
+          <ol>
+            <li>Din meniul derulant <strong>„Proiect intern”</strong> din capul paginii, apasă <strong>„+ Proiect nou”</strong>.</li>
+            <li>Completează <strong>Proiect</strong> (numele), <strong>Responsabil</strong>, <strong>Termen</strong>, <strong>Etapă</strong> (Planificare / Pregătire / Execuție / Închidere / Finalizat) și <strong>Următoarea acțiune</strong>.</li>
+            <li>Apasă <strong>„Salvează proiectul”</strong>. Butoanele <strong>„Editează proiectul”</strong> și <strong>„Șterge proiectul”</strong> lucrează pe proiectul ales din același meniu.</li>
+          </ol>
+          <h4>Cum folosești planificarea LPS</h4>
+          <p>Odată ales un proiect intern, vezi patru indicatori sus (PPC-ul ultimei săptămâni încheiate, lucru pregătit, constrângeri deschise, variații) și șapte file:</p>
+          <ul>
+            <li><strong>Prezentare</strong> — cronologia întregului proiect într-un singur grafic (repere, look-ahead, constrângeri și promisiuni pe aceeași axă de timp), plus regulile de bază ale ritmului LPS.</li>
+            <li><strong>Repere</strong> — rezultatele sau momentele contractuale care definesc fazele proiectului (ex: „Recepție materiale”). Adaugi reperul, ținta de dată și responsabilul.</li>
+            <li><strong>Handoff-uri</strong> — ce trebuie predat, de la cine, către cine, pentru ca activitatea următoare să poată începe (ex: „Desen aprobat pentru montaj”), plus condiția care arată că predarea e utilizabilă.</li>
+            <li><strong>Look-ahead</strong> — lucrările din următoarele 6 săptămâni. Marchezi „Pregătit” doar când o lucrare poate începe fără niciun blocaj — abia atunci poate deveni o promisiune săptămânală.</li>
+            <li><strong>Constrângeri</strong> — registrul blocajelor (materiale, acces, aviz/proiectare, resurse, predecesor, vreme, altul), fiecare cu un responsabil, un termen de eliminare și acțiunea concretă necesară.</li>
+            <li><strong>Plan săptămânal</strong> — promisiunile reale: cine promite ce, pentru ce săptămână, ce zi exactă și care e condiția de satisfacție (cum știi că s-a terminat). Promite doar lucru marcat „Pregătit” la Look-ahead.</li>
+            <li><strong>Huddle și învățare</strong> — notează pe scurt discuția de coordonare din teren (data, facilitatorul, blocajele și deciziile) și urmărește PPC-ul (procentul de promisiuni respectate) și motivele de variație de la o săptămână la alta.</li>
+          </ul>
+          <div class="docs-callout">Regula de calitate a unei promisiuni: are un responsabil clar și o zi exactă; intră în plan doar dacă e definită, în secvența corectă și chiar pregătită; o promisiune ratată primește un motiv de variație, nu dispare pur și simplu din listă.</div>
+        </section>
+
+        <section class="docs-section" id="docs-status">
+          <h3>Stare sistem</h3>
+          <p>Arată dacă platforma funcționează normal: conexiunea la baza de date, sesiunea ta de autentificare, funcțiile din server (Edge Functions), jobul programat de memento-uri de calendar, notificările push și un rezumat al câtor sesizări/proiecte/evenimente există în platformă.</p>
+          <ul>
+            <li>Un <strong>punct verde</strong> lângă titlul unui card înseamnă că totul e în regulă; <strong>roșu</strong> înseamnă o problemă.</li>
+            <li><strong>„Reîmprospătează”</strong> (jos) rulează din nou toate verificările pe loc.</li>
+            <li>Cardul <strong>„Funcții Edge”</strong> testează live doar funcția „status-ping”; „send-push” și „bright-processor” nu sunt testate direct, ca să nu declanșeze o notificare sau un e-mail real doar pentru o verificare — sănătatea lui „send-push” se vede indirect din cardul „Memento-uri calendar” de lângă el.</li>
+            <li>Iconița <strong>„i”</strong> din colțul dreapta sus deschide istoricul ultimelor 48 de ore — fiecare verificare, cu oră și mesaj, ca să vezi ce s-a întâmplat chiar dacă nu erai pe pagină atunci.</li>
+          </ul>
+        </section>
+
+        <section class="docs-section" id="docs-push">
+          <h3>Notificări push</h3>
+          <p>Notificările push îți trimit o alertă reală pe telefon sau calculator — pentru sesizări noi și pentru mementourile din calendar — chiar dacă nu ai pagina deschisă în față.</p>
+          <p>Dacă ai instalat aplicația (adăugată pe ecranul principal, nu doar deschisă într-un tab de browser), ți se cere o singură dată permisiunea, automat, la prima deschidere. Dacă folosești un tab obișnuit de browser, sau ai închis acea cerere fără să răspunzi, poți activa oricând manual din <strong>Stare sistem → Notificări push → „Activează notificările”</strong>.</p>
+        </section>
+
+        <section class="docs-section" id="docs-faq">
+          <h3>Întrebări frecvente</h3>
+          <p><strong>De ce nu pot scrie direct „Ce s-a făcut” pe o sesizare?</strong><br>Fiindcă raportul vine din fișa de teren, ca să nu existe două locuri diferite unde se scrie același lucru. Vezi secțiunea „Cum adaugi un raport” de mai sus.</p>
+          <p><strong>De ce nu-mi mai apar notițele când mă conectez de pe alt telefon?</strong><br>Sunt salvate doar în browserul de pe acel dispozitiv, nu pe server — sunt gândite ca o agendă rapidă, personală, nu ca date operaționale.</p>
+          <p><strong>Nu găsesc o pagină în „☰ Meniu”.</strong><br>Meniul rapid are doar cele mai folosite pagini. Restul — Stare sistem, Documentație — sunt pe pagina de start, printre butoanele mari.</p>
+        </section>
+
+      </div>
     </div>
 </div>
 
@@ -3055,7 +3308,7 @@
     if (isReportAccount) {
       // Land back on whatever tab was open before a refresh instead of
       // always restarting at the home page — see initialHashTab above.
-      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects', 'backlog', 'lps', 'status'];
+      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects', 'backlog', 'lps', 'status', 'docs'];
       const restoredTab = validReportTabs.includes(initialHashTab) ? initialHashTab : 'home';
       openAdminTab(restoredTab, true);
       history.replaceState({ adminTab: restoredTab }, '', window.location.pathname + window.location.search + '#' + restoredTab);
@@ -3935,6 +4188,21 @@
   if (homeNavLpsBtn) homeNavLpsBtn.addEventListener('click', () => setHomeTabFilter('lps'));
   const homeNavStatusBtn = document.getElementById('homeNavStatus');
   if (homeNavStatusBtn) homeNavStatusBtn.addEventListener('click', () => openAdminTab('status'));
+  const homeNavDocsBtn = document.getElementById('homeNavDocs');
+  if (homeNavDocsBtn) homeNavDocsBtn.addEventListener('click', () => openAdminTab('docs'));
+
+  // Documentație's table of contents — scrolls within the panel rather
+  // than using real #anchors, which would collide with the tab-restore
+  // system's own use of the URL hash (see initialHashTab above).
+  const docsToc = document.getElementById('docsToc');
+  if (docsToc) {
+    docsToc.addEventListener('click', (event) => {
+      const btn = event.target.closest('.docs-toc-link');
+      if (!btn) return;
+      const target = document.getElementById(btn.dataset.docsTarget);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
 
   // Live clock + fully interactive calendar on the start page — click
   // a day to see/add/edit/delete events for it. Events persist in
@@ -5170,6 +5438,7 @@
     backlog: 'Avarii rețele',
     lps: 'Proiecte LPS',
     status: 'Stare sistem',
+    docs: 'Documentație',
   };
   function renderBreadcrumb(tabKey){
     const bc = document.getElementById('navBreadcrumb');
