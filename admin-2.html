@@ -1210,14 +1210,15 @@
   @media(max-width:900px){
     .result-count{display:none;}
   }
-  /* Avarii rețele: keep the "X din Y lucrări" count (and its filter
-     note) on the same line as its icon row — like the mobile layout
-     already does — instead of the separate .toolbar line underneath,
-     at every width. The toolbar itself would otherwise be left as an
-     empty bordered strip once its only two children move up here. */
-  #panel-backlog .toolbar{display:none;}
-  #backlogCountMobile{display:inline;}
-  #backlogFilterNoteMobile{display:inline-flex;}
+  /* Avarii rețele / Proiecte publice: keep the "X din Y" count (and
+     its filter note) on the same line as their icon row — like the
+     mobile layout already does — instead of the separate .toolbar
+     line underneath, at every width. The toolbar itself would
+     otherwise be left as an empty bordered strip once its only two
+     children move up here. */
+  #panel-backlog .toolbar, #panel-projects .toolbar{display:none;}
+  #backlogCountMobile, #projectsCountMobile{display:inline;}
+  #backlogFilterNoteMobile, #projectsFilterNoteMobile{display:inline-flex;}
   .filter-inline-group{
     display:flex;align-items:center;gap:14px;flex-wrap:wrap;
   }
@@ -5068,6 +5069,14 @@
     if (tabKey === 'tickets-functional') setTicketTypeFilter('functional', { skipRender: true });
     else if (tabKey === 'tickets-accident') setTicketTypeFilter('accident', { skipRender: true });
     else if (tabKey === 'status') loadSystemStatus();
+    // Proiecte publice always opens on "Active" — otherwise whichever
+    // status chip was last clicked earlier in the session (e.g. "Toate"
+    // while triaging) silently stuck for every later visit to this tab,
+    // which read as if "Toate" were the actual default.
+    if (tabKey === 'projects' && currentAdminTab !== 'projects') {
+      if (typeof setProjectYearFilter === 'function') setProjectYearFilter('all');
+      setProjectsFilter('Ongoing');
+    }
 
     // Browser back/forward support — each real tab switch becomes its
     // own history entry, so pressing back steps back through
