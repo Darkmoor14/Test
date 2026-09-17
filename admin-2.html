@@ -469,8 +469,10 @@
     width:44px;height:44px;border-radius:50%;
     background:var(--copper-050);color:var(--copper-600);
   }
+  .home-nav-text{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;}
   .home-nav-label{font-size:16px;font-weight:600;}
   .home-nav-sub{font-size:12.5px;color:var(--ink-600);}
+  .home-nav-sub::before{content:"·";margin-right:6px;color:var(--ink-300);}
   .home-clock-card{
     background:var(--paper-000);border:1px solid var(--line-strong);border-radius:9px;
     padding:20px;text-align:center;
@@ -1208,6 +1210,14 @@
   @media(max-width:900px){
     .result-count{display:none;}
   }
+  /* Avarii rețele: keep the "X din Y lucrări" count (and its filter
+     note) on the same line as its icon row — like the mobile layout
+     already does — instead of the separate .toolbar line underneath,
+     at every width. The toolbar itself would otherwise be left as an
+     empty bordered strip once its only two children move up here. */
+  #panel-backlog .toolbar{display:none;}
+  #backlogCountMobile{display:inline;}
+  #backlogFilterNoteMobile{display:inline-flex;}
   .filter-inline-group{
     display:flex;align-items:center;gap:14px;flex-wrap:wrap;
   }
@@ -1720,43 +1730,37 @@
         <div class="home-start-main">
           <div class="home-intro">
             <div><div class="home-eyebrow">Acasă</div><h2>Bine ai revenit, Bogdan.</h2></div>
-            <p class="home-intro-copy">Alege unde mergi mai departe.</p>
           </div>
           <div class="home-nav-grid">
             <button type="button" class="home-nav-btn" id="homeNavTickets">
               <span class="home-nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               </span>
-              <span class="home-nav-label">Sesizări</span>
-              <span class="home-nav-sub">Funcționale și accidente</span>
+              <span class="home-nav-text"><span class="home-nav-label">Sesizări</span><span class="home-nav-sub">Funcționale și accidente</span></span>
             </button>
             <button type="button" class="home-nav-btn" id="homeNavProjects">
               <span class="home-nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="14" x2="14" y2="14"/></svg>
               </span>
-              <span class="home-nav-label">Proiecte publice</span>
-              <span class="home-nav-sub">Lucrări în curs și programate</span>
+              <span class="home-nav-text"><span class="home-nav-label">Proiecte publice</span><span class="home-nav-sub">Lucrări în curs și programate</span></span>
             </button>
             <button type="button" class="home-nav-btn" id="homeNavBacklog">
               <span class="home-nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
               </span>
-              <span class="home-nav-label">Avarii rețele</span>
-              <span class="home-nav-sub">Lucrări din teren</span>
+              <span class="home-nav-text"><span class="home-nav-label">Avarii rețele</span><span class="home-nav-sub">Lucrări din teren</span></span>
             </button>
             <button type="button" class="home-nav-btn" id="homeNavLps">
               <span class="home-nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
               </span>
-              <span class="home-nav-label">Proiecte LPS</span>
-              <span class="home-nav-sub">Planificare Last Planner</span>
+              <span class="home-nav-text"><span class="home-nav-label">Proiecte LPS</span><span class="home-nav-sub">Planificare Last Planner</span></span>
             </button>
             <button type="button" class="home-nav-btn" id="homeNavStatus">
               <span class="home-nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
               </span>
-              <span class="home-nav-label">Stare sistem</span>
-              <span class="home-nav-sub">Conexiune, funcții, memento-uri</span>
+              <span class="home-nav-text"><span class="home-nav-label">Stare sistem</span><span class="home-nav-sub">Conexiune, funcții, memento-uri</span></span>
             </button>
           </div>
         </div>
@@ -1773,7 +1777,6 @@
     <div class="admin-panel" id="panel-lps">
       <div class="internal-projects-head">
         <div><div class="home-eyebrow">Last Planner System</div><h2>Planificare LPS</h2></div>
-        <p class="internal-projects-copy">Planificare colaborativă: stabilește reperele, pregătește lucrul, fă promisiuni săptămânale și învață din variații.</p>
       </div>
       <div class="lps-project-bar">
         <div class="ctrl-field"><label for="lpsProjectSelect">Proiect intern</label><select id="lpsProjectSelect"></select></div>
@@ -2529,7 +2532,7 @@
   // site's mobile/desktop split uses) — this is an initial default,
   // not something that needs to react to the window being resized
   // afterward.
-  let overviewStatusFilter = window.matchMedia('(max-width: 900px)').matches ? 'active' : 'all';
+  let overviewStatusFilter = 'active';
   let overviewSearchQuery = '';
 
   // A ticket's "effective" month/year for filtering purposes — NOT
@@ -3001,8 +3004,12 @@
     const isReportAccount = isReportFocusedView();
     document.documentElement.classList.toggle('report-focused-view', isReportAccount);
     if (isReportAccount) {
-      openAdminTab('home', true);
-      history.replaceState({ adminTab: 'home' }, '', window.location.pathname + window.location.search + '#home');
+      // Land back on whatever tab was open before a refresh instead of
+      // always restarting at the home page — see initialHashTab above.
+      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects', 'backlog', 'lps', 'status'];
+      const restoredTab = validReportTabs.includes(initialHashTab) ? initialHashTab : 'home';
+      openAdminTab(restoredTab, true);
+      history.replaceState({ adminTab: restoredTab }, '', window.location.pathname + window.location.search + '#' + restoredTab);
     }
     loginWrap.style.display = 'none';
     dash.classList.add('show');
@@ -3080,7 +3087,7 @@
     activeTypeFilter = 'Toate';
     ticketYearFilter = 'all';
     projectYearFilter = 'all';
-    overviewStatusFilter = 'all';
+    overviewStatusFilter = 'active';
     ticketYearFilterInitialized = false;
     projectYearFilterInitialized = false;
     currentAdminTab = 'overview';
@@ -5091,6 +5098,11 @@
     const tabKey = (event.state && event.state.adminTab) || 'overview';
     openAdminTab(tabKey, true);
   });
+  // A hard refresh keeps the browser's URL (hash included) — capture it
+  // here, before the replaceState below overwrites it, so showDashboard()
+  // can land back on whatever tab was open instead of always restarting
+  // at the default. See its use in the report-focused-view branch.
+  const initialHashTab = window.location.hash.slice(1);
   // Replaces (not pushes) the current history entry so the very first
   // back-press still correctly leaves admin.html entirely, landing on
   // whatever page linked here — it doesn't insert an extra step.
