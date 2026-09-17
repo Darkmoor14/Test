@@ -550,6 +550,52 @@
   }
   .cef-time-edit-btn:hover{border-color:var(--copper-500);}
   .cef-time-edit-btn.active{border-color:var(--copper-500);background:var(--copper-050);color:var(--copper-600);}
+  .cef-recur-btn{width:100%;justify-content:flex-start;}
+  .cef-recur-btn.active{border-color:var(--copper-500);color:var(--copper-600);background:var(--copper-050);}
+  .cef-attendees-row{display:flex;flex-wrap:wrap;gap:12px 16px;padding:4px 0;}
+  .cef-attendee-check{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-700);cursor:pointer;}
+  .recur-section{margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--line);}
+  .recur-section:last-of-type{border-bottom:none;}
+  .recur-section-label{
+    display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;
+    letter-spacing:0.04em;color:var(--ink-400);margin-bottom:10px;
+  }
+  .recur-freq-row{display:flex;flex-wrap:wrap;gap:10px 18px;margin-bottom:12px;}
+  .recur-radio{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-700);cursor:pointer;}
+  .recur-interval-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-700);margin-bottom:12px;}
+  .recur-interval-row input[type="number"]{width:56px;padding:6px 8px;border:1px solid var(--line-strong);border-radius:4px;font:inherit;font-size:13px;}
+  .recur-weekdays-row{display:flex;flex-wrap:wrap;gap:8px 14px;}
+  .recur-checkbox{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink-700);cursor:pointer;}
+  .recur-radio-row{
+    display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-700);
+    cursor:pointer;margin-bottom:10px;
+  }
+  .recur-radio-row input[type="date"],
+  .recur-radio-row input[type="number"]{
+    padding:6px 8px;border:1px solid var(--line-strong);border-radius:4px;font:inherit;font-size:12.5px;
+  }
+  .recur-radio-row input[type="number"]{width:56px;}
+  #recurStartDate{padding:7px 9px;border:1px solid var(--line-strong);border-radius:4px;font:inherit;font-size:12.5px;width:100%;box-sizing:border-box;}
+  .schedule-assist-busy{display:flex;flex-direction:column;gap:12px;margin-bottom:18px;}
+  .schedule-assist-person{padding:12px;border:1px solid var(--line-strong);border-radius:6px;}
+  .schedule-assist-person-name{font-weight:600;font-size:13px;color:var(--ink-900);margin-bottom:6px;}
+  .schedule-assist-busy-block{
+    display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink-600);
+    padding:4px 0;
+  }
+  .schedule-assist-busy-empty{font-size:12px;color:var(--ink-400);}
+  .schedule-assist-free-label{
+    font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.04em;
+    color:var(--ink-400);margin-bottom:8px;
+  }
+  .schedule-assist-free{display:flex;flex-direction:column;gap:8px;}
+  .schedule-assist-free-slot{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:10px 12px;border:1px solid var(--line-strong);border-radius:6px;
+    cursor:pointer;font-size:13px;color:var(--ink-900);
+  }
+  .schedule-assist-free-slot:hover{border-color:var(--copper-500);background:var(--copper-050);}
+  .schedule-assist-free-empty{color:var(--ink-400);font-size:13px;padding:8px 0;}
   /* ===== Stare sistem — live health checks run from the browser
      itself (DB round-trip, auth session, an Edge Functions ping, the
      calendar-reminder cron job's recent runs, push subscription
@@ -2601,6 +2647,9 @@
       </div>
     </div>
     <div class="ctrl-field">
+      <button type="button" class="btn cef-recur-btn" id="cefRecurBtn">🔁 Nu se repetă</button>
+    </div>
+    <div class="ctrl-field">
       <label for="cef-reminder">Memento</label>
       <select id="cef-reminder">
         <option value="">Fără memento</option>
@@ -2610,6 +2659,13 @@
         <option value="60">Cu 1 oră înainte</option>
         <option value="1440">Cu 1 zi înainte</option>
       </select>
+    </div>
+    <div class="ctrl-field">
+      <label>Participanți</label>
+      <div class="cef-attendees-row" id="cefAttendeesRow"></div>
+    </div>
+    <div class="ctrl-field">
+      <button type="button" class="btn" id="cefScheduleAssistBtn">🔍 Asistent programare</button>
     </div>
     <div class="ctrl-field">
       <label for="cef-location">Locație (opțional)</label>
@@ -2623,6 +2679,72 @@
       <button type="button" class="btn" id="cefDeleteBtn" style="display:none;">Șterge</button>
       <button type="button" class="btn btn-primary" id="cefSaveBtn">Salvează</button>
     </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="recurrenceSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="recurrenceSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="recurrenceSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div><h3 id="recurrenceSheetTitle">Recurență eveniment</h3></div>
+      <button type="button" class="sheet-close" id="recurrenceCloseBtn" aria-label="Închide">×</button>
+    </div>
+    <div class="recur-section">
+      <label class="recur-section-label">Model de recurență</label>
+      <div class="recur-freq-row" id="recurFreqRow">
+        <label class="recur-radio"><input type="radio" name="recur-freq" value="daily"> Zilnic</label>
+        <label class="recur-radio"><input type="radio" name="recur-freq" value="weekly" checked> Săptămânal</label>
+        <label class="recur-radio"><input type="radio" name="recur-freq" value="monthly"> Lunar</label>
+        <label class="recur-radio"><input type="radio" name="recur-freq" value="yearly"> Anual</label>
+      </div>
+      <div class="recur-interval-row">
+        <span>Repetă la fiecare</span>
+        <input type="number" id="recurInterval" min="1" value="1">
+        <span id="recurIntervalUnit">săptămână(i)</span>
+      </div>
+      <div class="recur-weekdays-row" id="recurWeekdaysRow">
+        <label class="recur-checkbox"><input type="checkbox" value="1"> Luni</label>
+        <label class="recur-checkbox"><input type="checkbox" value="2"> Marți</label>
+        <label class="recur-checkbox"><input type="checkbox" value="3"> Miercuri</label>
+        <label class="recur-checkbox"><input type="checkbox" value="4"> Joi</label>
+        <label class="recur-checkbox"><input type="checkbox" value="5"> Vineri</label>
+        <label class="recur-checkbox"><input type="checkbox" value="6"> Sâmbătă</label>
+        <label class="recur-checkbox"><input type="checkbox" value="7"> Duminică</label>
+      </div>
+    </div>
+    <div class="recur-section">
+      <label class="recur-section-label">Interval de recurență</label>
+      <div class="ctrl-field">
+        <label for="recurStartDate">Start</label>
+        <input type="date" id="recurStartDate" disabled>
+      </div>
+      <label class="recur-radio-row"><input type="radio" name="recur-end" value="date" checked> Se termină la <input type="date" id="recurEndDate"></label>
+      <label class="recur-radio-row"><input type="radio" name="recur-end" value="count"> Se termină după <input type="number" id="recurCount" min="1" value="10"> apariții</label>
+      <label class="recur-radio-row"><input type="radio" name="recur-end" value="never"> Fără dată de final</label>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="recurRemoveBtn">Elimină recurența</button>
+      <button type="button" class="btn" id="recurCancelBtn">Anulează</button>
+      <button type="button" class="btn btn-primary" id="recurOkBtn">OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="scheduleAssistSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="scheduleAssistSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="scheduleAssistSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h3 id="scheduleAssistSheetTitle">Asistent programare</h3>
+        <p>Vezi orele ocupate ale participanților selectați și alege un interval liber pentru ziua din formular.</p>
+      </div>
+      <button type="button" class="sheet-close" id="scheduleAssistCloseBtn" aria-label="Închide">×</button>
+    </div>
+    <div class="schedule-assist-busy" id="scheduleAssistBusy"></div>
+    <div class="schedule-assist-free-label">Intervale libere (08:00–18:00)</div>
+    <div class="schedule-assist-free" id="scheduleAssistFree"></div>
   </div>
 </div>
 
@@ -4380,10 +4502,97 @@
   function dateKey(d){
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
+
+  /* ============================================================
+     RECURRING EVENTS — whole-series only (no per-occurrence
+     exceptions): a recurring row's own start_time is occurrence #1,
+     and every later occurrence is computed virtually at render time
+     from recurrence_freq/interval/days_of_week/end_type/end_date/
+     count, never persisted as its own row. Editing or deleting the
+     row therefore edits/deletes the entire series in one step —
+     genuinely simpler for a small team, and what the "Appointment
+     Recurrence"-style dialog itself defines (a pattern, not a list
+     of individual dates).
+     ============================================================ */
+  function isoWeekday(d){ return d.getDay() === 0 ? 7 : d.getDay(); } // Monday=1..Sunday=7
+  function mondayOfWeek(d){
+    const wd = isoWeekday(d);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() - (wd - 1));
+  }
+  // Walks day-by-day from the series' own start date rather than a
+  // closed-form formula per frequency — correct for irregular
+  // patterns (weekly on several weekdays at once) without risking a
+  // subtle off-by-one in per-frequency math, and cheap enough at
+  // calendar-UI scale (bounded to 10 years ≈ 3660 iterations worst
+  // case, and only ever called for the currently-viewed month/day).
+  function getRecurrenceOccurrenceDates(event, rangeStart, rangeEnd){
+    if (!event.recurrence_freq || !event.start_time) return [];
+    const seriesStart = new Date(event.start_time);
+    const cursor0 = new Date(seriesStart.getFullYear(), seriesStart.getMonth(), seriesStart.getDate());
+    const hardStop = new Date(cursor0.getTime() + 10 * 365 * 86400000);
+    const endDate = event.recurrence_end_type === 'date' && event.recurrence_end_date
+      ? new Date(event.recurrence_end_date + 'T00:00:00')
+      : null;
+    const maxCount = event.recurrence_end_type === 'count' ? (event.recurrence_count || 0) : Infinity;
+    const interval = Math.max(1, event.recurrence_interval || 1);
+    const weeklyDays = event.recurrence_freq === 'weekly'
+      ? (event.recurrence_days_of_week && event.recurrence_days_of_week.length ? event.recurrence_days_of_week : [isoWeekday(cursor0)])
+      : null;
+    const seriesWeekStart = event.recurrence_freq === 'weekly' ? mondayOfWeek(cursor0) : null;
+
+    const results = [];
+    let occurrenceCount = 0;
+    let d = new Date(cursor0);
+    while (d <= hardStop && d <= rangeEnd) {
+      if (endDate && d > endDate) break;
+      if (occurrenceCount >= maxCount) break;
+      let matches = false;
+      if (event.recurrence_freq === 'daily') {
+        const diffDays = Math.round((d - cursor0) / 86400000);
+        matches = diffDays % interval === 0;
+      } else if (event.recurrence_freq === 'weekly') {
+        if (weeklyDays.includes(isoWeekday(d))) {
+          const weekStart = mondayOfWeek(d);
+          const diffWeeks = Math.round((weekStart - seriesWeekStart) / (7 * 86400000));
+          matches = diffWeeks >= 0 && diffWeeks % interval === 0;
+        }
+      } else if (event.recurrence_freq === 'monthly') {
+        matches = d >= cursor0 && d.getDate() === cursor0.getDate()
+          && ((d.getFullYear() - cursor0.getFullYear()) * 12 + (d.getMonth() - cursor0.getMonth())) % interval === 0;
+      } else if (event.recurrence_freq === 'yearly') {
+        matches = d >= cursor0 && d.getDate() === cursor0.getDate() && d.getMonth() === cursor0.getMonth()
+          && (d.getFullYear() - cursor0.getFullYear()) % interval === 0;
+      }
+      if (matches) {
+        occurrenceCount++;
+        if (d >= rangeStart) results.push(new Date(d));
+      }
+      d = new Date(d.getTime() + 86400000);
+    }
+    return results;
+  }
+  // Builds a display-only virtual occurrence: same id/title/
+  // description/location/reminder/attendees as the series row, with
+  // start_time/end_time shifted onto the given occurrence date (same
+  // time-of-day and duration as the series' own first occurrence).
+  function buildOccurrenceEvent(event, occurrenceDate){
+    const masterStart = new Date(event.start_time);
+    const start = new Date(occurrenceDate.getFullYear(), occurrenceDate.getMonth(), occurrenceDate.getDate(), masterStart.getHours(), masterStart.getMinutes());
+    let end = null;
+    if (event.end_time) {
+      const durationMs = new Date(event.end_time) - masterStart;
+      end = new Date(start.getTime() + durationMs);
+    }
+    return { ...event, start_time: start.toISOString(), end_time: end ? end.toISOString() : null, is_recurring_occurrence: true };
+  }
   function eventsOnDate(dateKeyStr){
-    return calendarEvents
-      .filter(e => e.start_time && dateKey(new Date(e.start_time)) === dateKeyStr)
-      .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+    const [y, m, d] = dateKeyStr.split('-').map(Number);
+    const targetDate = new Date(y, m - 1, d);
+    const direct = calendarEvents.filter(e => e.start_time && !e.recurrence_freq && dateKey(new Date(e.start_time)) === dateKeyStr);
+    const recurring = calendarEvents
+      .filter(e => e.recurrence_freq && getRecurrenceOccurrenceDates(e, targetDate, targetDate).length > 0)
+      .map(e => buildOccurrenceEvent(e, targetDate));
+    return [...direct, ...recurring].sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
   }
 
   async function loadCalendarEvents(){
@@ -4884,10 +5093,11 @@
     const start = new Date(e.start_time);
     const timeLabel = e.all_day ? 'Toată ziua' : pad2(start.getHours()) + ':' + pad2(start.getMinutes());
     const activeClass = isEventHappeningNow(e, now || new Date()) ? ' happening-now' : '';
+    const recurIcon = (e.recurrence_freq || e.is_recurring_occurrence) ? '🔁 ' : '';
     return `
       <div class="calendar-day-event${activeClass}" data-event-id="${e.id}">
         <div>
-          <div class="calendar-day-event-title">${escapeHtml(e.title)}</div>
+          <div class="calendar-day-event-title">${recurIcon}${escapeHtml(e.title)}</div>
           ${e.location ? `<div class="calendar-day-event-meta">📍 ${escapeHtml(e.location)}</div>` : ''}
           ${e.description ? `<div class="calendar-day-event-meta">${escapeHtml(e.description)}</div>` : ''}
         </div>
@@ -5014,6 +5224,239 @@
     setCefTimeMode('end', willBePrecise);
   });
 
+  /* ============================================================
+     RECURRENCE PICKER — mirrors a classic "Appointment Recurrence"
+     dialog (pattern + range), opened from the "🔁" button on the
+     event form. pendingRecurrence holds the in-progress choice for
+     whichever event is currently open in the form; null means "does
+     not repeat". Committed into the event's own payload on Salvează,
+     same as every other field in the form — there's no separate save
+     step for the recurrence sheet itself.
+     ============================================================ */
+  let pendingRecurrence = null;
+  const RECUR_INTERVAL_UNITS = {
+    daily: (n) => n === 1 ? 'zi' : 'zile',
+    weekly: (n) => n === 1 ? 'săptămână' : 'săptămâni',
+    monthly: (n) => n === 1 ? 'lună' : 'luni',
+    yearly: (n) => n === 1 ? 'an' : 'ani',
+  };
+  const RECUR_FREQ_LABELS = { daily: 'zilnic', weekly: 'săptămânal', monthly: 'lunar', yearly: 'anual' };
+  const WEEKDAY_SHORT_NAMES = { 1: 'L', 2: 'Ma', 3: 'Mi', 4: 'J', 5: 'V', 6: 'S', 7: 'D' };
+
+  function describeRecurrence(r){
+    if (!r) return '🔁 Nu se repetă';
+    let desc = `🔁 Se repetă ${RECUR_FREQ_LABELS[r.recurrence_freq]}`;
+    if ((r.recurrence_interval || 1) > 1) {
+      desc = `🔁 La fiecare ${r.recurrence_interval} ${RECUR_INTERVAL_UNITS[r.recurrence_freq](r.recurrence_interval)}`;
+    }
+    if (r.recurrence_freq === 'weekly' && r.recurrence_days_of_week && r.recurrence_days_of_week.length) {
+      desc += ' (' + r.recurrence_days_of_week.slice().sort().map(d => WEEKDAY_SHORT_NAMES[d]).join(', ') + ')';
+    }
+    return desc;
+  }
+  function updateCefRecurBtn(){
+    const btn = document.getElementById('cefRecurBtn');
+    if (!btn) return;
+    btn.textContent = describeRecurrence(pendingRecurrence);
+    btn.classList.toggle('active', !!pendingRecurrence);
+  }
+
+  function updateRecurIntervalUnit(){
+    const freq = document.querySelector('input[name="recur-freq"]:checked').value;
+    const n = Number(document.getElementById('recurInterval').value) || 1;
+    document.getElementById('recurIntervalUnit').textContent = RECUR_INTERVAL_UNITS[freq](n);
+    document.getElementById('recurWeekdaysRow').style.display = freq === 'weekly' ? '' : 'none';
+  }
+  document.querySelectorAll('input[name="recur-freq"]').forEach(r => r.addEventListener('change', updateRecurIntervalUnit));
+  const recurIntervalInput = document.getElementById('recurInterval');
+  if (recurIntervalInput) recurIntervalInput.addEventListener('input', updateRecurIntervalUnit);
+
+  function openRecurrenceSheet(){
+    const dateVal = document.getElementById('cef-date').value || dateKey(new Date());
+    document.getElementById('recurStartDate').value = dateVal;
+    const r = pendingRecurrence;
+    const freq = (r && r.recurrence_freq) || 'weekly';
+    document.querySelector(`input[name="recur-freq"][value="${freq}"]`).checked = true;
+    document.getElementById('recurInterval').value = (r && r.recurrence_interval) || 1;
+    document.querySelectorAll('#recurWeekdaysRow input[type="checkbox"]').forEach(cb => {
+      cb.checked = !!(r && r.recurrence_days_of_week && r.recurrence_days_of_week.includes(Number(cb.value)));
+    });
+    // Default weekly selection, when opening fresh, to the event's own
+    // weekday — matches the picture's own default of pre-checking the
+    // appointment's day.
+    if (!r) {
+      const [y, m, d] = dateVal.split('-').map(Number);
+      const wd = isoWeekday(new Date(y, m - 1, d));
+      document.querySelectorAll('#recurWeekdaysRow input[type="checkbox"]').forEach(cb => {
+        cb.checked = Number(cb.value) === wd;
+      });
+    }
+    const endType = (r && r.recurrence_end_type) || 'date';
+    document.querySelector(`input[name="recur-end"][value="${endType}"]`).checked = true;
+    document.getElementById('recurEndDate').value = (r && r.recurrence_end_date)
+      || (() => { const dt = new Date(dateVal + 'T00:00:00'); dt.setMonth(dt.getMonth() + 6); return dateKey(dt); })();
+    document.getElementById('recurCount').value = (r && r.recurrence_count) || 10;
+    updateRecurIntervalUnit();
+    setSheetOpen('recurrenceSheet', true);
+  }
+  const cefRecurBtn = document.getElementById('cefRecurBtn');
+  if (cefRecurBtn) cefRecurBtn.addEventListener('click', openRecurrenceSheet);
+  document.querySelectorAll('[id^="recur"][id$="CloseBtn"], #recurCancelBtn').forEach(btn => {
+    btn.addEventListener('click', () => setSheetOpen('recurrenceSheet', false));
+  });
+  const recurRemoveBtn = document.getElementById('recurRemoveBtn');
+  if (recurRemoveBtn) recurRemoveBtn.addEventListener('click', () => {
+    pendingRecurrence = null;
+    updateCefRecurBtn();
+    setSheetOpen('recurrenceSheet', false);
+  });
+  const recurOkBtn = document.getElementById('recurOkBtn');
+  if (recurOkBtn) recurOkBtn.addEventListener('click', () => {
+    const freq = document.querySelector('input[name="recur-freq"]:checked').value;
+    const interval = Math.max(1, Number(document.getElementById('recurInterval').value) || 1);
+    const daysOfWeek = freq === 'weekly'
+      ? [...document.querySelectorAll('#recurWeekdaysRow input[type="checkbox"]:checked')].map(cb => Number(cb.value))
+      : null;
+    if (freq === 'weekly' && (!daysOfWeek || daysOfWeek.length === 0)) {
+      alert('Alege cel puțin o zi a săptămânii.');
+      return;
+    }
+    const endType = document.querySelector('input[name="recur-end"]:checked').value;
+    pendingRecurrence = {
+      recurrence_freq: freq,
+      recurrence_interval: interval,
+      recurrence_days_of_week: daysOfWeek,
+      recurrence_end_type: endType,
+      recurrence_end_date: endType === 'date' ? (document.getElementById('recurEndDate').value || null) : null,
+      recurrence_count: endType === 'count' ? (Number(document.getElementById('recurCount').value) || 1) : null,
+    };
+    updateCefRecurBtn();
+    setSheetOpen('recurrenceSheet', false);
+  });
+
+  /* ============================================================
+     PARTICIPANȚI / SCHEDULING ASSISTANT — a small fixed list (the
+     two real staff accounts this app has) rather than a general
+     invite system. "Asistent programare" reads straight off the
+     shared calendar_events table (already visible to any
+     authenticated account — see calendar_events' own RLS policy),
+     so no separate sharing step is needed to check someone else's
+     busy times, only that events tag who they're for.
+     ============================================================ */
+  const KNOWN_ATTENDEES = [
+    { email: 'vlasbogdan@insta-grup.ro', label: 'Bogdan Vlas' },
+    { email: 'admin@insta-grup.ro', label: 'Admin' },
+  ];
+  function populateCefAttendees(){
+    const wrap = document.getElementById('cefAttendeesRow');
+    if (!wrap) return;
+    wrap.innerHTML = KNOWN_ATTENDEES.map(a => `
+      <label class="cef-attendee-check">
+        <input type="checkbox" value="${escapeHtml(a.email)}" class="cef-attendee-checkbox">
+        ${escapeHtml(a.label)}
+      </label>
+    `).join('');
+  }
+  populateCefAttendees();
+  function getCefAttendees(){
+    return [...document.querySelectorAll('.cef-attendee-checkbox:checked')].map(cb => cb.value);
+  }
+  function setCefAttendees(emails){
+    document.querySelectorAll('.cef-attendee-checkbox').forEach(cb => {
+      cb.checked = emails.includes(cb.value);
+    });
+  }
+
+  function computeBusyIntervals(dateKeyStr, attendeeEmails, excludeEventId){
+    return eventsOnDate(dateKeyStr)
+      .filter(e => String(e.id) !== String(excludeEventId))
+      .filter(e => !e.all_day && Array.isArray(e.attendees) && e.attendees.some(a => attendeeEmails.includes(a)))
+      .map(e => {
+        const start = new Date(e.start_time);
+        const end = e.end_time ? new Date(e.end_time) : new Date(start.getTime() + EVENT_ACTIVE_GRACE_MS);
+        return { start, end, title: e.title, attendees: e.attendees };
+      })
+      .sort((a, b) => a.start - b.start);
+  }
+  const SCHEDULE_ASSIST_DAY_START_HOUR = 8;
+  const SCHEDULE_ASSIST_DAY_END_HOUR = 18;
+  const SCHEDULE_ASSIST_MIN_SLOT_MIN = 30;
+  function computeFreeSlots(dateKeyStr, attendeeEmails, excludeEventId){
+    const [y, m, d] = dateKeyStr.split('-').map(Number);
+    const dayStart = new Date(y, m - 1, d, SCHEDULE_ASSIST_DAY_START_HOUR, 0);
+    const dayEnd = new Date(y, m - 1, d, SCHEDULE_ASSIST_DAY_END_HOUR, 0);
+    const busy = computeBusyIntervals(dateKeyStr, attendeeEmails, excludeEventId);
+    const merged = [];
+    busy.forEach(b => {
+      const last = merged[merged.length - 1];
+      if (last && b.start <= last.end) {
+        if (b.end > last.end) last.end = new Date(b.end);
+      } else {
+        merged.push({ start: new Date(b.start), end: new Date(b.end) });
+      }
+    });
+    const free = [];
+    let cursor = dayStart;
+    merged.forEach(b => {
+      if (b.start > cursor) free.push({ start: new Date(cursor), end: new Date(Math.min(b.start, dayEnd)) });
+      if (b.end > cursor) cursor = new Date(b.end);
+    });
+    if (cursor < dayEnd) free.push({ start: new Date(cursor), end: dayEnd });
+    return free.filter(f => (f.end - f.start) >= SCHEDULE_ASSIST_MIN_SLOT_MIN * 60000);
+  }
+
+  function renderScheduleAssist(){
+    const dateVal = document.getElementById('cef-date').value || dateKey(new Date());
+    const attendeeEmails = getCefAttendees();
+    const excludeId = document.getElementById('cef-id').value;
+    const busyWrap = document.getElementById('scheduleAssistBusy');
+    const freeWrap = document.getElementById('scheduleAssistFree');
+    if (attendeeEmails.length === 0) {
+      busyWrap.innerHTML = '<div class="schedule-assist-busy-empty">Bifează cel puțin un participant ca să vezi orele ocupate.</div>';
+      freeWrap.innerHTML = '';
+      return;
+    }
+    busyWrap.innerHTML = KNOWN_ATTENDEES.filter(a => attendeeEmails.includes(a.email)).map(a => {
+      const busy = computeBusyIntervals(dateVal, [a.email], excludeId);
+      const items = busy.length
+        ? busy.map(b => `<div class="schedule-assist-busy-block"><span>${escapeHtml(b.title)}</span><span>${pad2(b.start.getHours())}:${pad2(b.start.getMinutes())}–${pad2(b.end.getHours())}:${pad2(b.end.getMinutes())}</span></div>`).join('')
+        : '<div class="schedule-assist-busy-empty">Nicio programare în acea zi.</div>';
+      return `<div class="schedule-assist-person"><div class="schedule-assist-person-name">${escapeHtml(a.label)}</div>${items}</div>`;
+    }).join('');
+    const freeSlots = computeFreeSlots(dateVal, attendeeEmails, excludeId);
+    freeWrap.innerHTML = freeSlots.length
+      ? freeSlots.map((f, i) => `
+          <div class="schedule-assist-free-slot" data-start="${pad2(f.start.getHours())}:${pad2(f.start.getMinutes())}">
+            <span>${pad2(f.start.getHours())}:${pad2(f.start.getMinutes())} – ${pad2(f.end.getHours())}:${pad2(f.end.getMinutes())}</span>
+            <span>Alege</span>
+          </div>
+        `).join('')
+      : '<div class="schedule-assist-free-empty">Niciun interval liber comun în acea zi.</div>';
+    freeWrap.querySelectorAll('.schedule-assist-free-slot').forEach(el => {
+      el.addEventListener('click', () => {
+        const hhmm = el.dataset.start;
+        // Snap to the nearest 15-min grid option for the quick-pick
+        // select (free slots can start on any 30-min boundary here,
+        // which already lands on the grid — this just guards against
+        // that assumption changing later).
+        const [hh, mm] = hhmm.split(':').map(Number);
+        const snappedMin = Math.round(mm / 15) * 15;
+        const snapped = pad2(hh + Math.floor(snappedMin / 60)) + ':' + pad2(snappedMin % 60);
+        document.getElementById('cef-start-time-select').value = snapped;
+        document.getElementById('cef-start-time').value = snapped;
+        setCefTimeMode('start', false);
+        setSheetOpen('scheduleAssistSheet', false);
+      });
+    });
+  }
+  const cefScheduleAssistBtn = document.getElementById('cefScheduleAssistBtn');
+  if (cefScheduleAssistBtn) cefScheduleAssistBtn.addEventListener('click', () => {
+    renderScheduleAssist();
+    setSheetOpen('scheduleAssistSheet', true);
+  });
+  const scheduleAssistCloseBtn = document.getElementById('scheduleAssistCloseBtn');
+  if (scheduleAssistCloseBtn) scheduleAssistCloseBtn.addEventListener('click', () => setSheetOpen('scheduleAssistSheet', false));
+
   function openCalendarEventForm(event, defaultDateKey){
     document.getElementById('calendarEventFormSheetTitle').textContent = event ? 'Editează eveniment' : 'Eveniment nou';
     document.getElementById('cef-id').value = event ? event.id : '';
@@ -5077,6 +5520,22 @@
     document.getElementById('cef-description').value = event ? (event.description || '') : '';
     document.getElementById('cef-reminder').value = event && event.reminder_minutes_before ? String(event.reminder_minutes_before) : '';
     document.getElementById('cefDeleteBtn').style.display = event ? '' : 'none';
+
+    pendingRecurrence = (event && event.recurrence_freq) ? {
+      recurrence_freq: event.recurrence_freq,
+      recurrence_interval: event.recurrence_interval || 1,
+      recurrence_days_of_week: event.recurrence_days_of_week || null,
+      recurrence_end_type: event.recurrence_end_type || 'never',
+      recurrence_end_date: event.recurrence_end_date || null,
+      recurrence_count: event.recurrence_count || null,
+    } : null;
+    updateCefRecurBtn();
+
+    // New events default to the current user as the only attendee
+    // (same as any calendar inviting yourself by default); editing an
+    // existing event restores exactly who was on it.
+    setCefAttendees(event ? (event.attendees || []) : (currentSessionEmail ? [currentSessionEmail] : []));
+
     toggleCefTimeFields();
     setSheetOpen('calendarEventFormSheet', true);
   }
@@ -5112,6 +5571,13 @@
         all_day: allDay,
         reminder_minutes_before: reminderVal ? Number(reminderVal) : null,
         reminder_sent_at: null,
+        attendees: getCefAttendees(),
+        recurrence_freq: pendingRecurrence ? pendingRecurrence.recurrence_freq : null,
+        recurrence_interval: pendingRecurrence ? pendingRecurrence.recurrence_interval : null,
+        recurrence_days_of_week: pendingRecurrence ? pendingRecurrence.recurrence_days_of_week : null,
+        recurrence_end_type: pendingRecurrence ? pendingRecurrence.recurrence_end_type : null,
+        recurrence_end_date: pendingRecurrence ? pendingRecurrence.recurrence_end_date : null,
+        recurrence_count: pendingRecurrence ? pendingRecurrence.recurrence_count : null,
       };
       cefSaveBtn.disabled = true;
       try {
