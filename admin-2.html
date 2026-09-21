@@ -2867,7 +2867,7 @@
      doesn't even show a field they can't use, rather than letting
      them fill it in and then discovering a save error.
      ============================================================ */
-  let currentUserRole = 'full';
+  let currentUserRole = 'limited';
   async function fetchCurrentUserRole(email){
     try {
       const { data, error } = await supabaseClient
@@ -2876,13 +2876,18 @@
         .eq('email', email)
         .maybeSingle();
       if (error || !data) {
-        currentUserRole = 'full'; // unknown accounts default to full, matching staff-roles-setup.sql's own default
+        // Restricted by default now, not full — matches the DB's own
+        // policy (is_staff()/enforce_resolution_note_permission()):
+        // only an explicit role='full' row (vlasbogdan@) is
+        // unrestricted; every other account, including one not yet in
+        // staff_roles at all, is treated as limited.
+        currentUserRole = 'limited';
         return;
       }
       currentUserRole = data.role;
     } catch (err) {
-      console.error('Could not fetch staff role (defaulting to full):', err);
-      currentUserRole = 'full';
+      console.error('Could not fetch staff role (defaulting to limited):', err);
+      currentUserRole = 'limited';
     }
   }
 
