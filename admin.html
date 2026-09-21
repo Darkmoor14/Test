@@ -2870,10 +2870,21 @@
   const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
   if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', performLogout);
 
-  supabaseClient.auth.onAuthStateChange((_event, session) => {
+  supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session) {
       showDashboard(session.user.email);
-    } else {
+    } else if (event === 'SIGNED_OUT') {
+      // Only a real sign-out wipes the dashboard (ticketYearFilter,
+      // search queries, current tab, etc. — see showLogin()'s own
+      // comment on why that reset has to be exact). This used to fire
+      // showLogin() for ANY event with a falsy session — including a
+      // transient TOKEN_REFRESHED/INITIAL_SESSION hiccup, which is far
+      // more common on mobile (backgrounding the app/switching tabs
+      // triggers Supabase to revalidate the session). That blew away
+      // someone's selected year filter, or a ticket just opened from a
+      // push notification, with no visible sign anything happened —
+      // showDashboard() re-ran moments later once the real session
+      // came back, but the reset had already wiped the state by then.
       showLogin();
     }
   });
