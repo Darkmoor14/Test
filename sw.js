@@ -57,11 +57,19 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url.includes('admin.html') && 'focus' in client) {
-          client.postMessage({ type: 'go-to-ticket-url', url: targetUrl });
-          return client.focus();
-        }
+      // Match either admin.html (full dashboard) or admin-2.html (the
+      // report-focused account's simplified mobile UI) — both share
+      // this one service worker. This used to only check for
+      // 'admin.html', which is NOT a substring of 'admin-2.html', so
+      // admin-2.html users' already-open tab was never found here —
+      // every notification tap fell through to openWindow() below and
+      // spawned a brand new tab instead of updating the existing one,
+      // which is why tapping a notification often looked like it did
+      // nothing until manually switching tabs.
+      const adminClient = clientList.find(client => /\/admin(-2)?\.html(\?|#|$)/.test(client.url));
+      if (adminClient && 'focus' in adminClient) {
+        adminClient.postMessage({ type: 'go-to-ticket-url', url: targetUrl });
+        return adminClient.focus();
       }
       if (self.clients.openWindow) {
         return self.clients.openWindow(targetUrl);

@@ -6189,9 +6189,13 @@
     if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
     // Archived tickets are not part of the regular ticket filters.
     // Send them to their real home instead of silently leaving the
-    // selected card out of the rendered list.
-    setTicketYearFilter('all');
-    setTicketMonthFilter('all');
+    // selected card out of the rendered list. Only widen the year/month
+    // filters when the target ticket actually falls outside them —
+    // otherwise clicking into (or getting a push notification for) a
+    // ticket that was already visible under e.g. "2026 / Octombrie"
+    // silently blew that filter back to "Toți anii" every time.
+    if (!matchesYear(targetTicket, ticketYearFilter)) setTicketYearFilter('all');
+    if (!matchesMonth(targetTicket, ticketMonthFilter)) setTicketMonthFilter('all');
     setTicketFilter(targetTicket.archived ? 'Archived' : 'Toate');
     // Sesizări funcționale/accidente are two separate tabs sharing one
     // panel — route to whichever one actually holds this ticket's
