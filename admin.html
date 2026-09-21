@@ -2043,6 +2043,10 @@
         endpoint: subJson.endpoint,
         p256dh: subJson.keys.p256dh,
         auth: subJson.keys.auth,
+        // So send-push can point a cold-start notification (no admin
+        // tab already open) at this specific page instead of always
+        // opening admin.html for every device.
+        landing_page: 'admin.html',
       }, { onConflict: 'endpoint' });
       if (error) {
         console.error('Push subscription save failed:', error);
