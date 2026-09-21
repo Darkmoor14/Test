@@ -768,6 +768,16 @@
     100%{box-shadow:0 0 0 3px transparent;}
   }
   .ticket-card.jump-highlight{animation:ticket-jump-highlight 1.8s ease-out;}
+  /* Used to flag the ticket a push notification points at, right on
+     its Overview row/card — red (var(--copper-500) is the app's actual
+     red, despite the "copper" name) rather than the copper-500 outline
+     above, so it reads as "look here" rather than "you edited this". */
+  @keyframes overview-row-highlight{
+    0%{background:var(--copper-050); box-shadow:inset 3px 0 0 var(--copper-500);}
+    100%{background:transparent; box-shadow:inset 3px 0 0 transparent;}
+  }
+  .overview-table tr.overview-row-highlight{animation:overview-row-highlight 2.4s ease-out;}
+  .ov-card.overview-row-highlight{animation:overview-row-highlight 2.4s ease-out;}
   .overview-sidebar{display:flex;flex-direction:row;gap:16px;}
   /* "Just leave the table" — the charts describe trends over time,
      which isn't what this dedicated report-focused view is for. */
@@ -1999,7 +2009,10 @@
   function goToTicketByNumber(ticketNumber){
     const match = allTickets.find(t => t.ticket_number === ticketNumber);
     if (!match) return false;
-    goToTicket(match.id);
+    // Notification taps land on Overview with the row/card flashed
+    // red, not the full editable card on Sesizări — see
+    // goToTicketOverview()'s own comment.
+    goToTicketOverview(match.id);
     return true;
   }
 
@@ -3612,7 +3625,7 @@
         ? calendarDaysBetween(t.submitted_on, t.resolved_on)
         : null;
       return `
-        <tr class="${isFullyComplete ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''}">
+        <tr id="overview-row-${t.id}" class="${isFullyComplete ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''}">
           <td class="overview-ticket-num"><a href="#" class="ticket-link" data-ticket-id="${t.id}">${escapeHtml(t.ticket_number || '—')}</a></td>
           <td class="${isAging ? 'aging-date' : ''}" title="${isAging ? 'Deschis de peste ' + AGING_THRESHOLD_DAYS + ' zile' : ''}">${isAging ? '⚠ ' : ''}${fmtDateOnly(t.submitted_on)}</td>
           <td>${isUrgent ? 'Accident' : 'Defect'}</td>
@@ -3644,7 +3657,7 @@
         const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
         const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
         return `
-          <button type="button" class="ov-card ${isFullyComplete ? 'done' : ''} ${isUrgent && !isDone ? 'urgent' : ''}" data-ticket-id="${t.id}">
+          <button type="button" id="overview-card-${t.id}" class="ov-card ${isFullyComplete ? 'done' : ''} ${isUrgent && !isDone ? 'urgent' : ''}" data-ticket-id="${t.id}">
             <div class="ov-card-top">
               <span class="status-bubble ${isDone ? 'done' : 'active'}"></span>
               <span class="ov-card-type">${isUrgent ? 'Accident' : 'Defect'}</span>
@@ -3960,6 +3973,46 @@
         setTimeout(() => card.classList.remove('jump-highlight'), 1800);
       }
     });
+  }
+
+  // Used specifically for a push-notification tap (both the
+  // already-open-tab postMessage path and the cold-start ?ticket= URL
+  // param path — see goToTicketByNumber below) — lands on Overview
+  // with the ticket's row/card flashed red instead of opening the full
+  // editable card on Sesizări the way goToTicket() (clicking a ticket
+  // number, or the ticket link in the overview table itself) does.
+  function goToTicketOverview(ticketId){
+    const ticket = allTickets.find(t => String(t.id) === String(ticketId));
+    if (!ticket) return false;
+    overviewSearchQuery = '';
+    const overviewSearchBoxEl = document.getElementById('overviewSearchBox');
+    if (overviewSearchBoxEl) overviewSearchBoxEl.value = '';
+    overviewDayFilter = null;
+    overviewCardFilter = null;
+    updateOverviewNarrowFilterUI();
+    // "Toate" guarantees the ticket is visible regardless of its own
+    // status, same reasoning as goToTicket()'s own "Toate" above.
+    setOverviewStatusFilter('all');
+    if (!matchesYear(ticket, ticketYearFilter)) setTicketYearFilter('all');
+    if (!matchesMonth(ticket, ticketMonthFilter)) setTicketMonthFilter('all');
+    openAdminTab('overview');
+    renderOverviewTable();
+
+    requestAnimationFrame(() => {
+      const row = document.getElementById('overview-row-' + ticketId);
+      if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.classList.add('overview-row-highlight');
+        setTimeout(() => row.classList.remove('overview-row-highlight'), 2400);
+      }
+      const card = document.getElementById('overview-card-' + ticketId);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('overview-row-highlight');
+        setTimeout(() => card.classList.remove('overview-row-highlight'), 2400);
+      }
+    });
+    return true;
   }
 
   document.getElementById('overviewTableBody').addEventListener('click', (e) => {
