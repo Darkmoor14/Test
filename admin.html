@@ -3541,7 +3541,12 @@
   // accident matters regardless of what year's archive someone
   // happens to be browsing at the time.
   function renderPrioritySummary(){
-    const active = allTickets.filter(t => !t.archived && t.status !== 'Terminat');
+    // Duplicates excluded here too — a duplicate no longer archives
+    // immediately (it stays open/visible like any other ticket until
+    // its canonical resolves), so without this it would double-count
+    // toward "what needs attention right now" alongside the real
+    // ticket it's linked to.
+    const active = allTickets.filter(t => !t.archived && t.status !== 'Terminat' && !isDuplicateTicket(t));
     const agingCount = active.filter(t => {
       if (!t.submitted_on) return false;
       const daysOpen = (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24);
@@ -4348,27 +4353,27 @@
           ${isEditing ? `
           <div class="ctrl-field">
             <label>Nume reclamant</label>
-            <input type="text" class="f-name" value="${safeName}" ${isArchived ? 'disabled' : ''}>
+            <input type="text" class="f-name" value="${safeName}" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
           </div>
           <div class="ctrl-field">
             <label>Telefon</label>
-            <input type="text" class="f-phone" value="${safePhone}" ${isArchived ? 'disabled' : ''}>
+            <input type="text" class="f-phone" value="${safePhone}" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
           </div>
           <div class="ctrl-field">
             <label>Email</label>
-            <input type="email" class="f-email" value="${safeEmail}" ${isArchived ? 'disabled' : ''}>
+            <input type="email" class="f-email" value="${safeEmail}" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
           </div>
           <div class="ctrl-field">
             <label>Adresă identificare loc defect</label>
-            <input type="text" class="f-address" value="${safeAddress}" ${isArchived ? 'disabled' : ''}>
+            <input type="text" class="f-address" value="${safeAddress}" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
           </div>
           <div class="ctrl-field">
             <label>Data trimiterii</label>
-            <input type="date" class="f-submitted-date" value="${submittedDateParts.date}" ${isArchived ? 'disabled' : ''}>
+            <input type="date" class="f-submitted-date" value="${submittedDateParts.date}" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
           </div>
           <div class="ctrl-field">
             <label>Descriere</label>
-            <input type="text" class="f-description" value="${safeDescription}" ${isArchived ? 'disabled' : ''}>
+            <input type="text" class="f-description" value="${safeDescription}" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
           </div>
           ` : `
           <div><span class="k">Nume</span>${safeName || '—'}</div>
@@ -4401,14 +4406,14 @@
           ` : `
           <div class="ctrl-field stare-field">
             <label>Stare</label>
-            <select class="f-status" ${isArchived ? 'disabled' : ''}>
+            <select class="f-status" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
               <option value="Ongoing" ${t.status === 'Ongoing' ? 'selected' : ''}>Activ</option>
               <option value="Terminat" ${t.status === 'Terminat' ? 'selected' : ''}>Soluționat</option>
             </select>
           </div>
           <div class="ctrl-field resolver-field">
             <label>Soluționat de</label>
-            <input type="text" class="f-resolver" placeholder="Nume angajat" value="${safeResolvedBy}" ${isArchived ? 'disabled' : ''}>
+            <input type="text" class="f-resolver" placeholder="Nume angajat" value="${safeResolvedBy}" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
           </div>
           ${t.resolution_note ? `
           <div class="ctrl-field resnote-field">
@@ -4418,18 +4423,18 @@
           ` : ''}
           <div class="ctrl-field resolved-date-field">
             <label>Data soluționării</label>
-            <input type="date" class="f-resolved-date" value="${resolvedDateParts.date}" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>
+            <input type="date" class="f-resolved-date" value="${resolvedDateParts.date}" ${(isArchived || isDuplicate || t.status !== 'Terminat') ? 'disabled' : ''}>
           </div>
           `}
-          ${isArchived
-            ? (isDuplicate
-                ? `<button type="button" class="btn f-unduplicate">Anulează duplicat</button>`
-                : `<button class="btn f-restore">Dezarhivează</button>`)
-            : (isDone && !isEditing)
-              ? `<div class="resnote-readonly">Pentru modificări, selectează tichetul și apasă Editează.</div>`
-              : `<button class="btn btn-primary f-save">Salvează<span class="save-status">✓ Salvat</span></button>`
+          ${isDuplicate
+            ? `<button type="button" class="btn f-unduplicate">Anulează duplicat</button>`
+            : isArchived
+              ? `<button class="btn f-restore">Dezarhivează</button>`
+              : (isDone && !isEditing)
+                ? `<div class="resnote-readonly">Pentru modificări, selectează tichetul și apasă Editează.</div>`
+                : `<button class="btn btn-primary f-save">Salvează<span class="save-status">✓ Salvat</span></button>`
           }
-          ${(!isArchived && !isDuplicate && t.status !== 'Terminat') ? `<button type="button" class="btn f-mark-duplicate">Marchează duplicat</button>` : ''}
+          ${(!isDuplicate && !isArchived && t.status !== 'Terminat') ? `<button type="button" class="btn f-mark-duplicate">Marchează duplicat</button>` : ''}
         </div>
       `;
 
@@ -4799,9 +4804,16 @@
   async function markAsDuplicate(ticketId){
     const canonicalId = await openDuplicateLinkSheet(ticketId);
     if (!canonicalId) return;
+    // Deliberately does NOT archive the ticket — it stays visible on
+    // the public site exactly as before (an early citizen complaint
+    // about "my ticket vanished" is worse than a rare double
+    // dispatch). It only ever archives later through the normal
+    // 14-days-after-resolution sweep (autoArchiveStaleTickets), once
+    // it has picked up a real resolution via the canonical ticket —
+    // see sync_duplicate_ticket()/propagate_resolution_to_duplicates().
     const { error } = await supabaseClient
       .from('tickets')
-      .update({ duplicate_of: canonicalId, archived: true, archived_at: new Date().toISOString() })
+      .update({ duplicate_of: canonicalId })
       .eq('id', ticketId);
     if (error) {
       console.error(error);
