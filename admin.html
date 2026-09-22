@@ -1742,6 +1742,7 @@
         <span id="selectionCount">0 selectate</span>
         <button class="btn" id="clearSelectionBtn" type="button">Anulează selecția</button>
         <button class="btn" id="editSelectedBtn" type="button">Editează</button>
+        <button class="btn" id="markDuplicatesSelectedBtn" type="button">Marchează ca duplicate</button>
         <button class="btn btn-primary" id="archiveSelectedBtn" type="button">Arhivează selectate</button>
       </div>
       <div class="ticket-list" id="ticketList"></div>
@@ -4955,6 +4956,7 @@
   const archiveSelectedBtn = document.getElementById('archiveSelectedBtn');
   const clearSelectionBtn = document.getElementById('clearSelectionBtn');
   const editSelectedBtn = document.getElementById('editSelectedBtn');
+  const markDuplicatesSelectedBtn = document.getElementById('markDuplicatesSelectedBtn');
 
   function updateArchiveBar(){
     selectionCount.textContent = selectedIds.size + ' selectate';
@@ -4964,6 +4966,11 @@
     // bulk-editing several at once doesn't, so this only shows when
     // exactly one is selected — with 2+, only Archive remains.
     editSelectedBtn.style.display = selectedIds.size === 1 ? 'inline-flex' : 'none';
+    // Marking duplicates only makes sense with 2+ selected (one to
+    // keep as the original, the rest pointing at it) — with a single
+    // ticket selected, the per-card "Marchează duplicat" button
+    // already covers that case.
+    markDuplicatesSelectedBtn.style.display = selectedIds.size >= 2 ? 'inline-flex' : 'none';
   }
 
   editSelectedBtn.addEventListener('click', () => {
@@ -4999,6 +5006,37 @@
       alert('Eroare la arhivare. Încercați din nou.');
       return;
     }
+    selectedIds.clear();
+    updateArchiveBar();
+    loadTickets();
+  });
+
+  markDuplicatesSelectedBtn.addEventListener('click', async () => {
+    if (selectedIds.size < 2) return;
+    const canonicalId = await openDuplicateLinkSheet(null);
+    if (!canonicalId) return;
+    const targetIds = Array.from(selectedIds).filter(id => id !== canonicalId);
+    if (targetIds.length === 0) {
+      alert('Sesizarea aleasă ca originală este singura selectată — nu mai rămâne nimic de marcat ca duplicat.');
+      return;
+    }
+    if (!confirm(`Marchezi ${targetIds.length} sesizări ca duplicate ale sesizării alese? Rămân vizibile pe site, doar marcate cu mov în panou.`)) {
+      return;
+    }
+    markDuplicatesSelectedBtn.disabled = true;
+    const { error } = await supabaseClient
+      .from('tickets')
+      .update({ duplicate_of: canonicalId })
+      .in('id', targetIds);
+    markDuplicatesSelectedBtn.disabled = false;
+
+    if (error) {
+      console.error(error);
+      alert('Eroare la marcarea ca duplicate. Încercați din nou.');
+      return;
+    }
+    const canonicalTicket = allTickets.find(t => t.id === canonicalId);
+    showToast(`${targetIds.length} sesizări au fost marcate ca duplicate ale ${canonicalTicket ? canonicalTicket.ticket_number : 'sesizării alese'}.`);
     selectedIds.clear();
     updateArchiveBar();
     loadTickets();
