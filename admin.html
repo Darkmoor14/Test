@@ -1879,6 +1879,37 @@
   </div>
 </div>
 
+<div class="mobile-sheet" id="repairScopeSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="repairScopeSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h3 id="repairScopeSheetTitle">Fișă remedieri</h3>
+        <p>Alege ce sesizări active vrei să incluzi.</p>
+      </div>
+      <button type="button" class="sheet-close" id="repairScopeCloseBtn" aria-label="Închide">×</button>
+    </div>
+    <div class="report-type-list">
+      <button type="button" class="report-type-option" id="repairScopeAllBtn">
+        <strong>Toate sesizările active</strong>
+        <span>Defecte și accidente, împreună.</span>
+      </button>
+      <button type="button" class="report-type-option" id="repairScopeFuncBtn">
+        <strong>Doar defecte</strong>
+        <span>Sesizări funcționale active, fără accidente.</span>
+      </button>
+      <button type="button" class="report-type-option" id="repairScopeAccidentBtn">
+        <strong>Doar accidente</strong>
+        <span>Doar accidentele active.</span>
+      </button>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="repairScopeCancelBtn">Anulează</button>
+    </div>
+  </div>
+</div>
+
 <div class="mobile-sheet" id="reportMonthSheet" aria-hidden="true">
   <div class="mobile-sheet-backdrop"></div>
   <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="reportMonthSheetTitle">
@@ -5735,7 +5766,12 @@
     return workbook.xlsx.writeBuffer();
   }
 
-  async function exportRepairTemplate(btn){
+  const REPAIR_SCOPE_LABELS = {
+    all: 'sesizări active',
+    functional: 'defecte active',
+    accident: 'accidente active',
+  };
+  async function exportRepairTemplate(btn, scope){
     // Icon-only button now (see the toolbar cleanup) — disabling it
     // is feedback enough (.btn:disabled dims it) without swapping
     // its content for loading text and permanently losing the icon
@@ -5750,10 +5786,16 @@
       // (those show up under "Așteaptă raport" instead, not here).
       // The repair-sheet *import* matching further down searches
       // both sets, since an uploaded sheet can cover either kind —
-      // only this download is scoped to active-only.
-      const activeTickets = allTickets.filter(t => t.status !== 'Terminat' && !t.archived);
+      // only this download is scoped to active-only. Further narrowed
+      // to just defecte or just accidente when that's what was picked
+      // in openRepairScopeSelection.
+      const activeTickets = allTickets.filter(t => t.status !== 'Terminat' && !t.archived
+        && (scope === 'functional' ? t.type !== 'Anunt accident'
+          : scope === 'accident' ? t.type === 'Anunt accident'
+          : true));
+      const scopeLabel = REPAIR_SCOPE_LABELS[scope] || REPAIR_SCOPE_LABELS.all;
       if (activeTickets.length === 0) {
-        alert('Nu există sesizări active în acest moment.');
+        alert(`Nu există ${scopeLabel} în acest moment.`);
         return;
       }
       await loadExcelJs();
@@ -5763,18 +5805,61 @@
       const a = document.createElement('a');
       a.href = url;
       const today = new Date().toISOString().slice(0, 10);
-      a.download = `fisa-remedieri-active-${today}.xlsx`;
+      const scopeSuffix = scope === 'functional' ? '-defecte' : scope === 'accident' ? '-accidente' : '';
+      a.download = `fisa-remedieri-active${scopeSuffix}-${today}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast(`Fișa de remedieri a fost descărcată (${activeTickets.length} sesizări active).`);
+      showToast(`Fișa de remedieri a fost descărcată (${activeTickets.length} ${scopeLabel}).`);
     } catch (err) {
       console.error('Repair template export failed:', err);
       alert('Eroare la generarea fișei: ' + (err && err.message ? err.message : 'motiv necunoscut'));
     } finally {
       btn.disabled = false;
     }
+  }
+
+  function openRepairScopeSelection(){
+    const sheet = document.getElementById('repairScopeSheet');
+    const allBtn = document.getElementById('repairScopeAllBtn');
+    const funcBtn = document.getElementById('repairScopeFuncBtn');
+    const accidentBtn = document.getElementById('repairScopeAccidentBtn');
+    const cancelBtn = document.getElementById('repairScopeCancelBtn');
+    const closeBtn = document.getElementById('repairScopeCloseBtn');
+    const backdrop = sheet ? sheet.querySelector('.mobile-sheet-backdrop') : null;
+    if (!sheet || !allBtn || !funcBtn || !accidentBtn || !cancelBtn || !closeBtn || !backdrop) {
+      return Promise.resolve('all');
+    }
+    setSheetOpen('repairScopeSheet', true);
+    return new Promise(resolve => {
+      let settled = false;
+      const cleanup = (result) => {
+        if (settled) return;
+        settled = true;
+        setSheetOpen('repairScopeSheet', false);
+        allBtn.removeEventListener('click', handleAll);
+        funcBtn.removeEventListener('click', handleFunc);
+        accidentBtn.removeEventListener('click', handleAccident);
+        cancelBtn.removeEventListener('click', handleCancel);
+        closeBtn.removeEventListener('click', handleCancel);
+        backdrop.removeEventListener('click', handleCancel);
+        document.removeEventListener('keydown', handleKeydown);
+        resolve(result);
+      };
+      const handleAll = () => cleanup('all');
+      const handleFunc = () => cleanup('functional');
+      const handleAccident = () => cleanup('accident');
+      const handleCancel = () => cleanup(null);
+      const handleKeydown = (event) => { if (event.key === 'Escape') handleCancel(); };
+      allBtn.addEventListener('click', handleAll);
+      funcBtn.addEventListener('click', handleFunc);
+      accidentBtn.addEventListener('click', handleAccident);
+      cancelBtn.addEventListener('click', handleCancel);
+      closeBtn.addEventListener('click', handleCancel);
+      backdrop.addEventListener('click', handleCancel);
+      document.addEventListener('keydown', handleKeydown);
+    });
   }
 
   function buildYearlyWorkbookBinary(yearTickets, year, monthSelection){
@@ -5889,7 +5974,9 @@
       const reportType = await openReportTypeSelection();
       if (reportType === null) return;
       if (reportType === 'repair') {
-        await exportRepairTemplate(btn);
+        const scope = await openRepairScopeSelection();
+        if (scope === null) return;
+        await exportRepairTemplate(btn, scope);
         return;
       }
       const year = ticketYearFilter === 'all' ? new Date().getFullYear() : Number(ticketYearFilter);
