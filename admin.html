@@ -5079,11 +5079,20 @@
       .replace(/[țţ]/g, 't');
   }
   function isWhitelistedReporterName(name){
+    return institutionalCategoryLabel(name) !== null;
+  }
+
+  // Fixed display order for the cover page's institutional-source
+  // summary (see institutionalCategoryLabel below) — always shown in
+  // this order, one row per source, regardless of which ones actually
+  // had tickets in the selected period.
+  const INSTITUTIONAL_CATEGORY_ORDER = ['Autosesizare', 'Biroul energetic', 'Poliția locală'];
+  function institutionalCategoryLabel(name){
     const normalized = normalizeRomanianText(name);
-    if (normalized.includes('politia') && normalized.includes('locala')) return true;
-    if (normalized.includes('birou') && normalized.includes('energetic')) return true;
-    if (normalized.includes('autosesizare')) return true;
-    return false;
+    if (normalized.includes('politia') && normalized.includes('locala')) return 'Poliția locală';
+    if (normalized.includes('birou') && normalized.includes('energetic')) return 'Biroul energetic';
+    if (normalized.includes('autosesizare')) return 'Autosesizare';
+    return null;
   }
 
   function reportTicketType(ticket){
@@ -5115,20 +5124,27 @@
   }
 
   function buildMonthlyStats(monthTickets, index){
-    const active = monthTickets.filter(ticket => reportTicketStatus(ticket) === 'Activ');
-    const resolved = monthTickets.filter(ticket => reportTicketStatus(ticket) === 'Terminat');
-    const defects = monthTickets.filter(ticket => reportTicketType(ticket) === 'Defect');
-    const accidents = monthTickets.filter(ticket => reportTicketType(ticket) === 'Accident');
+    // Every count/average here excludes duplicates, same rationale as
+    // everywhere else in the app — a duplicate isn't a separately
+    // occurring issue, just a second report of one already counted.
+    // `tickets` itself keeps every ticket including duplicates, since
+    // the per-ticket table in makeMonthlyWorksheet lists them all
+    // (marked via the "Duplicat" column) rather than hiding them.
+    const nonDuplicateTickets = monthTickets.filter(ticket => !isDuplicateTicket(ticket));
+    const active = nonDuplicateTickets.filter(ticket => reportTicketStatus(ticket) === 'Activ');
+    const resolved = nonDuplicateTickets.filter(ticket => reportTicketStatus(ticket) === 'Terminat');
+    const defects = nonDuplicateTickets.filter(ticket => reportTicketType(ticket) === 'Defect');
+    const accidents = nonDuplicateTickets.filter(ticket => reportTicketType(ticket) === 'Accident');
     return {
       index,
       name: REPORT_MONTHS[index],
       tickets: monthTickets,
-      total: monthTickets.length,
+      total: nonDuplicateTickets.length,
       active: active.length,
       resolved: resolved.length,
       defects: defects.length,
       accidents: accidents.length,
-      avgHours: reportHoursToResolve(monthTickets),
+      avgHours: reportHoursToResolve(nonDuplicateTickets),
     };
   }
 
@@ -5153,15 +5169,16 @@
       ['Sesizări soluționate', stats.resolved],
       ['Defecte', stats.defects],
       ['Accidente', stats.accidents],
-      ['Ore medii de soluționare', stats.avgHours],
       [],
-      ['Nr. sesizare', 'Tip', 'Nume', 'Telefon', 'Email', 'Adresă', 'Descriere', 'Stare', 'Soluționat de', 'Ce s-a făcut', 'Trimis la', 'Soluționat la'],
     ];
+    const headerRowIndex = rows.length;
+    rows.push(['Nr. sesizare', 'Tip', 'Nume', 'Telefon', 'Email', 'Adresă', 'Descriere', 'Stare', 'Soluționat de', 'Ce s-a făcut', 'Trimis la', 'Soluționat la', 'Duplicat']);
 
     if (stats.tickets.length === 0) {
       rows.push(['Nu există sesizări în această lună.']);
     } else {
       stats.tickets.forEach(ticket => {
+        const canonical = getCanonicalTicket(ticket);
         rows.push([
           ticket.ticket_number || '',
           reportTicketType(ticket),
@@ -5175,14 +5192,16 @@
           ticket.resolution_note || '',
           reportDateLabel(ticket.submitted_on),
           reportDateLabel(ticket.resolved_on),
+          canonical ? `Duplicat al ${canonical.ticket_number || '—'}` : '',
         ]);
       });
     }
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!freeze'] = { xSplit: 0, ySplit: 11 };
+    const freezeRow = headerRowIndex + 1;
+    ws['!freeze'] = { xSplit: 0, ySplit: freezeRow };
     if (stats.tickets.length > 0) {
-      ws['!autofilter'] = { ref: `A11:L${rows.length}` };
+      ws['!autofilter'] = { ref: `A${freezeRow}:M${rows.length}` };
     }
     autosizeWorksheet(ws, rows);
     return ws;
@@ -5918,15 +5937,20 @@
     const selectedMonths = monthSelection === 'all'
       ? monthlyStats
       : monthlyStats.filter(month => monthSelection.includes(month.index));
-    const exportTickets = selectedMonths.flatMap(month => month.tickets);
+    // Every ticket in scope, including duplicates — the per-month
+    // sheets below list all of them (marked via their own "Duplicat"
+    // column). Every count/average on this cover page, though, is
+    // computed from statsTickets (duplicates excluded) so a duplicate
+    // is never counted twice toward the same underlying issue.
+    const allSelectedTickets = selectedMonths.flatMap(month => month.tickets);
+    const statsTickets = allSelectedTickets.filter(ticket => !isDuplicateTicket(ticket));
     const scopeLabel = monthSelection === 'all'
       ? `toate lunile din ${year}`
       : selectedMonths.map(month => month.name).join(', ') + ` ${year}`;
-    const activeCount = exportTickets.filter(ticket => reportTicketStatus(ticket) === 'Activ').length;
-    const resolvedCount = exportTickets.filter(ticket => reportTicketStatus(ticket) === 'Terminat').length;
-    const defectCount = exportTickets.filter(ticket => reportTicketType(ticket) === 'Defect').length;
-    const accidentCount = exportTickets.filter(ticket => reportTicketType(ticket) === 'Accident').length;
-    const avgHours = reportHoursToResolve(exportTickets);
+    const activeCount = statsTickets.filter(ticket => reportTicketStatus(ticket) === 'Activ').length;
+    const resolvedCount = statsTickets.filter(ticket => reportTicketStatus(ticket) === 'Terminat').length;
+    const defectCount = statsTickets.filter(ticket => reportTicketType(ticket) === 'Defect').length;
+    const accidentCount = statsTickets.filter(ticket => reportTicketType(ticket) === 'Accident').length;
     const busiestMonth = selectedMonths.reduce((best, current) => current.total > best.total ? current : best, selectedMonths[0]);
     const slowestMonth = selectedMonths.reduce((best, current) => current.avgHours > best.avgHours ? current : best, selectedMonths[0]);
 
@@ -5936,17 +5960,17 @@
       [],
       ['Indicator', 'Valoare'],
       ['Perioadă', scopeLabel],
-      ['Total sesizări', exportTickets.length],
+      ['Total sesizări', statsTickets.length],
       ['Sesizări active', activeCount],
       ['Sesizări soluționate', resolvedCount],
       ['Defecte', defectCount],
       ['Accidente', accidentCount],
-      ['Ore medii de soluționare', avgHours],
       ['Luna cu cele mai multe sesizări', `${busiestMonth.name} (${busiestMonth.total})`],
       ['Luna cu timpul mediu cel mai mare', `${slowestMonth.name} (${slowestMonth.avgHours} ore)`],
       [],
-      ['Lună', 'Total', 'Active', 'Soluționate', 'Defecte', 'Accidente', 'Ore medii'],
     ];
+    const monthlyHeaderRowIndex = coverRows.length;
+    coverRows.push(['Lună', 'Total', 'Active', 'Soluționate', 'Defecte', 'Accidente', 'Ore medii']);
 
     selectedMonths.forEach(month => {
       coverRows.push([
@@ -5960,31 +5984,27 @@
       ]);
     });
 
-    // Sesizări de la instituții — tickets whose reporter name matches
-    // the whitelist (Poliția locală / Biroul energetic / Autosesizare).
-    // Only these three specifically are ever named here; every other
-    // ticket's real reporter name stays out of this export entirely,
-    // matching the same restriction already enforced for the public
-    // website (see public-tickets-name-whitelist.sql).
-    const institutionalTickets = exportTickets.filter(ticket => isWhitelistedReporterName(ticket.name));
+    // Sesizări de la instituții — instead of listing every matching
+    // ticket individually, this is just a count per known source
+    // (Autosesizare / Biroul energetic / Poliția locală). Only these
+    // three specifically are ever named here; every other ticket's
+    // real reporter name stays out of this export entirely, matching
+    // the same restriction already enforced for the public website
+    // (see public-tickets-name-whitelist.sql).
+    const institutionalCounts = new Map();
+    statsTickets.forEach(ticket => {
+      const label = institutionalCategoryLabel(ticket.name);
+      if (label) institutionalCounts.set(label, (institutionalCounts.get(label) || 0) + 1);
+    });
     coverRows.push([]);
     coverRows.push(['Sesizări de la instituții']);
-    coverRows.push(['Nr. sesizare', 'Raportat de', 'Adresă', 'Data']);
-    if (institutionalTickets.length === 0) {
-      coverRows.push(['Nicio sesizare de la instituții în această perioadă.']);
-    } else {
-      institutionalTickets.forEach(ticket => {
-        coverRows.push([
-          ticket.ticket_number || '',
-          ticket.name || '',
-          ticket.address || '',
-          reportDateLabel(ticket.submitted_on),
-        ]);
-      });
-    }
+    coverRows.push(['Sursă', 'Nr. sesizări']);
+    INSTITUTIONAL_CATEGORY_ORDER.forEach(label => {
+      coverRows.push([label, institutionalCounts.get(label) || 0]);
+    });
 
     const coverSheet = XLSX.utils.aoa_to_sheet(coverRows);
-    coverSheet['!freeze'] = { xSplit: 0, ySplit: 15 };
+    coverSheet['!freeze'] = { xSplit: 0, ySplit: monthlyHeaderRowIndex + 1 };
     autosizeWorksheet(coverSheet, coverRows);
     XLSX.utils.book_append_sheet(workbook, coverSheet, `Coperta ${year}`.slice(0, 31));
 
@@ -6021,12 +6041,13 @@
       const monthSelection = await openReportMonthSelection(year);
       if (monthSelection === null) return;
 
-      // Duplicates excluded — they're not a separately-occurring issue,
-      // just a second report of one a canonical ticket already covers,
-      // so including both would double-count it in every stat this
-      // report computes (monthly volume, resolution-time averages).
+      // Duplicates are NOT excluded here — they're still listed in the
+      // per-month sheets (marked via the "Duplicat" column), just like
+      // any other ticket. buildYearlyWorkbookBinary/buildMonthlyStats
+      // exclude them from every count/average instead, so a duplicate
+      // is never counted twice toward the same underlying issue.
       const yearTickets = allTickets.filter(t => {
-        if (!t.submitted_on || isDuplicateTicket(t)) return false;
+        if (!t.submitted_on) return false;
         return parseTicketDate(t.submitted_on).getFullYear() === year;
       });
       if (yearTickets.length === 0) {
