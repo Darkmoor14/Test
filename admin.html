@@ -2590,6 +2590,24 @@
   // legitimate reason for either date field to ever be further in the
   // future than that — every ticket describes something that already
   // happened.
+  // The one case worth fixing automatically instead of just blocking:
+  // a native date input's value is always zero-padded to 4 digits, so
+  // someone typing "26" instead of "2026" — if the browser accepts it
+  // at all rather than leaving the field empty — produces the literal
+  // string "0026-MM-DD". That's an unambiguous truncation (the year
+  // really is "26", just missing its century), so it's safe to add
+  // 2000 automatically rather than making someone go back and retype
+  // it. A different wrong year (2029 instead of 2026) is NOT a
+  // truncation — there's no way to guess what was actually meant — so
+  // that stays a hard block via hasSuspiciousYear() below, unchanged.
+  function normalizeYearInDateValue(val){
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(val || '');
+    if (!m) return val;
+    const year = parseInt(m[1], 10);
+    if (year >= 100) return val;
+    return String(year + 2000).padStart(4, '0') + '-' + m[2] + '-' + m[3];
+  }
+
   function hasSuspiciousYear(val){
     const m = /^(\d{4})-\d{2}-\d{2}$/.exec(val || '');
     if (!m) return false;
@@ -4587,7 +4605,15 @@
           // Computed before the resolved-date check below, since that
           // check needs to compare against this (possibly just-
           // corrected) value, not the stale original.
-          const submittedDateVal = isEditing ? card.querySelector('.f-submitted-date').value : null;
+          let submittedDateVal = isEditing ? card.querySelector('.f-submitted-date').value : null;
+          if (isEditing && submittedDateVal) {
+            const normalized = normalizeYearInDateValue(submittedDateVal);
+            if (normalized !== submittedDateVal) {
+              submittedDateVal = normalized;
+              card.querySelector('.f-submitted-date').value = normalized;
+              showToast(`Anul din data trimiterii a fost corectat automat la ${normalized.slice(0, 4)}.`);
+            }
+          }
           if (isEditing && !submittedDateVal) {
             alert('Data trimiterii nu poate fi golită.');
             return;
@@ -4602,7 +4628,13 @@
 
           let resolvedOnISO;
           if (newStatus === 'Terminat') {
-            const resolvedDateVal = card.querySelector('.f-resolved-date').value;
+            let resolvedDateVal = card.querySelector('.f-resolved-date').value;
+            const normalizedResolved = normalizeYearInDateValue(resolvedDateVal);
+            if (normalizedResolved !== resolvedDateVal) {
+              resolvedDateVal = normalizedResolved;
+              card.querySelector('.f-resolved-date').value = normalizedResolved;
+              showToast(`Anul din data soluționării a fost corectat automat la ${normalizedResolved.slice(0, 4)}.`);
+            }
             if (hasSuspiciousYear(resolvedDateVal)) {
               alert('Anul din data soluționării pare greșit (verificați să fie scris complet, ex: 2026, nu 26).');
               return;
@@ -6494,8 +6526,20 @@
 
   document.getElementById('tfSaveBtn').addEventListener('click', async () => {
     const type = document.getElementById('tf-type').value;
-    const dateVal = document.getElementById('tf-date').value;
-    const resolvedDateVal = document.getElementById('tf-resolved-date').value;
+    let dateVal = document.getElementById('tf-date').value;
+    let resolvedDateVal = document.getElementById('tf-resolved-date').value;
+    const normalizedDateVal = normalizeYearInDateValue(dateVal);
+    const normalizedResolvedDateVal = normalizeYearInDateValue(resolvedDateVal);
+    if (normalizedDateVal !== dateVal) {
+      dateVal = normalizedDateVal;
+      document.getElementById('tf-date').value = normalizedDateVal;
+      showToast(`Anul din data trimiterii a fost corectat automat la ${normalizedDateVal.slice(0, 4)}.`);
+    }
+    if (normalizedResolvedDateVal !== resolvedDateVal) {
+      resolvedDateVal = normalizedResolvedDateVal;
+      document.getElementById('tf-resolved-date').value = normalizedResolvedDateVal;
+      showToast(`Anul din data soluționării a fost corectat automat la ${normalizedResolvedDateVal.slice(0, 4)}.`);
+    }
     const resolvedByVal = document.getElementById('tf-resolved-by').value.trim();
     const name = document.getElementById('tf-name').value.trim();
     const phone = document.getElementById('tf-phone').value.trim();
