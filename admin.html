@@ -2580,9 +2580,21 @@
   // something like "0026-08-15". Catching it at entry (both when
   // creating a ticket and when editing one) is better than relying
   // solely on parseTicketDate() to paper over it everywhere downstream.
+  // Catches a mistyped year in either direction: a browser that
+  // resolved an incomplete year (someone typing "26" instead of
+  // "2026") down to a literal year 26 AD, and — the far more common
+  // real case — a plausible-looking but still wrong 4-digit year like
+  // 2029, most often a fat-finger on a numeric keypad where 6 and 9
+  // sit right above each other. +1 year of tolerance on the upper
+  // bound allows an entry made right at a year boundary; there's no
+  // legitimate reason for either date field to ever be further in the
+  // future than that — every ticket describes something that already
+  // happened.
   function hasSuspiciousYear(val){
     const m = /^(\d{4})-\d{2}-\d{2}$/.exec(val || '');
-    return !!(m && parseInt(m[1], 10) < 1900);
+    if (!m) return false;
+    const year = parseInt(m[1], 10);
+    return year < 1900 || year > new Date().getFullYear() + 1;
   }
 
   function fmtDate(iso){
