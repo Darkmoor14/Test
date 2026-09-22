@@ -3147,6 +3147,17 @@
   // then using the browser's back button to return.
   let overviewCardFilter = null; // null | 'active' | 'aging' | 'functional' | 'accident'
 
+  // Mirrors getFilteredTickets()'s own status-bucket logic exactly —
+  // used by goToTicket() to check whether a target ticket is already
+  // visible under whatever status filter is currently selected,
+  // before deciding whether it actually needs to change at all.
+  function ticketMatchesStatusFilter(t, filterKey){
+    if (filterKey === 'Archived') return !!t.archived;
+    if (t.archived) return false;
+    if (filterKey === 'AwaitingReport') return t.status === 'Terminat' && !t.resolution_note;
+    return filterKey === 'Toate' || t.status === filterKey;
+  }
+
   function getFilteredTickets(){
     const query = ticketSearchQuery.trim().toLowerCase();
     let base;
@@ -3229,7 +3240,7 @@
   // panels, each ×2 for the mobile-original/desktop-duplicate pair)
   // so changing the year from any of them keeps all the others synced
   // automatically.
-  function populateYearFilterSelect(){
+  function populateYearFilterSelect(silent){
     const selects = [
       document.getElementById('yearFilterSelect'),
       document.getElementById('yearFilterSelectTickets'),
@@ -3255,7 +3266,12 @@
       const currentYear = new Date().getFullYear();
       ticketYearFilter = sortedYears.includes(currentYear) ? String(currentYear) : 'all';
       ticketYearFilterInitialized = true;
-    } else if (ticketYearFilter !== 'all' && !sortedYears.some(y => String(y) === ticketYearFilter)) {
+    } else if (!silent && ticketYearFilter !== 'all' && !sortedYears.some(y => String(y) === ticketYearFilter)) {
+      // Only a non-silent (explicit) reload gets to yank the year
+      // filter back to "Toate anii" when the selected year no longer
+      // has any tickets — a silent background refresh (every tab
+      // switch, including the one goToTicket() causes) must never do
+      // this on its own.
       ticketYearFilter = 'all';
     }
 
@@ -4099,7 +4115,7 @@
       return;
     }
     allTickets = data;
-    populateYearFilterSelect();
+    populateYearFilterSelect(silent);
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
@@ -6211,7 +6227,15 @@
     // silently blew that filter back to "Toți anii" every time.
     if (!matchesYear(targetTicket, ticketYearFilter)) setTicketYearFilter('all');
     if (!matchesMonth(targetTicket, ticketMonthFilter)) setTicketMonthFilter('all');
-    setTicketFilter(targetTicket.archived ? 'Archived' : 'Toate');
+    // Same "only widen if necessary" fix as the year/month filters
+    // just above — this used to unconditionally force the status
+    // filter to Toate/Archived on every click, even when the target
+    // ticket was already visible under whatever was currently
+    // selected (e.g. clicking an active ticket while already viewing
+    // "Active").
+    if (!ticketMatchesStatusFilter(targetTicket, activeFilter)) {
+      setTicketFilter(targetTicket.archived ? 'Archived' : 'Toate');
+    }
     // Sesizări funcționale/accidente are two separate tabs sharing one
     // panel — route to whichever one actually holds this ticket's
     // type, instead of a no-longer-valid single "tickets" tab key.
