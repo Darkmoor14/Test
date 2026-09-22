@@ -2448,7 +2448,7 @@
   // panels, each ×2 for the mobile-original/desktop-duplicate pair)
   // so changing the year from any of them keeps all the others synced
   // automatically.
-  function populateYearFilterSelect(){
+  function populateYearFilterSelect(silent){
     const selects = [
       document.getElementById('yearFilterSelect'),
       document.getElementById('yearFilterSelectTickets'),
@@ -2474,7 +2474,15 @@
       const currentYear = new Date().getFullYear();
       ticketYearFilter = sortedYears.includes(currentYear) ? String(currentYear) : 'all';
       ticketYearFilterInitialized = true;
-    } else if (ticketYearFilter !== 'all' && !sortedYears.some(y => String(y) === ticketYearFilter)) {
+    } else if (!silent && ticketYearFilter !== 'all' && !sortedYears.some(y => String(y) === ticketYearFilter)) {
+      // Only a non-silent (explicit) reload gets to yank the year
+      // filter back to "Toate anii" when the selected year no longer
+      // has any tickets. A silent background refresh — the kind that
+      // fires automatically on every tab switch, including the one
+      // goToTicket() causes when jumping from Overview to a ticket's
+      // card — must never do this: it isn't a response to the person
+      // touching the filter at all, so it has no business changing it
+      // out from under them mid-navigation.
       ticketYearFilter = 'all';
     }
 
@@ -3527,7 +3535,7 @@
       return;
     }
     allTickets = data;
-    populateYearFilterSelect();
+    populateYearFilterSelect(silent);
     renderTickets();
     renderOverviewTable();
     renderOverviewCharts();
@@ -3706,6 +3714,7 @@
       const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !isAwaitingReport(t));
       const isUrgent = t.type === 'Anunt accident';
       const isDuplicate = isDuplicateTicket(t);
+      const canonicalTicket = getCanonicalTicket(t);
       const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
       const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
       const resolutionDays = (isDone && t.resolved_on && t.submitted_on)
@@ -3713,15 +3722,19 @@
         : null;
       return `
         <tr id="overview-row-${t.id}" class="${isFullyComplete ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''} ${isDuplicate ? 'duplicate-row' : ''}">
-          <td class="overview-ticket-num"><a href="#" class="ticket-link" data-ticket-id="${t.id}">${escapeHtml(t.ticket_number || '—')}</a>${isDuplicate ? `<span class="duplicate-badge" title="Duplicat al ${escapeHtml(getCanonicalTicket(t)?.ticket_number || '')}">Duplicat</span>` : ''}</td>
+          <td class="overview-ticket-num"><a href="#" class="ticket-link" data-ticket-id="${t.id}">${escapeHtml(t.ticket_number || '—')}</a></td>
           <td class="${isAging ? 'aging-date' : ''}" title="${isAging ? 'Deschis de peste ' + AGING_THRESHOLD_DAYS + ' zile' : ''}">${isAging ? '⚠ ' : ''}${fmtDateOnly(t.submitted_on)}</td>
           <td>${isUrgent ? 'Accident' : 'Defect'}</td>
           <td class="overview-name-cell" title="${escapeHtml(t.name || '')}">${escapeHtml(t.name || '—')}</td>
           <td>${escapeHtml(t.phone || '—')}</td>
           <td class="overview-address-cell">${escapeHtml(t.address || '—')}</td>
           <td><span class="status-pill ${isDone ? 'status-pill-done' : 'status-pill-active'}">${isDone ? 'Soluționat' : 'În curs'}</span></td>
-          <td>${isDone ? `<span class="resolved-date-toggle" data-ticket-id="${t.id}" title="Vezi ce s-a făcut">${fmtDateOnly(t.resolved_on)}</span>` : '—'}</td>
-          <td>${resolutionDays !== null ? formatDurationDays(resolutionDays) : '—'}</td>
+          ${isDuplicate
+            ? `<td><span class="duplicate-badge">Duplicat</span></td>
+               <td>${canonicalTicket ? `<a href="#" class="ticket-link" data-ticket-id="${canonicalTicket.id}" title="Mergi la sesizarea originală">${escapeHtml(canonicalTicket.ticket_number || '—')}</a>` : '—'}</td>`
+            : `<td>${isDone ? `<span class="resolved-date-toggle" data-ticket-id="${t.id}" title="Vezi ce s-a făcut">${fmtDateOnly(t.resolved_on)}</span>` : '—'}</td>
+               <td>${resolutionDays !== null ? formatDurationDays(resolutionDays) : '—'}</td>`
+          }
         </tr>
         ${isDone ? `<tr class="resnote-expand-row" data-ticket-id="${t.id}" style="display:none;"><td colspan="9"><strong>Ce s-a făcut:</strong> ${t.resolution_note ? escapeHtml(t.resolution_note) : '<em>Nu a fost completat încă.</em>'}</td></tr>` : ''}
       `;
@@ -3760,8 +3773,11 @@
               <span class="${isAging ? 'aging' : ''}">${isAging ? '⚠ ' : ''}${fmtDateOnly(t.submitted_on)}</span>
               <span>${escapeHtml(t.name || '—')} · ${escapeHtml(t.phone || '—')}</span>
             </div>
-            ${isDone ? `<div class="ov-card-resolved resolved-date-toggle-mobile" data-ticket-id="${t.id}">Soluționat: ${fmtDateOnly(t.resolved_on)}</div>` : ''}
-            ${isDone ? `<div class="resnote-expand-mobile" data-ticket-id="${t.id}" style="display:none;"><strong>Ce s-a făcut:</strong> ${t.resolution_note ? escapeHtml(t.resolution_note) : '<em>Nu a fost completat încă.</em>'}</div>` : ''}
+            ${isDuplicate
+              ? `<div class="ov-card-resolved duplicate-link-note">Duplicat al ${escapeHtml(getCanonicalTicket(t)?.ticket_number || '—')}</div>`
+              : isDone ? `<div class="ov-card-resolved resolved-date-toggle-mobile" data-ticket-id="${t.id}">Soluționat: ${fmtDateOnly(t.resolved_on)}</div>` : ''
+            }
+            ${(isDone && !isDuplicate) ? `<div class="resnote-expand-mobile" data-ticket-id="${t.id}" style="display:none;"><strong>Ce s-a făcut:</strong> ${t.resolution_note ? escapeHtml(t.resolution_note) : '<em>Nu a fost completat încă.</em>'}</div>` : ''}
           </button>
         `;
       }).join('');
