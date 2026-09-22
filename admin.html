@@ -1280,6 +1280,14 @@
     .ctrl-field.resolved-date-field{min-width:0;width:100%;}
     .ctrl-field.resnote-field{min-width:0;width:100%;}
 
+    /* The per-card "Marchează duplicat" button is redundant clutter
+       at this width — select the ticket's checkbox instead and use
+       the same action from the bulk-selection bar's own popup
+       (markDuplicatesSelectedBtn, see its mobile-specific 1-selected
+       threshold further down in the JS). Desktop keeps the per-card
+       button as-is. */
+    .f-mark-duplicate{display:none;}
+
     /* .pf-grid and .ticket-body are display:grid (not flex), so unlike
        .toolbar/.ticket-controls they can't wrap — a 1fr track still
        can't shrink below its content's min-width. .ctrl-field's
@@ -3433,7 +3441,17 @@
         toggleBtn.classList.remove('active');
       }
     });
+    // Tracks the empty->non-empty transition specifically (not every
+    // keystroke) so config.onSearchStart only fires once per search,
+    // right when it begins — otherwise it'd keep re-widening the
+    // filters back to "all status / current year" on every character
+    // typed, overriding a filter the person deliberately changed
+    // partway through typing.
+    let hadQuery = !!box.value.trim();
     box.addEventListener('input', () => {
+      const hasQuery = !!box.value.trim();
+      if (hasQuery && !hadQuery && config.onSearchStart) config.onSearchStart();
+      hadQuery = hasQuery;
       config.setQuery(box.value);
       config.rerender();
     });
@@ -3444,9 +3462,22 @@
   // ticketMonthFilter state Sesizări's own Filtre popover uses (see
   // further down, once setOverviewStatusFilter/setTicketStatusFilter
   // exist to build the popovers from).
+  // Starting a fresh search (empty -> non-empty, see
+  // createSearchToggleWidget's own hadQuery tracking) widens both
+  // shared filters first, so a search can never silently come up
+  // empty just because it's scoped to some other status/year the
+  // person happened to have selected beforehand — status goes to
+  // "every ticket" and year to the current one specifically (not
+  // "every year"), matching what's actually being asked for here.
+  function widenFiltersForNewSearch(setStatusAll){
+    setStatusAll();
+    setTicketYearFilter(String(new Date().getFullYear()));
+  }
+
   createSearchToggleWidget({
     toggleBtnId: 'overviewSearchToggleBtn', wrapId: 'overviewSearchWrap', boxId: 'overviewSearchBox',
     setQuery: (v) => { overviewSearchQuery = v; }, rerender: renderOverviewTable,
+    onSearchStart: () => widenFiltersForNewSearch(() => setOverviewStatusFilter('all')),
   });
 
   // Sesizări's own search icon — its own search query, since Sesizări
@@ -3455,6 +3486,7 @@
   createSearchToggleWidget({
     toggleBtnId: 'ticketsSearchToggleBtn', wrapId: 'ticketsIconSearchWrap', boxId: 'ticketsIconSearchBox',
     setQuery: (v) => { ticketSearchQuery = v; }, rerender: renderTickets,
+    onSearchStart: () => widenFiltersForNewSearch(() => setTicketStatusFilter('Toate')),
   });
 
   document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsPopover, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(select => {
@@ -4108,13 +4140,20 @@
     agingOnlyFilter = false;
     typeOnlyFilter = null;
     updateActiveNarrowFilterUI();
-    ticketSearchQuery = '';
+    // Carries the Overview search over to Sesizări instead of wiping
+    // it — this is only ever called from an Overview click (mobile
+    // card / desktop ticket-link, see both call sites), so searching
+    // an address there and clicking into a ticket used to silently
+    // drop the search, forcing a trip back to Overview to search the
+    // same thing again.
+    ticketSearchQuery = overviewSearchQuery;
     const ticketsIconSearchBox = document.getElementById('ticketsIconSearchBox');
     const ticketsIconSearchWrap = document.getElementById('ticketsIconSearchWrap');
     const ticketsSearchToggleBtn = document.getElementById('ticketsSearchToggleBtn');
-    if (ticketsIconSearchBox) ticketsIconSearchBox.value = '';
-    if (ticketsIconSearchWrap) ticketsIconSearchWrap.classList.remove('expanded');
-    if (ticketsSearchToggleBtn) ticketsSearchToggleBtn.classList.remove('active');
+    const hasCarriedQuery = !!ticketSearchQuery.trim();
+    if (ticketsIconSearchBox) ticketsIconSearchBox.value = ticketSearchQuery;
+    if (ticketsIconSearchWrap) ticketsIconSearchWrap.classList.toggle('expanded', hasCarriedQuery);
+    if (ticketsSearchToggleBtn) ticketsSearchToggleBtn.classList.toggle('active', hasCarriedQuery);
     // Only widen the status filter to "Toate" when the target ticket
     // wouldn't already be visible under whatever's currently selected
     // — otherwise clicking an active ticket while already viewing
@@ -4969,8 +5008,12 @@
     // Marking duplicates only makes sense with 2+ selected (one to
     // keep as the original, the rest pointing at it) — with a single
     // ticket selected, the per-card "Marchează duplicat" button
-    // already covers that case.
-    markDuplicatesSelectedBtn.style.display = selectedIds.size >= 2 ? 'inline-flex' : 'none';
+    // already covers that case. Below the 600px breakpoint, though,
+    // that per-card button is hidden entirely (see its own CSS rule)
+    // to keep the card clean, so this bar is a single ticket's only
+    // route to marking a duplicate there — allow it from 1 selected.
+    const minDuplicateSelection = window.innerWidth <= 600 ? 1 : 2;
+    markDuplicatesSelectedBtn.style.display = selectedIds.size >= minDuplicateSelection ? 'inline-flex' : 'none';
   }
 
   editSelectedBtn.addEventListener('click', () => {
