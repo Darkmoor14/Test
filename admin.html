@@ -3423,13 +3423,22 @@
   // it expands and focuses; leave it empty and blur, it collapses
   // back" pattern used everywhere else on this page, instantiated
   // per tab instead of copy-pasted. `config` = {
-  //   toggleBtnId, wrapId, boxId, setQuery, rerender
+  //   toggleBtnId, wrapId, boxId, setQuery, rerender,
+  //   getStatus, setStatus, widenStatus
   // }
+  // getStatus/setStatus read and write whichever status filter this
+  // tab uses (overviewStatusFilter/setOverviewStatusFilter or
+  // activeStatusFilter/setTicketStatusFilter); widenStatus is the
+  // value to widen TO right as a fresh search starts (see below).
+  // Returns a handle with applyExternalQuery(), used by goToTicket()
+  // to carry a search over from another tab's widget as if it had
+  // been typed there directly — same widen/restore bookkeeping, same
+  // expanded/active visual state, without a real keystroke.
   function createSearchToggleWidget(config){
     const toggleBtn = document.getElementById(config.toggleBtnId);
     const wrap = document.getElementById(config.wrapId);
     const box = document.getElementById(config.boxId);
-    if (!toggleBtn || !wrap || !box) return;
+    if (!toggleBtn || !wrap || !box) return null;
     toggleBtn.addEventListener('click', () => {
       wrap.classList.add('expanded');
       toggleBtn.classList.add('active');
@@ -3442,19 +3451,42 @@
       }
     });
     // Tracks the empty->non-empty transition specifically (not every
-    // keystroke) so config.onSearchStart only fires once per search,
-    // right when it begins — otherwise it'd keep re-widening the
-    // filters back to "all status / current year" on every character
-    // typed, overriding a filter the person deliberately changed
-    // partway through typing.
+    // keystroke), so the widen-on-start/restore-on-exit below each
+    // only fire once per search, right as it begins/ends — otherwise
+    // typing would keep re-widening the filters on every character,
+    // overriding one the person deliberately changed partway through.
     let hadQuery = !!box.value.trim();
-    box.addEventListener('input', () => {
-      const hasQuery = !!box.value.trim();
-      if (hasQuery && !hadQuery && config.onSearchStart) config.onSearchStart();
+    // Snapshotted status+year right as a search starts, so exiting it
+    // (clearing the box back to empty, including via the native
+    // search-input "×" button) puts them back exactly as they were —
+    // leaving a search behaves like it was never there, rather than
+    // leaving the widened filters stuck in place afterward.
+    let preSearchFilters = null;
+    function handleQueryChange(value){
+      const hasQuery = !!value.trim();
+      if (hasQuery && !hadQuery) {
+        preSearchFilters = { status: config.getStatus(), year: ticketYearFilter };
+        config.setStatus(config.widenStatus);
+        setTicketYearFilter(String(new Date().getFullYear()));
+      } else if (!hasQuery && hadQuery && preSearchFilters) {
+        config.setStatus(preSearchFilters.status);
+        setTicketYearFilter(preSearchFilters.year);
+        preSearchFilters = null;
+      }
       hadQuery = hasQuery;
-      config.setQuery(box.value);
+      config.setQuery(value);
       config.rerender();
-    });
+    }
+    box.addEventListener('input', () => handleQueryChange(box.value));
+    return {
+      applyExternalQuery(value){
+        box.value = value;
+        const hasQuery = !!value.trim();
+        wrap.classList.toggle('expanded', hasQuery);
+        toggleBtn.classList.toggle('active', hasQuery);
+        handleQueryChange(value);
+      },
+    };
   }
 
   // Overview's own search icon — now shown for every role (see the
@@ -3462,31 +3494,19 @@
   // ticketMonthFilter state Sesizări's own Filtre popover uses (see
   // further down, once setOverviewStatusFilter/setTicketStatusFilter
   // exist to build the popovers from).
-  // Starting a fresh search (empty -> non-empty, see
-  // createSearchToggleWidget's own hadQuery tracking) widens both
-  // shared filters first, so a search can never silently come up
-  // empty just because it's scoped to some other status/year the
-  // person happened to have selected beforehand — status goes to
-  // "every ticket" and year to the current one specifically (not
-  // "every year"), matching what's actually being asked for here.
-  function widenFiltersForNewSearch(setStatusAll){
-    setStatusAll();
-    setTicketYearFilter(String(new Date().getFullYear()));
-  }
-
-  createSearchToggleWidget({
+  const overviewSearchWidget = createSearchToggleWidget({
     toggleBtnId: 'overviewSearchToggleBtn', wrapId: 'overviewSearchWrap', boxId: 'overviewSearchBox',
     setQuery: (v) => { overviewSearchQuery = v; }, rerender: renderOverviewTable,
-    onSearchStart: () => widenFiltersForNewSearch(() => setOverviewStatusFilter('all')),
+    getStatus: () => overviewStatusFilter, setStatus: (v) => setOverviewStatusFilter(v), widenStatus: 'all',
   });
 
   // Sesizări's own search icon — its own search query, since Sesizări
   // already had its own separate ticketSearchQuery/getFilteredTickets()
   // search before this.
-  createSearchToggleWidget({
+  const ticketsSearchWidget = createSearchToggleWidget({
     toggleBtnId: 'ticketsSearchToggleBtn', wrapId: 'ticketsIconSearchWrap', boxId: 'ticketsIconSearchBox',
     setQuery: (v) => { ticketSearchQuery = v; }, rerender: renderTickets,
-    onSearchStart: () => widenFiltersForNewSearch(() => setTicketStatusFilter('Toate')),
+    getStatus: () => activeStatusFilter, setStatus: (v) => setTicketStatusFilter(v), widenStatus: 'Toate',
   });
 
   document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsPopover, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(select => {
@@ -4145,15 +4165,12 @@
     // card / desktop ticket-link, see both call sites), so searching
     // an address there and clicking into a ticket used to silently
     // drop the search, forcing a trip back to Overview to search the
-    // same thing again.
-    ticketSearchQuery = overviewSearchQuery;
-    const ticketsIconSearchBox = document.getElementById('ticketsIconSearchBox');
-    const ticketsIconSearchWrap = document.getElementById('ticketsIconSearchWrap');
-    const ticketsSearchToggleBtn = document.getElementById('ticketsSearchToggleBtn');
-    const hasCarriedQuery = !!ticketSearchQuery.trim();
-    if (ticketsIconSearchBox) ticketsIconSearchBox.value = ticketSearchQuery;
-    if (ticketsIconSearchWrap) ticketsIconSearchWrap.classList.toggle('expanded', hasCarriedQuery);
-    if (ticketsSearchToggleBtn) ticketsSearchToggleBtn.classList.toggle('active', hasCarriedQuery);
+    // same thing again. Going through the widget itself (rather than
+    // just poking ticketSearchQuery/the input's value directly) means
+    // it picks up the exact same widen-on-start/restore-on-exit
+    // bookkeeping a real keystroke would.
+    if (ticketsSearchWidget) ticketsSearchWidget.applyExternalQuery(overviewSearchQuery);
+    else ticketSearchQuery = overviewSearchQuery;
     // Only widen the status filter to "Toate" when the target ticket
     // wouldn't already be visible under whatever's currently selected
     // — otherwise clicking an active ticket while already viewing
