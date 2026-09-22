@@ -24,6 +24,7 @@
     --signal-green:#3E7A57; --signal-green-bg:#E9F3EC;
     --signal-green-bright:#1E9E5A; --signal-green-bright-bg:#E4F7EC;
     --signal-red:#B5502F; --signal-red-bg:#FBEDE7;
+    --signal-purple:#7C5CBF; --signal-purple-bg:#F1EDFB;
     --signal-orange:#B5792F; --signal-orange-bg:#FBF2E7;
     --signal-blue:#2F6FB5; --signal-blue-hover:#255A93;
     --display:'Space Grotesk',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
@@ -1167,6 +1168,38 @@
     font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
     padding:4px 9px;border-radius:3px;background:var(--paper-100);color:var(--ink-400);
   }
+  /* Duplicate tickets — see isDuplicateTicket()'s own comment. Purple
+     throughout (card, overview row/card, badges) so a duplicate never
+     reads as just another archived/resolved ticket. */
+  .ticket-card.duplicate{border-color:rgba(124,92,191,0.4);background:var(--signal-purple-bg);opacity:1;}
+  .duplicate-badge{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+    padding:4px 9px;border-radius:3px;background:var(--signal-purple-bg);color:var(--signal-purple);
+    border:1px solid rgba(124,92,191,0.35);
+  }
+  .duplicate-link-note{
+    font-size:13px;color:var(--signal-purple);background:var(--signal-purple-bg);
+    border:1px solid rgba(124,92,191,0.3);border-radius:4px;padding:8px 10px;
+  }
+  .overview-table tr.duplicate-row{background:var(--signal-purple-bg);}
+  .overview-table tr.duplicate-row:hover{background:var(--signal-purple-bg);}
+  .overview-table tr.duplicate-row td:first-child{border-left:3px solid var(--signal-purple);}
+  .ov-card.duplicate{border-left-color:var(--signal-purple);background:var(--signal-purple-bg);}
+  .duplicate-link-search{
+    width:100%;padding:11px 13px;border:1px solid var(--line-strong);border-radius:5px;
+    font-family:var(--body);font-size:14.5px;background:var(--paper-050);color:var(--ink-900);
+    margin:12px 0;box-sizing:border-box;
+  }
+  .duplicate-link-search:focus{border-color:var(--copper-500);background:var(--paper-000);outline:none;}
+  .duplicate-link-results{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+  .duplicate-link-result-item{
+    display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:5px;
+    background:var(--paper-000);cursor:pointer;text-align:left;width:100%;transition:border-color .15s;
+  }
+  .duplicate-link-result-item:hover{border-color:var(--copper-500);}
+  .duplicate-link-result-num{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--ink-900);flex-shrink:0;}
+  .duplicate-link-result-address{font-size:13px;color:var(--ink-600);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .duplicate-link-result-status{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;color:var(--ink-400);flex-shrink:0;}
 
   .ticket-list{padding:24px 0 80px;display:flex;flex-direction:column;gap:10px;}
   .ticket-card{
@@ -1872,6 +1905,25 @@
   </div>
 </div>
 
+<div class="mobile-sheet" id="duplicateLinkSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="duplicateLinkSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h3 id="duplicateLinkSheetTitle">Marchează duplicat</h3>
+        <p>Caută sesizarea originală (nr. tichet sau adresă) — cea pe care o ții.</p>
+      </div>
+      <button type="button" class="sheet-close" id="duplicateLinkCloseBtn" aria-label="Închide">×</button>
+    </div>
+    <input type="search" id="duplicateLinkSearchBox" class="duplicate-link-search" placeholder="Nr. tichet sau adresă…">
+    <div class="duplicate-link-results" id="duplicateLinkResults"></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="duplicateLinkCancelBtn">Anulează</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -2174,6 +2226,28 @@
   // some of them.
   function isAwaitingReport(t){
     return t.status === 'Terminat' && !t.resolution_note;
+  }
+
+  // Duplicate tickets — two citizens reporting the same real-world
+  // issue as separate tickets. Staff mark one as a duplicate of the
+  // other ("canonical") instead of it being auto-filtered, so the
+  // crew never gets dispatched twice. Marking archives it immediately
+  // and excludes it from statistics (see the call sites below), but
+  // it stays visible — purple — in the archive, linked to the
+  // canonical ticket. Whatever resolution the canonical ticket gets
+  // is mirrored onto every duplicate automatically server-side (see
+  // sync_duplicate_ticket()/propagate_resolution_to_duplicates() in
+  // Supabase), regardless of whether it's written via a manual edit
+  // or the Fișă remedieri Excel import.
+  function isDuplicateTicket(t){
+    return !!(t && t.duplicate_of);
+  }
+  function getDuplicatesOf(ticketId){
+    return allTickets.filter(t => t.duplicate_of === ticketId);
+  }
+  function getCanonicalTicket(t){
+    if (!t || !t.duplicate_of) return null;
+    return allTickets.find(x => x.id === t.duplicate_of) || null;
   }
 
   // The resolution-date field only ever makes sense once the status
@@ -3480,8 +3554,10 @@
     // distinction used elsewhere for fading/vlasbogdan@'s dedicated
     // view; this card means "closed," full stop, matching the
     // overview table below now also including archived Terminat
-    // tickets rather than hiding them.
-    const solvedCount = allTickets.filter(t => t.status === 'Terminat').length;
+    // tickets rather than hiding them. Duplicates excluded — they're
+    // not a real, separately-resolved issue, just a second report of
+    // one the canonical ticket already accounts for.
+    const solvedCount = allTickets.filter(t => t.status === 'Terminat' && !isDuplicateTicket(t)).length;
 
     const setText = (id, value) => {
       const el = document.getElementById(id);
@@ -3624,14 +3700,15 @@
       // the awaiting-report distinction called out visually.
       const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !isAwaitingReport(t));
       const isUrgent = t.type === 'Anunt accident';
+      const isDuplicate = isDuplicateTicket(t);
       const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
       const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
       const resolutionDays = (isDone && t.resolved_on && t.submitted_on)
         ? calendarDaysBetween(t.submitted_on, t.resolved_on)
         : null;
       return `
-        <tr id="overview-row-${t.id}" class="${isFullyComplete ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''}">
-          <td class="overview-ticket-num"><a href="#" class="ticket-link" data-ticket-id="${t.id}">${escapeHtml(t.ticket_number || '—')}</a></td>
+        <tr id="overview-row-${t.id}" class="${isFullyComplete ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''} ${isDuplicate ? 'duplicate-row' : ''}">
+          <td class="overview-ticket-num"><a href="#" class="ticket-link" data-ticket-id="${t.id}">${escapeHtml(t.ticket_number || '—')}</a>${isDuplicate ? `<span class="duplicate-badge" title="Duplicat al ${escapeHtml(getCanonicalTicket(t)?.ticket_number || '')}">Duplicat</span>` : ''}</td>
           <td class="${isAging ? 'aging-date' : ''}" title="${isAging ? 'Deschis de peste ' + AGING_THRESHOLD_DAYS + ' zile' : ''}">${isAging ? '⚠ ' : ''}${fmtDateOnly(t.submitted_on)}</td>
           <td>${isUrgent ? 'Accident' : 'Defect'}</td>
           <td class="overview-name-cell" title="${escapeHtml(t.name || '')}">${escapeHtml(t.name || '—')}</td>
@@ -3659,14 +3736,16 @@
       // the awaiting-report distinction called out visually.
       const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !isAwaitingReport(t));
         const isUrgent = t.type === 'Anunt accident';
+        const isDuplicate = isDuplicateTicket(t);
         const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
         const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
         return `
-          <button type="button" id="overview-card-${t.id}" class="ov-card ${isFullyComplete ? 'done' : ''} ${isUrgent && !isDone ? 'urgent' : ''}" data-ticket-id="${t.id}">
+          <button type="button" id="overview-card-${t.id}" class="ov-card ${isFullyComplete ? 'done' : ''} ${isUrgent && !isDone ? 'urgent' : ''} ${isDuplicate ? 'duplicate' : ''}" data-ticket-id="${t.id}">
             <div class="ov-card-top">
               <span class="status-bubble ${isDone ? 'done' : 'active'}"></span>
               <span class="ov-card-type">${isUrgent ? 'Accident' : 'Defect'}</span>
               <span class="ov-card-num">${escapeHtml(t.ticket_number || '—')}</span>
+              ${isDuplicate ? `<span class="duplicate-badge">Duplicat</span>` : ''}
               <span class="ov-card-share" data-ticket-id="${t.id}" role="button" aria-label="Trimite sesizarea">
                 <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
               </span>
@@ -4093,8 +4172,11 @@
     // meant to reflect the full historical picture, not just what's
     // currently showing in the table (which defaults to hiding
     // archived tickets for day-to-day work). A ticket being archived
-    // doesn't mean it stopped happening.
-    const visible = allTickets.filter(t => matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
+    // doesn't mean it stopped happening. Duplicates are excluded
+    // throughout this function, though — they're not a separate real
+    // issue, just a second report of one the canonical ticket already
+    // accounts for, so counting both would double the real volume.
+    const visible = allTickets.filter(t => matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter) && !isDuplicateTicket(t));
 
     const MONTH_NAMES = ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Noi','Dec'];
     // "Sesizări pe an" deliberately ignores the year filter above and
@@ -4106,7 +4188,7 @@
     // that's when this system started being used) correctly starts
     // at whichever month actually has its first ticket, instead of
     // padding out several meaningless zero-bars before that.
-    const volumeSource = allTickets;
+    const volumeSource = allTickets.filter(t => !isDuplicateTicket(t));
     const monthCounts = {}; // 'YYYY-MM' -> count
     volumeSource.forEach(t => {
       if (!t.submitted_on) return;
@@ -4233,9 +4315,12 @@
       // the awaiting-report distinction called out visually.
       const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !isAwaitingReport(t));
       const isArchived = !!t.archived;
+      const isDuplicate = isDuplicateTicket(t);
+      const canonicalTicket = getCanonicalTicket(t);
+      const linkedDuplicates = getDuplicatesOf(t.id);
       const card = document.createElement('div');
       card.id = 'ticket-card-' + t.id;
-      card.className = 'ticket-card' + (isUrgent && !isDone ? ' urgent' : '') + (isFullyComplete ? ' done' : '') + (isArchived ? ' archived' : '');
+      card.className = 'ticket-card' + (isUrgent && !isDone ? ' urgent' : '') + (isFullyComplete ? ' done' : '') + (isArchived ? ' archived' : '') + (isDuplicate ? ' duplicate' : '');
       const safeTicketNumber = escapeHtml(t.ticket_number || '—');
       const safeName = escapeHtml(t.name || '');
       const safePhone = escapeHtml(t.phone || '');
@@ -4255,6 +4340,7 @@
             <span class="ticket-num">${safeTicketNumber}</span>
             <span class="ticket-tag ${isUrgent ? 'urgent-tag' : ''}">${t.type === 'Anunt accident' ? 'Accident' : 'Defect'}</span>
             ${isArchived ? `<span class="archived-badge">Arhivat ${fmtDate(t.archived_at)}</span>` : ''}
+            ${isDuplicate ? `<span class="duplicate-badge" title="Duplicat al ${escapeHtml(canonicalTicket?.ticket_number || '')}">Duplicat al ${escapeHtml(canonicalTicket?.ticket_number || '—')}</span>` : ''}
           </div>
           <span class="ticket-date">Trimis: ${fmtDate(t.submitted_on)}</span>
         </div>
@@ -4292,6 +4378,7 @@
           ${t.description ? `<div><span class="k">Descriere</span>${safeDescription}</div>` : ''}
           `}
           ${t.resolved_on ? `<div class="full"><span class="k">Soluționat</span>${fmtDate(t.resolved_on)}</div>` : ''}
+          ${linkedDuplicates.length ? `<div class="duplicate-link-note full">🔗 ${linkedDuplicates.length === 1 ? 'Duplicat legat' : linkedDuplicates.length + ' duplicate legate'}: ${linkedDuplicates.map(d => escapeHtml(d.ticket_number || '—')).join(', ')}</div>` : ''}
         </div>
         <div class="ticket-controls">
           ${(isDone && !isEditing) ? `
@@ -4335,11 +4422,14 @@
           </div>
           `}
           ${isArchived
-            ? `<button class="btn f-restore">Dezarhivează</button>`
+            ? (isDuplicate
+                ? `<button type="button" class="btn f-unduplicate">Anulează duplicat</button>`
+                : `<button class="btn f-restore">Dezarhivează</button>`)
             : (isDone && !isEditing)
               ? `<div class="resnote-readonly">Pentru modificări, selectează tichetul și apasă Editează.</div>`
               : `<button class="btn btn-primary f-save">Salvează<span class="save-status">✓ Salvat</span></button>`
           }
+          ${(!isArchived && !isDuplicate && t.status !== 'Terminat') ? `<button type="button" class="btn f-mark-duplicate">Marchează duplicat</button>` : ''}
         </div>
       `;
 
@@ -4420,6 +4510,16 @@
           }
           loadTickets();
         });
+      }
+
+      const markDuplicateBtn = card.querySelector('.f-mark-duplicate');
+      if (markDuplicateBtn) {
+        markDuplicateBtn.addEventListener('click', () => markAsDuplicate(t.id));
+      }
+
+      const unduplicateBtn = card.querySelector('.f-unduplicate');
+      if (unduplicateBtn) {
+        unduplicateBtn.addEventListener('click', () => unmarkDuplicate(t.id));
       }
 
       const saveBtn = card.querySelector('.f-save');
@@ -4617,6 +4717,122 @@
 
       list.appendChild(card);
     });
+  }
+
+  /* ============================================================
+     DUPLICATE TICKETS — see isDuplicateTicket()'s own comment. Picking
+     the canonical ticket happens in a small search sheet (ticket
+     number or address); the actual linking/unlinking is a single
+     Supabase update — the DB triggers handle archiving the mirrored
+     resolution fields.
+     ============================================================ */
+  function openDuplicateLinkSheet(excludeTicketId){
+    const sheet = document.getElementById('duplicateLinkSheet');
+    const searchBox = document.getElementById('duplicateLinkSearchBox');
+    const results = document.getElementById('duplicateLinkResults');
+    const cancelBtn = document.getElementById('duplicateLinkCancelBtn');
+    const closeBtn = document.getElementById('duplicateLinkCloseBtn');
+    const backdrop = sheet ? sheet.querySelector('.mobile-sheet-backdrop') : null;
+    if (!sheet || !searchBox || !results || !cancelBtn || !closeBtn || !backdrop) return Promise.resolve(null);
+
+    searchBox.value = '';
+    results.innerHTML = '<div class="no-results">Scrie pentru a căuta…</div>';
+    setSheetOpen('duplicateLinkSheet', true);
+    setTimeout(() => searchBox.focus(), 50);
+
+    return new Promise(resolve => {
+      let settled = false;
+      const cleanup = (result) => {
+        if (settled) return;
+        settled = true;
+        setSheetOpen('duplicateLinkSheet', false);
+        searchBox.removeEventListener('input', handleInput);
+        results.removeEventListener('click', handleResultClick);
+        cancelBtn.removeEventListener('click', handleCancel);
+        closeBtn.removeEventListener('click', handleCancel);
+        backdrop.removeEventListener('click', handleCancel);
+        document.removeEventListener('keydown', handleKeydown);
+        resolve(result);
+      };
+      const renderResults = () => {
+        const q = searchBox.value.trim().toLowerCase();
+        if (!q) {
+          results.innerHTML = '<div class="no-results">Scrie pentru a căuta…</div>';
+          return;
+        }
+        // Excludes itself and anything already marked as a duplicate —
+        // a duplicate can only ever point at an original, never at
+        // another duplicate (no chains), matching the DB's own check.
+        const matches = allTickets.filter(t =>
+          t.id !== excludeTicketId &&
+          !t.duplicate_of &&
+          ((t.ticket_number || '').toLowerCase().includes(q) || (t.address || '').toLowerCase().includes(q))
+        ).slice(0, 12);
+        if (matches.length === 0) {
+          results.innerHTML = '<div class="no-results">Nicio sesizare găsită.</div>';
+          return;
+        }
+        results.innerHTML = matches.map(t => `
+          <button type="button" class="duplicate-link-result-item" data-ticket-id="${t.id}">
+            <span class="duplicate-link-result-num">${escapeHtml(t.ticket_number || '—')}</span>
+            <span class="duplicate-link-result-address">${escapeHtml(t.address || '—')}</span>
+            <span class="duplicate-link-result-status">${t.status === 'Terminat' ? 'Soluționat' : 'Activ'}</span>
+          </button>
+        `).join('');
+      };
+      const handleInput = () => renderResults();
+      const handleResultClick = (e) => {
+        const item = e.target.closest('.duplicate-link-result-item');
+        if (item) cleanup(item.dataset.ticketId);
+      };
+      const handleCancel = () => cleanup(null);
+      const handleKeydown = (event) => { if (event.key === 'Escape') handleCancel(); };
+      searchBox.addEventListener('input', handleInput);
+      results.addEventListener('click', handleResultClick);
+      cancelBtn.addEventListener('click', handleCancel);
+      closeBtn.addEventListener('click', handleCancel);
+      backdrop.addEventListener('click', handleCancel);
+      document.addEventListener('keydown', handleKeydown);
+    });
+  }
+
+  async function markAsDuplicate(ticketId){
+    const canonicalId = await openDuplicateLinkSheet(ticketId);
+    if (!canonicalId) return;
+    const { error } = await supabaseClient
+      .from('tickets')
+      .update({ duplicate_of: canonicalId, archived: true, archived_at: new Date().toISOString() })
+      .eq('id', ticketId);
+    if (error) {
+      console.error(error);
+      alert('Eroare la marcarea ca duplicat. Încercați din nou.');
+      return;
+    }
+    showToast('Sesizarea a fost marcată ca duplicat.');
+    loadTickets();
+  }
+
+  async function unmarkDuplicate(ticketId){
+    if (!confirm('Anulezi legătura de duplicat? Sesizarea redevine activă și nesoluționată.')) return;
+    const { error } = await supabaseClient
+      .from('tickets')
+      .update({
+        duplicate_of: null,
+        archived: false,
+        archived_at: null,
+        status: 'Ongoing',
+        resolution_note: null,
+        resolved_on: null,
+        resolved_by: null,
+      })
+      .eq('id', ticketId);
+    if (error) {
+      console.error(error);
+      alert('Eroare la anularea duplicatului. Încercați din nou.');
+      return;
+    }
+    showToast('Legătura de duplicat a fost anulată.');
+    loadTickets();
   }
 
   /* ============================================================
@@ -5602,8 +5818,12 @@
       const monthSelection = await openReportMonthSelection(year);
       if (monthSelection === null) return;
 
+      // Duplicates excluded — they're not a separately-occurring issue,
+      // just a second report of one a canonical ticket already covers,
+      // so including both would double-count it in every stat this
+      // report computes (monthly volume, resolution-time averages).
       const yearTickets = allTickets.filter(t => {
-        if (!t.submitted_on) return false;
+        if (!t.submitted_on || isDuplicateTicket(t)) return false;
         return parseTicketDate(t.submitted_on).getFullYear() === year;
       });
       if (yearTickets.length === 0) {
