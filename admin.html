@@ -4053,12 +4053,18 @@
     if (ticketsIconSearchBox) ticketsIconSearchBox.value = '';
     if (ticketsIconSearchWrap) ticketsIconSearchWrap.classList.remove('expanded');
     if (ticketsSearchToggleBtn) ticketsSearchToggleBtn.classList.remove('active');
-    // "Toate" now includes archived tickets too (see getFilteredTickets),
-    // so it's always the right filter to land on to make sure the
-    // target ticket is actually there to find and highlight, for a
-    // click from either account.
+    // Only widen the status filter to "Toate" when the target ticket
+    // wouldn't already be visible under whatever's currently selected
+    // — otherwise clicking an active ticket while already viewing
+    // "Active" (or a resolved one while viewing "Soluționate") used to
+    // silently yank the filter to "Toate" every time regardless, even
+    // though it was never actually necessary. "Toate" also includes
+    // archived tickets (see getFilteredTickets), so it's still the
+    // right fallback whenever the ticket genuinely isn't covered by
+    // the current filter, for a click from either account.
     const ticket = allTickets.find(t => String(t.id) === String(ticketId));
-    setTicketStatusFilter('Toate', { skipRender: true });
+    const statusAlreadyVisible = ticket && (activeStatusFilter === 'Toate' || ticket.status === activeStatusFilter);
+    if (!statusAlreadyVisible) setTicketStatusFilter('Toate', { skipRender: true });
     // Sesizări funcționale/accidente are two separate tabs now — route
     // to whichever one actually holds this ticket's type, instead of
     // a single shared "tickets" tab. openAdminTab() locks
