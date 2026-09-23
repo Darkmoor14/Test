@@ -7682,6 +7682,33 @@
                 repairSkippedUnchangedCount++;
                 return null;
               }
+              // Diagnostic only, temporary — logs exactly where a
+              // matched ticket's stored note and this row's freshly
+              // built one diverge, whenever they're close enough that
+              // a person reading the preview can't tell them apart
+              // visually. Pinpoints truly invisible differences
+              // (stray/non-breaking whitespace, a character the
+              // normalize+collapse above doesn't happen to catch)
+              // without needing DevTools console access to find them.
+              if (matched && matched.resolution_note) {
+                const storedText = matched.resolution_note;
+                const freshText = note;
+                if (storedText !== freshText) {
+                  const minLen = Math.min(storedText.length, freshText.length);
+                  let diffAt = -1;
+                  for (let i = 0; i < minLen; i++) {
+                    if (storedText[i] !== freshText[i]) { diffAt = i; break; }
+                  }
+                  if (diffAt === -1 && storedText.length !== freshText.length) diffAt = minLen;
+                  console.warn(
+                    `[repair-sheet diff] ${matched.ticket_number}: stored/fresh differ at index ${diffAt}`,
+                    '\n  stored (len ' + storedText.length + '):', JSON.stringify(storedText.slice(Math.max(0, diffAt - 20), diffAt + 20)),
+                    '\n  fresh  (len ' + freshText.length + '):', JSON.stringify(freshText.slice(Math.max(0, diffAt - 20), diffAt + 20)),
+                    '\n  stored char codes there:', [...storedText.slice(Math.max(0, diffAt - 3), diffAt + 3)].map(c => c.charCodeAt(0)),
+                    '\n  fresh char codes there:', [...freshText.slice(Math.max(0, diffAt - 3), diffAt + 3)].map(c => c.charCodeAt(0))
+                  );
+                }
+              }
 
               // A repair report only makes sense on a ticket that's
               // actually marked Terminat — the whole workflow assumes
