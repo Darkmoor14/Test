@@ -7515,20 +7515,36 @@
     return true;
   }
 
-  // Only among tickets that still need a report (same "active" set
-  // the export itself uses — a ticket that's already fully done, or
-  // an archived one, is a false positive waiting to happen), and
-  // only when exactly one candidate matches. More than one such
-  // ticket on that street is genuinely ambiguous — flagged for the
-  // person to resolve by hand rather than guessed at.
+  // First tried only among tickets that still need a report (same
+  // "active" set the export itself uses) — the common, low-ambiguity
+  // case: freshly-arrived paperwork for a ticket nobody's written
+  // anything for yet. Only when THAT comes up empty do we widen to
+  // tickets on that street which already have a note too. That
+  // second pass matters: without it, a ticket matched by street once
+  // (no number written on the form) would stop being findable by
+  // street forever the moment it got its first note — so re-uploading
+  // the exact same sheet later (nothing on the form having changed)
+  // would show it as "no sesizare found" instead of correctly
+  // recognizing it as already imported and skipping it (see the
+  // unchanged-note check where matches actually get used). Archived
+  // stays excluded in both passes — a loose address guess resurrecting
+  // an old archived ticket is a real risk a widened pass shouldn't
+  // reintroduce. Either pass: more than one candidate on that street
+  // is genuinely ambiguous — flagged for the person to resolve by
+  // hand (typically by filling in the ticket number) rather than
+  // guessed at.
   function findTicketByStreet(street){
     const needleWords = streetWordSet(street);
-    const candidates = allTickets.filter(t =>
-      !t.archived && !t.resolution_note && t.address &&
-      streetWordsMatch(needleWords, streetWordSet(t.address))
-    );
-    if (candidates.length === 1) return { matched: candidates[0], matchedBy: 'street' };
-    if (candidates.length > 1) return { matched: null, matchedBy: 'ambiguous' };
+    const matchesStreet = t => !t.archived && t.address && streetWordsMatch(needleWords, streetWordSet(t.address));
+
+    const freshCandidates = allTickets.filter(t => !t.resolution_note && matchesStreet(t));
+    if (freshCandidates.length === 1) return { matched: freshCandidates[0], matchedBy: 'street' };
+    if (freshCandidates.length > 1) return { matched: null, matchedBy: 'ambiguous' };
+
+    const alreadyNotedCandidates = allTickets.filter(t => t.resolution_note && matchesStreet(t));
+    if (alreadyNotedCandidates.length === 1) return { matched: alreadyNotedCandidates[0], matchedBy: 'street' };
+    if (alreadyNotedCandidates.length > 1) return { matched: null, matchedBy: 'ambiguous' };
+
     return { matched: null, matchedBy: null };
   }
 
