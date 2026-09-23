@@ -2299,11 +2299,14 @@
   // Duplicate tickets — two citizens reporting the same real-world
   // issue as separate tickets. Staff mark one as a duplicate of the
   // other ("canonical") instead of it being auto-filtered, so the
-  // crew never gets dispatched twice. Marking archives it immediately
-  // and excludes it from statistics (see the call sites below), but
-  // it stays visible — purple — in the archive, linked to the
-  // canonical ticket. Whatever resolution the canonical ticket gets
-  // is mirrored onto every duplicate automatically server-side (see
+  // crew never gets dispatched twice. Marking does NOT archive it —
+  // it stays visible on the public site and in every list here
+  // exactly as before, just styled purple and excluded from
+  // statistics (see the call sites below); it only moves to the
+  // archive later, the normal way, once it's picked up the
+  // canonical's resolution and the usual 14-day sweep applies.
+  // Whatever resolution the canonical ticket gets is mirrored onto
+  // every duplicate automatically server-side (see
   // sync_duplicate_ticket()/propagate_resolution_to_duplicates() in
   // Supabase), regardless of whether it's written via a manual edit
   // or the Fișă remedieri Excel import.
@@ -3521,8 +3524,10 @@
   // CSS above), sharing the exact same ticketYearFilter/
   // ticketMonthFilter state Sesizări's own Filtre popover uses (see
   // further down, once setOverviewStatusFilter/setTicketStatusFilter
-  // exist to build the popovers from).
-  const overviewSearchWidget = createSearchToggleWidget({
+  // exist to build the popovers from). Its handle isn't needed
+  // anywhere the way ticketsSearchWidget's is (nothing ever carries a
+  // search INTO Overview from elsewhere), so it's not captured here.
+  createSearchToggleWidget({
     toggleBtnId: 'overviewSearchToggleBtn', wrapId: 'overviewSearchWrap', boxId: 'overviewSearchBox',
     setQuery: (v) => { overviewSearchQuery = v; }, rerender: renderOverviewTable,
     getStatus: () => overviewStatusFilter, setStatus: (v) => setOverviewStatusFilter(v), widenStatus: 'all',
@@ -5217,10 +5222,6 @@
       .replace(/[șş]/g, 's')
       .replace(/[țţ]/g, 't');
   }
-  function isWhitelistedReporterName(name){
-    return institutionalCategoryLabel(name) !== null;
-  }
-
   // Fixed display order for the cover page's institutional-source
   // summary (see institutionalCategoryLabel below) — always shown in
   // this order, one row per source, regardless of which ones actually
@@ -6206,13 +6207,6 @@
           return;
         }
       }
-
-      const exportTickets = monthSelection === 'all'
-        ? yearTickets
-        : yearTickets.filter(t => {
-            const submitted = parseTicketDate(t.submitted_on);
-            return !Number.isNaN(submitted.getTime()) && monthSelection.includes(submitted.getMonth());
-          });
 
       const bytes = buildYearlyWorkbookBinary(yearTickets, year, monthSelection);
       const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
