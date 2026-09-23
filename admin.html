@@ -7769,6 +7769,25 @@
       }
       repairSheetConfirmBtn.disabled = true;
       repairSheetConfirmBtn.textContent = 'Se salvează...';
+
+      // A save that returns success with zero rows affected (the
+      // exact symptom being chased here — see the failures handling
+      // below) is what RLS produces for an unauthenticated/expired
+      // session, not just a wrong id: is_staff() reads auth.jwt(),
+      // which is empty once the session's gone, so the UPDATE's WHERE
+      // clause matches nothing for every row, silently, with no error
+      // at all. Checking this explicitly up front turns "some rows
+      // mysteriously don't save" into a clear, specific message
+      // instead of leaving it to look identical to a real id/matching
+      // problem.
+      const { data: sessionCheck } = await supabaseClient.auth.getSession();
+      if (!sessionCheck || !sessionCheck.session) {
+        repairSheetConfirmBtn.disabled = false;
+        repairSheetConfirmBtn.textContent = 'Confirmă și salvează';
+        alert('Sesiunea de autentificare a expirat sau nu mai este validă — deconectați-vă și autentificați-vă din nou, apoi reîncercați importul.');
+        return;
+      }
+
       // Fired concurrently rather than awaited one row at a time —
       // each row updates a different ticket by id, so there's no
       // ordering dependency between them, only the round-trip time
@@ -7803,7 +7822,7 @@
           failures.push(`${label}: ${result.value.error.message}`);
         } else if (!result.value.data || result.value.data.length === 0) {
           console.error('Repair-sheet save affected 0 rows for', label, row.matched.id);
-          failures.push(`${label}: nicio sesizare actualizată (id negăsit sau blocat de permisiuni)`);
+          failures.push(`${label} (id: ${row.matched.id}): nicio sesizare actualizată (id negăsit sau blocat de permisiuni)`);
         }
       });
       repairSheetConfirmBtn.disabled = false;
