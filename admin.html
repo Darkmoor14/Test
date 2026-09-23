@@ -7554,6 +7554,22 @@
     return parts.join(' ');
   }
 
+  // Used ONLY to decide whether a freshly-built note counts as "the
+  // same report already saved" (see the skip check below) — never for
+  // what actually gets written on save, which always uses the raw
+  // text as-is. A plain === comparison is too strict for text that
+  // round-tripped through Excel: Romanian diacritics can be stored in
+  // either precomposed (NFC) or decomposed (NFD) Unicode form and
+  // look and print identically either way, and Excel/CSV re-exports
+  // are prone to picking up stray double spaces or trailing
+  // whitespace nobody typed on purpose. Any of those would make two
+  // texts that are the same REPORT compare as different, permanently
+  // stopping the skip check from ever recognizing that ticket as
+  // already imported.
+  function normalizeNoteForCompare(text){
+    return String(text || '').normalize('NFC').replace(/\s+/g, ' ').trim();
+  }
+
   const repairSheetInput = document.getElementById('repairSheetInput');
   const importRepairSheetBtn = document.getElementById('importRepairSheetBtn');
   if (importRepairSheetBtn && repairSheetInput) {
@@ -7662,7 +7678,7 @@
               // it's dropped instead of cluttering the preview with a
               // row nobody needs to act on. Only a genuinely different
               // note (a correction, or a first-time note) shows up.
-              if (matched && matched.resolution_note && matched.resolution_note.trim() === note.trim()) {
+              if (matched && matched.resolution_note && normalizeNoteForCompare(matched.resolution_note) === normalizeNoteForCompare(note)) {
                 repairSkippedUnchangedCount++;
                 return null;
               }
