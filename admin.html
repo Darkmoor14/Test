@@ -7554,22 +7554,6 @@
     return parts.join(' ');
   }
 
-  // Used ONLY to decide whether a freshly-built note counts as "the
-  // same report already saved" (see the skip check below) — never for
-  // what actually gets written on save, which always uses the raw
-  // text as-is. A plain === comparison is too strict for text that
-  // round-tripped through Excel: Romanian diacritics can be stored in
-  // either precomposed (NFC) or decomposed (NFD) Unicode form and
-  // look and print identically either way, and Excel/CSV re-exports
-  // are prone to picking up stray double spaces or trailing
-  // whitespace nobody typed on purpose. Any of those would make two
-  // texts that are the same REPORT compare as different, permanently
-  // stopping the skip check from ever recognizing that ticket as
-  // already imported.
-  function normalizeNoteForCompare(text){
-    return String(text || '').normalize('NFC').replace(/\s+/g, ' ').trim();
-  }
-
   const repairSheetInput = document.getElementById('repairSheetInput');
   const importRepairSheetBtn = document.getElementById('importRepairSheetBtn');
   if (importRepairSheetBtn && repairSheetInput) {
@@ -7678,36 +7662,9 @@
               // it's dropped instead of cluttering the preview with a
               // row nobody needs to act on. Only a genuinely different
               // note (a correction, or a first-time note) shows up.
-              if (matched && matched.resolution_note && normalizeNoteForCompare(matched.resolution_note) === normalizeNoteForCompare(note)) {
+              if (matched && matched.resolution_note && matched.resolution_note.trim() === note.trim()) {
                 repairSkippedUnchangedCount++;
                 return null;
-              }
-              // Diagnostic only, temporary — logs exactly where a
-              // matched ticket's stored note and this row's freshly
-              // built one diverge, whenever they're close enough that
-              // a person reading the preview can't tell them apart
-              // visually. Pinpoints truly invisible differences
-              // (stray/non-breaking whitespace, a character the
-              // normalize+collapse above doesn't happen to catch)
-              // without needing DevTools console access to find them.
-              if (matched && matched.resolution_note) {
-                const storedText = matched.resolution_note;
-                const freshText = note;
-                if (storedText !== freshText) {
-                  const minLen = Math.min(storedText.length, freshText.length);
-                  let diffAt = -1;
-                  for (let i = 0; i < minLen; i++) {
-                    if (storedText[i] !== freshText[i]) { diffAt = i; break; }
-                  }
-                  if (diffAt === -1 && storedText.length !== freshText.length) diffAt = minLen;
-                  console.warn(
-                    `[repair-sheet diff] ${matched.ticket_number}: stored/fresh differ at index ${diffAt}`,
-                    '\n  stored (len ' + storedText.length + '):', JSON.stringify(storedText.slice(Math.max(0, diffAt - 20), diffAt + 20)),
-                    '\n  fresh  (len ' + freshText.length + '):', JSON.stringify(freshText.slice(Math.max(0, diffAt - 20), diffAt + 20)),
-                    '\n  stored char codes there:', [...storedText.slice(Math.max(0, diffAt - 3), diffAt + 3)].map(c => c.charCodeAt(0)),
-                    '\n  fresh char codes there:', [...freshText.slice(Math.max(0, diffAt - 3), diffAt + 3)].map(c => c.charCodeAt(0))
-                  );
-                }
               }
 
               // A repair report only makes sense on a ticket that's
@@ -7812,25 +7769,6 @@
       }
       repairSheetConfirmBtn.disabled = true;
       repairSheetConfirmBtn.textContent = 'Se salvează...';
-
-      // A save that returns success with zero rows affected (the
-      // exact symptom being chased here — see the failures handling
-      // below) is what RLS produces for an unauthenticated/expired
-      // session, not just a wrong id: is_staff() reads auth.jwt(),
-      // which is empty once the session's gone, so the UPDATE's WHERE
-      // clause matches nothing for every row, silently, with no error
-      // at all. Checking this explicitly up front turns "some rows
-      // mysteriously don't save" into a clear, specific message
-      // instead of leaving it to look identical to a real id/matching
-      // problem.
-      const { data: sessionCheck } = await supabaseClient.auth.getSession();
-      if (!sessionCheck || !sessionCheck.session) {
-        repairSheetConfirmBtn.disabled = false;
-        repairSheetConfirmBtn.textContent = 'Confirmă și salvează';
-        alert('Sesiunea de autentificare a expirat sau nu mai este validă — deconectați-vă și autentificați-vă din nou, apoi reîncercați importul.');
-        return;
-      }
-
       // Fired concurrently rather than awaited one row at a time —
       // each row updates a different ticket by id, so there's no
       // ordering dependency between them, only the round-trip time
@@ -7841,39 +7779,18 @@
           .from('tickets')
           .update({ resolution_note: r.note.trim() || null })
           .eq('id', r.matched.id)
-          .select('id')
       ));
-      // Named per-row failures instead of a bare count — a plain
-      // "X nu au putut fi salvate" gave no way to tell WHICH tickets
-      // failed or WHY, making a real (if rare) failure impossible to
-      // distinguish from "it worked, I just misread the toast." Also
-      // now asks for the updated row back via .select('id'): Postgrest
-      // returns success with zero rows changed when an UPDATE's WHERE
-      // clause matches nothing (e.g. a stale/wrong id) — that's NOT
-      // surfaced as an `error` at all, so without checking the
-      // returned row count a silently no-op'd save looked identical
-      // to a real one succeeding.
-      const failures = [];
-      results.forEach((result, i) => {
-        const row = toSave[i];
-        const label = row.matched.ticket_number || row.ticketNumber || `rândul ${row.sourceRow}`;
-        if (result.status === 'rejected') {
-          console.error(result.reason);
-          failures.push(`${label}: ${result.reason && result.reason.message ? result.reason.message : result.reason}`);
-        } else if (result.value.error) {
-          console.error(result.value.error);
-          failures.push(`${label}: ${result.value.error.message}`);
-        } else if (!result.value.data || result.value.data.length === 0) {
-          console.error('Repair-sheet save affected 0 rows for', label, row.matched.id);
-          failures.push(`${label} (id: ${row.matched.id}): nicio sesizare actualizată (id negăsit sau blocat de permisiuni)`);
-        }
+      let failCount = 0;
+      results.forEach(result => {
+        const error = result.status === 'fulfilled' ? result.value.error : result.reason;
+        if (error) { console.error(error); failCount++; }
       });
       repairSheetConfirmBtn.disabled = false;
       repairSheetConfirmBtn.textContent = 'Confirmă și salvează';
       pendingRepairRows = [];
       document.getElementById('repairSheetPreview').style.display = 'none';
-      if (failures.length > 0) {
-        alert(`${failures.length} rapoarte nu au putut fi salvate:\n\n${failures.join('\n')}`);
+      if (failCount > 0) {
+        alert(`${failCount} rapoarte nu au putut fi salvate. Încercați din nou.`);
       } else {
         showToast(`${toSave.length} rapoarte au fost salvate.`);
       }
