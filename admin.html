@@ -7779,18 +7779,39 @@
           .from('tickets')
           .update({ resolution_note: r.note.trim() || null })
           .eq('id', r.matched.id)
+          .select('id')
       ));
-      let failCount = 0;
-      results.forEach(result => {
-        const error = result.status === 'fulfilled' ? result.value.error : result.reason;
-        if (error) { console.error(error); failCount++; }
+      // Named per-row failures instead of a bare count — a plain
+      // "X nu au putut fi salvate" gave no way to tell WHICH tickets
+      // failed or WHY, making a real (if rare) failure impossible to
+      // distinguish from "it worked, I just misread the toast." Also
+      // now asks for the updated row back via .select('id'): Postgrest
+      // returns success with zero rows changed when an UPDATE's WHERE
+      // clause matches nothing (e.g. a stale/wrong id) — that's NOT
+      // surfaced as an `error` at all, so without checking the
+      // returned row count a silently no-op'd save looked identical
+      // to a real one succeeding.
+      const failures = [];
+      results.forEach((result, i) => {
+        const row = toSave[i];
+        const label = row.matched.ticket_number || row.ticketNumber || `rândul ${row.sourceRow}`;
+        if (result.status === 'rejected') {
+          console.error(result.reason);
+          failures.push(`${label}: ${result.reason && result.reason.message ? result.reason.message : result.reason}`);
+        } else if (result.value.error) {
+          console.error(result.value.error);
+          failures.push(`${label}: ${result.value.error.message}`);
+        } else if (!result.value.data || result.value.data.length === 0) {
+          console.error('Repair-sheet save affected 0 rows for', label, row.matched.id);
+          failures.push(`${label}: nicio sesizare actualizată (id negăsit sau blocat de permisiuni)`);
+        }
       });
       repairSheetConfirmBtn.disabled = false;
       repairSheetConfirmBtn.textContent = 'Confirmă și salvează';
       pendingRepairRows = [];
       document.getElementById('repairSheetPreview').style.display = 'none';
-      if (failCount > 0) {
-        alert(`${failCount} rapoarte nu au putut fi salvate. Încercați din nou.`);
+      if (failures.length > 0) {
+        alert(`${failures.length} rapoarte nu au putut fi salvate:\n\n${failures.join('\n')}`);
       } else {
         showToast(`${toSave.length} rapoarte au fost salvate.`);
       }
