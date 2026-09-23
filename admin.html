@@ -7533,17 +7533,30 @@
               // just not written down) fall back to the street —
               // matching is based on whichever of the two actually
               // identifies the ticket, not "street only when the
-              // number is completely absent". Archived tickets are
-              // excluded here too, same as the street path below —
-              // once a ticket's archived this workflow is done with
-              // it, so a stale/reused number shouldn't be able to
-              // silently resurrect one. A ticket that already has a
-              // resolution_note is still a valid match, though (lets
-              // a corrected sheet update an existing note).
+              // number is completely absent". Unlike the street path
+              // below, this one does NOT exclude archived tickets —
+              // ticket numbers are never reused in this system, so
+              // there's no "stale/reused number resurrects the wrong
+              // ticket" risk a number match could fall into the way a
+              // fuzzy address guess could. Excluding them used to mean
+              // a ticket that had already been manually archived (the
+              // bulk "Arhivează selectate" flow doesn't require a
+              // report first, only the automatic 14-day sweep does —
+              // see autoArchiveStaleTickets) could no longer receive
+              // its report at all once the field crew's paperwork
+              // caught up — shown as "no sesizare found" in the
+              // preview even though the ticket plainly still exists.
+              // Writing the note doesn't touch archived/status, so the
+              // ticket simply stays archived with its report now
+              // filled in (flagged in the preview via matchedArchived
+              // so it's still a visible, deliberate thing, not a
+              // silent write). A ticket that already has a
+              // resolution_note is still a valid match too, either
+              // way (lets a corrected sheet update an existing note).
               let matched = null;
               let matchedBy = null;
               if (ticketDigits) {
-                matched = allTickets.find(t => !t.archived && extractTicketDigits(t.ticket_number) === ticketDigits) || null;
+                matched = allTickets.find(t => extractTicketDigits(t.ticket_number) === ticketDigits) || null;
                 if (matched) matchedBy = 'number';
               }
               if (!matched && street) {
@@ -7551,6 +7564,7 @@
                 matched = byStreet.matched;
                 matchedBy = byStreet.matchedBy;
               }
+              const matchedArchived = !!(matched && matched.archived);
 
               // A ticket that already has a resolution_note identical
               // to the note this row would produce has already been
@@ -7578,7 +7592,7 @@
               // a silent default" reasoning as the manual-save warning
               // above. The checkbox itself stays enabled, so checking
               // it is a one-click, explicit "yes, this is intentional."
-              return { sourceRow, ticketNumber: ticketDigits, street, note, matched, matchedBy, notTerminatYet, include: !!matched && !notTerminatYet };
+              return { sourceRow, ticketNumber: ticketDigits, street, note, matched, matchedBy, matchedArchived, notTerminatYet, include: !!matched && !notTerminatYet };
             })
             .filter(Boolean);
 
@@ -7619,6 +7633,7 @@
               ? escapeHtml(r.matched.address || '—')
                 + (r.matchedBy === 'street' ? ' <strong>(găsit după adresă — verificați)</strong>' : '')
                 + (r.matched.resolution_note ? ' <strong>(are deja raport — va fi înlocuit)</strong>' : '')
+                + (r.matchedArchived ? ' <strong>(tichet arhivat — rămâne arhivat, doar raportul e actualizat)</strong>' : '')
                 + (r.notTerminatYet ? ' <strong>(tichetul e încă Activ — nu va fi marcat automat ca soluționat, bifați doar dacă e intenționat)</strong>' : '')
               : r.matchedBy === 'ambiguous'
                 ? 'Mai multe sesizări active pe această stradă — completați numărul de tichet'
