@@ -818,22 +818,24 @@
   .ov-card-num{
     margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--copper-600);font-weight:600;
   }
-  /* Sits at the front of the top row — doubles as both the share
-     trigger AND the multi-select toggle for bulk-sharing several
-     tickets at once (#overviewShareBar): tapping it selects/deselects
-     the card (checked → filled), and the actual send happens from the
-     bar once 1+ are selected (which correctly falls back to sharing
-     that one ticket alone when only one's picked). One icon instead
-     of a separate share button plus a separate checkbox is simpler to
-     scan and leaves more room for the card's own content. Left-most
-     position matches the usual "selection checkbox on the left" list
-     convention. It's a <span>, not a <button>, since .ov-card itself
-     already is one and buttons can't nest — same pattern
+  /* Sits at the end of the top row (after ov-card-num's own
+     margin-left:auto, which is what pushes this whole trailing group
+     to the right) — doubles as both the share trigger AND the
+     multi-select toggle for bulk-sharing several tickets at once
+     (#overviewShareBar): tapping it selects/deselects the card
+     (checked → filled), and the actual send happens from the bar once
+     1+ are selected (which correctly falls back to sharing that one
+     ticket alone when only one's picked). One icon instead of a
+     separate share button plus a separate checkbox is simpler to scan
+     and leaves more room for the card's own content. Negative margin
+     claims a larger, easier-to-hit tap target without visually
+     widening the row. It's a <span>, not a <button>, since .ov-card
+     itself already is one and buttons can't nest — same pattern
      resolved-date-toggle-mobile already uses for a tap target inside
      this card. */
   .ov-card-share{
     display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    width:26px;height:26px;border-radius:50%;color:var(--ink-600);
+    width:32px;height:32px;margin:-8px -8px -8px 0;border-radius:50%;color:var(--ink-600);
     border:1.5px solid transparent;
   }
   .ov-card-share:active{background:var(--paper-100);color:var(--copper-600);}
@@ -3898,13 +3900,13 @@
         return `
           <button type="button" id="overview-card-${t.id}" class="ov-card ${isFullyComplete ? 'done' : ''} ${isUrgent && !isDone ? 'urgent' : ''} ${isDuplicate ? 'duplicate' : ''}" data-ticket-id="${t.id}">
             <div class="ov-card-top">
-              <span class="ov-card-share ${overviewShareSelectedIds.has(t.id) ? 'selected' : ''}" data-ticket-id="${t.id}" role="checkbox" aria-checked="${overviewShareSelectedIds.has(t.id) ? 'true' : 'false'}" aria-label="Selectează pentru trimitere">
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-              </span>
               <span class="status-bubble ${isDone ? 'done' : 'active'}"></span>
               <span class="ov-card-type">${isUrgent ? 'Accident' : 'Defect'}</span>
               <span class="ov-card-num">${escapeHtml(t.ticket_number || '—')}</span>
               ${isDuplicate ? `<span class="duplicate-badge">Duplicat</span>` : ''}
+              <span class="ov-card-share ${overviewShareSelectedIds.has(t.id) ? 'selected' : ''}" data-ticket-id="${t.id}" role="checkbox" aria-checked="${overviewShareSelectedIds.has(t.id) ? 'true' : 'false'}" aria-label="Selectează pentru trimitere">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              </span>
             </div>
             <div class="ov-card-address">${escapeHtml(t.address || '—')}</div>
             <div class="ov-card-meta">
