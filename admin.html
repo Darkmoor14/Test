@@ -818,35 +818,26 @@
   .ov-card-num{
     margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--copper-600);font-weight:600;
   }
-  /* Sits in the same top row as ov-card-num rather than adding a row
-     of its own — the whole point is a share action that doesn't
-     change the card's height/shape. Negative margin claims a
-     thumb-sized tap target without visually widening the row; it's a
-     <span>, not a <button>, since .ov-card itself already is one and
-     buttons can't nest — same pattern resolved-date-toggle-mobile
-     already uses for a tap target inside this card. */
+  /* Sits at the front of the top row — doubles as both the share
+     trigger AND the multi-select toggle for bulk-sharing several
+     tickets at once (#overviewShareBar): tapping it selects/deselects
+     the card (checked → filled), and the actual send happens from the
+     bar once 1+ are selected (which correctly falls back to sharing
+     that one ticket alone when only one's picked). One icon instead
+     of a separate share button plus a separate checkbox is simpler to
+     scan and leaves more room for the card's own content. Left-most
+     position matches the usual "selection checkbox on the left" list
+     convention. It's a <span>, not a <button>, since .ov-card itself
+     already is one and buttons can't nest — same pattern
+     resolved-date-toggle-mobile already uses for a tap target inside
+     this card. */
   .ov-card-share{
     display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    width:30px;height:30px;margin:-8px -8px -8px 0;border-radius:50%;
-    color:var(--ink-600);
+    width:26px;height:26px;border-radius:50%;color:var(--ink-600);
+    border:1.5px solid transparent;
   }
   .ov-card-share:active{background:var(--paper-100);color:var(--copper-600);}
-  /* Multi-select toggle for bulk-sharing several tickets at once
-     (#overviewShareBar) — same "span, not a real checkbox/button,
-     since .ov-card itself already is one" reasoning as .ov-card-share
-     just above. A plain checked/unchecked square rather than trying
-     to match the native checkbox look, since a real <input> isn't an
-     option here either. */
-  .ov-card-select{
-    display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    width:20px;height:20px;border-radius:4px;border:1.5px solid var(--line-strong);
-    background:var(--paper-000);margin:-2px 0;
-  }
-  .ov-card-select.checked{background:var(--copper-500);border-color:var(--copper-500);}
-  .ov-card-select.checked::after{
-    content:'';width:5px;height:9px;margin-bottom:2px;
-    border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);
-  }
+  .ov-card-share.selected{background:var(--copper-500);border-color:var(--copper-500);color:#fff;}
   .ov-card-address{font-size:16px;font-weight:600;color:var(--ink-900);line-height:1.35;margin-bottom:6px;}
   .ov-card-meta{
     display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
@@ -2245,7 +2236,7 @@
   let ticketSearchQuery = '';
   let overviewSearchQuery = '';
   // Multi-select for bulk-sharing several tickets at once from the
-  // Overview mobile card list (see .ov-card-select/#overviewShareBar)
+  // Overview mobile card list (see .ov-card-share/#overviewShareBar)
   // — kept separate from Sesizări's own selectedIds/#archiveBar
   // rather than reused, so selecting tickets here to share them can
   // never also expose the archive/mark-duplicate bulk actions, which
@@ -3907,14 +3898,13 @@
         return `
           <button type="button" id="overview-card-${t.id}" class="ov-card ${isFullyComplete ? 'done' : ''} ${isUrgent && !isDone ? 'urgent' : ''} ${isDuplicate ? 'duplicate' : ''}" data-ticket-id="${t.id}">
             <div class="ov-card-top">
-              <span class="ov-card-select ${overviewShareSelectedIds.has(t.id) ? 'checked' : ''}" data-ticket-id="${t.id}" role="checkbox" aria-checked="${overviewShareSelectedIds.has(t.id) ? 'true' : 'false'}" aria-label="Selectează pentru trimitere"></span>
+              <span class="ov-card-share ${overviewShareSelectedIds.has(t.id) ? 'selected' : ''}" data-ticket-id="${t.id}" role="checkbox" aria-checked="${overviewShareSelectedIds.has(t.id) ? 'true' : 'false'}" aria-label="Selectează pentru trimitere">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              </span>
               <span class="status-bubble ${isDone ? 'done' : 'active'}"></span>
               <span class="ov-card-type">${isUrgent ? 'Accident' : 'Defect'}</span>
               <span class="ov-card-num">${escapeHtml(t.ticket_number || '—')}</span>
               ${isDuplicate ? `<span class="duplicate-badge">Duplicat</span>` : ''}
-              <span class="ov-card-share" data-ticket-id="${t.id}" role="button" aria-label="Trimite sesizarea">
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-              </span>
             </div>
             <div class="ov-card-address">${escapeHtml(t.address || '—')}</div>
             <div class="ov-card-meta">
@@ -3952,11 +3942,12 @@
     if (t.status === 'Terminat' && t.resolution_note) lines.push(`Ce s-a făcut: ${t.resolution_note}`);
     return lines.join('\n');
   }
-  // Shared by both the single-ticket share (.ov-card-share) and the
-  // bulk one (#overviewShareSendBtn, several .ov-card-select'd
-  // tickets at once) — same navigator.share-first/clipboard-fallback
-  // logic either way, just fed a different title/text and a message
-  // grammatically matched to how many tickets it's actually about.
+  // Shared by shareTicket() (used when exactly one ticket ends up
+  // selected — see shareSelectedOverviewTickets() below) and the bulk
+  // send from #overviewShareSendBtn — same
+  // navigator.share-first/clipboard-fallback logic either way, just
+  // fed a different title/text and a message grammatically matched to
+  // how many tickets it's actually about.
   async function shareText(title, text, itemLabel){
     if (navigator.share) {
       try {
@@ -3988,10 +3979,13 @@
     if (tickets.length === 0) return;
     if (tickets.length === 1) {
       await shareTicket(tickets[0].id);
-      return;
+    } else {
+      const text = tickets.map(ticketShareText).join('\n\n---\n\n');
+      await shareText(`${tickets.length} sesizări`, text, 'sesizărilor');
     }
-    const text = tickets.map(ticketShareText).join('\n\n---\n\n');
-    await shareText(`${tickets.length} sesizări`, text, 'sesizărilor');
+    overviewShareSelectedIds.clear();
+    updateOverviewShareBar();
+    renderOverviewTable();
   }
 
   const overviewShareBar = document.getElementById('overviewShareBar');
@@ -4017,20 +4011,14 @@
   const overviewCardsMobileEl = document.getElementById('overviewCardsMobile');
   if (overviewCardsMobileEl) {
     overviewCardsMobileEl.addEventListener('click', (e) => {
-      const selectToggle = e.target.closest('.ov-card-select');
-      if (selectToggle) {
+      const shareBtn = e.target.closest('.ov-card-share');
+      if (shareBtn) {
         e.stopPropagation();
-        const id = selectToggle.dataset.ticketId;
+        const id = shareBtn.dataset.ticketId;
         if (overviewShareSelectedIds.has(id)) overviewShareSelectedIds.delete(id);
         else overviewShareSelectedIds.add(id);
         updateOverviewShareBar();
         renderOverviewTable();
-        return;
-      }
-      const shareBtn = e.target.closest('.ov-card-share');
-      if (shareBtn) {
-        e.stopPropagation();
-        shareTicket(shareBtn.dataset.ticketId);
         return;
       }
       const dateToggle = e.target.closest('.resolved-date-toggle-mobile');
