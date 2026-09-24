@@ -4253,8 +4253,20 @@
     // just poking ticketSearchQuery/the input's value directly) means
     // it picks up the exact same widen-on-start/restore-on-exit
     // bookkeeping a real keystroke would.
-    if (ticketsSearchWidget) ticketsSearchWidget.applyExternalQuery(overviewSearchQuery);
-    else ticketSearchQuery = overviewSearchQuery;
+    //
+    // Only actually done when there's a real Overview search to carry,
+    // though — calling applyExternalQuery('') unconditionally used to
+    // run even when nobody had touched Overview's search box at all,
+    // which (if Sesizări's OWN search happened to still be active from
+    // an earlier, unrelated visit) tripped its "search just ended"
+    // bookkeeping and silently reverted Sesizări's status/year filters
+    // back to whatever they were before THAT search started — a
+    // surprise filter change on every ordinary ticket click that had
+    // nothing to do with Overview's search at all. With nothing to
+    // carry, Sesizări's own search/filter state is left untouched.
+    if (overviewSearchQuery.trim() && ticketsSearchWidget) {
+      ticketsSearchWidget.applyExternalQuery(overviewSearchQuery);
+    }
     // Only widen the status filter to "Toate" when the target ticket
     // wouldn't already be visible under whatever's currently selected
     // — otherwise clicking an active ticket while already viewing
@@ -4658,7 +4670,7 @@
                 ? `<div class="resnote-readonly">Pentru modificări, selectează tichetul și apasă Editează.</div>`
                 : `<button class="btn btn-primary f-save">Salvează<span class="save-status">✓ Salvat</span></button>`
           }
-          ${(!isDuplicate && !isArchived && t.status !== 'Terminat') ? `<button type="button" class="btn f-mark-duplicate">Marchează duplicat</button>` : ''}
+          ${(!isDuplicate && !isArchived) ? `<button type="button" class="btn f-mark-duplicate">Marchează duplicat</button>` : ''}
         </div>
       `;
 
