@@ -1983,7 +1983,7 @@
     <div class="sheet-head">
       <div>
         <h3 id="duplicateLinkSheetTitle">Marchează duplicat</h3>
-        <p>Caută sesizarea originală (nr. tichet sau adresă) — cea pe care o ții. Bifează și altele de pe același caz dacă mai sunt.</p>
+        <p id="duplicateLinkSheetHint">Caută sesizarea originală (nr. tichet sau adresă) — cea pe care o ții. Bifează și altele de pe același caz dacă mai sunt.</p>
       </div>
       <button type="button" class="sheet-close" id="duplicateLinkCloseBtn" aria-label="Închide">×</button>
     </div>
@@ -1992,6 +1992,7 @@
     <div class="duplicate-link-extra-count" id="duplicateLinkExtraCount" style="display:none;"></div>
     <div class="sheet-actions">
       <button type="button" class="btn" id="duplicateLinkCancelBtn">Anulează</button>
+      <button type="button" class="btn btn-primary" id="duplicateLinkConfirmBtn" style="display:none;" disabled>Confirmă</button>
     </div>
   </div>
 </div>
@@ -4989,32 +4990,52 @@
      Supabase update — the DB triggers handle archiving the mirrored
      resolution fields.
      ============================================================ */
-  // Resolves with { canonicalId, extraIds } -- extraIds are tickets
-  // checked along the way (e.g. several tickets on the same street)
-  // that should ALSO become duplicates of canonicalId, not just the
-  // one ultimately clicked. Resolves with null on cancel.
+  // Two modes, depending on whether excludeTicketId is given:
   //
-  // Checkbox markup/wiring deliberately mirrors the main ticket list's
-  // own proven .ticket-select/.f-select checkbox exactly (a <label>
+  // ANCHOR MODE (excludeTicketId set -- opened from one specific
+  // ticket's own "Marchează duplicat" button): that ticket IS the
+  // original and never changes. Checking boxes in the search results
+  // just builds the set of tickets that become its duplicates; one
+  // "Confirmă" button finalizes all of them at once. There's nothing
+  // to "pick" here -- the original was already decided by which
+  // ticket's button you opened this from.
+  //
+  // BULK MODE (excludeTicketId null -- opened from the "Marchează ca
+  // duplicate" bar after pre-selecting tickets in the main list):
+  // those pre-selected tickets are the known duplicates, but which
+  // ticket is the original is NOT yet decided, so this still needs an
+  // explicit pick -- checking a box adds an extra duplicate, and
+  // tapping a result's "Alege" button both finalizes that one as the
+  // original and applies to everything checked.
+  //
+  // Resolves with { canonicalId, extraIds } in both modes, or null on
+  // cancel. Checkbox markup/wiring mirrors the main ticket list's own
+  // proven .ticket-select/.f-select checkbox exactly (a <label>
   // wrapping the <input>, one direct addEventListener('change', ...)
   // attached per checkbox right after it's rendered, no event
-  // delegation) -- a previous version of this used delegated
-  // listeners with a two-step "Confirm" screen and it never reliably
-  // worked in practice, so this sticks to the pattern already known
-  // to work reliably on real devices.
+  // delegation).
   function openDuplicateLinkSheet(excludeTicketId){
+    const isAnchorMode = !!excludeTicketId;
     const sheet = document.getElementById('duplicateLinkSheet');
     const searchBox = document.getElementById('duplicateLinkSearchBox');
     const results = document.getElementById('duplicateLinkResults');
     const extraCount = document.getElementById('duplicateLinkExtraCount');
+    const hint = document.getElementById('duplicateLinkSheetHint');
     const cancelBtn = document.getElementById('duplicateLinkCancelBtn');
     const closeBtn = document.getElementById('duplicateLinkCloseBtn');
+    const confirmBtn = document.getElementById('duplicateLinkConfirmBtn');
     const backdrop = sheet ? sheet.querySelector('.mobile-sheet-backdrop') : null;
-    if (!sheet || !searchBox || !results || !extraCount || !cancelBtn || !closeBtn || !backdrop) return Promise.resolve(null);
+    if (!sheet || !searchBox || !results || !extraCount || !hint || !cancelBtn || !closeBtn || !confirmBtn || !backdrop) return Promise.resolve(null);
 
+    const anchorTicket = isAnchorMode ? allTickets.find(t => t.id === excludeTicketId) : null;
     searchBox.value = '';
     results.innerHTML = '<div class="no-results">Scrie pentru a căuta…</div>';
     extraCount.style.display = 'none';
+    hint.textContent = isAnchorMode
+      ? `Bifează sesizările duplicate ale ${anchorTicket ? anchorTicket.ticket_number : 'acesteia'}, apoi apasă Confirmă.`
+      : 'Caută sesizarea originală (nr. tichet sau adresă) — cea pe care o ții. Bifează și altele de pe același caz dacă mai sunt.';
+    confirmBtn.style.display = isAnchorMode ? '' : 'none';
+    confirmBtn.disabled = true;
     setSheetOpen('duplicateLinkSheet', true);
     setTimeout(() => searchBox.focus(), 50);
 
@@ -5028,11 +5049,17 @@
         searchBox.removeEventListener('input', handleInput);
         cancelBtn.removeEventListener('click', handleCancel);
         closeBtn.removeEventListener('click', handleCancel);
+        confirmBtn.removeEventListener('click', handleConfirm);
         backdrop.removeEventListener('click', handleCancel);
         document.removeEventListener('keydown', handleKeydown);
         resolve(result);
       };
-      const updateExtraCount = () => {
+      const updateCheckedCount = () => {
+        if (isAnchorMode) {
+          confirmBtn.disabled = checkedIds.size === 0;
+          extraCount.style.display = 'none';
+          return;
+        }
         if (checkedIds.size === 0) {
           extraCount.style.display = 'none';
         } else {
@@ -5069,7 +5096,17 @@
           results.innerHTML = '<div class="no-results">Nicio sesizare găsită.</div>';
           return;
         }
-        results.innerHTML = matches.map(t => `
+        results.innerHTML = matches.map(t => isAnchorMode ? `
+          <div class="duplicate-link-result-item${checkedIds.has(t.id) ? ' checked' : ''}" data-ticket-id="${t.id}">
+            <label class="duplicate-link-result-checkwrap">
+              <input type="checkbox" class="duplicate-link-result-check" data-ticket-id="${t.id}" ${checkedIds.has(t.id) ? 'checked' : ''} aria-label="Bifează ca duplicat">
+            </label>
+            <span class="duplicate-link-result-pickbtn">
+              <span class="duplicate-link-result-num">${escapeHtml(t.ticket_number || '—')}</span>
+              <span class="duplicate-link-result-address">${escapeHtml(t.address || '—')}</span>
+            </span>
+          </div>
+        ` : `
           <div class="duplicate-link-result-item${checkedIds.has(t.id) ? ' checked' : ''}" data-ticket-id="${t.id}">
             <label class="duplicate-link-result-checkwrap">
               <input type="checkbox" class="duplicate-link-result-check" data-ticket-id="${t.id}" ${checkedIds.has(t.id) ? 'checked' : ''} aria-label="Bifează ca duplicat suplimentar">
@@ -5088,45 +5125,58 @@
             const id = checkbox.dataset.ticketId;
             if (checkbox.checked) checkedIds.add(id); else checkedIds.delete(id);
             checkbox.closest('.duplicate-link-result-item').classList.toggle('checked', checkbox.checked);
-            updateExtraCount();
+            updateCheckedCount();
             checkbox.blur();
           });
         });
-        results.querySelectorAll('.duplicate-link-result-pickbtn').forEach(btn => {
-          btn.addEventListener('click', () => finalizePick(btn.dataset.ticketId));
-        });
+        if (isAnchorMode) {
+          // No separate "Alege" here -- the whole row is just the
+          // checkbox's tap target, made bigger and easier to hit.
+          results.querySelectorAll('.duplicate-link-result-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+              if (e.target.closest('.duplicate-link-result-check')) return;
+              const checkbox = item.querySelector('.duplicate-link-result-check');
+              checkbox.checked = !checkbox.checked;
+              checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+          });
+        } else {
+          results.querySelectorAll('.duplicate-link-result-pickbtn').forEach(btn => {
+            btn.addEventListener('click', () => finalizePick(btn.dataset.ticketId));
+          });
+        }
       };
       const handleInput = () => renderResults();
+      const handleConfirm = () => {
+        if (checkedIds.size === 0) return;
+        cleanup({ canonicalId: excludeTicketId, extraIds: Array.from(checkedIds) });
+      };
       const handleCancel = () => cleanup(null);
       const handleKeydown = (event) => { if (event.key === 'Escape') handleCancel(); };
       searchBox.addEventListener('input', handleInput);
       cancelBtn.addEventListener('click', handleCancel);
       closeBtn.addEventListener('click', handleCancel);
+      confirmBtn.addEventListener('click', handleConfirm);
       backdrop.addEventListener('click', handleCancel);
       document.addEventListener('keydown', handleKeydown);
     });
   }
 
   async function markAsDuplicate(ticketId){
+    // Anchor mode: ticketId itself is the original and never changes
+    // -- only the checked tickets (extraIds) get linked to it. See
+    // openDuplicateLinkSheet's own comment for why.
     const picked = await openDuplicateLinkSheet(ticketId);
     if (!picked) return;
-    const { canonicalId, extraIds } = picked;
-    const allDuplicateIds = Array.from(new Set([ticketId, ...extraIds]));
-    // Only asks when extra tickets were checked along the way -- the
-    // plain single-pick case (search, click one, done) stays exactly
-    // as instant as it's always been. This is here because tapping
-    // "Alege" gives no other visible sign of what it's about to do,
-    // and it's otherwise easy to doubt whether a checked ticket really
-    // got carried along too.
-    if (extraIds.length > 0) {
-      const canonicalTicket = allTickets.find(t => t.id === canonicalId);
-      const dupNumbers = allDuplicateIds
-        .map(id => allTickets.find(t => t.id === id)?.ticket_number)
-        .filter(Boolean)
-        .join(', ');
-      if (!confirm(`Legi ${allDuplicateIds.length} sesizări (${dupNumbers}) ca duplicate ale ${canonicalTicket ? canonicalTicket.ticket_number : 'sesizării alese'}?`)) {
-        return;
-      }
+    const { extraIds } = picked;
+    if (extraIds.length === 0) return;
+    const anchorTicket = allTickets.find(t => t.id === ticketId);
+    const dupNumbers = extraIds
+      .map(id => allTickets.find(t => t.id === id)?.ticket_number)
+      .filter(Boolean)
+      .join(', ');
+    if (!confirm(`Legi ${extraIds.length} sesizări (${dupNumbers}) ca duplicate ale ${anchorTicket ? anchorTicket.ticket_number : 'acesteia'}?`)) {
+      return;
     }
     // Deliberately does NOT archive the ticket — it stays visible on
     // the public site exactly as before (an early citizen complaint
@@ -5137,14 +5187,14 @@
     // see sync_duplicate_ticket()/propagate_resolution_to_duplicates().
     const { error } = await supabaseClient
       .from('tickets')
-      .update({ duplicate_of: canonicalId })
-      .in('id', allDuplicateIds);
+      .update({ duplicate_of: ticketId })
+      .in('id', extraIds);
     if (error) {
       console.error(error);
       alert('Eroare la marcarea ca duplicat. Încercați din nou.');
       return;
     }
-    showToast(allDuplicateIds.length === 1 ? 'Sesizarea a fost marcată ca duplicat.' : `${allDuplicateIds.length} sesizări au fost marcate ca duplicate.`);
+    showToast(extraIds.length === 1 ? 'Sesizarea a fost marcată ca duplicat.' : `${extraIds.length} sesizări au fost marcate ca duplicate.`);
     loadTickets();
   }
 
