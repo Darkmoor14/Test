@@ -1970,7 +1970,7 @@
       </div>
       <button type="button" class="sheet-close" id="duplicateLinkCloseBtn" aria-label="Închide">×</button>
     </div>
-    <input type="search" id="duplicateLinkSearchBox" class="duplicate-link-search" placeholder="Nr. tichet sau adresă…">
+    <input type="search" id="duplicateLinkSearchBox" class="duplicate-link-search" placeholder="Nr. tichet sau adresă… (desparte prin virgulă pentru mai multe)">
     <div class="duplicate-link-results" id="duplicateLinkResults"></div>
     <div class="sheet-actions">
       <button type="button" class="btn" id="duplicateLinkCancelBtn">Anulează</button>
@@ -5000,19 +5000,24 @@
         resolve(result);
       };
       const renderResults = () => {
-        const q = searchBox.value.trim().toLowerCase();
-        if (!q) {
+        const rawQuery = searchBox.value.trim();
+        if (!rawQuery) {
           results.innerHTML = '<div class="no-results">Scrie pentru a căuta…</div>';
           return;
         }
+        // Supports several terms at once (comma or newline separated),
+        // matching any of them -- so a ticket number and a street name
+        // (or a few candidate streets) can be searched together instead
+        // of one term per search.
+        const terms = rawQuery.split(/[,\n]/).map(s => s.trim().toLowerCase()).filter(Boolean);
         // Excludes itself and anything already marked as a duplicate —
         // a duplicate can only ever point at an original, never at
         // another duplicate (no chains), matching the DB's own check.
         const matches = allTickets.filter(t =>
           t.id !== excludeTicketId &&
           !t.duplicate_of &&
-          ((t.ticket_number || '').toLowerCase().includes(q) || (t.address || '').toLowerCase().includes(q))
-        ).slice(0, 12);
+          terms.some(term => (t.ticket_number || '').toLowerCase().includes(term) || (t.address || '').toLowerCase().includes(term))
+        ).slice(0, 20);
         if (matches.length === 0) {
           results.innerHTML = '<div class="no-results">Nicio sesizare găsită.</div>';
           return;
@@ -5065,17 +5070,18 @@
   }
 
   async function unmarkDuplicate(ticketId){
-    if (!confirm('Anulezi legătura de duplicat? Sesizarea redevine activă și nesoluționată.')) return;
+    if (!confirm('Anulezi legătura de duplicat? Sesizarea revine la starea pe care o avea înainte să fie marcată duplicat.')) return;
+    // status/resolution_note/resolved_on/resolved_by are deliberately
+    // NOT set here -- the DB's snapshot_before_duplicate_link_trigger
+    // restores them from what the ticket actually had before it was
+    // linked as a duplicate (pre_duplicate_* columns), instead of
+    // blanking a ticket that was already solved back to unresolved.
     const { error } = await supabaseClient
       .from('tickets')
       .update({
         duplicate_of: null,
         archived: false,
         archived_at: null,
-        status: 'Ongoing',
-        resolution_note: null,
-        resolved_on: null,
-        resolved_by: null,
       })
       .eq('id', ticketId);
     if (error) {
