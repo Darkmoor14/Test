@@ -3207,8 +3207,17 @@
     function describeFilter(){
       const parts = [];
       if (config.getStatus() !== config.defaultStatus) {
-        const chip = (config.chipDefs || []).find(c => c.key === config.getStatus());
-        if (chip) parts.push(chip.label);
+        // Looks up the label from the LIVE chip row first, not just
+        // chipDefs -- a chip appended straight to the DOM after init
+        // (e.g. "Așteaptă raport", added only for the report-focused
+        // account once its identity is known) has no entry in
+        // chipDefs, so that lookup alone silently found nothing and
+        // left the note blank even though the filter really was
+        // applied (the icon itself still lit up correctly, since that
+        // uses isDefault() rather than this lookup).
+        const chipEl = document.querySelector(`#${config.chipsWrapId} [data-key="${config.getStatus()}"]`);
+        const label = chipEl ? chipEl.textContent.trim() : (config.chipDefs || []).find(c => c.key === config.getStatus())?.label;
+        if (label) parts.push(label);
       }
       const day = config.getDayFilter ? config.getDayFilter() : null;
       if (day !== null && day !== undefined) {
