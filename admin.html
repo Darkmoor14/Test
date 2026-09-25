@@ -5112,6 +5112,22 @@
     if (!picked) return;
     const { canonicalId, extraIds } = picked;
     const allDuplicateIds = Array.from(new Set([ticketId, ...extraIds]));
+    // Only asks when extra tickets were checked along the way -- the
+    // plain single-pick case (search, click one, done) stays exactly
+    // as instant as it's always been. This is here because tapping
+    // "Alege" gives no other visible sign of what it's about to do,
+    // and it's otherwise easy to doubt whether a checked ticket really
+    // got carried along too.
+    if (extraIds.length > 0) {
+      const canonicalTicket = allTickets.find(t => t.id === canonicalId);
+      const dupNumbers = allDuplicateIds
+        .map(id => allTickets.find(t => t.id === id)?.ticket_number)
+        .filter(Boolean)
+        .join(', ');
+      if (!confirm(`Legi ${allDuplicateIds.length} sesizări (${dupNumbers}) ca duplicate ale ${canonicalTicket ? canonicalTicket.ticket_number : 'sesizării alese'}?`)) {
+        return;
+      }
+    }
     // Deliberately does NOT archive the ticket — it stays visible on
     // the public site exactly as before (an early citizen complaint
     // about "my ticket vanished" is worse than a rare double
@@ -5239,7 +5255,9 @@
       alert('Sesizarea aleasă ca originală este singura selectată — nu mai rămâne nimic de marcat ca duplicat.');
       return;
     }
-    if (!confirm(`Marchezi ${targetIds.length} sesizări ca duplicate ale sesizării alese? Rămân vizibile pe site, doar marcate cu mov în panou.`)) {
+    const canonicalTicket = allTickets.find(t => t.id === canonicalId);
+    const dupNumbers = targetIds.map(id => allTickets.find(t => t.id === id)?.ticket_number).filter(Boolean).join(', ');
+    if (!confirm(`Legi ${targetIds.length} sesizări (${dupNumbers}) ca duplicate ale ${canonicalTicket ? canonicalTicket.ticket_number : 'sesizării alese'}? Rămân vizibile pe site, doar marcate cu mov în panou.`)) {
       return;
     }
     markDuplicatesSelectedBtn.disabled = true;
@@ -5254,7 +5272,6 @@
       alert('Eroare la marcarea ca duplicate. Încercați din nou.');
       return;
     }
-    const canonicalTicket = allTickets.find(t => t.id === canonicalId);
     showToast(`${targetIds.length} sesizări au fost marcate ca duplicate ale ${canonicalTicket ? canonicalTicket.ticket_number : 'sesizării alese'}.`);
     selectedIds.clear();
     updateArchiveBar();
