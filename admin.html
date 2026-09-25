@@ -1206,7 +1206,13 @@
     background:var(--paper-000);cursor:pointer;text-align:left;width:100%;transition:border-color .15s;
   }
   .duplicate-link-result-item:hover{border-color:var(--copper-500);}
+  .duplicate-link-result-item:active{border-color:var(--copper-500);background:var(--paper-050);}
   .duplicate-link-result-item.checked{border-color:var(--signal-purple);background:var(--signal-purple-bg);}
+  .duplicate-link-result-pick{
+    flex-shrink:0;font-family:var(--mono);font-size:11px;font-weight:600;text-transform:uppercase;
+    color:var(--copper-600);border:1px solid var(--copper-300);border-radius:4px;padding:4px 8px;
+    letter-spacing:0.02em;
+  }
   .duplicate-link-result-checkwrap{
     display:flex;align-items:center;justify-content:center;flex-shrink:0;
     width:34px;height:34px;margin:-8px 0 -8px -8px;cursor:pointer;
@@ -5076,7 +5082,7 @@
             </label>
             <span class="duplicate-link-result-num">${escapeHtml(t.ticket_number || '—')}</span>
             <span class="duplicate-link-result-address">${escapeHtml(t.address || '—')}</span>
-            <span class="duplicate-link-result-status">${t.status === 'Terminat' ? 'Soluționat' : 'Activ'}</span>
+            <span class="duplicate-link-result-pick">Alege</span>
           </div>
         `).join('');
       };
@@ -5090,7 +5096,7 @@
           <div class="duplicate-link-result-item" data-ticket-id="${t.id}">
             <span class="duplicate-link-result-num">${escapeHtml(t.ticket_number || '—')}</span>
             <span class="duplicate-link-result-address">${escapeHtml(t.address || '—')}</span>
-            <span class="duplicate-link-result-status">${t.status === 'Terminat' ? 'Soluționat' : 'Activ'}</span>
+            <span class="duplicate-link-result-pick">Alege</span>
           </div>
         `).join('');
       };
