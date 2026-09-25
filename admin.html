@@ -5092,12 +5092,16 @@
       // brushing a checkbox meant for something else).
       const renderConfirmResults = () => {
         const chosen = Array.from(checkedIds).map(id => allTickets.find(t => t.id === id)).filter(Boolean);
+        // A real <button> here (no nested checkbox to worry about, unlike
+        // step 1) -- native tap highlighting on mobile browsers makes it
+        // unmistakably clickable, where a styled <div> can still read as
+        // inert list text to some users.
         results.innerHTML = chosen.map(t => `
-          <div class="duplicate-link-result-item" data-ticket-id="${t.id}">
+          <button type="button" class="duplicate-link-result-item" data-ticket-id="${t.id}">
             <span class="duplicate-link-result-num">${escapeHtml(t.ticket_number || '—')}</span>
             <span class="duplicate-link-result-address">${escapeHtml(t.address || '—')}</span>
             <span class="duplicate-link-result-pick">Alege</span>
-          </div>
+          </button>
         `).join('');
       };
       const enterConfirmMode = () => {
