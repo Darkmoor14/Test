@@ -5204,7 +5204,10 @@
   });
 
   markDuplicatesSelectedBtn.addEventListener('click', async () => {
-    if (selectedIds.size < 2) return;
+    // Visibility (updateArchiveBar) already enforces 2+ on desktop and
+    // 1+ on mobile (where the per-card button is hidden below 600px)
+    // -- this only guards against a stray click with nothing selected.
+    if (selectedIds.size === 0) return;
     const picked = await openDuplicateLinkSheet(null);
     if (!picked) return;
     const { canonicalId, extraIds } = picked;
