@@ -5029,11 +5029,10 @@
 
     const anchorTicket = isAnchorMode ? allTickets.find(t => t.id === excludeTicketId) : null;
     searchBox.value = '';
-    results.innerHTML = '<div class="no-results">Scrie pentru a căuta…</div>';
     extraCount.style.display = 'none';
     hint.textContent = isAnchorMode
       ? `Bifează sesizările duplicate ale ${anchorTicket ? anchorTicket.ticket_number : 'acesteia'}, apoi apasă Confirmă.`
-      : 'Caută sesizarea originală (nr. tichet sau adresă) — cea pe care o ții. Bifează și altele de pe același caz dacă mai sunt.';
+      : 'Apasă "Alege" pe cea originală — cea pe care o ții. Nu e niciuna dintre cele bifate? Caută alta (nr. tichet sau adresă).';
     confirmBtn.style.display = isAnchorMode ? '' : 'none';
     confirmBtn.disabled = true;
     setSheetOpen('duplicateLinkSheet', true);
@@ -5073,25 +5072,7 @@
         checkedIds.delete(canonicalId);
         cleanup({ canonicalId, extraIds: Array.from(checkedIds) });
       };
-      const renderResults = () => {
-        const rawQuery = searchBox.value.trim();
-        if (!rawQuery) {
-          results.innerHTML = '<div class="no-results">Scrie pentru a căuta…</div>';
-          return;
-        }
-        // Supports several terms at once (comma or newline separated),
-        // matching any of them -- so a ticket number and a street name
-        // (or a few candidate streets) can be searched together instead
-        // of one term per search.
-        const terms = rawQuery.split(/[,\n]/).map(s => s.trim().toLowerCase()).filter(Boolean);
-        // Excludes itself and anything already marked as a duplicate —
-        // a duplicate can only ever point at an original, never at
-        // another duplicate (no chains), matching the DB's own check.
-        const matches = allTickets.filter(t =>
-          t.id !== excludeTicketId &&
-          !t.duplicate_of &&
-          terms.some(term => (t.ticket_number || '').toLowerCase().includes(term) || (t.address || '').toLowerCase().includes(term))
-        ).slice(0, 20);
+      const renderRows = (matches) => {
         if (matches.length === 0) {
           results.innerHTML = '<div class="no-results">Nicio sesizare găsită.</div>';
           return;
@@ -5146,6 +5127,39 @@
           });
         }
       };
+      const renderResults = () => {
+        const rawQuery = searchBox.value.trim();
+        if (!rawQuery) {
+          // Bulk mode opens with tickets already pre-selected via the
+          // main list's own checkboxes -- show those immediately
+          // instead of an empty "type to search" placeholder, so the
+          // common case (the original IS one of the ones you already
+          // picked) needs no typing at all, just a tap on "Alege".
+          if (!isAnchorMode && selectedIds.size > 0) {
+            const preselected = allTickets.filter(t => selectedIds.has(t.id) && !t.duplicate_of);
+            if (preselected.length > 0) {
+              renderRows(preselected);
+              return;
+            }
+          }
+          results.innerHTML = '<div class="no-results">Scrie pentru a căuta…</div>';
+          return;
+        }
+        // Supports several terms at once (comma or newline separated),
+        // matching any of them -- so a ticket number and a street name
+        // (or a few candidate streets) can be searched together instead
+        // of one term per search.
+        const terms = rawQuery.split(/[,\n]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+        // Excludes itself and anything already marked as a duplicate —
+        // a duplicate can only ever point at an original, never at
+        // another duplicate (no chains), matching the DB's own check.
+        const matches = allTickets.filter(t =>
+          t.id !== excludeTicketId &&
+          !t.duplicate_of &&
+          terms.some(term => (t.ticket_number || '').toLowerCase().includes(term) || (t.address || '').toLowerCase().includes(term))
+        ).slice(0, 20);
+        renderRows(matches);
+      };
       const handleInput = () => renderResults();
       const handleConfirm = () => {
         if (checkedIds.size === 0) return;
@@ -5159,6 +5173,7 @@
       confirmBtn.addEventListener('click', handleConfirm);
       backdrop.addEventListener('click', handleCancel);
       document.addEventListener('keydown', handleKeydown);
+      renderResults();
     });
   }
 
