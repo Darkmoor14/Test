@@ -3547,12 +3547,23 @@
         preSearchFilters = {
           status: config.getStatus ? config.getStatus() : null,
           year: config.getYear ? config.getYear() : null,
+          month: config.getMonth ? config.getMonth() : null,
+          day: config.getDayFilter ? config.getDayFilter() : null,
         };
         if (config.setStatus) config.setStatus(config.widenStatus);
         if (config.setYear) config.setYear(String(new Date().getFullYear()));
+        // Month/day widen the same way status/year do -- an exact
+        // ticket-number search used to still respect whatever month
+        // (or specific day, on desktop) was selected, so searching for
+        // a real ticket by its exact number could report no results
+        // just because it fell outside that narrower window.
+        if (config.setMonth) config.setMonth('all');
+        if (config.setDayFilter) config.setDayFilter(null);
       } else if (!hasQuery && hadQuery && preSearchFilters) {
         if (config.setStatus && preSearchFilters.status !== null) config.setStatus(preSearchFilters.status);
         if (config.setYear && preSearchFilters.year !== null) config.setYear(preSearchFilters.year);
+        if (config.setMonth && preSearchFilters.month !== null) config.setMonth(preSearchFilters.month);
+        if (config.setDayFilter && preSearchFilters.day !== undefined) config.setDayFilter(preSearchFilters.day);
         preSearchFilters = null;
       }
       hadQuery = hasQuery;
@@ -3583,6 +3594,8 @@
     setQuery: (v) => { overviewSearchQuery = v; }, rerender: renderOverviewTable,
     getStatus: () => overviewStatusFilter, setStatus: (v) => setOverviewStatusFilter(v), widenStatus: 'all',
     getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
+    getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
+    getDayFilter: () => overviewDayFilter, setDayFilter: (d) => { overviewDayFilter = d; },
   });
 
   // Sesizări's own search icon — its own search query, since Sesizări
@@ -3593,6 +3606,8 @@
     setQuery: (v) => { ticketSearchQuery = v; }, rerender: renderTickets,
     getStatus: () => activeStatusFilter, setStatus: (v) => setTicketStatusFilter(v), widenStatus: 'Toate',
     getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
+    getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
+    getDayFilter: () => overviewDayFilter, setDayFilter: (d) => { overviewDayFilter = d; },
   });
 
   document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsPopover, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(select => {
@@ -4294,6 +4309,7 @@
     agingOnlyFilter = false;
     typeOnlyFilter = null;
     updateActiveNarrowFilterUI();
+    const ticket = allTickets.find(t => String(t.id) === String(ticketId));
     // Carries the Overview search over to Sesizări instead of wiping
     // it — this is only ever called from an Overview click (mobile
     // card / desktop ticket-link, see both call sites), so searching
@@ -4317,6 +4333,24 @@
     if (overviewSearchQuery.trim() && ticketsSearchWidget) {
       ticketsSearchWidget.applyExternalQuery(overviewSearchQuery);
     }
+    // Whatever search is active in Sesizări now — whether just carried
+    // over above, or an independent, unrelated one left over from an
+    // earlier visit that was never touched by this click at all — must
+    // not be allowed to hide the very ticket being navigated to. A
+    // search from Overview for "Str. Victoriei" that gets carried over
+    // still matches the ticket you clicked (it's one of the results
+    // that search found), so this is a no-op then; but a stale
+    // "Str. Ionescu" search left over from browsing earlier does NOT
+    // match a since-clicked ticket on a different street, and silently
+    // hid it with no error or indication why — same failure whether
+    // that search came from Overview or was never Overview's to begin
+    // with. Clearing it up front, before the status check below,
+    // means that check runs against the search's own restore-on-clear
+    // side effect (if any) rather than against a filter combination
+    // that's about to change again a moment later.
+    if (ticket && ticketSearchQuery.trim() && !matchesSearch(ticket, ticketSearchQuery.trim().toLowerCase()) && ticketsSearchWidget) {
+      ticketsSearchWidget.applyExternalQuery('');
+    }
     // Only widen the status filter to "Toate" when the target ticket
     // wouldn't already be visible under whatever's currently selected
     // — otherwise clicking an active ticket while already viewing
@@ -4326,7 +4360,6 @@
     // archived tickets (see getFilteredTickets), so it's still the
     // right fallback whenever the ticket genuinely isn't covered by
     // the current filter, for a click from either account.
-    const ticket = allTickets.find(t => String(t.id) === String(ticketId));
     const statusAlreadyVisible = ticket && (activeStatusFilter === 'Toate' || ticket.status === activeStatusFilter);
     if (!statusAlreadyVisible) setTicketStatusFilter('Toate', { skipRender: true });
     // Sesizări funcționale/accidente are two separate tabs now — route
