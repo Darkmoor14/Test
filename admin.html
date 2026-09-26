@@ -2355,11 +2355,19 @@
   // so a ticket opened in August that's still unresolved in September
   // shows up under September (where someone checking "what's
   // outstanding right now" would actually look), not buried back in
-  // August where it'd be easy to lose track of. Once a ticket is
-  // actually resolved, it settles permanently at its real submission
-  // month — this rollover is only ever for what's still open.
+  // August where it'd be easy to lose track of. A ticket that's
+  // Terminat but still awaiting its report gets the same "now"
+  // treatment — it's still operationally open work, just at the
+  // reporting stage rather than the fieldwork stage. Only once it's
+  // actually got a report written does it settle permanently at its
+  // real submission month — this rollover is only ever for what's
+  // still open in some form. Without this, closing an older ticket
+  // (marking it Terminat) would immediately drop it out of the
+  // current month's "Așteaptă raport" queue and into whatever month
+  // it was originally submitted, making it look like nothing needed
+  // a report even though one genuinely did.
   function getEffectiveMonthYear(t){
-    if (t.status !== 'Terminat') {
+    if (t.status !== 'Terminat' || isAwaitingReport(t)) {
       const now = new Date();
       return { year: now.getFullYear(), month: now.getMonth() + 1 };
     }
@@ -2937,6 +2945,16 @@
       ? overviewStatusChipsPopover.querySelector('[data-key="awaiting_report"]')
       : null;
     if (isReportFocusedView() && overviewStatusChipsPopover && !existingAwaitingChip) {
+      // This account's whole dashboard exists to answer "what needs my
+      // report" -- opening it on the generic "active" scope (every
+      // other account's default) meant the one view this account
+      // actually needs required an extra manual click, every single
+      // login. Only set on this genuine first-time transition into the
+      // report-focused view (guarded by !existingAwaitingChip, same as
+      // the chip append itself), not on every re-fire of this callback,
+      // so a mid-session filter change the person made deliberately
+      // never gets silently overwritten by a later token refresh.
+      overviewStatusFilter = 'awaiting_report';
       const awaitingDef = reportFocusedChipDefs.find(c => c.key === 'awaiting_report');
       const chip = document.createElement('button');
       chip.type = 'button';
@@ -3514,15 +3532,27 @@
     // leaving a search behaves like it was never there, rather than
     // leaving the widened filters stuck in place afterward.
     let preSearchFilters = null;
+    // Widening status/year on search-start is genuinely optional --
+    // gated on whether the caller actually passed getStatus/setStatus
+    // (and separately getYear/setYear), rather than assumed for every
+    // tab. Proiecte publice and Avarii rețele don't share Sesizări's
+    // ticket status or year concepts (Avarii has no year filter at
+    // all), so calling config.getStatus() / the hardcoded
+    // setTicketYearFilter() unconditionally here used to throw
+    // "config.getStatus is not a function" on those tabs' very first
+    // search keystroke.
     function handleQueryChange(value){
       const hasQuery = !!value.trim();
       if (hasQuery && !hadQuery) {
-        preSearchFilters = { status: config.getStatus(), year: ticketYearFilter };
-        config.setStatus(config.widenStatus);
-        setTicketYearFilter(String(new Date().getFullYear()));
+        preSearchFilters = {
+          status: config.getStatus ? config.getStatus() : null,
+          year: config.getYear ? config.getYear() : null,
+        };
+        if (config.setStatus) config.setStatus(config.widenStatus);
+        if (config.setYear) config.setYear(String(new Date().getFullYear()));
       } else if (!hasQuery && hadQuery && preSearchFilters) {
-        config.setStatus(preSearchFilters.status);
-        setTicketYearFilter(preSearchFilters.year);
+        if (config.setStatus && preSearchFilters.status !== null) config.setStatus(preSearchFilters.status);
+        if (config.setYear && preSearchFilters.year !== null) config.setYear(preSearchFilters.year);
         preSearchFilters = null;
       }
       hadQuery = hasQuery;
@@ -3552,6 +3582,7 @@
     toggleBtnId: 'overviewSearchToggleBtn', wrapId: 'overviewSearchWrap', boxId: 'overviewSearchBox',
     setQuery: (v) => { overviewSearchQuery = v; }, rerender: renderOverviewTable,
     getStatus: () => overviewStatusFilter, setStatus: (v) => setOverviewStatusFilter(v), widenStatus: 'all',
+    getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
   });
 
   // Sesizări's own search icon — its own search query, since Sesizări
@@ -3561,6 +3592,7 @@
     toggleBtnId: 'ticketsSearchToggleBtn', wrapId: 'ticketsIconSearchWrap', boxId: 'ticketsIconSearchBox',
     setQuery: (v) => { ticketSearchQuery = v; }, rerender: renderTickets,
     getStatus: () => activeStatusFilter, setStatus: (v) => setTicketStatusFilter(v), widenStatus: 'Toate',
+    getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
   });
 
   document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsPopover, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(select => {
@@ -6436,6 +6468,14 @@
   // this filter lives in its own separate state, using the browser's
   // back button to return leaves it exactly as it was.
   function applyOverviewCardFilter(filterKey){
+    // A card fully owns its own status scope (e.g. "solved" means
+    // exactly Terminat, the other four mean exactly non-Terminat plus
+    // whatever else they narrow by) -- so the separate status chip
+    // must be widened to "all" first, or an existing chip selection
+    // it contradicts (Active + the Soluționate card, or Soluționate +
+    // any of the other four) intersects down to nothing: a coherent
+    // card count followed by an empty table.
+    setOverviewStatusFilter('all');
     overviewCardFilter = filterKey;
     updateOverviewNarrowFilterUI();
     renderOverviewTable();
@@ -6639,6 +6679,8 @@
   createSearchToggleWidget({
     toggleBtnId: 'projectsSearchToggleBtn', wrapId: 'projectsIconSearchWrap', boxId: 'projectsIconSearchBox',
     setQuery: (v) => { projectSearchQuery = v; }, rerender: renderProjects,
+    getStatus: () => projectsFilter, setStatus: setProjectsFilter, widenStatus: 'Toate',
+    getYear: () => projectYearFilter, setYear: setProjectYearFilter,
   });
 
   function populateProjectYearFilterSelect(){
@@ -7193,6 +7235,8 @@
   createSearchToggleWidget({
     toggleBtnId: 'backlogIconSearchToggleBtn', wrapId: 'backlogIconSearchWrap', boxId: 'backlogIconSearchBox',
     setQuery: (v) => { backlogSearchQuery = v; }, rerender: renderBacklogProjects,
+    getStatus: () => backlogFilter, setStatus: setBacklogFilter, widenStatus: 'Toate',
+    // No year filter here -- Avarii rețele never had one.
   });
 
   async function loadBacklogProjects(){
