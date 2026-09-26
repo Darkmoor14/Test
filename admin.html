@@ -7694,6 +7694,19 @@
   const REPAIR_TICKET_HEADERS = ['nr. tichet', 'nr tichet', 'numar tichet', 'nr tichet.', 'ticket'];
   const REPAIR_STREET_HEADERS = ['strada si nr.', 'strada si nr', 'strada', 'adresa'];
   const REPAIR_OBS_HEADERS = ['observatii', 'observatii.', 'obs'];
+  // Columns that only ever exist on the real "Fisa remedieri" sheet.
+  // The exported workbook always bundles a "Coperta" cover page ahead
+  // of it, and Coperta ALSO has its own "Nr. Tichet" column (a quick
+  // phone/street/description reference for the field crew) -- so
+  // checking for a ticket-number column alone can't tell the two
+  // sheets apart. Reading Coperta by mistake still "found" a valid
+  // ticket-number column, matched real tickets by number/street, and
+  // silently built an EMPTY repair note for every single one (Coperta
+  // has none of these columns, or an Observații column, at all).
+  const REPAIR_SPECIFIC_HEADERS = new Set([
+    ...REPAIR_FIELD_GROUPS.flatMap(g => g.fields.map(f => f.header)),
+    ...REPAIR_OBS_HEADERS,
+  ]);
 
   let pendingRepairRows = [];
   let repairSkippedUnchangedCount = 0;
@@ -7809,14 +7822,27 @@
       reader.onload = (evt) => {
         try {
           const workbook = XLSX.read(evt.target.result, { type: 'array' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-
-          const headerRowIdx = rows.findIndex(r =>
-            r.some(cell => REPAIR_TICKET_HEADERS.includes(normalizeHeader(cell)))
-          );
-          if (headerRowIdx === -1) {
-            alert('Nu am găsit coloana "Nr. Tichet" în acest fișier. Verificați că este fișa de remedieri corectă.');
+          // Checks every sheet in the file, not just the first one --
+          // see REPAIR_SPECIFIC_HEADERS' own comment for why the first
+          // sheet (Coperta, if the workbook was returned unmodified
+          // alongside it) can't be trusted to be the real repair sheet
+          // just because it also has a ticket-number column.
+          let rows = null;
+          let headerRowIdx = -1;
+          for (const sheetName of workbook.SheetNames) {
+            const candidateRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: '' });
+            const idx = candidateRows.findIndex(r =>
+              r.some(cell => REPAIR_TICKET_HEADERS.includes(normalizeHeader(cell))) &&
+              r.some(cell => REPAIR_SPECIFIC_HEADERS.has(normalizeHeader(cell)))
+            );
+            if (idx !== -1) {
+              rows = candidateRows;
+              headerRowIdx = idx;
+              break;
+            }
+          }
+          if (!rows) {
+            alert('Nu am găsit fișa de remedieri completă în acest fișier — doar coperta? Verificați că ați încărcat fișierul cu foaia "Fisa remedieri" completată de echipa de teren.');
             repairSheetInput.value = '';
             return;
           }
