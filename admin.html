@@ -4792,7 +4792,8 @@
               ? `<button class="btn f-restore">Dezarhivează</button>`
               : (isDone && !isEditing)
                 ? `<div class="resnote-readonly">Pentru modificări, selectează tichetul și apasă Editează.</div>`
-                : `<button class="btn btn-primary f-save">Salvează<span class="save-status">✓ Salvat</span></button>`
+                : `<button class="btn btn-primary f-save">Salvează<span class="save-status">✓ Salvat</span></button>
+                   ${isEditing ? `<button type="button" class="btn f-cancel-edit">Anulează</button>` : ''}`
           }
           ${(!isDuplicate && !isArchived) ? `<button type="button" class="btn f-mark-duplicate">Leagă duplicate</button>` : ''}
         </div>
@@ -4885,6 +4886,20 @@
       const unduplicateBtn = card.querySelector('.f-unduplicate');
       if (unduplicateBtn) {
         unduplicateBtn.addEventListener('click', () => unmarkDuplicate(t.id));
+      }
+
+      // Only shown once "Editează" has actually unlocked the contact-
+      // info fields (see the isEditing branch above) -- discards
+      // whatever's been typed since, instead of the only way out being
+      // to save it. selectedIds isn't touched: the checkbox stays
+      // exactly as the person left it, same as a successful save does.
+      const cancelEditBtn = card.querySelector('.f-cancel-edit');
+      if (cancelEditBtn) {
+        cancelEditBtn.addEventListener('click', () => {
+          if (editingTicketId === t.id) editingTicketId = null;
+          delete draftEdits[t.id];
+          renderTickets();
+        });
       }
 
       const gotoOriginalBtn = card.querySelector('.f-goto-original');
