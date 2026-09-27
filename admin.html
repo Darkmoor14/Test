@@ -3551,12 +3551,14 @@
           day: config.getDayFilter ? config.getDayFilter() : null,
         };
         if (config.setStatus) config.setStatus(config.widenStatus);
-        if (config.setYear) config.setYear(String(new Date().getFullYear()));
-        // Month/day widen the same way status/year do -- an exact
-        // ticket-number search used to still respect whatever month
-        // (or specific day, on desktop) was selected, so searching for
-        // a real ticket by its exact number could report no results
-        // just because it fell outside that narrower window.
+        // Year/month/day all widen to "no restriction" on search-start,
+        // not to "the current year" -- an exact ticket-number search
+        // for a genuinely older ticket used to still come back empty,
+        // since forcing the year to now() is just as much a hidden
+        // restriction as leaving a specific month/day selected. "all"
+        // guarantees a real match is actually findable regardless of
+        // when the ticket was submitted.
+        if (config.setYear) config.setYear('all');
         if (config.setMonth) config.setMonth('all');
         if (config.setDayFilter) config.setDayFilter(null);
       } else if (!hasQuery && hadQuery && preSearchFilters) {
