@@ -958,6 +958,7 @@
   }
   .excel-preview-table td{padding:9px 12px;border-top:1px solid var(--line);color:var(--ink-700);}
   .excel-preview-table tr.row-error td{background:var(--signal-red-bg);color:var(--signal-red);}
+  .excel-preview-table tr.row-duplicate td{background:var(--signal-orange-bg);color:var(--signal-orange);}
   .excel-preview-table tr.row-warning td{background:var(--signal-orange-bg);color:var(--signal-orange);}
   .repair-note-input{
     width:100%;min-height:52px;font:inherit;font-size:13px;padding:6px 8px;
@@ -1972,6 +1973,25 @@
     <div class="sheet-actions">
       <button type="button" class="btn" id="reportMonthCancelBtn">Anulează</button>
       <button type="button" class="btn btn-primary" id="reportMonthConfirmBtn">Descarcă Excel</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="reportYearSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="reportYearSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h3 id="reportYearSheetTitle">Raport Excel</h3>
+        <p>"Toate anii" este selectat momentan — alege un singur an pentru acest raport.</p>
+      </div>
+      <button type="button" class="sheet-close" id="reportYearCloseBtn" aria-label="Închide">×</button>
+    </div>
+    <div class="month-picker-list" id="reportYearList"></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="reportYearCancelBtn">Anulează</button>
+      <button type="button" class="btn btn-primary" id="reportYearConfirmBtn">Continuă</button>
     </div>
   </div>
 </div>
@@ -5719,6 +5739,60 @@
     });
   }
 
+  /* Runs before openReportMonthSelection whenever "Toate anii" is
+     selected in the main year filter — the yearly report is
+     inherently a single-year document (its cover sheet is titled
+     "Raport anual sesizări {year}"), so silently picking the current
+     year when the person is looking at every year would export data
+     that doesn't match what's on screen. Forces an explicit choice
+     among the years that actually have tickets instead. */
+  function openReportYearSelection(years){
+    const sheet = document.getElementById('reportYearSheet');
+    const list = document.getElementById('reportYearList');
+    const confirmBtn = document.getElementById('reportYearConfirmBtn');
+    const cancelBtn = document.getElementById('reportYearCancelBtn');
+    const closeBtn = document.getElementById('reportYearCloseBtn');
+    const backdrop = sheet ? sheet.querySelector('.mobile-sheet-backdrop') : null;
+    if (!sheet || !list || !confirmBtn || !cancelBtn || !closeBtn || !backdrop || !years.length) {
+      return Promise.resolve(years[0] ? String(years[0]) : null);
+    }
+
+    list.innerHTML = years.map((y, index) => `
+      <label class="month-picker-option">
+        <input type="radio" name="reportYearChoice" value="${y}" ${index === 0 ? 'checked' : ''}>
+        <span>${y}</span>
+      </label>
+    `).join('');
+    setSheetOpen('reportYearSheet', true);
+
+    return new Promise(resolve => {
+      let settled = false;
+      const cleanup = (result) => {
+        if (settled) return;
+        settled = true;
+        setSheetOpen('reportYearSheet', false);
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', handleCancel);
+        closeBtn.removeEventListener('click', handleCancel);
+        backdrop.removeEventListener('click', handleCancel);
+        document.removeEventListener('keydown', handleKeydown);
+        resolve(result);
+      };
+      const handleConfirm = () => {
+        const picked = list.querySelector('input[name="reportYearChoice"]:checked');
+        cleanup(picked ? picked.value : null);
+      };
+      const handleCancel = () => cleanup(null);
+      const handleKeydown = (event) => { if (event.key === 'Escape') handleCancel(); };
+
+      confirmBtn.addEventListener('click', handleConfirm);
+      cancelBtn.addEventListener('click', handleCancel);
+      closeBtn.addEventListener('click', handleCancel);
+      backdrop.addEventListener('click', handleCancel);
+      document.addEventListener('keydown', handleKeydown);
+    });
+  }
+
   /* First step of "Raport Excel" — asks whether to build the usual
      full yearly report, or a blank "Fișă remedieri" template
      pre-filled with just street + ticket number for every currently
@@ -6416,7 +6490,20 @@
         await exportRepairTemplate(btn, scope);
         return;
       }
-      const year = ticketYearFilter === 'all' ? new Date().getFullYear() : Number(ticketYearFilter);
+      let year;
+      if (ticketYearFilter === 'all') {
+        const years = new Set();
+        allTickets.forEach(t => {
+          const { year: y } = getEffectiveMonthYear(t);
+          if (y) years.add(y);
+        });
+        const sortedYears = [...years].sort((a, b) => b - a);
+        const pickedYear = await openReportYearSelection(sortedYears);
+        if (pickedYear === null) return;
+        year = Number(pickedYear);
+      } else {
+        year = Number(ticketYearFilter);
+      }
       const monthSelection = await openReportMonthSelection(year);
       if (monthSelection === null) return;
 
@@ -7528,7 +7615,15 @@
 
   function excelDateToISO(value){
     if (value instanceof Date) {
-      return value.toISOString().slice(0, 10);
+      // Not toISOString(): xlsx builds this Date from the cell's local
+      // Y/M/D (a date-only cell has no timezone of its own), so
+      // converting to UTC first shifts the date back a day in any
+      // zone ahead of UTC (e.g. Bucharest) -- read the same local
+      // components back out instead.
+      const y = value.getFullYear();
+      const m = String(value.getMonth() + 1).padStart(2, '0');
+      const d = String(value.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     }
     if (typeof value === 'number') {
       // Excel serial date -> JS date
@@ -7546,6 +7641,16 @@
   }
 
   let pendingImportRows = [];
+
+  function isDuplicateProject(title, address, start, due){
+    const norm = s => String(s || '').trim().toLowerCase();
+    return allProjects.some(p =>
+      norm(p.title) === norm(title) &&
+      norm(p.address) === norm(address) &&
+      p.start_date === start &&
+      p.due_date === due
+    );
+  }
 
   excelInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
@@ -7575,7 +7680,13 @@
             const start = colIndex.start >= 0 ? excelDateToISO(r[colIndex.start]) : null;
             const due = colIndex.due >= 0 ? excelDateToISO(r[colIndex.due]) : null;
             const valid = !!(title && address && start && due);
-            return { title, address, start, due, valid };
+            // Re-uploading the same workbook (or one that overlaps an
+            // earlier upload) would otherwise insert the same project
+            // again with a fresh id -- flag an exact match against
+            // what's already in the database so it can be excluded
+            // from the import instead of silently duplicated.
+            const duplicate = valid && isDuplicateProject(title, address, start, due);
+            return { title, address, start, due, valid, duplicate };
           });
 
         renderExcelPreview();
@@ -7591,25 +7702,28 @@
   function renderExcelPreview(){
     projectForm.style.display = 'none';
     const table = document.getElementById('excelPreviewTable');
-    const validCount = pendingImportRows.filter(r => r.valid).length;
+    const importCount = pendingImportRows.filter(r => r.valid && !r.duplicate).length;
+    const duplicateCount = pendingImportRows.filter(r => r.valid && r.duplicate).length;
     table.innerHTML = `
       <thead><tr>
         <th>Tip lucrare</th><th>Adresă</th><th>Început</th><th>Finalizare</th><th>Stare</th>
       </tr></thead>
       <tbody>
         ${pendingImportRows.map(r => `
-          <tr class="${r.valid ? '' : 'row-error'}">
+          <tr class="${!r.valid ? 'row-error' : r.duplicate ? 'row-duplicate' : ''}">
             <td>${escapeHtml(r.title) || '—'}</td>
             <td>${escapeHtml(r.address) || '—'}</td>
             <td>${r.start || '—'}</td>
             <td>${r.due || '—'}</td>
-            <td>${r.valid ? '✓ OK' : '✗ incomplet / dată invalidă'}</td>
+            <td>${!r.valid ? '✗ incomplet / dată invalidă' : r.duplicate ? '↺ există deja, va fi ignorat' : '✓ OK'}</td>
           </tr>
         `).join('')}
       </tbody>
     `;
     document.querySelector('.excel-preview-note').textContent =
-      `Previzualizare — ${validCount} din ${pendingImportRows.length} rânduri sunt valide și vor fi importate. Rândurile marcate cu eroare vor fi ignorate.`;
+      `Previzualizare — ${importCount} din ${pendingImportRows.length} rânduri vor fi importate.` +
+      (duplicateCount > 0 ? ` ${duplicateCount} există deja în listă și vor fi ignorate.` : '') +
+      ` Rândurile marcate cu eroare vor fi ignorate.`;
     excelPreviewWrap.style.display = 'block';
     excelPreviewWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -7620,9 +7734,9 @@
   });
 
   document.getElementById('excelConfirmBtn').addEventListener('click', async () => {
-    const validRows = pendingImportRows.filter(r => r.valid);
+    const validRows = pendingImportRows.filter(r => r.valid && !r.duplicate);
     if (validRows.length === 0) {
-      alert('Niciun rând valid de importat.');
+      alert('Niciun rând nou de importat.');
       return;
     }
     const payload = validRows.map(r => ({
