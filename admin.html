@@ -1187,10 +1187,13 @@
     padding:4px 9px;border-radius:3px;background:var(--signal-purple-bg);color:var(--signal-purple);
     border:1px solid rgba(124,92,191,0.35);
   }
+  button.duplicate-badge{cursor:pointer;transition:background .15s,border-color .15s;}
+  button.duplicate-badge:hover{background:rgba(124,92,191,0.22);border-color:var(--signal-purple);}
   .duplicate-link-note{
     font-size:13px;color:var(--signal-purple);background:var(--signal-purple-bg);
     border:1px solid rgba(124,92,191,0.3);border-radius:4px;padding:8px 10px;
   }
+  .ov-card-goto-original{cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
   .overview-table tr.duplicate-row{background:var(--signal-purple-bg);}
   .overview-table tr.duplicate-row:hover{background:var(--signal-purple-bg);}
   .overview-table tr.duplicate-row td:first-child{border-left:3px solid var(--signal-purple);}
@@ -4017,7 +4020,9 @@
               <span>${escapeHtml(t.name || '—')} · ${escapeHtml(t.phone || '—')}</span>
             </div>
             ${isDuplicate
-              ? `<div class="ov-card-resolved duplicate-link-note">Duplicat al ${escapeHtml(getCanonicalTicket(t)?.ticket_number || '—')}</div>`
+              ? (getCanonicalTicket(t)
+                ? `<div class="ov-card-resolved duplicate-link-note ov-card-goto-original" data-canonical-id="${getCanonicalTicket(t).id}">Duplicat al ${escapeHtml(getCanonicalTicket(t).ticket_number || '—')} — Mergi la original</div>`
+                : `<div class="ov-card-resolved duplicate-link-note">Duplicat al —</div>`)
               : isDone ? `<div class="ov-card-resolved resolved-date-toggle-mobile" data-ticket-id="${t.id}">Soluționat: ${fmtDateOnly(t.resolved_on)}</div>` : ''
             }
             ${(isDone && !isDuplicate) ? `<div class="resnote-expand-mobile" data-ticket-id="${t.id}" style="display:none;"><strong>Ce s-a făcut:</strong> ${t.resolution_note ? escapeHtml(t.resolution_note) : '<em>Nu a fost completat încă.</em>'}</div>` : ''}
@@ -4131,6 +4136,12 @@
         e.stopPropagation();
         const expand = overviewCardsMobileEl.querySelector(`.resnote-expand-mobile[data-ticket-id="${dateToggle.dataset.ticketId}"]`);
         if (expand) expand.style.display = expand.style.display === 'none' ? 'block' : 'none';
+        return;
+      }
+      const gotoOriginal = e.target.closest('.ov-card-goto-original');
+      if (gotoOriginal) {
+        e.stopPropagation();
+        goToTicket(gotoOriginal.dataset.canonicalId);
         return;
       }
       const card = e.target.closest('.ov-card');
@@ -4692,7 +4703,9 @@
             <span class="ticket-num">${safeTicketNumber}</span>
             <span class="ticket-tag ${isUrgent ? 'urgent-tag' : ''}">${t.type === 'Anunt accident' ? 'Accident' : 'Defect'}</span>
             ${isArchived ? `<span class="archived-badge">Arhivat ${fmtDate(t.archived_at)}</span>` : ''}
-            ${isDuplicate ? `<span class="duplicate-badge" title="Duplicat al ${escapeHtml(canonicalTicket?.ticket_number || '')}">Duplicat al ${escapeHtml(canonicalTicket?.ticket_number || '—')}</span>` : ''}
+            ${isDuplicate ? (canonicalTicket
+              ? `<button type="button" class="duplicate-badge f-goto-original" title="Mergi la sesizarea originală ${escapeHtml(canonicalTicket.ticket_number || '')}">Duplicat al ${escapeHtml(canonicalTicket.ticket_number || '—')} — Mergi la original</button>`
+              : `<span class="duplicate-badge">Duplicat al —</span>`) : ''}
           </div>
           <span class="ticket-date">Trimis: ${fmtDate(t.submitted_on)}</span>
         </div>
@@ -4781,7 +4794,7 @@
                 ? `<div class="resnote-readonly">Pentru modificări, selectează tichetul și apasă Editează.</div>`
                 : `<button class="btn btn-primary f-save">Salvează<span class="save-status">✓ Salvat</span></button>`
           }
-          ${(!isDuplicate && !isArchived) ? `<button type="button" class="btn f-mark-duplicate">Marchează duplicat</button>` : ''}
+          ${(!isDuplicate && !isArchived) ? `<button type="button" class="btn f-mark-duplicate">Leagă duplicate</button>` : ''}
         </div>
       `;
 
@@ -4872,6 +4885,11 @@
       const unduplicateBtn = card.querySelector('.f-unduplicate');
       if (unduplicateBtn) {
         unduplicateBtn.addEventListener('click', () => unmarkDuplicate(t.id));
+      }
+
+      const gotoOriginalBtn = card.querySelector('.f-goto-original');
+      if (gotoOriginalBtn && canonicalTicket) {
+        gotoOriginalBtn.addEventListener('click', () => goToTicket(canonicalTicket.id));
       }
 
       const saveBtn = card.querySelector('.f-save');
@@ -5123,15 +5141,17 @@
     const results = document.getElementById('duplicateLinkResults');
     const extraCount = document.getElementById('duplicateLinkExtraCount');
     const hint = document.getElementById('duplicateLinkSheetHint');
+    const title = document.getElementById('duplicateLinkSheetTitle');
     const cancelBtn = document.getElementById('duplicateLinkCancelBtn');
     const closeBtn = document.getElementById('duplicateLinkCloseBtn');
     const confirmBtn = document.getElementById('duplicateLinkConfirmBtn');
     const backdrop = sheet ? sheet.querySelector('.mobile-sheet-backdrop') : null;
-    if (!sheet || !searchBox || !results || !extraCount || !hint || !cancelBtn || !closeBtn || !confirmBtn || !backdrop) return Promise.resolve(null);
+    if (!sheet || !searchBox || !results || !extraCount || !hint || !title || !cancelBtn || !closeBtn || !confirmBtn || !backdrop) return Promise.resolve(null);
 
     const anchorTicket = isAnchorMode ? allTickets.find(t => t.id === excludeTicketId) : null;
     searchBox.value = '';
     extraCount.style.display = 'none';
+    title.textContent = isAnchorMode ? 'Leagă duplicate' : 'Marchează ca duplicate';
     hint.textContent = isAnchorMode
       ? `Bifează sesizările duplicate ale ${anchorTicket ? anchorTicket.ticket_number : 'acesteia'}, apoi apasă Confirmă.`
       : 'Apasă "Alege" pe cea originală — cea pe care o ții. Nu e niciuna dintre cele bifate? Caută alta (nr. tichet sau adresă).';
@@ -5322,13 +5342,26 @@
     // restores them from what the ticket actually had before it was
     // linked as a duplicate (pre_duplicate_* columns), instead of
     // blanking a ticket that was already solved back to unresolved.
+    //
+    // archived is different: it's only forced back to false when the
+    // restored status would leave an Ongoing ticket sitting archived
+    // -- an invariant the rest of the admin relies on (see
+    // getFilteredTickets' own comment: "an archived ticket is never
+    // Ongoing"). A ticket that was already genuinely Terminat before
+    // ever being linked as a duplicate stays exactly as archived (or
+    // not) as it already was; forcing it out of the archive every
+    // time used to yank an old, legitimately-closed ticket back into
+    // the active list for no reason.
+    const ticket = allTickets.find(t => t.id === ticketId);
+    const restoredStatus = ticket ? (ticket.pre_duplicate_status || 'Ongoing') : 'Ongoing';
+    const payload = { duplicate_of: null };
+    if (restoredStatus !== 'Terminat') {
+      payload.archived = false;
+      payload.archived_at = null;
+    }
     const { error } = await supabaseClient
       .from('tickets')
-      .update({
-        duplicate_of: null,
-        archived: false,
-        archived_at: null,
-      })
+      .update(payload)
       .eq('id', ticketId);
     if (error) {
       console.error(error);
@@ -5389,14 +5422,36 @@
 
   archiveSelectedBtn.addEventListener('click', async () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`Arhivați ${selectedIds.size} tichete? Nu vor mai apărea pe pagina publică de sesizări, dar rămân salvate și pot fi restaurate oricând din tab-ul "Arhivate".`)) {
+    // Archiving only part of a duplicate group would split it: the
+    // canonical (or some of its duplicates) stays in the active list
+    // while the rest disappears into the archive, even though they're
+    // all still the same underlying issue. Whenever any member of a
+    // group is selected, pull in the rest of that same group too --
+    // the canonical plus every one of its duplicates -- so the whole
+    // group always archives (or stays active) together.
+    const idsToArchive = new Set(selectedIds);
+    selectedIds.forEach(id => {
+      const t = allTickets.find(x => x.id === id);
+      if (!t) return;
+      if (t.duplicate_of) {
+        idsToArchive.add(t.duplicate_of);
+        getDuplicatesOf(t.duplicate_of).forEach(d => idsToArchive.add(d.id));
+      } else {
+        getDuplicatesOf(t.id).forEach(d => idsToArchive.add(d.id));
+      }
+    });
+    const addedCount = idsToArchive.size - selectedIds.size;
+    const confirmMsg = addedCount > 0
+      ? `Arhivați ${idsToArchive.size} tichete? (${selectedIds.size} selectate + ${addedCount} incluse automat ca să nu se rupă un grup de duplicate.) Nu vor mai apărea pe pagina publică de sesizări, dar rămân salvate și pot fi restaurate oricând.`
+      : `Arhivați ${selectedIds.size} tichete? Nu vor mai apărea pe pagina publică de sesizări, dar rămân salvate și pot fi restaurate oricând.`;
+    if (!confirm(confirmMsg)) {
       return;
     }
     archiveSelectedBtn.disabled = true;
     const { error } = await supabaseClient
       .from('tickets')
       .update({ archived: true, archived_at: new Date().toISOString() })
-      .in('id', Array.from(selectedIds));
+      .in('id', Array.from(idsToArchive));
     archiveSelectedBtn.disabled = false;
 
     if (error) {
@@ -6298,8 +6353,13 @@
       // both sets, since an uploaded sheet can cover either kind —
       // only this download is scoped to active-only. Further narrowed
       // to just defecte or just accidente when that's what was picked
-      // in openRepairScopeSelection.
+      // in openRepairScopeSelection. A duplicate ticket is excluded —
+      // it's the same physical job as its canonical original, already
+      // listed under that original's own ticket number, so including
+      // it too would send the field crew out to fix the same thing
+      // twice under two different numbers.
       const activeTickets = allTickets.filter(t => t.status !== 'Terminat' && !t.archived
+        && !isDuplicateTicket(t)
         && (scope === 'functional' ? t.type !== 'Anunt accident'
           : scope === 'accident' ? t.type === 'Anunt accident'
           : true));
@@ -8055,6 +8115,19 @@
                 matched = byStreet.matched;
                 matchedBy = byStreet.matchedBy;
               }
+              // A sheet row can name a ticket number that's since been
+              // marked a duplicate of another one -- writing the note
+              // there directly would leave it sitting on a ticket
+              // nobody looks at instead of the canonical ticket the
+              // issue is actually tracked under. Redirect the match
+              // itself to the canonical ticket up front, so every
+              // check below (archived, already-Terminat, the preview
+              // text) reflects the ticket the report is really going
+              // to land on, not the duplicate stub.
+              const matchedDuplicateNumber = (matched && isDuplicateTicket(matched)) ? matched.ticket_number : null;
+              if (matchedDuplicateNumber) {
+                matched = getCanonicalTicket(matched) || matched;
+              }
               const matchedArchived = !!(matched && matched.archived);
 
               // A ticket that already has a resolution_note identical
@@ -8091,7 +8164,7 @@
               // wiring below for why it also can't just be checked by
               // hand while still blank.
               const noteEmpty = !note.trim();
-              return { sourceRow, ticketNumber: ticketDigits, street, note, matched, matchedBy, matchedArchived, notTerminatYet, numberNotFound, noteEmpty, include: !!matched && !notTerminatYet && !noteEmpty };
+              return { sourceRow, ticketNumber: ticketDigits, street, note, matched, matchedBy, matchedArchived, matchedDuplicateNumber, notTerminatYet, numberNotFound, noteEmpty, include: !!matched && !notTerminatYet && !noteEmpty };
             })
             .filter(Boolean);
 
@@ -8153,6 +8226,7 @@
                 + (r.matchedBy === 'street' ? ' <strong>(găsit după adresă — verificați)</strong>' : '')
                 + (r.matched.resolution_note ? ' <strong>(are deja raport — va fi înlocuit)</strong>' : '')
                 + (r.matchedArchived ? ' <strong>(tichet arhivat — rămâne arhivat, doar raportul e actualizat)</strong>' : '')
+                + (r.matchedDuplicateNumber ? ` <strong>(${escapeHtml(r.matchedDuplicateNumber)} e duplicat al ${escapeHtml(r.matched.ticket_number)} — raportul va fi salvat pe sesizarea originală)</strong>` : '')
                 + (r.notTerminatYet ? ' <strong>(tichetul e încă Activ — nu va fi marcat automat ca soluționat, bifați doar dacă e intenționat)</strong>' : '')
                 + (r.noteEmpty ? ' <strong>(nicio căsuță bifată sau observație — nu va fi salvat, ar șterge un raport existent)</strong>' : '')
                 + (r.duplicateTarget ? ' <strong>(alt rând din fișier vizează aceeași sesizare — verificați și bifați doar unul)</strong>' : '')
