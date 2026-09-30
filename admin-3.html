@@ -175,95 +175,48 @@
   .dash{display:none;}
   .dash.show{display:block;}
 
-  /* ===== APP SHELL (sidebar + topbar + page body) ===== */
+  /* ===== APP SHELL (rail + category panel + topbar + page body) =====
+     Two sidebars: .rail is a fixed-width icon strip that never
+     collapses (it's the top-level "which area of the app" switcher —
+     Acasă is a direct destination, the rest are categories); each
+     category owns one .category-panel-section, shown/hidden by JS
+     based on the rail's selected data-category. .category-panel itself
+     collapses (width -> 0) independently of the rail. */
   .app-shell{display:flex;align-items:stretch;min-height:100vh;}
-  .sidebar{
-    width:260px;flex-shrink:0;display:flex;flex-direction:column;
+  .rail{
+    width:60px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;
     background:var(--paper-050);border-right:1px solid var(--line);
-    position:sticky;top:0;height:100vh;overflow:visible;
-    transition:width .18s ease;
+    position:sticky;top:0;height:100vh;overflow:visible;padding:12px 0;
   }
-  .sidebar.collapsed{width:72px;}
-  .sidebar-brand{
-    display:flex;align-items:center;gap:10px;padding:14px;
-    border-bottom:1px solid var(--line);min-height:56px;
+  .rail-items{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;}
+  .rail-item{
+    width:42px;height:42px;border-radius:10px;border:none;background:none;color:var(--ink-400);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
   }
-  .sidebar-brand-text{display:flex;flex-direction:column;gap:1px;min-width:0;overflow:hidden;}
-  .sidebar-brand-name{font-family:var(--display);font-weight:700;font-size:14.5px;color:var(--ink-900);white-space:nowrap;}
-  .sidebar-brand-sub{font-size:11px;color:var(--ink-400);white-space:nowrap;}
-  .sidebar-collapse-btn{
-    margin-left:auto;flex-shrink:0;width:26px;height:26px;border-radius:6px;border:1px solid transparent;
-    background:none;color:var(--ink-400);display:flex;align-items:center;justify-content:center;cursor:pointer;
+  .rail-item svg{width:20px;height:20px;}
+  .rail-item-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
+  .rail-item:hover{background:var(--paper-100);color:var(--ink-900);}
+  .rail-item.active{background:var(--copper-050);color:var(--copper-600);}
+  .rail-footer{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;position:relative;}
+  .rail-collapse-btn,.rail-account{
+    width:32px;height:32px;border-radius:8px;border:none;background:none;color:var(--ink-400);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
   }
-  .sidebar-collapse-btn:hover{background:var(--paper-100);color:var(--ink-700);}
-  .sidebar-collapse-btn svg{width:15px;height:15px;transition:transform .18s ease;}
-  .sidebar.collapsed .sidebar-collapse-btn svg{transform:rotate(180deg);}
-  .sidebar.collapsed .sidebar-brand{justify-content:center;padding:14px 6px;}
-  .sidebar.collapsed .sidebar-brand-text{display:none;}
-
-  .sidebar-nav{flex:1;overflow-y:auto;overflow-x:visible;padding:10px 8px;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;gap:1px;height:auto;}
-  .sidebar-nav-item,.sidebar-nav-group-toggle{
-    display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:8px;
-    border:none;background:none;color:var(--ink-700);font-family:var(--body);font-size:13.5px;font-weight:500;
-    cursor:pointer;text-align:left;white-space:nowrap;
-  }
-  .sidebar-nav-item svg,.sidebar-nav-group-toggle svg.sidebar-nav-item-icon{width:18px;height:18px;flex-shrink:0;color:var(--ink-400);}
-  .sidebar-nav-item:hover,.sidebar-nav-group-toggle:hover{background:var(--paper-100);color:var(--ink-900);}
-  .sidebar-nav-item.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;}
-  .sidebar-nav-item.active svg{color:var(--copper-600);}
-  .sidebar-nav-item-label{overflow:hidden;text-overflow:ellipsis;}
-  .sidebar.collapsed .sidebar-nav-item-label{display:none;}
-  .sidebar.collapsed .sidebar-nav-item,.sidebar.collapsed .sidebar-nav-group-toggle{justify-content:center;padding:8px;}
-
-  .sidebar-nav-group{position:relative;}
-  .sidebar-nav-group-chevron{width:13px;height:13px;flex-shrink:0;margin-left:auto;color:var(--ink-400);transition:transform .15s ease;}
-  .sidebar-nav-group-toggle[aria-expanded="false"] .sidebar-nav-group-chevron{transform:rotate(-90deg);}
-  .sidebar-nav-subitems{display:flex;flex-direction:column;gap:1px;padding-left:30px;margin-top:1px;}
-  .sidebar-nav-group-toggle[aria-expanded="false"] + .sidebar-nav-subitems{display:none;}
-  .sidebar-nav-subitem{
-    display:block;width:100%;padding:7px 10px;border-radius:7px;border:none;background:none;
-    color:var(--ink-600);font-family:var(--body);font-size:13px;font-weight:500;text-align:left;cursor:pointer;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  .sidebar-nav-subitem:hover{background:var(--paper-100);color:var(--ink-900);}
-  .sidebar-nav-subitem.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;}
-  .sidebar.collapsed .sidebar-nav-group-chevron{display:none;}
-  /* Collapsed: the sub-items can't render inline (no room for the
-     label text), so they float as a small popover to the right of the
-     icon instead of disappearing — same trigger (the toggle button),
-     same aria-expanded state, just repositioned. */
-  .sidebar.collapsed .sidebar-nav-subitems{
-    display:none;position:fixed;margin:0;
-    background:var(--paper-000);border:1px solid var(--line);border-radius:9px;
-    box-shadow:0 8px 24px rgba(20,24,29,.14);padding:6px;min-width:190px;z-index:60;
-  }
-  .sidebar.collapsed .sidebar-nav-group-toggle[aria-expanded="true"] + .sidebar-nav-subitems{display:flex;flex-direction:column;}
-  .sidebar.collapsed .sidebar-nav-subitem{color:var(--ink-700);}
-
-  .sidebar-nav-divider{height:1px;background:var(--line);margin:8px 10px;}
-
-  .sidebar-footer{border-top:1px solid var(--line);padding:8px;position:relative;}
-  .sidebar-account{
-    display:flex;align-items:center;gap:10px;padding:6px;border-radius:8px;min-width:0;width:100%;
-    border:none;background:none;cursor:pointer;font:inherit;text-align:left;
-  }
-  .sidebar-account:hover{background:var(--paper-100);}
+  .rail-collapse-btn:hover{background:var(--paper-100);color:var(--ink-700);}
+  .rail-collapse-btn svg{width:15px;height:15px;transition:transform .18s ease;}
+  .rail-collapse-btn.panel-collapsed svg{transform:rotate(180deg);}
+  .rail-account{border-radius:50%;padding:0;}
+  .rail-account:hover{background:var(--paper-100);}
   .sidebar-account-avatar{
-    width:28px;height:28px;border-radius:50%;background:var(--copper-500);color:#fff;flex-shrink:0;
+    width:30px;height:30px;border-radius:50%;background:var(--copper-500);color:#fff;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--display);
     text-transform:uppercase;
   }
-  .sidebar-account-info{min-width:0;overflow:hidden;}
-  .sidebar-account-email{display:block;font-size:12px;color:var(--ink-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .sidebar.collapsed .sidebar-account-info{display:none;}
-  .sidebar.collapsed .sidebar-account{justify-content:center;}
-
   .sidebar-account-menu{
-    display:none;position:absolute;left:8px;right:8px;bottom:calc(100% + 6px);
+    display:none;position:absolute;left:calc(100% + 8px);bottom:0;
     background:var(--paper-000);border:1px solid var(--line);border-radius:9px;
-    box-shadow:0 8px 24px rgba(20,24,29,.14);padding:6px;z-index:60;
+    box-shadow:0 8px 24px rgba(20,24,29,.14);padding:6px;z-index:60;min-width:200px;
   }
-  .sidebar.collapsed .sidebar-account-menu{left:64px;right:auto;bottom:8px;min-width:200px;}
   .sidebar-account-menu.open{display:block;}
   .sidebar-account-menu-email{
     padding:6px 8px 8px;margin-bottom:4px;border-bottom:1px solid var(--line);
@@ -276,6 +229,28 @@
   .sidebar-logout-btn:hover{background:var(--copper-050);}
   .sidebar-logout-btn svg{width:16px;height:16px;flex-shrink:0;}
 
+  .category-panel{
+    width:230px;flex-shrink:0;background:var(--paper-000);border-right:1px solid var(--line);
+    position:sticky;top:0;height:100vh;overflow-y:auto;overflow-x:hidden;
+    transition:width .18s ease,opacity .15s ease;
+  }
+  .category-panel.collapsed,.category-panel.empty{width:0;opacity:0;border-right:none;}
+  .category-panel-head{padding:18px 16px 8px;min-height:20px;}
+  .category-panel-title{font-family:var(--display);font-weight:700;font-size:15px;color:var(--ink-900);white-space:nowrap;}
+  .category-panel-nav{
+    padding:4px 10px 16px;display:block;height:auto;max-width:none;margin:0;
+    align-items:stretch;justify-content:flex-start;
+  }
+  .category-panel-section{display:none;flex-direction:column;gap:2px;}
+  .category-panel-section.active{display:flex;}
+  .category-panel-item{
+    display:block;width:100%;padding:9px 12px;border-radius:8px;border:none;background:none;
+    color:var(--ink-700);font-family:var(--body);font-size:13.5px;font-weight:500;text-align:left;cursor:pointer;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .category-panel-item:hover{background:var(--paper-100);color:var(--ink-900);}
+  .category-panel-item.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;}
+
   .main{flex:1;min-width:0;display:flex;flex-direction:column;}
   .topbar{
     display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
@@ -286,7 +261,8 @@
   .topbar-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
   .page-body{flex:1;padding:24px 28px;min-width:0;}
   @media(max-width:900px){
-    .sidebar{display:none;}
+    .rail{display:none;}
+    .category-panel{display:none;}
     .topbar{padding:14px 16px;}
     .page-body{padding:16px;}
   }
@@ -862,6 +838,25 @@
   }
   .home-todo-note-delete:hover{color:var(--signal-red);}
   .home-todo-empty{margin:0;padding:20px 4px;color:var(--ink-600);font-size:13px;text-align:center;}
+  /* Today's calendar events, surfaced inline with the to-do notes so a
+     scheduled thing-to-do doesn't only live on the calendar widget.
+     Visually distinct from a real sticky note (no color, a dashed
+     border, an "i" badge) and read-only here — clicking opens the same
+     event editor the calendar's own day view uses. */
+  .home-todo-note-calendar{
+    position:relative;padding:14px 16px;border-radius:6px;cursor:pointer;
+    background:var(--paper-050);border:1px dashed var(--line-strong);
+    display:flex;flex-direction:column;gap:6px;
+  }
+  .home-todo-note-calendar:hover{border-color:var(--copper-500);background:var(--copper-050);}
+  .home-todo-note-calendar-badge{
+    display:inline-flex;align-items:center;gap:5px;width:fit-content;
+    font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--copper-600);
+  }
+  .home-todo-note-calendar-badge svg{width:13px;height:13px;flex-shrink:0;}
+  .home-todo-note-calendar-text{margin:0;font-size:14.5px;color:var(--ink-900);line-height:1.4;}
+  .home-todo-note-calendar-time{font-size:12.5px;color:var(--ink-600);}
   .internal-projects-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;}
   .internal-projects-head h2{margin:6px 0 0;}
   .internal-projects-copy{max-width:460px;margin:0;color:var(--ink-600);font-size:14px;text-align:right;}
@@ -1759,65 +1754,39 @@
 
 <div class="dash" id="dash">
   <div class="app-shell">
-    <aside class="sidebar" id="appSidebar">
-      <div class="sidebar-brand">
-        <div class="sidebar-brand-text">
-          <span class="sidebar-brand-name">Insta Grup</span>
-          <span class="sidebar-brand-sub">Panou admin</span>
-        </div>
-        <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Restrânge meniul" title="Restrânge meniul">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    <aside class="rail" id="appRail">
+      <div class="rail-items">
+        <button type="button" class="rail-item admin-tab" data-tab="home" data-category="home" title="Acasă">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>
+          <span class="rail-item-label">Acasă</span>
+        </button>
+        <button type="button" class="rail-item" data-category="tickets" title="Sesizări">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8a2 2 0 0 0 2 2 2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2 2 2 0 0 1-2-2 2 2 0 0 1 2-2 2 2 0 0 0 2-2"/></svg>
+          <span class="rail-item-label">Sesizări</span>
+        </button>
+        <button type="button" class="rail-item" data-category="projects" title="Proiecte">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M9 4v5"/></svg>
+          <span class="rail-item-label">Proiecte</span>
+        </button>
+        <button type="button" class="rail-item" data-category="erp" title="ERP">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          <span class="rail-item-label">ERP</span>
+        </button>
+        <button type="button" class="rail-item" data-category="docs" title="Documentație">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          <span class="rail-item-label">Documentație</span>
+        </button>
+        <button type="button" class="rail-item" data-category="status" title="Stare sistem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <span class="rail-item-label">Stare sistem</span>
         </button>
       </div>
-      <nav class="sidebar-nav">
-        <button type="button" class="admin-tab sidebar-nav-item" data-tab="home" title="Acasă">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>
-          <span class="sidebar-nav-item-label">Acasă</span>
+      <div class="rail-footer">
+        <button type="button" class="rail-collapse-btn" id="sidebarCollapseBtn" aria-label="Restrânge meniul" title="Restrânge meniul">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-
-        <div class="sidebar-nav-group" id="sidebarTicketsGroup">
-          <button type="button" class="sidebar-nav-group-toggle" id="sidebarTicketsToggle" aria-expanded="true" title="Sesizări">
-            <svg class="sidebar-nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8a2 2 0 0 0 2 2 2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2 2 2 0 0 1-2-2 2 2 0 0 1 2-2 2 2 0 0 0 2-2"/></svg>
-            <span class="sidebar-nav-item-label">Sesizări</span>
-            <svg class="sidebar-nav-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="sidebar-nav-subitems" id="sidebarTicketsSubitems">
-            <button type="button" class="admin-tab sidebar-nav-subitem" data-tab="overview">Prezentare generală</button>
-            <button type="button" class="admin-tab sidebar-nav-subitem" data-tab="tickets-functional">Defecte</button>
-            <button type="button" class="admin-tab sidebar-nav-subitem" data-tab="tickets-accident">Accidente</button>
-          </div>
-        </div>
-
-        <button type="button" class="admin-tab sidebar-nav-item" data-tab="projects" title="Proiecte publice">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M9 4v5"/></svg>
-          <span class="sidebar-nav-item-label">Proiecte publice</span>
-        </button>
-        <button type="button" class="admin-tab sidebar-nav-item" data-tab="backlog" title="Avarii rețele">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
-          <span class="sidebar-nav-item-label">Avarii rețele</span>
-        </button>
-        <button type="button" class="admin-tab sidebar-nav-item" data-tab="lps" title="Proiecte LPS">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M3 9h6"/><path d="M3 15h6"/></svg>
-          <span class="sidebar-nav-item-label">Proiecte LPS</span>
-        </button>
-
-        <div class="sidebar-nav-divider"></div>
-
-        <button type="button" class="admin-tab sidebar-nav-item" data-tab="status" title="Stare sistem">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          <span class="sidebar-nav-item-label">Stare sistem</span>
-        </button>
-        <button type="button" class="admin-tab sidebar-nav-item" data-tab="docs" title="Documentație">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-          <span class="sidebar-nav-item-label">Documentație</span>
-        </button>
-      </nav>
-      <div class="sidebar-footer">
-        <button type="button" class="sidebar-account" id="sidebarAccountBtn" aria-haspopup="true" aria-expanded="false">
+        <button type="button" class="rail-account" id="sidebarAccountBtn" aria-haspopup="true" aria-expanded="false" title="Cont">
           <span class="sidebar-account-avatar" id="sidebarAccountAvatar">—</span>
-          <div class="sidebar-account-info">
-            <span class="sidebar-account-email" id="userTag"></span>
-          </div>
         </button>
         <div class="sidebar-account-menu" id="sidebarAccountMenu">
           <div class="sidebar-account-menu-email" id="sidebarAccountMenuEmail"></div>
@@ -1826,7 +1795,37 @@
             <span>Deconectare</span>
           </button>
         </div>
+        <span class="sidebar-account-email-hidden" id="userTag" hidden></span>
       </div>
+    </aside>
+
+    <aside class="category-panel" id="categoryPanel">
+      <div class="category-panel-head">
+        <span class="category-panel-title" id="categoryPanelTitle">Sesizări</span>
+      </div>
+      <nav class="category-panel-nav">
+        <div class="category-panel-section" data-category="tickets">
+          <button type="button" class="admin-tab category-panel-item" data-tab="overview">Prezentare generală</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="tickets-functional">Defecte</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="tickets-accident">Accidente</button>
+        </div>
+        <div class="category-panel-section" data-category="projects">
+          <button type="button" class="admin-tab category-panel-item" data-tab="projects-home">Home</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="projects">Proiecte publice</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="backlog">Avarii rețele</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="lps">Proiecte LPS</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="workorders">Programe lucrări</button>
+        </div>
+        <div class="category-panel-section" data-category="erp">
+          <button type="button" class="admin-tab category-panel-item" data-tab="equipment">Echipamente și materiale</button>
+        </div>
+        <div class="category-panel-section" data-category="docs">
+          <button type="button" class="admin-tab category-panel-item" data-tab="docs">Documentație</button>
+        </div>
+        <div class="category-panel-section" data-category="status">
+          <button type="button" class="admin-tab category-panel-item" data-tab="status">Stare sistem</button>
+        </div>
+      </nav>
     </aside>
 
     <div class="main">
@@ -2089,6 +2088,56 @@
         </div>
       </div>
     </div>
+    <div class="admin-panel" id="panel-projects-home">
+      <div class="priority-grid">
+        <button type="button" class="priority-card" id="projHomeProjectsCard">
+          <span class="k">● Proiecte publice</span>
+          <div class="num" id="projHomeProjectsCount">0</div>
+          <div class="sub">Active momentan</div>
+        </button>
+        <button type="button" class="priority-card warn" id="projHomeBacklogCard">
+          <span class="k">⚡ Avarii rețele</span>
+          <div class="num" id="projHomeBacklogCount">0</div>
+          <div class="sub">Lucrări deschise</div>
+        </button>
+        <button type="button" class="priority-card" id="projHomeLpsCard">
+          <span class="k">◫ Proiecte LPS</span>
+          <div class="num" id="projHomeLpsCount">0</div>
+          <div class="sub">Proiecte interne de planificare</div>
+        </button>
+        <button type="button" class="priority-card done" id="projHomeWorkOrdersCard">
+          <span class="k">🗓 Programe lucrări</span>
+          <div class="num" id="projHomeWorkOrdersCount">0</div>
+          <div class="sub">Programate în următoarele 14 zile</div>
+        </button>
+      </div>
+      <div class="home-nav-grid" style="margin-top:28px;">
+        <button type="button" class="home-nav-btn" id="projHomeNavProjects">
+          <span class="home-nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M9 4v5"/></svg>
+          </span>
+          <span class="home-nav-text"><span class="home-nav-label">Proiecte publice</span><span class="home-nav-sub">Lucrări în curs și programate</span></span>
+        </button>
+        <button type="button" class="home-nav-btn" id="projHomeNavBacklog">
+          <span class="home-nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+          </span>
+          <span class="home-nav-text"><span class="home-nav-label">Avarii rețele</span><span class="home-nav-sub">Lucrări din teren</span></span>
+        </button>
+        <button type="button" class="home-nav-btn" id="projHomeNavLps">
+          <span class="home-nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M3 9h6"/><path d="M3 15h6"/></svg>
+          </span>
+          <span class="home-nav-text"><span class="home-nav-label">Proiecte LPS</span><span class="home-nav-sub">Planificare Last Planner</span></span>
+        </button>
+        <button type="button" class="home-nav-btn" id="projHomeNavWorkOrders">
+          <span class="home-nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+          </span>
+          <span class="home-nav-text"><span class="home-nav-label">Programe lucrări</span><span class="home-nav-sub">Calendar de lucrări planificate</span></span>
+        </button>
+      </div>
+    </div>
     <div class="admin-panel" id="panel-lps">
       <div class="internal-projects-head">
         <div><div class="home-eyebrow">Last Planner System</div><h2>Planificare LPS</h2></div>
@@ -2229,6 +2278,51 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="admin-panel" id="panel-workorders">
+      <div class="toolbar">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="result-count" id="workOrdersCount"></div>
+        </div>
+        <button type="button" class="btn btn-primary" id="addWorkOrderBtn">+ Programare nouă</button>
+      </div>
+
+      <div class="project-form" id="workOrderForm" style="display:none;">
+        <input type="hidden" id="wf-id">
+        <div class="pf-grid">
+          <div class="ctrl-field">
+            <label>Lucrare</label>
+            <input type="text" id="wf-title" placeholder="ex: Asfaltare Str. Gh. Doja">
+          </div>
+          <div class="ctrl-field">
+            <label>Loc / adresă</label>
+            <input type="text" id="wf-location" placeholder="ex: Str. Gh. Doja, Târgu-Mureș">
+          </div>
+          <div class="ctrl-field">
+            <label>Echipă / responsabil</label>
+            <input type="text" id="wf-crew" placeholder="ex: Echipa 2 - Ionel Ghiurchi">
+          </div>
+          <div class="ctrl-field">
+            <label>Data programată</label>
+            <input type="date" id="wf-start">
+          </div>
+          <div class="ctrl-field">
+            <label>Până la (opțional)</label>
+            <input type="date" id="wf-end">
+          </div>
+          <div class="ctrl-field" style="grid-column:1/-1;">
+            <label>Descriere</label>
+            <input type="text" id="wf-description" placeholder="Detalii despre lucrare">
+          </div>
+        </div>
+        <div class="pf-actions">
+          <button class="btn" id="wfCancelBtn" type="button">Anulează</button>
+          <button class="btn btn-primary" id="wfSaveBtn" type="button">Salvează programarea</button>
+        </div>
+      </div>
+
+      <div class="backlog-list" id="workOrdersList"></div>
     </div>
 
     <div class="admin-panel" id="panel-tickets">
@@ -2412,6 +2506,59 @@
       </div>
 
       <div class="backlog-list" id="backlogList"></div>
+    </div>
+
+    <div class="admin-panel" id="panel-equipment">
+      <div class="toolbar">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="result-count" id="equipmentCount"></div>
+        </div>
+        <button type="button" class="btn btn-primary" id="addEquipmentBtn">+ Adaugă echipament</button>
+      </div>
+
+      <div class="project-form" id="equipmentForm" style="display:none;">
+        <input type="hidden" id="ef-id">
+        <div class="pf-grid">
+          <div class="ctrl-field">
+            <label>Denumire</label>
+            <input type="text" id="ef-name" placeholder="ex: Buldoexcavator JCB 3CX">
+          </div>
+          <div class="ctrl-field">
+            <label>Categorie</label>
+            <input type="text" id="ef-category" placeholder="ex: Utilaj / Material / Sculă">
+          </div>
+          <div class="ctrl-field">
+            <label>Cantitate</label>
+            <input type="number" id="ef-quantity" min="0" step="1" value="1">
+          </div>
+          <div class="ctrl-field">
+            <label>Unitate</label>
+            <input type="text" id="ef-unit" placeholder="ex: buc, kg, m">
+          </div>
+          <div class="ctrl-field">
+            <label>Nr. serie / inventar</label>
+            <input type="text" id="ef-serial" placeholder="ex: SN-4471">
+          </div>
+          <div class="ctrl-field">
+            <label>Locație curentă</label>
+            <input type="text" id="ef-location" placeholder="ex: Depozit central / Șantier Str. X">
+          </div>
+          <div class="ctrl-field">
+            <label>Alocat la</label>
+            <input type="text" id="ef-assigned" placeholder="ex: Echipa 2 / Ionel Ghiurchi">
+          </div>
+          <div class="ctrl-field" style="grid-column:1/-1;">
+            <label>Notițe</label>
+            <input type="text" id="ef-notes" placeholder="Detalii suplimentare">
+          </div>
+        </div>
+        <div class="pf-actions">
+          <button class="btn" id="efCancelBtn" type="button">Anulează</button>
+          <button class="btn btn-primary" id="efSaveBtn" type="button">Salvează</button>
+        </div>
+      </div>
+
+      <div class="backlog-list" id="equipmentList"></div>
     </div>
 
     <div class="admin-panel" id="panel-status">
@@ -3055,7 +3202,8 @@
 
   const loginWrap = document.getElementById('loginWrap');
   const dash = document.getElementById('dash');
-  const appSidebar = document.getElementById('appSidebar');
+  const appRail = document.getElementById('appRail');
+  const categoryPanel = document.getElementById('categoryPanel');
   const loginForm = document.getElementById('loginForm');
   const loginError = document.getElementById('loginError');
   const loginBtn = document.getElementById('loginBtn');
@@ -3851,7 +3999,7 @@
     if (isReportAccount) {
       // Land back on whatever tab was open before a refresh instead of
       // always restarting at the home page — see initialHashTab above.
-      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects', 'backlog', 'lps', 'status', 'docs'];
+      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects-home', 'projects', 'backlog', 'lps', 'workorders', 'equipment', 'status', 'docs'];
       const restoredTab = validReportTabs.includes(initialHashTab) ? initialHashTab : 'home';
       openAdminTab(restoredTab, true);
       history.replaceState({ adminTab: restoredTab }, '', window.location.pathname + window.location.search + '#' + restoredTab);
@@ -4978,6 +5126,7 @@
     calendarEvents = data || [];
     renderHomeMiniCal();
     renderHomeCalToday();
+    renderTodoNotes();
     if (selectedCalendarDate) renderCalendarDayEvents();
   }
 
@@ -5872,22 +6021,49 @@
   function saveTodoNotes(){
     localStorage.setItem(TODO_STORAGE_KEY, JSON.stringify(todoNotes));
   }
+  // Today's calendar events double as to-do items — pulled live from
+  // calendarEvents (see eventsOnDate()) rather than copied into
+  // TODO_STORAGE_KEY, so there's exactly one source of truth and they
+  // never drift out of sync with the calendar itself.
+  function todaysLinkedCalendarEvents(){
+    if (typeof calendarEvents === 'undefined' || typeof eventsOnDate !== 'function') return [];
+    return eventsOnDate(dateKey(new Date()));
+  }
   function renderTodoNotes(){
     const list = document.getElementById('homeTodoList');
     const empty = document.getElementById('homeTodoEmpty');
     if (!list) return;
-    if (!todoNotes.length) {
+    const linkedEvents = todaysLinkedCalendarEvents();
+    if (!todoNotes.length && !linkedEvents.length) {
       list.innerHTML = '';
       if (empty) empty.hidden = false;
       return;
     }
     if (empty) empty.hidden = true;
-    list.innerHTML = todoNotes.map((note, i) => `
+    const infoIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+    const eventItemsHtml = linkedEvents.map(e => {
+      const timeLabel = e.all_day ? 'Toată ziua' : pad2(new Date(e.start_time).getHours()) + ':' + pad2(new Date(e.start_time).getMinutes());
+      return `
+        <div class="home-todo-note-calendar" data-event-id="${escapeHtml(String(e.id))}">
+          <span class="home-todo-note-calendar-badge">${infoIcon} Din calendar</span>
+          <p class="home-todo-note-calendar-text">${escapeHtml(e.title || 'Eveniment')}</p>
+          <span class="home-todo-note-calendar-time">Azi · ${escapeHtml(timeLabel)}</span>
+        </div>
+      `;
+    }).join('');
+    const noteItemsHtml = todoNotes.map((note, i) => `
       <div class="home-todo-note color-${(i % 4) + 1}" data-note-id="${escapeHtml(note.id)}">
         <textarea placeholder="Notează aici…">${escapeHtml(note.text || '')}</textarea>
         <button type="button" class="home-todo-note-delete" aria-label="Șterge notița">×</button>
       </div>
     `).join('');
+    list.innerHTML = eventItemsHtml + noteItemsHtml;
+    list.querySelectorAll('.home-todo-note-calendar').forEach(el => {
+      el.addEventListener('click', () => {
+        const ev = calendarEvents.find(e => String(e.id) === el.dataset.eventId);
+        if (ev) openCalendarEventForm(ev, dateKey(new Date(ev.start_time)));
+      });
+    });
   }
   function addTodoNote(){
     const note = { id: 'todo-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7), text: '' };
@@ -6422,12 +6598,48 @@
     overview: 'Prezentare generală',
     'tickets-functional': 'Sesizări funcționale',
     'tickets-accident': 'Sesizări accidente',
+    'projects-home': 'Proiecte',
     projects: 'Proiecte publice',
     backlog: 'Avarii rețele',
     lps: 'Proiecte LPS',
+    workorders: 'Programe lucrări',
+    equipment: 'Echipamente și materiale',
     status: 'Stare sistem',
     docs: 'Documentație',
   };
+  // Which rail category each tab belongs to, and each category's
+  // default landing tab (used when a rail icon itself is clicked,
+  // rather than a specific item inside its category panel).
+  const TAB_CATEGORY = {
+    overview: 'tickets', 'tickets-functional': 'tickets', 'tickets-accident': 'tickets',
+    'projects-home': 'projects', projects: 'projects', backlog: 'projects', lps: 'projects', workorders: 'projects',
+    equipment: 'erp',
+    docs: 'docs',
+    status: 'status',
+  };
+  const CATEGORY_DEFAULT_TAB = {
+    tickets: 'overview', projects: 'projects-home', erp: 'equipment', docs: 'docs', status: 'status',
+  };
+  const CATEGORY_TITLES = {
+    tickets: 'Sesizări', projects: 'Proiecte', erp: 'ERP', docs: 'Documentație', status: 'Stare sistem',
+  };
+  function setActiveCategory(category){
+    document.querySelectorAll('.rail-item[data-category]').forEach(item => {
+      item.classList.toggle('active', item.dataset.category === category);
+    });
+    document.querySelectorAll('.category-panel-section').forEach(sec => {
+      sec.classList.toggle('active', sec.dataset.category === category);
+    });
+    const titleEl = document.getElementById('categoryPanelTitle');
+    if (titleEl) titleEl.textContent = CATEGORY_TITLES[category] || '';
+    // Acasă isn't a category with sub-items — nothing to show in the
+    // second sidebar there, so it collapses itself rather than
+    // sitting empty. This is independent of the user's own manual
+    // collapse toggle (a different class), which still applies again
+    // as soon as a real category is picked.
+    const catPanel = document.getElementById('categoryPanel');
+    if (catPanel) catPanel.classList.toggle('empty', !CATEGORY_TITLES[category]);
+  }
   function renderBreadcrumb(tabKey){
     const bc = document.getElementById('navBreadcrumb');
     if (!bc || !isReportFocusedView()) return;
@@ -6467,10 +6679,7 @@
     renderBreadcrumb(tabKey);
     const topbarTitleEl = document.getElementById('topbarTitle');
     if (topbarTitleEl) topbarTitleEl.textContent = tabKey === 'home' ? 'Acasă' : (BREADCRUMB_TABS[tabKey] || '');
-    if (tabKey === 'overview' || tabKey === 'tickets-functional' || tabKey === 'tickets-accident') {
-      const ticketsToggle = document.getElementById('sidebarTicketsToggle');
-      if (ticketsToggle) ticketsToggle.setAttribute('aria-expanded', 'true');
-    }
+    setActiveCategory(TAB_CATEGORY[tabKey] || null);
     document.querySelectorAll('.admin-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.tab === tabKey);
     });
@@ -6503,6 +6712,9 @@
     if (tabKey === 'tickets-functional') setTicketTypeFilter('functional', { skipRender: true });
     else if (tabKey === 'tickets-accident') setTicketTypeFilter('accident', { skipRender: true });
     else if (tabKey === 'status') loadSystemStatus();
+    else if (tabKey === 'workorders') loadWorkOrders();
+    else if (tabKey === 'equipment') loadEquipment();
+    else if (tabKey === 'projects-home') renderProjectsHomeStats();
     // Proiecte publice always opens on "Active" — otherwise whichever
     // status chip was last clicked earlier in the session (e.g. "Toate"
     // while triaging) silently stuck for every later visit to this tab,
@@ -8745,60 +8957,40 @@
   });
 
   /* ============================================================
-     SIDEBAR — collapse toggle and the "Sesizări" group's dropdown.
+     RAIL — category switching (which .category-panel-section shows)
+     and the category panel's own collapse toggle.
      ============================================================ */
+  document.querySelectorAll('.rail-item[data-category]').forEach(item => {
+    item.addEventListener('click', () => {
+      const category = item.dataset.category;
+      if (category === 'home') return; // handled by its own .admin-tab click (data-tab="home")
+      setActiveCategory(category);
+      const currentTabKey = document.querySelector('.admin-tab.active')?.dataset.tab;
+      // Only jump to the category's default tab if we're not already
+      // showing something that belongs to this category — clicking
+      // "Sesizări" while already on Defecte shouldn't bounce back to
+      // Prezentare generală.
+      if (TAB_CATEGORY[currentTabKey] !== category) {
+        openAdminTab(CATEGORY_DEFAULT_TAB[category]);
+      }
+    });
+  });
   const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
-  if (sidebarCollapseBtn && appSidebar) {
+  if (sidebarCollapseBtn && categoryPanel) {
     const SIDEBAR_COLLAPSED_KEY = 'insta-grup-sidebar-collapsed-v1';
     if (localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1') {
-      appSidebar.classList.add('collapsed');
+      categoryPanel.classList.add('collapsed');
+      sidebarCollapseBtn.classList.add('panel-collapsed');
     }
     sidebarCollapseBtn.addEventListener('click', () => {
-      const collapsed = appSidebar.classList.toggle('collapsed');
+      const collapsed = categoryPanel.classList.toggle('collapsed');
+      sidebarCollapseBtn.classList.toggle('panel-collapsed', collapsed);
       sidebarCollapseBtn.setAttribute('aria-label', collapsed ? 'Extinde meniul' : 'Restrânge meniul');
       sidebarCollapseBtn.title = collapsed ? 'Extinde meniul' : 'Restrânge meniul';
       try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0'); } catch (e) {}
-      const ticketsToggle = document.getElementById('sidebarTicketsToggle');
-      if (ticketsToggle) ticketsToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
       const accountMenu = document.getElementById('sidebarAccountMenu');
       const accountBtn = document.getElementById('sidebarAccountBtn');
       if (accountMenu && accountBtn) { accountMenu.classList.remove('open'); accountBtn.setAttribute('aria-expanded', 'false'); }
-    });
-  }
-  const sidebarTicketsToggle = document.getElementById('sidebarTicketsToggle');
-  const sidebarTicketsSubitems = document.getElementById('sidebarTicketsSubitems');
-  // When the sidebar is collapsed, the sub-items render as a fixed-position
-  // flyout instead of an inline list (see the .sidebar.collapsed CSS) —
-  // position:fixed escapes .sidebar-nav's own overflow:auto clipping,
-  // which position:absolute could not, so its coordinates are computed
-  // here from the toggle button's actual on-screen position.
-  function positionTicketsFlyout(){
-    if (!appSidebar || !appSidebar.classList.contains('collapsed') || !sidebarTicketsToggle || !sidebarTicketsSubitems) return;
-    const r = sidebarTicketsToggle.getBoundingClientRect();
-    sidebarTicketsSubitems.style.top = r.top + 'px';
-    sidebarTicketsSubitems.style.left = (r.right + 6) + 'px';
-  }
-  if (sidebarTicketsToggle) {
-    sidebarTicketsToggle.addEventListener('click', () => {
-      const expanded = sidebarTicketsToggle.getAttribute('aria-expanded') === 'true';
-      sidebarTicketsToggle.setAttribute('aria-expanded', String(!expanded));
-      if (!expanded) positionTicketsFlyout();
-    });
-  }
-  document.addEventListener('click', (e) => {
-    if (sidebarTicketsToggle && sidebarTicketsSubitems &&
-        appSidebar && appSidebar.classList.contains('collapsed') &&
-        !sidebarTicketsToggle.contains(e.target) && !sidebarTicketsSubitems.contains(e.target)) {
-      sidebarTicketsToggle.setAttribute('aria-expanded', 'false');
-    }
-  });
-  if (sidebarTicketsSubitems && sidebarTicketsToggle) {
-    sidebarTicketsSubitems.querySelectorAll('.sidebar-nav-subitem').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (appSidebar && appSidebar.classList.contains('collapsed')) {
-          sidebarTicketsToggle.setAttribute('aria-expanded', 'false');
-        }
-      });
     });
   }
 
@@ -9128,6 +9320,7 @@
     allProjects = data || [];
     populateProjectYearFilterSelect();
     renderProjects();
+    if (typeof renderProjectsHomeStats === 'function') renderProjectsHomeStats();
   }
 
   function renderProjects(){
@@ -9546,6 +9739,7 @@
     }
     allBacklogProjects = data || [];
     renderBacklogProjects();
+    if (typeof renderProjectsHomeStats === 'function') renderProjectsHomeStats();
   }
 
   function daysSince(dateStr, endDateStr){
@@ -9715,6 +9909,270 @@
     setQuery: (v) => { backlogSearchQuery = v; }, rerender: renderBacklogProjects,
     getStatus: () => backlogFilter, setStatus: setBacklogFilter, widenStatus: 'Toate',
   });
+
+  /* ============================================================
+     PROGRAME LUCRĂRI (work_orders) — a scheduled/assigned unit of
+     field work, same simple CRUD shape as Avarii rețele above (a
+     project_form-styled add/edit form + a backlog-list-styled list).
+     ============================================================ */
+  let allWorkOrders = [];
+  async function loadWorkOrders(){
+    const { data, error } = await supabaseClient
+      .from('work_orders')
+      .select('*')
+      .order('scheduled_date', { ascending: true });
+    if (error) { console.error(error); return; }
+    allWorkOrders = data || [];
+    renderWorkOrders();
+  }
+  function formatWorkOrderDate(d){
+    if (!d) return '';
+    const [y, m, day] = d.split('-');
+    return `${day}.${m}.${y}`;
+  }
+  function renderWorkOrders(){
+    const list = document.getElementById('workOrdersList');
+    if (!list) return;
+    const countEl = document.getElementById('workOrdersCount');
+    if (countEl) countEl.textContent = allWorkOrders.length + (allWorkOrders.length === 1 ? ' programare' : ' programări');
+    if (allWorkOrders.length === 0) {
+      list.innerHTML = '<div class="no-results" style="padding:40px 0;text-align:center;color:var(--ink-400);">Nicio lucrare programată.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    allWorkOrders.forEach(w => {
+      const isDone = w.status === 'Finalizat';
+      const isCancelled = w.status === 'Anulat';
+      const dateLabel = formatWorkOrderDate(w.scheduled_date) + (w.scheduled_end_date ? ' – ' + formatWorkOrderDate(w.scheduled_end_date) : '');
+      const row = document.createElement('div');
+      row.className = 'backlog-row' + (isDone ? ' done' : '');
+      row.innerHTML = `
+        <div class="backlog-main">
+          <div class="backlog-title-line">
+            <span class="backlog-title">${escapeHtml(w.title)}</span>
+            <span class="backlog-tag">${escapeHtml(w.status)}</span>
+            <span class="backlog-days">${escapeHtml(dateLabel)}</span>
+          </div>
+          <div class="backlog-meta-line">${escapeHtml(w.location || '')}${w.crew ? ' · ' + escapeHtml(w.crew) : ''}${w.description ? ' · ' + escapeHtml(w.description) : ''}</div>
+        </div>
+        <div class="backlog-actions">
+          <button class="btn wo-edit">Editează</button>
+          ${!isDone && !isCancelled ? '<button class="btn btn-primary wo-status">Finalizat</button>' : ''}
+          <button class="btn wo-delete">Șterge</button>
+        </div>
+      `;
+      row.querySelector('.wo-edit').addEventListener('click', () => openWorkOrderForm(w));
+      const statusBtn = row.querySelector('.wo-status');
+      if (statusBtn) {
+        statusBtn.addEventListener('click', async () => {
+          if (!confirm(`Marcați „${w.title}” ca finalizată?`)) return;
+          const { error } = await supabaseClient.from('work_orders').update({ status: 'Finalizat' }).eq('id', w.id);
+          if (error) { console.error(error); alert('Eroare la actualizare. Încercați din nou.'); return; }
+          loadWorkOrders();
+        });
+      }
+      row.querySelector('.wo-delete').addEventListener('click', async () => {
+        if (!confirm(`Ștergeți definitiv programarea „${w.title}”?`)) return;
+        const { error } = await supabaseClient.from('work_orders').delete().eq('id', w.id);
+        if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
+        loadWorkOrders();
+      });
+      list.appendChild(row);
+    });
+  }
+  const workOrderForm = document.getElementById('workOrderForm');
+  function openWorkOrderForm(w){
+    document.getElementById('wf-id').value = w ? w.id : '';
+    document.getElementById('wf-title').value = w ? w.title : '';
+    document.getElementById('wf-location').value = w ? (w.location || '') : '';
+    document.getElementById('wf-crew').value = w ? (w.crew || '') : '';
+    document.getElementById('wf-start').value = w ? w.scheduled_date : '';
+    document.getElementById('wf-end').value = w ? (w.scheduled_end_date || '') : '';
+    document.getElementById('wf-description').value = w ? (w.description || '') : '';
+    workOrderForm.style.display = 'block';
+    workOrderForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  const addWorkOrderBtn = document.getElementById('addWorkOrderBtn');
+  if (addWorkOrderBtn) addWorkOrderBtn.addEventListener('click', () => openWorkOrderForm(null));
+  const wfCancelBtn = document.getElementById('wfCancelBtn');
+  if (wfCancelBtn) wfCancelBtn.addEventListener('click', () => { workOrderForm.style.display = 'none'; });
+  const wfSaveBtn = document.getElementById('wfSaveBtn');
+  if (wfSaveBtn) wfSaveBtn.addEventListener('click', async () => {
+    const id = document.getElementById('wf-id').value;
+    const title = document.getElementById('wf-title').value.trim();
+    const location = document.getElementById('wf-location').value.trim();
+    const crew = document.getElementById('wf-crew').value.trim();
+    const scheduled_date = document.getElementById('wf-start').value;
+    const scheduled_end_date = document.getElementById('wf-end').value;
+    const description = document.getElementById('wf-description').value.trim();
+    if (!title || !scheduled_date) {
+      alert('Completați lucrarea și data programată.');
+      return;
+    }
+    const payload = {
+      title, scheduled_date,
+      location: location || null,
+      crew: crew || null,
+      scheduled_end_date: scheduled_end_date || null,
+      description: description || null,
+    };
+    const { error } = id
+      ? await supabaseClient.from('work_orders').update(payload).eq('id', id)
+      : await supabaseClient.from('work_orders').insert(payload);
+    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+    workOrderForm.style.display = 'none';
+    showToast(id ? 'Programarea a fost actualizată.' : 'Programarea a fost adăugată.');
+    loadWorkOrders();
+  });
+
+  /* ============================================================
+     ERP — ECHIPAMENTE ȘI MATERIALE (equipment_inventory). Same shape
+     again: what exists, where it is, and who's using it right now.
+     ============================================================ */
+  let allEquipment = [];
+  async function loadEquipment(){
+    const { data, error } = await supabaseClient
+      .from('equipment_inventory')
+      .select('*')
+      .order('name', { ascending: true });
+    if (error) { console.error(error); return; }
+    allEquipment = data || [];
+    renderEquipment();
+  }
+  function renderEquipment(){
+    const list = document.getElementById('equipmentList');
+    if (!list) return;
+    const countEl = document.getElementById('equipmentCount');
+    if (countEl) countEl.textContent = allEquipment.length + (allEquipment.length === 1 ? ' element' : ' elemente');
+    if (allEquipment.length === 0) {
+      list.innerHTML = '<div class="no-results" style="padding:40px 0;text-align:center;color:var(--ink-400);">Niciun echipament sau material înregistrat.</div>';
+      return;
+    }
+    const STATUS_CYCLE = { 'Disponibil': 'In folosinta', 'In folosinta': 'Service', 'Service': 'Disponibil', 'Indisponibil': 'Disponibil' };
+    const STATUS_LABEL = { 'Disponibil': 'Disponibil', 'In folosinta': 'În folosință', 'Service': 'Service', 'Indisponibil': 'Indisponibil' };
+    list.innerHTML = '';
+    allEquipment.forEach(eq => {
+      const qtyLabel = eq.quantity != null ? (Number(eq.quantity) + (eq.unit ? ' ' + eq.unit : '')) : '';
+      const row = document.createElement('div');
+      row.className = 'backlog-row' + (eq.status === 'Indisponibil' ? ' done' : '');
+      row.innerHTML = `
+        <div class="backlog-main">
+          <div class="backlog-title-line">
+            <span class="backlog-title">${escapeHtml(eq.name)}</span>
+            <span class="backlog-tag">${escapeHtml(STATUS_LABEL[eq.status] || eq.status)}</span>
+            ${qtyLabel ? `<span class="backlog-days">${escapeHtml(qtyLabel)}</span>` : ''}
+          </div>
+          <div class="backlog-meta-line">${escapeHtml(eq.category || '')}${eq.location ? ' · ' + escapeHtml(eq.location) : ''}${eq.assigned_to ? ' · alocat: ' + escapeHtml(eq.assigned_to) : ''}${eq.serial_number ? ' · SN ' + escapeHtml(eq.serial_number) : ''}</div>
+        </div>
+        <div class="backlog-actions">
+          <button class="btn eq-edit">Editează</button>
+          <button class="btn btn-primary eq-status">${escapeHtml(STATUS_LABEL[STATUS_CYCLE[eq.status]] || 'Schimbă starea')}</button>
+          <button class="btn eq-delete">Șterge</button>
+        </div>
+      `;
+      row.querySelector('.eq-edit').addEventListener('click', () => openEquipmentForm(eq));
+      row.querySelector('.eq-status').addEventListener('click', async () => {
+        const nextStatus = STATUS_CYCLE[eq.status] || 'Disponibil';
+        const { error } = await supabaseClient.from('equipment_inventory').update({ status: nextStatus }).eq('id', eq.id);
+        if (error) { console.error(error); alert('Eroare la actualizare. Încercați din nou.'); return; }
+        loadEquipment();
+      });
+      row.querySelector('.eq-delete').addEventListener('click', async () => {
+        if (!confirm(`Ștergeți definitiv „${eq.name}” din inventar?`)) return;
+        const { error } = await supabaseClient.from('equipment_inventory').delete().eq('id', eq.id);
+        if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
+        loadEquipment();
+      });
+      list.appendChild(row);
+    });
+  }
+  const equipmentForm = document.getElementById('equipmentForm');
+  function openEquipmentForm(eq){
+    document.getElementById('ef-id').value = eq ? eq.id : '';
+    document.getElementById('ef-name').value = eq ? eq.name : '';
+    document.getElementById('ef-category').value = eq ? (eq.category || '') : '';
+    document.getElementById('ef-quantity').value = eq ? eq.quantity : 1;
+    document.getElementById('ef-unit').value = eq ? (eq.unit || '') : '';
+    document.getElementById('ef-serial').value = eq ? (eq.serial_number || '') : '';
+    document.getElementById('ef-location').value = eq ? (eq.location || '') : '';
+    document.getElementById('ef-assigned').value = eq ? (eq.assigned_to || '') : '';
+    document.getElementById('ef-notes').value = eq ? (eq.notes || '') : '';
+    equipmentForm.style.display = 'block';
+    equipmentForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  const addEquipmentBtn = document.getElementById('addEquipmentBtn');
+  if (addEquipmentBtn) addEquipmentBtn.addEventListener('click', () => openEquipmentForm(null));
+  const efCancelBtn = document.getElementById('efCancelBtn');
+  if (efCancelBtn) efCancelBtn.addEventListener('click', () => { equipmentForm.style.display = 'none'; });
+  const efSaveBtn = document.getElementById('efSaveBtn');
+  if (efSaveBtn) efSaveBtn.addEventListener('click', async () => {
+    const id = document.getElementById('ef-id').value;
+    const name = document.getElementById('ef-name').value.trim();
+    const category = document.getElementById('ef-category').value.trim();
+    const quantity = parseFloat(document.getElementById('ef-quantity').value) || 0;
+    const unit = document.getElementById('ef-unit').value.trim();
+    const serial_number = document.getElementById('ef-serial').value.trim();
+    const location = document.getElementById('ef-location').value.trim();
+    const assigned_to = document.getElementById('ef-assigned').value.trim();
+    const notes = document.getElementById('ef-notes').value.trim();
+    if (!name) {
+      alert('Completați denumirea echipamentului sau materialului.');
+      return;
+    }
+    const payload = {
+      name, quantity,
+      category: category || null,
+      unit: unit || null,
+      serial_number: serial_number || null,
+      location: location || null,
+      assigned_to: assigned_to || null,
+      notes: notes || null,
+    };
+    const { error } = id
+      ? await supabaseClient.from('equipment_inventory').update(payload).eq('id', id)
+      : await supabaseClient.from('equipment_inventory').insert(payload);
+    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+    equipmentForm.style.display = 'none';
+    showToast(id ? 'Echipamentul a fost actualizat.' : 'Echipamentul a fost adăugat.');
+    loadEquipment();
+  });
+
+  /* ============================================================
+     PROIECTE → HOME — a small analytics summary across all four
+     project-family panels (Proiecte publice, Avarii rețele, LPS,
+     Programe lucrări), reusing whatever each panel already loaded
+     rather than issuing its own separate queries.
+     ============================================================ */
+  function renderProjectsHomeStats(){
+    const projCountEl = document.getElementById('projHomeProjectsCount');
+    if (projCountEl) projCountEl.textContent = (typeof allProjects !== 'undefined' ? allProjects.filter(p => !p.archived).length : 0);
+    const backlogCountEl = document.getElementById('projHomeBacklogCount');
+    if (backlogCountEl) backlogCountEl.textContent = (typeof allBacklogProjects !== 'undefined' ? allBacklogProjects.filter(p => (p.status || 'Ongoing') !== 'Terminat').length : 0);
+    const lpsCountEl = document.getElementById('projHomeLpsCount');
+    if (lpsCountEl) lpsCountEl.textContent = (typeof internalProjects !== 'undefined' ? internalProjects.length : 0);
+    const woCountEl = document.getElementById('projHomeWorkOrdersCount');
+    if (woCountEl) {
+      const in14Days = new Date(); in14Days.setDate(in14Days.getDate() + 14);
+      const upcoming = allWorkOrders.filter(w => w.status !== 'Finalizat' && w.status !== 'Anulat' && new Date(w.scheduled_date) <= in14Days);
+      woCountEl.textContent = upcoming.length;
+    }
+  }
+  const projHomeProjectsCard = document.getElementById('projHomeProjectsCard');
+  if (projHomeProjectsCard) projHomeProjectsCard.addEventListener('click', () => openAdminTab('projects'));
+  const projHomeBacklogCard = document.getElementById('projHomeBacklogCard');
+  if (projHomeBacklogCard) projHomeBacklogCard.addEventListener('click', () => openAdminTab('backlog'));
+  const projHomeLpsCard = document.getElementById('projHomeLpsCard');
+  if (projHomeLpsCard) projHomeLpsCard.addEventListener('click', () => openAdminTab('lps'));
+  const projHomeWorkOrdersCard = document.getElementById('projHomeWorkOrdersCard');
+  if (projHomeWorkOrdersCard) projHomeWorkOrdersCard.addEventListener('click', () => openAdminTab('workorders'));
+  const projHomeNavProjects = document.getElementById('projHomeNavProjects');
+  if (projHomeNavProjects) projHomeNavProjects.addEventListener('click', () => openAdminTab('projects'));
+  const projHomeNavBacklog = document.getElementById('projHomeNavBacklog');
+  if (projHomeNavBacklog) projHomeNavBacklog.addEventListener('click', () => openAdminTab('backlog'));
+  const projHomeNavLps = document.getElementById('projHomeNavLps');
+  if (projHomeNavLps) projHomeNavLps.addEventListener('click', () => openAdminTab('lps'));
+  const projHomeNavWorkOrders = document.getElementById('projHomeNavWorkOrders');
+  if (projHomeNavWorkOrders) projHomeNavWorkOrders.addEventListener('click', () => openAdminTab('workorders'));
 
   /* ============================================================
      EXCEL EXPORT — same client-side XLSX mechanism as the "Raport
