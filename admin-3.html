@@ -197,6 +197,12 @@
   .rail-item-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
   .rail-item:hover{background:var(--paper-100);color:var(--ink-900);}
   .rail-item.active{background:var(--copper-050);color:var(--copper-600);}
+  /* Acasă also carries .admin-tab (needed so the existing generic
+     .admin-tab click wiring picks it up) — that class's own padding/
+     border-bottom, meant for the old text-tab strip, was squeezing
+     its icon down to a sliver inside the 42px box. Two classes here
+     beat .admin-tab's one regardless of stylesheet order. */
+  .rail-item.admin-tab{padding:0;border-bottom:none;margin-bottom:0;font:inherit;}
   .rail-footer{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;position:relative;}
   .rail-account{
     width:32px;height:32px;border-radius:8px;border:none;background:none;color:var(--ink-400);
