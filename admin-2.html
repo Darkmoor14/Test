@@ -24,6 +24,7 @@
     --signal-green-bright:#1E9E5A; --signal-green-bright-bg:#E4F7EC;
     --signal-red:#B5502F; --signal-red-bg:#FBEDE7;
     --signal-orange:#B5792F; --signal-orange-bg:#FBF2E7;
+    --signal-purple:#7C5CBF; --signal-purple-bg:#F1EDFB;
     --signal-blue:#2F6FB5; --signal-blue-hover:#255A93;
     --display:'Space Grotesk',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
   }
@@ -1180,6 +1181,7 @@
   }
   .excel-preview-table td{padding:9px 12px;border-top:1px solid var(--line);color:var(--ink-700);}
   .excel-preview-table tr.row-error td{background:var(--signal-red-bg);color:var(--signal-red);}
+  .excel-preview-table tr.row-duplicate td{background:var(--signal-orange-bg);color:var(--signal-orange);}
   .excel-preview-table tr.row-warning td{background:var(--signal-orange-bg);color:var(--signal-orange);}
   .repair-note-input{
     width:100%;min-height:52px;font:inherit;font-size:13px;padding:6px 8px;
@@ -1438,6 +1440,58 @@
     font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
     padding:4px 9px;border-radius:3px;background:var(--paper-100);color:var(--ink-400);
   }
+  /* Duplicate tickets — see isDuplicateTicket()'s own comment. Purple
+     throughout (card, overview row/card, badges) so a duplicate never
+     reads as just another archived/resolved ticket. */
+  .ticket-card.duplicate{border-color:rgba(124,92,191,0.4);background:var(--signal-purple-bg);opacity:1;}
+  .duplicate-badge{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+    padding:4px 9px;border-radius:3px;background:var(--signal-purple-bg);color:var(--signal-purple);
+    border:1px solid rgba(124,92,191,0.35);
+  }
+  button.duplicate-badge{cursor:pointer;transition:background .15s,border-color .15s;}
+  button.duplicate-badge:hover{background:rgba(124,92,191,0.22);border-color:var(--signal-purple);}
+  .duplicate-link-note{
+    font-size:13px;color:var(--signal-purple);background:var(--signal-purple-bg);
+    border:1px solid rgba(124,92,191,0.3);border-radius:4px;padding:8px 10px;
+  }
+  .ov-card-goto-original{cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+  .overview-table tr.duplicate-row{background:var(--signal-purple-bg);}
+  .overview-table tr.duplicate-row:hover{background:var(--signal-purple-bg);}
+  .overview-table tr.duplicate-row td:first-child{border-left:3px solid var(--signal-purple);}
+  .ov-card.duplicate{border-left-color:var(--signal-purple);background:var(--signal-purple-bg);}
+  .duplicate-link-search{
+    width:100%;padding:11px 13px;border:1px solid var(--line-strong);border-radius:5px;
+    font-family:var(--body);font-size:14.5px;background:var(--paper-050);color:var(--ink-900);
+    margin:12px 0;box-sizing:border-box;
+  }
+  .duplicate-link-search:focus{border-color:var(--copper-500);background:var(--paper-000);outline:none;}
+  .duplicate-link-results{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+  .duplicate-link-result-item{
+    display:flex;align-items:stretch;border:1px solid var(--line);border-radius:5px;
+    background:var(--paper-000);transition:border-color .15s;
+  }
+  .duplicate-link-result-item:hover{border-color:var(--copper-500);}
+  .duplicate-link-result-item.checked{border-color:var(--signal-purple);background:var(--signal-purple-bg);}
+  .duplicate-link-result-checkwrap{
+    display:flex;align-items:center;padding:0 4px 0 12px;cursor:pointer;
+  }
+  .duplicate-link-result-checkwrap input[type="checkbox"]{
+    width:17px;height:17px;accent-color:var(--signal-purple);cursor:pointer;flex-shrink:0;
+  }
+  .duplicate-link-result-pickbtn{
+    display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding:10px 12px 10px 8px;
+    background:transparent;border:none;cursor:pointer;text-align:left;font:inherit;color:inherit;
+  }
+  .duplicate-link-result-pickbtn:active{background:var(--paper-050);}
+  .duplicate-link-result-pick{
+    flex-shrink:0;font-family:var(--mono);font-size:11px;font-weight:600;text-transform:uppercase;
+    color:var(--copper-600);border:1px solid var(--copper-300);border-radius:4px;padding:4px 8px;
+    letter-spacing:0.02em;
+  }
+  .duplicate-link-result-num{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--ink-900);flex-shrink:0;}
+  .duplicate-link-result-address{font-size:13px;color:var(--ink-600);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .duplicate-link-extra-count{font-size:12.5px;color:var(--signal-purple);font-weight:600;padding:2px 2px 0;}
 
   .ticket-list{padding:24px 0 80px;display:flex;flex-direction:column;gap:14px;}
   .ticket-card{
@@ -1512,6 +1566,14 @@
        this file. Below 600px: the field can shrink freely. */
     .ctrl-field.resolved-date-field{min-width:0;width:100%;}
     .ctrl-field.resnote-field{min-width:0;width:100%;}
+
+    /* The per-card "Leagă duplicate" button is redundant clutter
+       at this width — select the ticket's checkbox instead and use
+       the same action from the bulk-selection bar's own popup
+       (markDuplicatesSelectedBtn, see its mobile-specific 1-selected
+       threshold further down in the JS). Desktop keeps the per-card
+       button as-is. */
+    .f-mark-duplicate{display:none;}
 
     /* .pf-grid and .ticket-body are display:grid (not flex), so unlike
        .toolbar/.ticket-controls they can't wrap — a 1fr track still
@@ -2123,6 +2185,7 @@
         <span id="selectionCount">0 selectate</span>
         <button class="btn" id="clearSelectionBtn" type="button">Anulează selecția</button>
         <button class="btn" id="editSelectedBtn" type="button">Editează</button>
+        <button class="btn" id="markDuplicatesSelectedBtn" type="button">Marchează ca duplicate</button>
         <button class="btn btn-primary" id="archiveSelectedBtn" type="button">Arhivează selectate</button>
       </div>
       <div class="ticket-list" id="ticketList"></div>
@@ -2465,7 +2528,7 @@
           </ol>
           <h4>Restul iconițelor</h4>
           <ul>
-            <li><strong>Filtre</strong> — anul și starea (Active / Soluționate / Toate / Arhivate).</li>
+            <li><strong>Filtre</strong> — anul și starea (Active / Soluționate / Toate).</li>
             <li><strong>Căutare</strong> — după titlu sau adresă.</li>
             <li><strong>Importă din Excel</strong> — adaugă mai multe proiecte deodată, dintr-un fișier Excel.</li>
           </ul>
@@ -2786,6 +2849,46 @@
   </div>
 </div>
 
+<div class="mobile-sheet" id="reportYearSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="reportYearSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h3 id="reportYearSheetTitle">Raport Excel</h3>
+        <p>"Toate anii" este selectat momentan — alege un singur an pentru acest raport.</p>
+      </div>
+      <button type="button" class="sheet-close" id="reportYearCloseBtn" aria-label="Închide">×</button>
+    </div>
+    <div class="month-picker-list" id="reportYearList"></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="reportYearCancelBtn">Anulează</button>
+      <button type="button" class="btn btn-primary" id="reportYearConfirmBtn">Continuă</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="duplicateLinkSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="duplicateLinkSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h3 id="duplicateLinkSheetTitle">Marchează duplicat</h3>
+        <p id="duplicateLinkSheetHint">Caută sesizarea originală (nr. tichet sau adresă) — cea pe care o ții. Bifează și altele de pe același caz dacă mai sunt.</p>
+      </div>
+      <button type="button" class="sheet-close" id="duplicateLinkCloseBtn" aria-label="Închide">×</button>
+    </div>
+    <input type="search" id="duplicateLinkSearchBox" class="duplicate-link-search" placeholder="Nr. tichet sau adresă… (desparte prin virgulă pentru mai multe)">
+    <div class="duplicate-link-results" id="duplicateLinkResults"></div>
+    <div class="duplicate-link-extra-count" id="duplicateLinkExtraCount" style="display:none;"></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="duplicateLinkCancelBtn">Anulează</button>
+      <button type="button" class="btn btn-primary" id="duplicateLinkConfirmBtn" style="display:none;" disabled>Confirmă</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -3062,6 +3165,42 @@
   let overviewStatusFilter = 'active';
   let overviewSearchQuery = '';
 
+  // A ticket that's Terminat but still has no "Ce s-a făcut" written
+  // up yet — status and report-writing are two separate things (see
+  // getFilteredTickets' own comment), so this is a lens on top of
+  // Terminat, not a status of its own. Factored into one place so the
+  // several call sites that need this exact check (getFilteredTickets,
+  // ticketMatchesStatusFilter, getEffectiveMonthYear below) can't drift
+  // out of sync with each other.
+  function isAwaitingReport(t){
+    return t.status === 'Terminat' && !t.resolution_note;
+  }
+
+  // Duplicate tickets — two citizens reporting the same real-world
+  // issue as separate tickets. Staff mark one as a duplicate of the
+  // other ("canonical") instead of it being auto-filtered, so the
+  // crew never gets dispatched twice. Marking does NOT archive it —
+  // it stays visible on the public site and in every list here
+  // exactly as before, just styled purple and excluded from
+  // statistics (see the call sites below); it only moves to the
+  // archive later, the normal way, once it's picked up the
+  // canonical's resolution and the usual 14-day sweep applies.
+  // Whatever resolution the canonical ticket gets is mirrored onto
+  // every duplicate automatically server-side (see
+  // sync_duplicate_ticket()/propagate_resolution_to_duplicates() in
+  // Supabase), regardless of whether it's written via a manual edit
+  // or the Fișă remedieri Excel import.
+  function isDuplicateTicket(t){
+    return !!(t && t.duplicate_of);
+  }
+  function getDuplicatesOf(ticketId){
+    return allTickets.filter(t => t.duplicate_of === ticketId);
+  }
+  function getCanonicalTicket(t){
+    if (!t || !t.duplicate_of) return null;
+    return allTickets.find(x => x.id === t.duplicate_of) || null;
+  }
+
   // A ticket's "effective" month/year for filtering purposes — NOT
   // necessarily when it was actually submitted. Still-active tickets
   // always count as belonging to the CURRENT real-world month,
@@ -3070,10 +3209,14 @@
   // shows up under September (where someone checking "what's
   // outstanding right now" would actually look), not buried back in
   // August where it'd be easy to lose track of. Once a ticket is
-  // actually resolved, it settles permanently at its real submission
-  // month — this rollover is only ever for what's still open.
+  // actually resolved AND its report is written, it settles
+  // permanently at its real submission month; a Terminat ticket still
+  // awaiting its report stays pinned to the current month too — it's
+  // not done as far as this queue is concerned just because sesizari@
+  // flipped its status, and closing an older ticket shouldn't make it
+  // silently vanish from the current month's Așteaptă-raport view.
   function getEffectiveMonthYear(t){
-    if (t.status !== 'Terminat') {
+    if (t.status !== 'Terminat' || isAwaitingReport(t)) {
       const now = new Date();
       return { year: now.getFullYear(), month: now.getMonth() + 1 };
     }
@@ -3152,38 +3295,33 @@
   // visible under whatever status filter is currently selected,
   // before deciding whether it actually needs to change at all.
   function ticketMatchesStatusFilter(t, filterKey){
-    if (filterKey === 'Archived') return !!t.archived;
-    if (t.archived) return false;
-    if (filterKey === 'AwaitingReport') return t.status === 'Terminat' && !t.resolution_note;
+    if (filterKey === 'AwaitingReport') return isAwaitingReport(t);
     return filterKey === 'Toate' || t.status === filterKey;
   }
 
   function getFilteredTickets(){
     const query = ticketSearchQuery.trim().toLowerCase();
+    // No separate "Arhivate" option anymore — "Toate" already means
+    // every ticket, archived or not, and since only already-Terminat
+    // tickets ever get archived, leaving it out of "Ongoing"/
+    // "Terminat"/"AwaitingReport" too costs nothing there (an archived
+    // ticket is never Ongoing) while fixing the one place it did
+    // matter: "Soluționate" no longer quietly stops counting a ticket
+    // the moment it ages into the archive.
     let base;
-    if (activeFilter === 'Archived') {
-      base = allTickets.filter(t => t.archived);
-    } else if (activeFilter === 'AwaitingReport') {
+    if (activeFilter === 'AwaitingReport') {
       // Not a real status of its own — a Terminat ticket with no
       // resolution_note yet. Derived on the fly rather than stored,
       // per the "flag on top of the existing status" approach.
-      base = allTickets.filter(t => !t.archived && t.status === 'Terminat' && !t.resolution_note);
+      base = allTickets.filter(t => isAwaitingReport(t));
     } else {
-      // Previously "Terminat" required a filled-in resolution_note
-      // too, splitting finished-but-unreported tickets off into
-      // "AwaitingReport" only — meaning a resolved ticket without
-      // "Ce s-a făcut" text never showed under "Terminat" itself.
-      // That's wrong: ticket status and report-writing are two
-      // separate things, and a ticket being done shouldn't depend on
-      // whether someone has gotten around to writing up what was
-      // done. "Terminat" now means exactly that — status is
-      // Terminat, full stop. "AwaitingReport" still exists below as
-      // a useful additional lens (which Terminat tickets still need
-      // a report written), it just no longer controls whether the
-      // ticket appears under "Terminat" itself.
-      base = allTickets.filter(t => !t.archived && (
+      // "Terminat" means exactly that — status is Terminat, full
+      // stop, regardless of whether a report's been written yet.
+      // "AwaitingReport" above is a separate, additional lens on top
+      // of it, not a condition for appearing under "Terminat" itself.
+      base = allTickets.filter(t =>
         activeFilter === 'Toate' ? true : t.status === activeFilter
-      ));
+      );
     }
     if (activeTypeFilter === 'accident') base = base.filter(t => t.type === 'Anunt accident');
     else if (activeTypeFilter === 'functional') base = base.filter(t => t.type !== 'Anunt accident');
@@ -3516,9 +3654,9 @@
          older than 14 days gets archived = true (same flag the
          manual "Arhivează" button already sets).
        - current_projects: any row whose due_date is more than 14
-         days in the past gets archived = true the same way — now
-         that projects have their own "Arhivate" tab (see the
-         projects filter chips), auto-archiving replaces the older
+         days in the past gets archived = true the same way —
+         "Toate" already shows archived projects too (see
+         getFilteredProjects), so auto-archiving replaces the older
          behavior of deleting these rows outright.
      The public pages (relatii-publice.html, sesizari.html) also
      filter by the same 14-day window client-side, so a ticket or
@@ -3533,11 +3671,22 @@
 
   async function autoArchiveStaleTickets(){
     const cutoffISO = new Date(Date.now() - AUTO_ARCHIVE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    // Requires resolution_note to actually be filled in before a
+    // ticket can be swept into archived=true — a Terminat ticket
+    // missing its "Ce s-a făcut" write-up stays out of the archive
+    // indefinitely (and keeps showing under "Așteaptă raport") until
+    // someone fills it in, however long that takes. This is
+    // completely separate from the public site's own 14-day
+    // visibility window (relatii-publice.html/sesizari.html filter by
+    // resolved_on client-side, not by this archived flag), so a
+    // ticket still disappears from the public pages on schedule
+    // either way — only the *admin* archive is being held back here.
     const { error } = await supabaseClient
       .from('tickets')
       .update({ archived: true, archived_at: new Date().toISOString() })
       .eq('status', 'Terminat')
       .eq('archived', false)
+      .not('resolution_note', 'is', null)
       .lt('resolved_on', cutoffISO);
     if (error) console.error('Auto-archive of stale tickets failed (non-blocking):', error);
   }
@@ -3726,36 +3875,25 @@
     { key: 'Terminat', label: 'Soluționate' },
     { key: 'AwaitingReport', label: 'Așteaptă raport' },
     { key: 'Toate', label: 'Toate' },
-    { key: 'Archived', label: 'Arhivate' },
   ];
 
   const ticketSearchBox = document.getElementById('ticketSearchBox');
-  if (ticketSearchBox) {
-    ticketSearchBox.addEventListener('input', () => {
-      ticketSearchQuery = ticketSearchBox.value;
-      renderTickets();
-    });
-  }
 
-  // Mobile-only: the magnifying-glass button expands the search box
-  // (which starts collapsed to save space); tapping the icon focuses
-  // it, and it collapses back only if left empty on blur — so a real,
-  // in-progress query never gets hidden out from under someone.
-  const searchToggleBtn = document.getElementById('searchToggleBtn');
-  const ticketSearchWrap = document.getElementById('ticketSearchWrap');
-  if (searchToggleBtn && ticketSearchWrap && ticketSearchBox) {
-    searchToggleBtn.addEventListener('click', () => {
-      ticketSearchWrap.classList.add('expanded');
-      searchToggleBtn.classList.add('active');
-      ticketSearchBox.focus();
-    });
-    ticketSearchBox.addEventListener('blur', () => {
-      if (!ticketSearchBox.value.trim()) {
-        ticketSearchWrap.classList.remove('expanded');
-        searchToggleBtn.classList.remove('active');
-      }
-    });
-  }
+  // Sesizări's own search icon — widens status/year/month/day on
+  // search-start (to "Toate"/"all", not just the current year/month)
+  // so an exact ticket-number search can actually find an older or
+  // differently-filtered ticket, then restores whatever was selected
+  // before once the search is cleared again. Same widget Overview's
+  // search icon already used (see createSearchToggleWidget's own
+  // comment on why each widen target is optional/gated).
+  const ticketsSearchWidget = createSearchToggleWidget({
+    toggleBtnId: 'searchToggleBtn', wrapId: 'ticketSearchWrap', boxId: 'ticketSearchBox',
+    setQuery: (v) => { ticketSearchQuery = v; }, rerender: renderTickets,
+    getStatus: () => activeFilter, setStatus: (v) => setTicketFilter(v), widenStatus: 'Toate',
+    getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
+    getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
+    getDayFilter: () => overviewDayFilter, setDayFilter: (d) => { overviewDayFilter = d; },
+  });
 
   document.querySelectorAll('#yearFilterSelect, #yearFilterSelectTickets, #yearFilterSelectTicketsMobile, #yearFilterSelectOverviewMobile, #yearFilterSelectDesktop, #yearFilterSelectTicketsDesktop').forEach(select => {
     select.addEventListener('change', () => setTicketYearFilter(select.value));
@@ -3848,7 +3986,13 @@
       const text = isNoteDefault() ? '' : describeFilter();
       noteEls.forEach(el => {
         if (!text) { el.innerHTML = ''; return; }
-        el.innerHTML = `· Filtru: ${escapeHtml(text)} <button type="button" aria-label="Elimină filtrul">×</button>`;
+        // Labeled as returning to the default view, not "remove the
+        // filter" -- clicking it resets to this tab's own default
+        // (Active + the current year/month), which is still a
+        // genuinely restricted view, not "show everything". The old
+        // "Elimină filtrul" wording (screen-reader only; there's no
+        // visible text beside the × glyph) claimed otherwise.
+        el.innerHTML = `· Filtru: ${escapeHtml(text)} <button type="button" aria-label="Revino la vizualizarea implicită">×</button>`;
         const dismissBtn = el.querySelector('button');
         if (dismissBtn) dismissBtn.onclick = resetFilter;
       });
@@ -3996,7 +4140,7 @@
     const toggleBtn = document.getElementById(config.toggleBtnId);
     const wrap = document.getElementById(config.wrapId);
     const box = document.getElementById(config.boxId);
-    if (!toggleBtn || !wrap || !box) return;
+    if (!toggleBtn || !wrap || !box) return null;
     toggleBtn.addEventListener('click', () => {
       wrap.classList.add('expanded');
       toggleBtn.classList.add('active');
@@ -4008,10 +4152,68 @@
         toggleBtn.classList.remove('active');
       }
     });
-    box.addEventListener('input', () => {
-      config.setQuery(box.value);
+    // Tracks the empty->non-empty transition specifically (not every
+    // keystroke), so the widen-on-start/restore-on-exit below each
+    // only fire once per search, right as it begins/ends — otherwise
+    // typing would keep re-widening the filters on every character,
+    // overriding one the person deliberately changed partway through.
+    let hadQuery = !!box.value.trim();
+    // Snapshotted status+year right as a search starts, so exiting it
+    // (clearing the box back to empty, including via the native
+    // search-input "×" button) puts them back exactly as they were —
+    // leaving a search behaves like it was never there, rather than
+    // leaving the widened filters stuck in place afterward.
+    let preSearchFilters = null;
+    // Widening status/year on search-start is genuinely optional --
+    // gated on whether the caller actually passed getStatus/setStatus
+    // (and separately getYear/setYear), rather than assumed for every
+    // tab. Proiecte publice and Avarii rețele don't share Sesizări's
+    // ticket status or year concepts (Avarii has no year filter at
+    // all), so calling config.getStatus() / the hardcoded
+    // setTicketYearFilter() unconditionally here used to throw
+    // "config.getStatus is not a function" on those tabs' very first
+    // search keystroke.
+    function handleQueryChange(value){
+      const hasQuery = !!value.trim();
+      if (hasQuery && !hadQuery) {
+        preSearchFilters = {
+          status: config.getStatus ? config.getStatus() : null,
+          year: config.getYear ? config.getYear() : null,
+          month: config.getMonth ? config.getMonth() : null,
+          day: config.getDayFilter ? config.getDayFilter() : null,
+        };
+        if (config.setStatus) config.setStatus(config.widenStatus);
+        // Year/month/day all widen to "no restriction" on search-start,
+        // not to "the current year" -- an exact ticket-number search
+        // for a genuinely older ticket used to still come back empty,
+        // since forcing the year to now() is just as much a hidden
+        // restriction as leaving a specific month/day selected. "all"
+        // guarantees a real match is actually findable regardless of
+        // when the ticket was submitted.
+        if (config.setYear) config.setYear('all');
+        if (config.setMonth) config.setMonth('all');
+        if (config.setDayFilter) config.setDayFilter(null);
+      } else if (!hasQuery && hadQuery && preSearchFilters) {
+        if (config.setStatus && preSearchFilters.status !== null) config.setStatus(preSearchFilters.status);
+        if (config.setYear && preSearchFilters.year !== null) config.setYear(preSearchFilters.year);
+        if (config.setMonth && preSearchFilters.month !== null) config.setMonth(preSearchFilters.month);
+        if (config.setDayFilter && preSearchFilters.day !== undefined) config.setDayFilter(preSearchFilters.day);
+        preSearchFilters = null;
+      }
+      hadQuery = hasQuery;
+      config.setQuery(value);
       config.rerender();
-    });
+    }
+    box.addEventListener('input', () => handleQueryChange(box.value));
+    return {
+      applyExternalQuery(value){
+        box.value = value;
+        const hasQuery = !!value.trim();
+        wrap.classList.toggle('expanded', hasQuery);
+        toggleBtn.classList.toggle('active', hasQuery);
+        handleQueryChange(value);
+      },
+    };
   }
 
   function renderChipRow(wrapId, defs, getActiveKey, onSelect){
@@ -4129,6 +4331,10 @@
   createSearchToggleWidget({
     toggleBtnId: 'overviewSearchToggleBtn', wrapId: 'overviewSearchWrap', boxId: 'overviewSearchBox',
     setQuery: (v) => { overviewSearchQuery = v; }, rerender: renderOverviewTable,
+    getStatus: () => overviewStatusFilter, setStatus: (v) => setOverviewStatusFilter(v), widenStatus: 'all',
+    getYear: () => ticketYearFilter, setYear: setTicketYearFilter,
+    getMonth: () => ticketMonthFilter, setMonth: setTicketMonthFilter,
+    getDayFilter: () => overviewDayFilter, setDayFilter: (d) => { overviewDayFilter = d; },
   });
 
   async function loadTickets(silent){
@@ -4159,7 +4365,12 @@
   // accident matters regardless of what year's archive someone
   // happens to be browsing at the time.
   function renderPrioritySummary(){
-    const active = allTickets.filter(t => !t.archived && t.status !== 'Terminat');
+    // Duplicates excluded here too — a duplicate no longer archives
+    // immediately (it stays open/visible like any other ticket until
+    // its canonical resolves), so without this it would double-count
+    // toward "what needs attention right now" alongside the real
+    // ticket it's linked to.
+    const active = allTickets.filter(t => !t.archived && t.status !== 'Terminat' && !isDuplicateTicket(t));
     const agingCount = active.filter(t => {
       if (!t.submitted_on) return false;
       const daysOpen = (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24);
@@ -4172,8 +4383,10 @@
     // distinction used elsewhere for fading/vlasbogdan@'s dedicated
     // view; this card means "closed," full stop, matching the
     // overview table below now also including archived Terminat
-    // tickets rather than hiding them.
-    const solvedCount = allTickets.filter(t => t.status === 'Terminat').length;
+    // tickets rather than hiding them. Duplicates excluded — they're
+    // not a real, separately-resolved issue, just a second report of
+    // one the canonical ticket already accounts for.
+    const solvedCount = allTickets.filter(t => t.status === 'Terminat' && !isDuplicateTicket(t)).length;
 
     const setText = (id, value) => {
       const el = document.getElementById(id);
@@ -4221,14 +4434,14 @@
   function renderOverviewTable(){
     const tbody = document.getElementById('overviewTableBody');
     const cardsWrap = document.getElementById('overviewCardsMobile');
-    // Archived tickets are deliberately included here (unlike the
-    // Sesizări tab's own "Soluționate" filter, which still excludes
-    // them via getFilteredTickets()'s own !t.archived check, and
-    // unlike the public site, which never sees archived tickets at
-    // all) — archiving only hides a solved ticket from clutter, it
-    // doesn't erase it from this overview, and a ticket's actual
-    // status (virtually always Terminat by the time it's archived)
-    // still drives its green/done styling below exactly as before.
+    // Archived tickets are deliberately included here, same as the
+    // Sesizări tab's own "Soluționate"/"Toate" filters now do (see
+    // getFilteredTickets()) — unlike the public site, which never
+    // sees archived tickets at all. Archiving only hides a solved
+    // ticket from clutter, it doesn't erase it from this overview,
+    // and a ticket's actual status (virtually always Terminat by the
+    // time it's archived) still drives its green/done styling below
+    // exactly as before.
     let visible = allTickets.filter(t => matchesSearch(t, overviewSearchQuery.trim().toLowerCase()) && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
     // Day-level narrowing on top of the shared year/month state — set
     // only via the desktop day-grid calendar (Sesizări's own or this
@@ -4290,13 +4503,15 @@
         ? isDone
         : (isDone && !!t.resolution_note);
       const isUrgent = t.type === 'Anunt accident';
+      const isDuplicate = isDuplicateTicket(t);
+      const canonicalTicket = getCanonicalTicket(t);
       const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
       const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
       const resolutionDays = (isDone && t.resolved_on && t.submitted_on)
         ? calendarDaysBetween(t.submitted_on, t.resolved_on)
         : null;
       return `
-        <tr class="${isFullyComplete ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''}">
+        <tr class="${isFullyComplete ? 'done-row' : ''} ${isUrgent && !isDone ? 'urgent-row' : ''} ${isDuplicate ? 'duplicate-row' : ''}">
           <td class="overview-ticket-num"><a href="#" class="ticket-link" data-ticket-id="${t.id}">${escapeHtml(t.ticket_number || '—')}</a></td>
           <td class="${isAging ? 'aging-date' : ''}" title="${isAging ? 'Deschis de peste ' + AGING_THRESHOLD_DAYS + ' zile' : ''}">${isAging ? '⚠ ' : ''}${fmtDateOnly(t.submitted_on)}</td>
           <td>${isUrgent ? 'Accident' : 'Defect'}</td>
@@ -4304,8 +4519,12 @@
           <td>${escapeHtml(t.phone || '—')}</td>
           <td class="overview-address-cell">${escapeHtml(t.address || '—')}</td>
           <td><span class="status-pill ${isDone ? 'status-pill-done' : 'status-pill-active'}">${isDone ? 'Soluționat' : 'În curs'}</span></td>
-          <td>${isDone ? fmtDateOnly(t.resolved_on) : '—'}</td>
-          <td>${resolutionDays !== null ? formatDurationDays(resolutionDays) : '—'}</td>
+          ${isDuplicate
+            ? `<td><span class="duplicate-badge">Duplicat</span></td>
+               <td>${canonicalTicket ? `<a href="#" class="ticket-link" data-ticket-id="${canonicalTicket.id}" title="Mergi la sesizarea originală">${escapeHtml(canonicalTicket.ticket_number || '—')}</a>` : '—'}</td>`
+            : `<td>${isDone ? fmtDateOnly(t.resolved_on) : '—'}</td>
+               <td>${resolutionDays !== null ? formatDurationDays(resolutionDays) : '—'}</td>`
+          }
         </tr>
       `;
     }).join('');
@@ -4322,21 +4541,28 @@
           ? isDone
           : (isDone && !!t.resolution_note);
         const isUrgent = t.type === 'Anunt accident';
+        const isDuplicate = isDuplicateTicket(t);
         const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on)) / (1000 * 60 * 60 * 24) : 0;
         const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
         return `
-          <button type="button" class="ov-card ${isFullyComplete ? 'done' : ''} ${isUrgent && !isDone ? 'urgent' : ''}" data-ticket-id="${t.id}">
+          <button type="button" class="ov-card ${isFullyComplete ? 'done' : ''} ${isUrgent && !isDone ? 'urgent' : ''} ${isDuplicate ? 'duplicate' : ''}" data-ticket-id="${t.id}">
             <div class="ov-card-top">
               <span class="status-bubble ${isDone ? 'done' : 'active'}"></span>
               <span class="ov-card-type">${isUrgent ? 'Accident' : 'Defect'}</span>
               <span class="ov-card-num">${escapeHtml(t.ticket_number || '—')}</span>
+              ${isDuplicate ? `<span class="duplicate-badge">Duplicat</span>` : ''}
             </div>
             <div class="ov-card-address">${escapeHtml(t.address || '—')}</div>
             <div class="ov-card-meta">
               <span class="${isAging ? 'aging' : ''}">${isAging ? '⚠ ' : ''}${fmtDateOnly(t.submitted_on)}</span>
               <span>${escapeHtml(t.name || '—')} · ${escapeHtml(t.phone || '—')}</span>
             </div>
-            ${isDone ? `<div class="ov-card-resolved">Soluționat: ${fmtDateOnly(t.resolved_on)}</div>` : ''}
+            ${isDuplicate
+              ? (getCanonicalTicket(t)
+                ? `<div class="ov-card-resolved duplicate-link-note ov-card-goto-original" data-canonical-id="${getCanonicalTicket(t).id}">Duplicat al ${escapeHtml(getCanonicalTicket(t).ticket_number || '—')} — Mergi la original</div>`
+                : `<div class="ov-card-resolved duplicate-link-note">Duplicat al —</div>`)
+              : isDone ? `<div class="ov-card-resolved">Soluționat: ${fmtDateOnly(t.resolved_on)}</div>` : ''
+            }
           </button>
         `;
       }).join('');
@@ -4346,6 +4572,12 @@
   const overviewCardsMobileEl = document.getElementById('overviewCardsMobile');
   if (overviewCardsMobileEl) {
     overviewCardsMobileEl.addEventListener('click', (e) => {
+      const gotoOriginal = e.target.closest('.ov-card-goto-original');
+      if (gotoOriginal) {
+        e.stopPropagation();
+        goToTicket(gotoOriginal.dataset.canonicalId);
+        return;
+      }
       const card = e.target.closest('.ov-card');
       if (card) goToTicket(card.dataset.ticketId);
     });
@@ -4388,7 +4620,7 @@
   function setHomeTabFilter(tabKey){
     if (tabKey === 'tickets') {
       editingTicketId = null;
-      if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
+      if (ticketsSearchWidget) ticketsSearchWidget.applyExternalQuery('');
       setTicketYearFilter('all');
       setTicketMonthFilter('all');
       overviewCardFilter = null;
@@ -4396,17 +4628,15 @@
       setOverviewStatusFilter('active');
       tabKey = 'overview';
     } else if (tabKey === 'projects') {
-      projectSearchQuery = '';
-      if (projectSearchBox) projectSearchBox.value = '';
+      if (projectsSearchWidget) projectsSearchWidget.applyExternalQuery('');
       setProjectYearFilter('all');
       setProjectsFilter('Ongoing');
     } else if (tabKey === 'backlog') {
-      backlogSearchQuery = '';
-      if (backlogSearchBox) backlogSearchBox.value = '';
+      if (backlogSearchWidget) backlogSearchWidget.applyExternalQuery('');
       setBacklogFilter('Ongoing');
     } else if (tabKey === 'reports') {
       editingTicketId = null;
-      if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
+      if (ticketsSearchWidget) ticketsSearchWidget.applyExternalQuery('');
       setTicketYearFilter('all');
       setTicketMonthFilter('all');
       overviewCardFilter = null;
@@ -4447,7 +4677,7 @@
       // her having deliberately broadened the filter when she just
       // clicked a nav button.
       editingTicketId = null;
-      if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
+      if (ticketsSearchWidget) ticketsSearchWidget.applyExternalQuery('');
       openAdminTab('overview');
     });
   }
@@ -6247,24 +6477,30 @@
     agingOnlyFilter = false;
     typeOnlyFilter = null;
     updateActiveNarrowFilterUI();
-    if (ticketSearchBox) { ticketSearchBox.value = ''; ticketSearchQuery = ''; }
-    // Archived tickets are not part of the regular ticket filters.
-    // Send them to their real home instead of silently leaving the
-    // selected card out of the rendered list. Only widen the year/month
-    // filters when the target ticket actually falls outside them —
-    // otherwise clicking into (or getting a push notification for) a
-    // ticket that was already visible under e.g. "2026 / Octombrie"
-    // silently blew that filter back to "Toți anii" every time.
+    // Only clear the Sesizări search if it's stale — i.e. it does NOT
+    // already match the ticket being navigated to. A search that
+    // still matches (e.g. the very search that found this ticket)
+    // must survive the click; only a leftover, unrelated search from
+    // earlier browsing gets wiped, and only then.
+    if (ticketSearchQuery.trim() && !matchesSearch(targetTicket, ticketSearchQuery.trim().toLowerCase()) && ticketsSearchWidget) {
+      ticketsSearchWidget.applyExternalQuery('');
+    }
+    // Only widen the year/month filters when the target ticket
+    // actually falls outside them — otherwise clicking into (or
+    // getting a push notification for) a ticket that was already
+    // visible under e.g. "2026 / Octombrie" silently blew that filter
+    // back to "Toți anii" every time.
     if (!matchesYear(targetTicket, ticketYearFilter)) setTicketYearFilter('all');
     if (!matchesMonth(targetTicket, ticketMonthFilter)) setTicketMonthFilter('all');
     // Same "only widen if necessary" fix as the year/month filters
     // just above — this used to unconditionally force the status
-    // filter to Toate/Archived on every click, even when the target
-    // ticket was already visible under whatever was currently
-    // selected (e.g. clicking an active ticket while already viewing
-    // "Active").
+    // filter to Toate on every click, even when the target ticket was
+    // already visible under whatever was currently selected (e.g.
+    // clicking an active ticket while already viewing "Active").
+    // "Toate" also includes archived tickets (see getFilteredTickets),
+    // so it's the right fallback for an archived target too.
     if (!ticketMatchesStatusFilter(targetTicket, activeFilter)) {
-      setTicketFilter(targetTicket.archived ? 'Archived' : 'Toate');
+      setTicketFilter('Toate');
     }
     // Sesizări funcționale/accidente are two separate tabs sharing one
     // panel — route to whichever one actually holds this ticket's
@@ -6365,7 +6601,7 @@
     // currently showing in the table (which defaults to hiding
     // archived tickets for day-to-day work). A ticket being archived
     // doesn't mean it stopped happening.
-    const visible = allTickets.filter(t => matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter));
+    const visible = allTickets.filter(t => matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter) && !isDuplicateTicket(t));
 
     const MONTH_NAMES = ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Noi','Dec'];
     // "Sesizări pe an" deliberately ignores the year filter above and
@@ -6377,7 +6613,7 @@
     // that's when this system started being used) correctly starts
     // at whichever month actually has its first ticket, instead of
     // padding out several meaningless zero-bars before that.
-    const volumeSource = allTickets;
+    const volumeSource = allTickets.filter(t => !isDuplicateTicket(t));
     const monthCounts = {}; // 'YYYY-MM' -> count
     volumeSource.forEach(t => {
       if (!t.submitted_on) return;
@@ -6495,11 +6731,14 @@
       // account (they can't act on it either way), so every Terminat
       // ticket fades uniformly for them — only 'full' accounts see
       // the awaiting-report distinction called out visually.
-      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !!t.resolution_note);
+      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !isAwaitingReport(t));
       const isArchived = !!t.archived;
+      const isDuplicate = isDuplicateTicket(t);
+      const canonicalTicket = getCanonicalTicket(t);
+      const linkedDuplicates = getDuplicatesOf(t.id);
       const card = document.createElement('div');
       card.id = 'ticket-card-' + t.id;
-      card.className = 'ticket-card' + (isUrgent && !isDone ? ' urgent' : '') + (isFullyComplete ? ' done' : '') + (isArchived ? ' archived' : '');
+      card.className = 'ticket-card' + (isUrgent && !isDone ? ' urgent' : '') + (isFullyComplete ? ' done' : '') + (isArchived ? ' archived' : '') + (isDuplicate ? ' duplicate' : '');
       const safeTicketNumber = escapeHtml(t.ticket_number || '—');
       const safeName = escapeHtml(t.name || '');
       const safePhone = escapeHtml(t.phone || '');
@@ -6519,6 +6758,9 @@
             <span class="ticket-num">${safeTicketNumber}</span>
             <span class="ticket-tag ${isUrgent ? 'urgent-tag' : ''}">${t.type === 'Anunt accident' ? 'Accident' : 'Defect'}</span>
             ${isArchived ? `<span class="archived-badge">Arhivat ${fmtDate(t.archived_at)}</span>` : ''}
+            ${isDuplicate ? (canonicalTicket
+              ? `<button type="button" class="duplicate-badge f-goto-original" title="Mergi la sesizarea originală ${escapeHtml(canonicalTicket.ticket_number || '')}">Duplicat al ${escapeHtml(canonicalTicket.ticket_number || '—')} — Mergi la original</button>`
+              : `<span class="duplicate-badge">Duplicat al —</span>`) : ''}
           </div>
           <span class="ticket-date">Trimis: ${fmtDate(t.submitted_on)}</span>
         </div>
@@ -6527,27 +6769,27 @@
           ${isEditing ? `
           <div class="ctrl-field">
             <label>Nume reclamant</label>
-            <input type="text" class="f-name" value="${safeName}" ${isArchived ? 'disabled' : ''}>
+            <input type="text" class="f-name" value="${safeName}" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
           </div>
           <div class="ctrl-field">
             <label>Telefon</label>
-            <input type="text" class="f-phone" value="${safePhone}" ${isArchived ? 'disabled' : ''}>
+            <input type="text" class="f-phone" value="${safePhone}" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
           </div>
           <div class="ctrl-field">
             <label>Email</label>
-            <input type="email" class="f-email" value="${safeEmail}" ${isArchived ? 'disabled' : ''}>
+            <input type="email" class="f-email" value="${safeEmail}" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
           </div>
           <div class="ctrl-field">
             <label>Adresă identificare loc defect</label>
-            <input type="text" class="f-address" value="${safeAddress}" ${isArchived ? 'disabled' : ''}>
+            <input type="text" class="f-address" value="${safeAddress}" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
           </div>
           <div class="ctrl-field">
             <label>Data trimiterii</label>
-            <input type="date" class="f-submitted-date" value="${submittedDateParts.date}" ${isArchived ? 'disabled' : ''}>
+            <input type="date" class="f-submitted-date" value="${submittedDateParts.date}" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
           </div>
           <div class="ctrl-field">
             <label>Descriere</label>
-            <input type="text" class="f-description" value="${safeDescription}" ${isArchived ? 'disabled' : ''}>
+            <input type="text" class="f-description" value="${safeDescription}" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
           </div>
           ` : `
           <div><span class="k">Nume</span>${safeName || '—'}</div>
@@ -6557,6 +6799,7 @@
           ${t.description ? `<div><span class="k">Descriere</span>${safeDescription}</div>` : ''}
           `}
           ${t.resolved_on ? `<div class="full"><span class="k">Soluționat</span>${fmtDate(t.resolved_on)}</div>` : ''}
+          ${linkedDuplicates.length ? `<div class="duplicate-link-note full">🔗 ${linkedDuplicates.length === 1 ? 'Duplicat legat' : linkedDuplicates.length + ' duplicate legate'}: ${linkedDuplicates.map(d => escapeHtml(d.ticket_number || '—')).join(', ')}</div>` : ''}
         </div>
         <div class="ticket-controls">
           ${(isDone && !isEditing) ? `
@@ -6579,14 +6822,14 @@
           ` : `
           <div class="ctrl-field stare-field">
             <label>Stare</label>
-            <select class="f-status" ${isArchived ? 'disabled' : ''}>
+            <select class="f-status" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
               <option value="Ongoing" ${t.status === 'Ongoing' ? 'selected' : ''}>Activ</option>
               <option value="Terminat" ${t.status === 'Terminat' ? 'selected' : ''}>Soluționat</option>
             </select>
           </div>
           <div class="ctrl-field resolver-field">
             <label>Soluționat de</label>
-            <input type="text" class="f-resolver" placeholder="Nume angajat" value="${safeResolvedBy}" ${isArchived ? 'disabled' : ''}>
+            <input type="text" class="f-resolver" placeholder="Nume angajat" value="${safeResolvedBy}" ${(isArchived || isDuplicate) ? 'disabled' : ''}>
           </div>
           ${t.resolution_note ? `
           <div class="ctrl-field resnote-field">
@@ -6596,15 +6839,19 @@
           ` : ''}
           <div class="ctrl-field resolved-date-field">
             <label>Data soluționării</label>
-            <input type="date" class="f-resolved-date" value="${resolvedDateParts.date}" ${(isArchived || t.status !== 'Terminat') ? 'disabled' : ''}>
+            <input type="date" class="f-resolved-date" value="${resolvedDateParts.date}" ${(isArchived || isDuplicate || t.status !== 'Terminat') ? 'disabled' : ''}>
           </div>
           `}
-          ${isArchived
-            ? `<button class="btn f-restore">Dezarhivează</button>`
-            : (isDone && !isEditing)
-              ? `<div class="resnote-readonly">Pentru modificări, selectează tichetul și apasă Editează.</div>`
-              : `<button class="btn btn-primary f-save">Salvează<span class="save-status">✓ Salvat</span></button>`
+          ${isDuplicate
+            ? `<button type="button" class="btn f-unduplicate">Anulează duplicat</button>`
+            : isArchived
+              ? `<button class="btn f-restore">Dezarhivează</button>`
+              : (isDone && !isEditing)
+                ? `<div class="resnote-readonly">Pentru modificări, selectează tichetul și apasă Editează.</div>`
+                : `<button class="btn btn-primary f-save">Salvează<span class="save-status">✓ Salvat</span></button>
+                   ${isEditing ? `<button type="button" class="btn f-cancel-edit">Anulează</button>` : ''}`
           }
+          ${(!isDuplicate && !isArchived) ? `<button type="button" class="btn f-mark-duplicate">Leagă duplicate</button>` : ''}
         </div>
       `;
 
@@ -6634,11 +6881,39 @@
       // disabled here the rest of the time so that's visible upfront
       // rather than something to discover after the fact.
       const statusSelect = card.querySelector('.f-status');
-      if (statusSelect && !isArchived) {
+      if (statusSelect && !isArchived && !isDuplicate) {
         statusSelect.addEventListener('change', () => {
           const nowTerminat = statusSelect.value === 'Terminat';
           card.querySelector('.f-resolved-date').disabled = !nowTerminat;
         });
+      }
+
+      const unduplicateBtn = card.querySelector('.f-unduplicate');
+      if (unduplicateBtn) {
+        unduplicateBtn.addEventListener('click', () => unmarkDuplicate(t.id));
+      }
+
+      const markDuplicateBtn = card.querySelector('.f-mark-duplicate');
+      if (markDuplicateBtn) {
+        markDuplicateBtn.addEventListener('click', () => markAsDuplicate(t.id));
+      }
+
+      // Only shown once "Editează" has actually unlocked the contact-
+      // info fields (see the isEditing branch above) -- discards
+      // whatever's been typed since, instead of the only way out being
+      // to save it. selectedIds isn't touched: the checkbox stays
+      // exactly as the person left it, same as a successful save does.
+      const cancelEditBtn = card.querySelector('.f-cancel-edit');
+      if (cancelEditBtn) {
+        cancelEditBtn.addEventListener('click', () => {
+          if (editingTicketId === t.id) editingTicketId = null;
+          renderTickets();
+        });
+      }
+
+      const gotoOriginalBtn = card.querySelector('.f-goto-original');
+      if (gotoOriginalBtn && canonicalTicket) {
+        gotoOriginalBtn.addEventListener('click', () => goToTicket(canonicalTicket.id));
       }
 
       const restoreBtn = card.querySelector('.f-restore');
@@ -6845,25 +7120,306 @@
   }
 
   /* ============================================================
-     ARCHIVING — bulk-select tickets (any tab except Arhivate) and
-     move them out of the public status page + the main admin tabs,
-     without ever deleting the underlying row. Meant for periodically
-     tidying up old resolved tickets every couple of months.
+     DUPLICATE TICKETS — see isDuplicateTicket()'s own comment. Picking
+     the canonical ticket happens in a small search sheet (ticket
+     number or address); the actual linking/unlinking is a single
+     Supabase update — the DB triggers handle archiving the mirrored
+     resolution fields.
+     ============================================================ */
+  // Two modes, depending on whether excludeTicketId is given:
+  //
+  // ANCHOR MODE (excludeTicketId set -- opened from one specific
+  // ticket's own "Leagă duplicate" button): that ticket IS the
+  // original and never changes. Checking boxes in the search results
+  // just builds the set of tickets that become its duplicates; one
+  // "Confirmă" button finalizes all of them at once. There's nothing
+  // to "pick" here -- the original was already decided by which
+  // ticket's button you opened this from.
+  //
+  // BULK MODE (excludeTicketId null -- opened from the "Marchează ca
+  // duplicate" bar after pre-selecting tickets in the main list):
+  // those pre-selected tickets are the known duplicates, but which
+  // ticket is the original is NOT yet decided, so this still needs an
+  // explicit pick -- checking a box adds an extra duplicate, and
+  // tapping a result's "Alege" button both finalizes that one as the
+  // original and applies to everything checked.
+  //
+  // Resolves with { canonicalId, extraIds } in both modes, or null on
+  // cancel. Checkbox markup/wiring mirrors the main ticket list's own
+  // proven .ticket-select/.f-select checkbox exactly (a <label>
+  // wrapping the <input>, one direct addEventListener('change', ...)
+  // attached per checkbox right after it's rendered, no event
+  // delegation).
+  function openDuplicateLinkSheet(excludeTicketId){
+    const isAnchorMode = !!excludeTicketId;
+    const sheet = document.getElementById('duplicateLinkSheet');
+    const searchBox = document.getElementById('duplicateLinkSearchBox');
+    const results = document.getElementById('duplicateLinkResults');
+    const extraCount = document.getElementById('duplicateLinkExtraCount');
+    const hint = document.getElementById('duplicateLinkSheetHint');
+    const title = document.getElementById('duplicateLinkSheetTitle');
+    const cancelBtn = document.getElementById('duplicateLinkCancelBtn');
+    const closeBtn = document.getElementById('duplicateLinkCloseBtn');
+    const confirmBtn = document.getElementById('duplicateLinkConfirmBtn');
+    const backdrop = sheet ? sheet.querySelector('.mobile-sheet-backdrop') : null;
+    if (!sheet || !searchBox || !results || !extraCount || !hint || !title || !cancelBtn || !closeBtn || !confirmBtn || !backdrop) return Promise.resolve(null);
+
+    const anchorTicket = isAnchorMode ? allTickets.find(t => t.id === excludeTicketId) : null;
+    searchBox.value = '';
+    extraCount.style.display = 'none';
+    title.textContent = isAnchorMode ? 'Leagă duplicate' : 'Marchează ca duplicate';
+    hint.textContent = isAnchorMode
+      ? `Bifează sesizările duplicate ale ${anchorTicket ? anchorTicket.ticket_number : 'acesteia'}, apoi apasă Confirmă.`
+      : 'Apasă "Alege" pe cea originală — cea pe care o ții. Nu e niciuna dintre cele bifate? Caută alta (nr. tichet sau adresă).';
+    confirmBtn.style.display = isAnchorMode ? '' : 'none';
+    confirmBtn.disabled = true;
+    setSheetOpen('duplicateLinkSheet', true);
+    setTimeout(() => searchBox.focus(), 50);
+
+    return new Promise(resolve => {
+      let settled = false;
+      const checkedIds = new Set();
+      const cleanup = (result) => {
+        if (settled) return;
+        settled = true;
+        setSheetOpen('duplicateLinkSheet', false);
+        searchBox.removeEventListener('input', handleInput);
+        cancelBtn.removeEventListener('click', handleCancel);
+        closeBtn.removeEventListener('click', handleCancel);
+        confirmBtn.removeEventListener('click', handleConfirm);
+        backdrop.removeEventListener('click', handleCancel);
+        document.removeEventListener('keydown', handleKeydown);
+        resolve(result);
+      };
+      const updateCheckedCount = () => {
+        if (isAnchorMode) {
+          confirmBtn.disabled = checkedIds.size === 0;
+          extraCount.style.display = 'none';
+          return;
+        }
+        if (checkedIds.size === 0) {
+          extraCount.style.display = 'none';
+        } else {
+          extraCount.style.display = '';
+          extraCount.textContent = checkedIds.size === 1
+            ? '1 sesizare bifată — apasă pe cea originală ca să le legi pe amândouă.'
+            : `${checkedIds.size} sesizări bifate — apasă pe cea originală ca să le legi pe toate.`;
+        }
+      };
+      const finalizePick = (canonicalId) => {
+        checkedIds.delete(canonicalId);
+        cleanup({ canonicalId, extraIds: Array.from(checkedIds) });
+      };
+      const renderRows = (matches) => {
+        if (matches.length === 0) {
+          results.innerHTML = '<div class="no-results">Nicio sesizare găsită.</div>';
+          return;
+        }
+        results.innerHTML = matches.map(t => isAnchorMode ? `
+          <div class="duplicate-link-result-item${checkedIds.has(t.id) ? ' checked' : ''}" data-ticket-id="${t.id}">
+            <label class="duplicate-link-result-checkwrap">
+              <input type="checkbox" class="duplicate-link-result-check" data-ticket-id="${t.id}" ${checkedIds.has(t.id) ? 'checked' : ''} aria-label="Bifează ca duplicat">
+            </label>
+            <span class="duplicate-link-result-pickbtn">
+              <span class="duplicate-link-result-num">${escapeHtml(t.ticket_number || '—')}</span>
+              <span class="duplicate-link-result-address">${escapeHtml(t.address || '—')}</span>
+            </span>
+          </div>
+        ` : `
+          <div class="duplicate-link-result-item${checkedIds.has(t.id) ? ' checked' : ''}" data-ticket-id="${t.id}">
+            <label class="duplicate-link-result-checkwrap">
+              <input type="checkbox" class="duplicate-link-result-check" data-ticket-id="${t.id}" ${checkedIds.has(t.id) ? 'checked' : ''} aria-label="Bifează ca duplicat suplimentar">
+            </label>
+            <button type="button" class="duplicate-link-result-pickbtn" data-ticket-id="${t.id}">
+              <span class="duplicate-link-result-num">${escapeHtml(t.ticket_number || '—')}</span>
+              <span class="duplicate-link-result-address">${escapeHtml(t.address || '—')}</span>
+              <span class="duplicate-link-result-pick">Alege</span>
+            </button>
+          </div>
+        `).join('');
+        // Direct listeners, attached right here per-item -- same
+        // pattern as the main list's checkbox, not event delegation.
+        results.querySelectorAll('.duplicate-link-result-check').forEach(checkbox => {
+          checkbox.addEventListener('change', () => {
+            const id = checkbox.dataset.ticketId;
+            if (checkbox.checked) checkedIds.add(id); else checkedIds.delete(id);
+            checkbox.closest('.duplicate-link-result-item').classList.toggle('checked', checkbox.checked);
+            updateCheckedCount();
+            checkbox.blur();
+          });
+        });
+        if (isAnchorMode) {
+          // No separate "Alege" here -- the whole row is just the
+          // checkbox's tap target, made bigger and easier to hit.
+          results.querySelectorAll('.duplicate-link-result-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+              if (e.target.closest('.duplicate-link-result-check')) return;
+              const checkbox = item.querySelector('.duplicate-link-result-check');
+              checkbox.checked = !checkbox.checked;
+              checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+          });
+        } else {
+          results.querySelectorAll('.duplicate-link-result-pickbtn').forEach(btn => {
+            btn.addEventListener('click', () => finalizePick(btn.dataset.ticketId));
+          });
+        }
+      };
+      const renderResults = () => {
+        const rawQuery = searchBox.value.trim();
+        if (!rawQuery) {
+          // Bulk mode opens with tickets already pre-selected via the
+          // main list's own checkboxes -- show those immediately
+          // instead of an empty "type to search" placeholder, so the
+          // common case (the original IS one of the ones you already
+          // picked) needs no typing at all, just a tap on "Alege".
+          if (!isAnchorMode && selectedIds.size > 0) {
+            const preselected = allTickets.filter(t => selectedIds.has(t.id) && !t.duplicate_of);
+            if (preselected.length > 0) {
+              renderRows(preselected);
+              return;
+            }
+          }
+          results.innerHTML = '<div class="no-results">Scrie pentru a căuta…</div>';
+          return;
+        }
+        // Supports several terms at once (comma or newline separated),
+        // matching any of them -- so a ticket number and a street name
+        // (or a few candidate streets) can be searched together instead
+        // of one term per search.
+        const terms = rawQuery.split(/[,\n]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+        // Excludes itself and anything already marked as a duplicate —
+        // a duplicate can only ever point at an original, never at
+        // another duplicate (no chains), matching the DB's own check.
+        const matches = allTickets.filter(t =>
+          t.id !== excludeTicketId &&
+          !t.duplicate_of &&
+          terms.some(term => (t.ticket_number || '').toLowerCase().includes(term) || (t.address || '').toLowerCase().includes(term))
+        ).slice(0, 20);
+        renderRows(matches);
+      };
+      const handleInput = () => renderResults();
+      const handleConfirm = () => {
+        if (checkedIds.size === 0) return;
+        cleanup({ canonicalId: excludeTicketId, extraIds: Array.from(checkedIds) });
+      };
+      const handleCancel = () => cleanup(null);
+      const handleKeydown = (event) => { if (event.key === 'Escape') handleCancel(); };
+      searchBox.addEventListener('input', handleInput);
+      cancelBtn.addEventListener('click', handleCancel);
+      closeBtn.addEventListener('click', handleCancel);
+      confirmBtn.addEventListener('click', handleConfirm);
+      backdrop.addEventListener('click', handleCancel);
+      document.addEventListener('keydown', handleKeydown);
+      renderResults();
+    });
+  }
+
+  async function markAsDuplicate(ticketId){
+    // Anchor mode: ticketId itself is the original and never changes
+    // -- only the checked tickets (extraIds) get linked to it. See
+    // openDuplicateLinkSheet's own comment for why.
+    const picked = await openDuplicateLinkSheet(ticketId);
+    if (!picked) return;
+    const { extraIds } = picked;
+    if (extraIds.length === 0) return;
+    const anchorTicket = allTickets.find(t => t.id === ticketId);
+    const dupNumbers = extraIds
+      .map(id => allTickets.find(t => t.id === id)?.ticket_number)
+      .filter(Boolean)
+      .join(', ');
+    if (!confirm(`Legi ${extraIds.length} sesizări (${dupNumbers}) ca duplicate ale ${anchorTicket ? anchorTicket.ticket_number : 'acesteia'}?`)) {
+      return;
+    }
+    // Deliberately does NOT archive the ticket — it stays visible on
+    // the public site exactly as before (an early citizen complaint
+    // about "my ticket vanished" is worse than a rare double
+    // dispatch). It only ever archives later through the normal
+    // 14-days-after-resolution sweep (autoArchiveStaleTickets), once
+    // it has picked up a real resolution via the canonical ticket —
+    // see sync_duplicate_ticket()/propagate_resolution_to_duplicates().
+    const { error } = await supabaseClient
+      .from('tickets')
+      .update({ duplicate_of: ticketId })
+      .in('id', extraIds);
+    if (error) {
+      console.error(error);
+      alert('Eroare la marcarea ca duplicat. Încercați din nou.');
+      return;
+    }
+    showToast(extraIds.length === 1 ? 'Sesizarea a fost marcată ca duplicat.' : `${extraIds.length} sesizări au fost marcate ca duplicate.`);
+    loadTickets();
+  }
+
+  async function unmarkDuplicate(ticketId){
+    if (!confirm('Anulezi legătura de duplicat? Sesizarea revine la starea pe care o avea înainte să fie marcată duplicat.')) return;
+    // status/resolution_note/resolved_on/resolved_by are deliberately
+    // NOT set here -- the DB's snapshot_before_duplicate_link_trigger
+    // restores them from what the ticket actually had before it was
+    // linked as a duplicate (pre_duplicate_* columns), instead of
+    // blanking a ticket that was already solved back to unresolved.
+    //
+    // archived is different: it's only forced back to false when the
+    // restored status would leave an Ongoing ticket sitting archived
+    // -- an invariant the rest of the admin relies on (see
+    // getFilteredTickets' own comment: "an archived ticket is never
+    // Ongoing"). A ticket that was already genuinely Terminat before
+    // ever being linked as a duplicate stays exactly as archived (or
+    // not) as it already was; forcing it out of the archive every
+    // time used to yank an old, legitimately-closed ticket back into
+    // the active list for no reason.
+    const ticket = allTickets.find(t => t.id === ticketId);
+    const restoredStatus = ticket ? (ticket.pre_duplicate_status || 'Ongoing') : 'Ongoing';
+    const payload = { duplicate_of: null };
+    if (restoredStatus !== 'Terminat') {
+      payload.archived = false;
+      payload.archived_at = null;
+    }
+    const { error } = await supabaseClient
+      .from('tickets')
+      .update(payload)
+      .eq('id', ticketId);
+    if (error) {
+      console.error(error);
+      alert('Eroare la anularea duplicatului. Încercați din nou.');
+      return;
+    }
+    showToast('Legătura de duplicat a fost anulată.');
+    loadTickets();
+  }
+
+  /* ============================================================
+     ARCHIVING — bulk-select tickets and move them out of the public
+     status page + the main admin tabs, without ever deleting the
+     underlying row. Meant for periodically tidying up old resolved
+     tickets every couple of months. "Toate" already shows archived
+     tickets too (see getFilteredTickets), so they stay reachable any
+     time.
      ============================================================ */
   const archiveBar = document.getElementById('archiveBar');
   const selectionCount = document.getElementById('selectionCount');
   const archiveSelectedBtn = document.getElementById('archiveSelectedBtn');
   const clearSelectionBtn = document.getElementById('clearSelectionBtn');
   const editSelectedBtn = document.getElementById('editSelectedBtn');
+  const markDuplicatesSelectedBtn = document.getElementById('markDuplicatesSelectedBtn');
 
   function updateArchiveBar(){
     selectionCount.textContent = selectedIds.size + ' selectate';
     archiveBar.classList.toggle('show', selectedIds.size > 0);
-    archiveSelectedBtn.style.display = activeFilter === 'Archived' ? 'none' : 'inline-flex';
+    archiveSelectedBtn.style.display = 'inline-flex';
     // Editing one ticket's own details at a time makes sense;
     // bulk-editing several at once doesn't, so this only shows when
     // exactly one is selected — with 2+, only Archive remains.
-    editSelectedBtn.style.display = (selectedIds.size === 1 && activeFilter !== 'Archived') ? 'inline-flex' : 'none';
+    editSelectedBtn.style.display = selectedIds.size === 1 ? 'inline-flex' : 'none';
+    // Marking duplicates only makes sense with 2+ selected (one to
+    // keep as the original, the rest pointing at it) — with a single
+    // ticket selected, the per-card "Leagă duplicate" button already
+    // covers that case. Below the 600px breakpoint, though, that
+    // per-card button is hidden entirely (see its own CSS rule) to
+    // keep the card clean, so this bar is a single ticket's only
+    // route to marking a duplicate there — allow it from 1 selected.
+    const minDuplicateSelection = window.innerWidth <= 600 ? 1 : 2;
+    markDuplicatesSelectedBtn.style.display = selectedIds.size >= minDuplicateSelection ? 'inline-flex' : 'none';
   }
 
   editSelectedBtn.addEventListener('click', () => {
@@ -6882,16 +7438,74 @@
     renderTickets();
   });
 
+  markDuplicatesSelectedBtn.addEventListener('click', async () => {
+    // Visibility (updateArchiveBar) already enforces 2+ on desktop and
+    // 1+ on mobile (where the per-card button is hidden below 600px)
+    // -- this only guards against a stray click with nothing selected.
+    if (selectedIds.size === 0) return;
+    const picked = await openDuplicateLinkSheet(null);
+    if (!picked) return;
+    const { canonicalId, extraIds } = picked;
+    const targetIds = Array.from(new Set([...selectedIds, ...extraIds])).filter(id => id !== canonicalId);
+    if (targetIds.length === 0) {
+      alert('Sesizarea aleasă ca originală este singura selectată — nu mai rămâne nimic de marcat ca duplicat.');
+      return;
+    }
+    const canonicalTicket = allTickets.find(t => t.id === canonicalId);
+    const dupNumbers = targetIds.map(id => allTickets.find(t => t.id === id)?.ticket_number).filter(Boolean).join(', ');
+    if (!confirm(`Legi ${targetIds.length} sesizări (${dupNumbers}) ca duplicate ale ${canonicalTicket ? canonicalTicket.ticket_number : 'sesizării alese'}? Rămân vizibile pe site, doar marcate cu mov în panou.`)) {
+      return;
+    }
+    markDuplicatesSelectedBtn.disabled = true;
+    const { error } = await supabaseClient
+      .from('tickets')
+      .update({ duplicate_of: canonicalId })
+      .in('id', targetIds);
+    markDuplicatesSelectedBtn.disabled = false;
+
+    if (error) {
+      console.error(error);
+      alert('Eroare la marcarea ca duplicate. Încercați din nou.');
+      return;
+    }
+    showToast(`${targetIds.length} sesizări au fost marcate ca duplicate ale ${canonicalTicket ? canonicalTicket.ticket_number : 'sesizării alese'}.`);
+    selectedIds.clear();
+    updateArchiveBar();
+    loadTickets();
+  });
+
   archiveSelectedBtn.addEventListener('click', async () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`Arhivați ${selectedIds.size} tichete? Nu vor mai apărea pe pagina publică de sesizări, dar rămân salvate și pot fi restaurate oricând din tab-ul "Arhivate".`)) {
+    // Archiving only part of a duplicate group would split it: the
+    // canonical (or some of its duplicates) stays in the active list
+    // while the rest disappears into the archive, even though they're
+    // all still the same underlying issue. Whenever any member of a
+    // group is selected, pull in the rest of that same group too --
+    // the canonical plus every one of its duplicates -- so the whole
+    // group always archives (or stays active) together.
+    const idsToArchive = new Set(selectedIds);
+    selectedIds.forEach(id => {
+      const t = allTickets.find(x => x.id === id);
+      if (!t) return;
+      if (t.duplicate_of) {
+        idsToArchive.add(t.duplicate_of);
+        getDuplicatesOf(t.duplicate_of).forEach(d => idsToArchive.add(d.id));
+      } else {
+        getDuplicatesOf(t.id).forEach(d => idsToArchive.add(d.id));
+      }
+    });
+    const addedCount = idsToArchive.size - selectedIds.size;
+    const confirmMsg = addedCount > 0
+      ? `Arhivați ${idsToArchive.size} tichete? (${selectedIds.size} selectate + ${addedCount} incluse automat ca să nu se rupă un grup de duplicate.) Nu vor mai apărea pe pagina publică de sesizări, dar rămân salvate și pot fi restaurate oricând.`
+      : `Arhivați ${selectedIds.size} tichete? Nu vor mai apărea pe pagina publică de sesizări, dar rămân salvate și pot fi restaurate oricând.`;
+    if (!confirm(confirmMsg)) {
       return;
     }
     archiveSelectedBtn.disabled = true;
     const { error } = await supabaseClient
       .from('tickets')
       .update({ archived: true, archived_at: new Date().toISOString() })
-      .in('id', Array.from(selectedIds));
+      .in('id', Array.from(idsToArchive));
     archiveSelectedBtn.disabled = false;
 
     if (error) {
@@ -6977,20 +7591,27 @@
   }
 
   function buildMonthlyStats(monthTickets, index){
-    const active = monthTickets.filter(ticket => reportTicketStatus(ticket) === 'Activ');
-    const resolved = monthTickets.filter(ticket => reportTicketStatus(ticket) === 'Terminat');
-    const defects = monthTickets.filter(ticket => reportTicketType(ticket) === 'Defect');
-    const accidents = monthTickets.filter(ticket => reportTicketType(ticket) === 'Accident');
+    // Every count/average here excludes duplicates, same rationale as
+    // everywhere else in the app — a duplicate isn't a separately
+    // occurring issue, just a second report of one already counted.
+    // `tickets` itself keeps every ticket including duplicates, since
+    // the per-ticket table in makeMonthlyWorksheet lists them all
+    // (marked via the "Duplicat" column) rather than hiding them.
+    const nonDuplicateTickets = monthTickets.filter(ticket => !isDuplicateTicket(ticket));
+    const active = nonDuplicateTickets.filter(ticket => reportTicketStatus(ticket) === 'Activ');
+    const resolved = nonDuplicateTickets.filter(ticket => reportTicketStatus(ticket) === 'Terminat');
+    const defects = nonDuplicateTickets.filter(ticket => reportTicketType(ticket) === 'Defect');
+    const accidents = nonDuplicateTickets.filter(ticket => reportTicketType(ticket) === 'Accident');
     return {
       index,
       name: REPORT_MONTHS[index],
       tickets: monthTickets,
-      total: monthTickets.length,
+      total: nonDuplicateTickets.length,
       active: active.length,
       resolved: resolved.length,
       defects: defects.length,
       accidents: accidents.length,
-      avgHours: reportHoursToResolve(monthTickets),
+      avgHours: reportHoursToResolve(nonDuplicateTickets),
     };
   }
 
@@ -7017,13 +7638,14 @@
       ['Accidente', stats.accidents],
       ['Ore medii de soluționare', stats.avgHours],
       [],
-      ['Nr. sesizare', 'Tip', 'Nume', 'Telefon', 'Email', 'Adresă', 'Descriere', 'Stare', 'Soluționat de', 'Ce s-a făcut', 'Trimis la', 'Soluționat la'],
+      ['Nr. sesizare', 'Tip', 'Nume', 'Telefon', 'Email', 'Adresă', 'Descriere', 'Stare', 'Soluționat de', 'Ce s-a făcut', 'Trimis la', 'Soluționat la', 'Duplicat'],
     ];
 
     if (stats.tickets.length === 0) {
       rows.push(['Nu există sesizări în această lună.']);
     } else {
       stats.tickets.forEach(ticket => {
+        const canonical = getCanonicalTicket(ticket);
         rows.push([
           ticket.ticket_number || '',
           reportTicketType(ticket),
@@ -7037,6 +7659,7 @@
           ticket.resolution_note || '',
           reportDateLabel(ticket.submitted_on),
           reportDateLabel(ticket.resolved_on),
+          canonical ? `Duplicat al ${canonical.ticket_number || '—'}` : '',
         ]);
       });
     }
@@ -7044,7 +7667,7 @@
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!freeze'] = { xSplit: 0, ySplit: 11 };
     if (stats.tickets.length > 0) {
-      ws['!autofilter'] = { ref: `A11:L${rows.length}` };
+      ws['!autofilter'] = { ref: `A11:M${rows.length}` };
     }
     autosizeWorksheet(ws, rows);
     return ws;
@@ -7622,8 +8245,13 @@
       // both sets, since an uploaded sheet can cover either kind —
       // only this download is scoped to active-only. Further narrowed
       // to just defecte or just accidente when that's what was picked
-      // in openRepairScopeSelection.
+      // in openRepairScopeSelection. A duplicate ticket is excluded —
+      // it's the same physical job as its canonical original, already
+      // listed under that original's own ticket number, so including
+      // it too would send the field crew out to fix the same thing
+      // twice under two different numbers.
       const activeTickets = allTickets.filter(t => t.status !== 'Terminat' && !t.archived
+        && !isDuplicateTicket(t)
         && (scope === 'functional' ? t.type !== 'Anunt accident'
           : scope === 'accident' ? t.type === 'Anunt accident'
           : true));
@@ -7652,6 +8280,60 @@
     } finally {
       btn.disabled = false;
     }
+  }
+
+  /* Runs before openReportMonthSelection whenever "Toate anii" is
+     selected in the main year filter — the yearly report is
+     inherently a single-year document (its cover sheet is titled
+     "Raport anual sesizări {year}"), so silently picking the current
+     year when the person is looking at every year would export data
+     that doesn't match what's on screen. Forces an explicit choice
+     among the years that actually have tickets instead. */
+  function openReportYearSelection(years){
+    const sheet = document.getElementById('reportYearSheet');
+    const list = document.getElementById('reportYearList');
+    const confirmBtn = document.getElementById('reportYearConfirmBtn');
+    const cancelBtn = document.getElementById('reportYearCancelBtn');
+    const closeBtn = document.getElementById('reportYearCloseBtn');
+    const backdrop = sheet ? sheet.querySelector('.mobile-sheet-backdrop') : null;
+    if (!sheet || !list || !confirmBtn || !cancelBtn || !closeBtn || !backdrop || !years.length) {
+      return Promise.resolve(years[0] ? String(years[0]) : null);
+    }
+
+    list.innerHTML = years.map((y, index) => `
+      <label class="month-picker-option">
+        <input type="radio" name="reportYearChoice" value="${y}" ${index === 0 ? 'checked' : ''}>
+        <span>${y}</span>
+      </label>
+    `).join('');
+    setSheetOpen('reportYearSheet', true);
+
+    return new Promise(resolve => {
+      let settled = false;
+      const cleanup = (result) => {
+        if (settled) return;
+        settled = true;
+        setSheetOpen('reportYearSheet', false);
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', handleCancel);
+        closeBtn.removeEventListener('click', handleCancel);
+        backdrop.removeEventListener('click', handleCancel);
+        document.removeEventListener('keydown', handleKeydown);
+        resolve(result);
+      };
+      const handleConfirm = () => {
+        const picked = list.querySelector('input[name="reportYearChoice"]:checked');
+        cleanup(picked ? picked.value : null);
+      };
+      const handleCancel = () => cleanup(null);
+      const handleKeydown = (event) => { if (event.key === 'Escape') handleCancel(); };
+
+      confirmBtn.addEventListener('click', handleConfirm);
+      cancelBtn.addEventListener('click', handleCancel);
+      closeBtn.addEventListener('click', handleCancel);
+      backdrop.addEventListener('click', handleCancel);
+      document.addEventListener('keydown', handleKeydown);
+    });
   }
 
   function openReportMonthSelection(year){
@@ -7753,15 +8435,21 @@
     const selectedMonths = monthSelection === 'all'
       ? monthlyStats
       : monthlyStats.filter(month => monthSelection.includes(month.index));
-    const exportTickets = selectedMonths.flatMap(month => month.tickets);
+    // Every ticket in scope, including duplicates — the per-month
+    // sheets below list all of them (marked via their own "Duplicat"
+    // column). Every count/average on this cover page, though, is
+    // computed from statsTickets (duplicates excluded) so a duplicate
+    // is never counted twice toward the same underlying issue.
+    const allSelectedTickets = selectedMonths.flatMap(month => month.tickets);
+    const statsTickets = allSelectedTickets.filter(ticket => !isDuplicateTicket(ticket));
     const scopeLabel = monthSelection === 'all'
       ? `toate lunile din ${year}`
       : selectedMonths.map(month => month.name).join(', ') + ` ${year}`;
-    const activeCount = exportTickets.filter(ticket => reportTicketStatus(ticket) === 'Activ').length;
-    const resolvedCount = exportTickets.filter(ticket => reportTicketStatus(ticket) === 'Terminat').length;
-    const defectCount = exportTickets.filter(ticket => reportTicketType(ticket) === 'Defect').length;
-    const accidentCount = exportTickets.filter(ticket => reportTicketType(ticket) === 'Accident').length;
-    const avgHours = reportHoursToResolve(exportTickets);
+    const activeCount = statsTickets.filter(ticket => reportTicketStatus(ticket) === 'Activ').length;
+    const resolvedCount = statsTickets.filter(ticket => reportTicketStatus(ticket) === 'Terminat').length;
+    const defectCount = statsTickets.filter(ticket => reportTicketType(ticket) === 'Defect').length;
+    const accidentCount = statsTickets.filter(ticket => reportTicketType(ticket) === 'Accident').length;
+    const avgHours = reportHoursToResolve(statsTickets);
     const busiestMonth = selectedMonths.reduce((best, current) => current.total > best.total ? current : best, selectedMonths[0]);
     const slowestMonth = selectedMonths.reduce((best, current) => current.avgHours > best.avgHours ? current : best, selectedMonths[0]);
 
@@ -7771,7 +8459,7 @@
       [],
       ['Indicator', 'Valoare'],
       ['Perioadă', scopeLabel],
-      ['Total sesizări', exportTickets.length],
+      ['Total sesizări', statsTickets.length],
       ['Sesizări active', activeCount],
       ['Sesizări soluționate', resolvedCount],
       ['Defecte', defectCount],
@@ -7801,7 +8489,7 @@
     // ticket's real reporter name stays out of this export entirely,
     // matching the same restriction already enforced for the public
     // website (see public-tickets-name-whitelist.sql).
-    const institutionalTickets = exportTickets.filter(ticket => isWhitelistedReporterName(ticket.name));
+    const institutionalTickets = statsTickets.filter(ticket => isWhitelistedReporterName(ticket.name));
     coverRows.push([]);
     coverRows.push(['Sesizări de la instituții']);
     coverRows.push(['Nr. sesizare', 'Raportat de', 'Adresă', 'Data']);
@@ -7845,8 +8533,21 @@
         await exportRepairTemplate(btn, scope);
         return;
       }
+      let year;
+      if (ticketYearFilter === 'all') {
+        const years = new Set();
+        allTickets.forEach(t => {
+          const { year: y } = getEffectiveMonthYear(t);
+          if (y) years.add(y);
+        });
+        const sortedYears = [...years].sort((a, b) => b - a);
+        const pickedYear = await openReportYearSelection(sortedYears);
+        if (pickedYear === null) return;
+        year = Number(pickedYear);
+      } else {
+        year = Number(ticketYearFilter);
+      }
       btn.textContent = 'Se generează...';
-      const year = ticketYearFilter === 'all' ? new Date().getFullYear() : Number(ticketYearFilter);
       const monthSelection = await openReportMonthSelection(year);
       if (monthSelection === null) return;
 
@@ -7998,12 +8699,11 @@
      start_date/due_date, so nothing needs manual updating except
      the dates themselves.
 
-     ARCHIVING: same tab structure and bulk-archive pattern as
-     Sesizări (Active / Soluționate / Toate / Arhivate on tickets,
-     Active / Soluționate / Toate / Arhivate here — see
-     getFilteredProjects() above). Requires an `archived` (boolean)
-     and `archived_at` (timestamptz) column on `current_projects`,
-     matching what `tickets` already has:
+     ARCHIVING: same bulk-archive pattern as Sesizări — "Toate"
+     already includes archived projects, same as it does for tickets
+     (see getFilteredProjects() above). Requires an `archived`
+     (boolean) and `archived_at` (timestamptz) column on
+     `current_projects`, matching what `tickets` already has:
 
        alter table current_projects
          add column if not exists archived boolean not null default false,
@@ -8064,10 +8764,12 @@
 
   /* ============================================================
      PROJECTS FILTER — mirrors the ticket tabs (Active / Soluționate
-     / Toate / Arhivate). "Active" covers scheduled + in-progress
-     projects; "Soluționate" covers those past due_date (calculated,
-     same as the public page); "Arhivate" is the persisted
-     `archived` flag, set manually here or by the 2-week auto-sweep.
+     / Toate). "Active" covers scheduled + in-progress projects;
+     "Soluționate" covers those past due_date (calculated, same as
+     the public page); "Toate" includes archived projects too (the
+     persisted `archived` flag, set manually here or by the 2-week
+     auto-sweep) — there's no separate archive-only view, same
+     reasoning as the ticket tabs.
 
      NOTE: this requires an `archived` (boolean) and `archived_at`
      (timestamptz) column on the `current_projects` table, matching
@@ -8078,9 +8780,9 @@
          add column if not exists archived boolean not null default false,
          add column if not exists archived_at timestamptz;
 
-     Until that migration runs, "Arhivate" will just show empty and
-     archiving a project will surface an error — everything else on
-     this page keeps working normally either way.
+     Until that migration runs, archiving a project will surface an
+     error — everything else on this page keeps working normally
+     either way.
      ============================================================ */
   function getProjectStatusFilterKey(p){
     return calcProjectStatus(p.start_date, p.due_date).key === 'done' ? 'Terminat' : 'Ongoing';
@@ -8155,12 +8857,12 @@
   }
 
   function getFilteredProjects(){
-    let base;
-    if (projectsFilter === 'Archived') {
-      base = allProjects.filter(p => p.archived);
-    } else {
-      base = allProjects.filter(p => !p.archived && (projectsFilter === 'Toate' || getProjectStatusFilterKey(p) === projectsFilter));
-    }
+    // No separate "Arhivate" option anymore — "Toate" already means
+    // every project, archived or not, same reasoning and same fix as
+    // getFilteredTickets() above.
+    const base = allProjects.filter(p =>
+      projectsFilter === 'Toate' || getProjectStatusFilterKey(p) === projectsFilter
+    );
     const query = projectSearchQuery.trim().toLowerCase();
     return base.filter(p => matchesProjectYear(p, projectYearFilter) && matchesProjectSearch(p, query));
   }
@@ -8169,31 +8871,21 @@
     { key: 'Ongoing', label: 'Active' },
     { key: 'Terminat', label: 'Soluționate' },
     { key: 'Toate', label: 'Toate' },
-    { key: 'Archived', label: 'Arhivate' },
   ];
   const projectSearchBox = document.getElementById('projectSearchBox');
-  if (projectSearchBox) {
-    projectSearchBox.addEventListener('input', () => {
-      projectSearchQuery = projectSearchBox.value;
-      renderProjects();
-    });
-  }
 
-  const projectSearchToggleBtn = document.getElementById('projectSearchToggleBtn');
-  const projectSearchWrap = document.getElementById('projectSearchWrap');
-  if (projectSearchToggleBtn && projectSearchWrap && projectSearchBox) {
-    projectSearchToggleBtn.addEventListener('click', () => {
-      projectSearchWrap.classList.add('expanded');
-      projectSearchToggleBtn.classList.add('active');
-      projectSearchBox.focus();
-    });
-    projectSearchBox.addEventListener('blur', () => {
-      if (!projectSearchBox.value.trim()) {
-        projectSearchWrap.classList.remove('expanded');
-        projectSearchToggleBtn.classList.remove('active');
-      }
-    });
-  }
+  // Proiecte's own search icon — widens status/year on search-start
+  // (to "Toate"/"all") so an exact title/address search isn't hidden
+  // by whatever status or year happens to be selected, then restores
+  // both once the search is cleared. No month/day here (Proiecte
+  // never had that granularity), matching createSearchToggleWidget's
+  // own optional-target gating.
+  const projectsSearchWidget = createSearchToggleWidget({
+    toggleBtnId: 'projectSearchToggleBtn', wrapId: 'projectSearchWrap', boxId: 'projectSearchBox',
+    setQuery: (v) => { projectSearchQuery = v; }, rerender: renderProjects,
+    getStatus: () => projectsFilter, setStatus: setProjectsFilter, widenStatus: 'Toate',
+    getYear: () => projectYearFilter, setYear: setProjectYearFilter,
+  });
 
   // Proiecte's own Filtre popover — year-only (no month/day: Proiecte
   // publice never had that granularity in this file, unlike
@@ -8311,7 +9003,8 @@
      PROJECTS ARCHIVING — same bulk-select-and-archive pattern as
      tickets: move projects out of the public "Proiecte de
      modernizare" list and the default admin tabs without deleting
-     the row, so they can be restored from "Arhivate" any time.
+     the row. "Toate" already shows archived projects too (see
+     getFilteredProjects), so they stay reachable any time.
      ============================================================ */
   const projectsArchiveBar = document.getElementById('projectsArchiveBar');
   const projectsSelectionCount = document.getElementById('projectsSelectionCount');
@@ -8331,7 +9024,7 @@
 
   projectsArchiveSelectedBtn.addEventListener('click', async () => {
     if (projectSelectedIds.size === 0) return;
-    if (!confirm(`Arhivați ${projectSelectedIds.size} proiecte? Nu vor mai apărea pe pagina publică, dar rămân salvate și pot fi restaurate oricând din tab-ul "Arhivate".`)) {
+    if (!confirm(`Arhivați ${projectSelectedIds.size} proiecte? Nu vor mai apărea pe pagina publică, dar rămân salvate și pot fi restaurate oricând.`)) {
       return;
     }
     projectsArchiveSelectedBtn.disabled = true;
@@ -8799,25 +9492,15 @@
   });
 
   const backlogSearchBox = document.getElementById('backlogSearchBox');
-  backlogSearchBox.addEventListener('input', () => {
-    backlogSearchQuery = backlogSearchBox.value;
-    renderBacklogProjects();
+
+  // Avarii's own search icon — status-only widen (no year/month/day:
+  // Avarii rețele never had that concept), matching
+  // createSearchToggleWidget's own optional-target gating.
+  const backlogSearchWidget = createSearchToggleWidget({
+    toggleBtnId: 'backlogSearchToggleBtn', wrapId: 'backlogSearchWrap', boxId: 'backlogSearchBox',
+    setQuery: (v) => { backlogSearchQuery = v; }, rerender: renderBacklogProjects,
+    getStatus: () => backlogFilter, setStatus: setBacklogFilter, widenStatus: 'Toate',
   });
-  const backlogSearchToggleBtn = document.getElementById('backlogSearchToggleBtn');
-  const backlogSearchWrap = document.getElementById('backlogSearchWrap');
-  if (backlogSearchToggleBtn && backlogSearchWrap) {
-    backlogSearchToggleBtn.addEventListener('click', () => {
-      backlogSearchWrap.classList.add('expanded');
-      backlogSearchToggleBtn.classList.add('active');
-      backlogSearchBox.focus();
-    });
-    backlogSearchBox.addEventListener('blur', () => {
-      if (!backlogSearchBox.value.trim()) {
-        backlogSearchWrap.classList.remove('expanded');
-        backlogSearchToggleBtn.classList.remove('active');
-      }
-    });
-  }
 
   /* ============================================================
      EXCEL EXPORT — same client-side XLSX mechanism as the "Raport
@@ -8892,7 +9575,15 @@
 
   function excelDateToISO(value){
     if (value instanceof Date) {
-      return value.toISOString().slice(0, 10);
+      // Not toISOString(): xlsx builds this Date from the cell's local
+      // Y/M/D (a date-only cell has no timezone of its own), so
+      // converting to UTC first shifts the date back a day in any
+      // zone ahead of UTC (e.g. Bucharest) -- read the same local
+      // components back out instead.
+      const y = value.getFullYear();
+      const m = String(value.getMonth() + 1).padStart(2, '0');
+      const d = String(value.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     }
     if (typeof value === 'number') {
       // Excel serial date -> JS date
@@ -8910,6 +9601,16 @@
   }
 
   let pendingImportRows = [];
+
+  function isDuplicateProject(title, address, start, due){
+    const norm = s => String(s || '').trim().toLowerCase();
+    return allProjects.some(p =>
+      norm(p.title) === norm(title) &&
+      norm(p.address) === norm(address) &&
+      p.start_date === start &&
+      p.due_date === due
+    );
+  }
 
   excelInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
@@ -8939,7 +9640,13 @@
             const start = colIndex.start >= 0 ? excelDateToISO(r[colIndex.start]) : null;
             const due = colIndex.due >= 0 ? excelDateToISO(r[colIndex.due]) : null;
             const valid = !!(title && address && start && due);
-            return { title, address, start, due, valid };
+            // Re-uploading the same workbook (or one that overlaps an
+            // earlier upload) would otherwise insert the same project
+            // again with a fresh id -- flag an exact match against
+            // what's already in the database so it can be excluded
+            // from the import instead of silently duplicated.
+            const duplicate = valid && isDuplicateProject(title, address, start, due);
+            return { title, address, start, due, valid, duplicate };
           });
 
         renderExcelPreview();
@@ -8955,25 +9662,28 @@
   function renderExcelPreview(){
     projectForm.style.display = 'none';
     const table = document.getElementById('excelPreviewTable');
-    const validCount = pendingImportRows.filter(r => r.valid).length;
+    const importCount = pendingImportRows.filter(r => r.valid && !r.duplicate).length;
+    const duplicateCount = pendingImportRows.filter(r => r.valid && r.duplicate).length;
     table.innerHTML = `
       <thead><tr>
         <th>Tip lucrare</th><th>Adresă</th><th>Început</th><th>Finalizare</th><th>Stare</th>
       </tr></thead>
       <tbody>
         ${pendingImportRows.map(r => `
-          <tr class="${r.valid ? '' : 'row-error'}">
+          <tr class="${!r.valid ? 'row-error' : r.duplicate ? 'row-duplicate' : ''}">
             <td>${escapeHtml(r.title) || '—'}</td>
             <td>${escapeHtml(r.address) || '—'}</td>
             <td>${r.start || '—'}</td>
             <td>${r.due || '—'}</td>
-            <td>${r.valid ? '✓ OK' : '✗ incomplet / dată invalidă'}</td>
+            <td>${!r.valid ? '✗ incomplet / dată invalidă' : r.duplicate ? '↺ există deja, va fi ignorat' : '✓ OK'}</td>
           </tr>
         `).join('')}
       </tbody>
     `;
     document.querySelector('.excel-preview-note').textContent =
-      `Previzualizare — ${validCount} din ${pendingImportRows.length} rânduri sunt valide și vor fi importate. Rândurile marcate cu eroare vor fi ignorate.`;
+      `Previzualizare — ${importCount} din ${pendingImportRows.length} rânduri vor fi importate.` +
+      (duplicateCount > 0 ? ` ${duplicateCount} există deja în listă și vor fi ignorate.` : '') +
+      ` Rândurile marcate cu eroare vor fi ignorate.`;
     excelPreviewWrap.style.display = 'block';
     excelPreviewWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -8984,9 +9694,9 @@
   });
 
   document.getElementById('excelConfirmBtn').addEventListener('click', async () => {
-    const validRows = pendingImportRows.filter(r => r.valid);
+    const validRows = pendingImportRows.filter(r => r.valid && !r.duplicate);
     if (validRows.length === 0) {
-      alert('Niciun rând valid de importat.');
+      alert('Niciun rând nou de importat.');
       return;
     }
     const payload = validRows.map(r => ({
@@ -9044,6 +9754,19 @@
   const REPAIR_TICKET_HEADERS = ['nr. tichet', 'nr tichet', 'numar tichet', 'nr tichet.', 'ticket'];
   const REPAIR_STREET_HEADERS = ['strada si nr.', 'strada si nr', 'strada', 'adresa'];
   const REPAIR_OBS_HEADERS = ['observatii', 'observatii.', 'obs'];
+  // Columns that only ever exist on the real "Fisa remedieri" sheet.
+  // The exported workbook always bundles a "Coperta" cover page ahead
+  // of it, and Coperta ALSO has its own "Nr. Tichet" column (a quick
+  // phone/street/description reference for the field crew) -- so
+  // checking for a ticket-number column alone can't tell the two
+  // sheets apart. Reading Coperta by mistake still "found" a valid
+  // ticket-number column, matched real tickets by number/street, and
+  // silently built an EMPTY repair note for every single one (Coperta
+  // has none of these columns, or an Observații column, at all).
+  const REPAIR_SPECIFIC_HEADERS = new Set([
+    ...REPAIR_FIELD_GROUPS.flatMap(g => g.fields.map(f => f.header)),
+    ...REPAIR_OBS_HEADERS,
+  ]);
 
   let pendingRepairRows = [];
   let repairSkippedUnchangedCount = 0;
@@ -9075,14 +9798,36 @@
     return true;
   }
 
+  // First tried only among tickets that still need a report (same
+  // "active" set the export itself uses) — the common, low-ambiguity
+  // case: freshly-arrived paperwork for a ticket nobody's written
+  // anything for yet. Only when THAT comes up empty do we widen to
+  // tickets on that street which already have a note too. That
+  // second pass matters: without it, a ticket matched by street once
+  // (no number written on the form) would stop being findable by
+  // street forever the moment it got its first note — so re-uploading
+  // the exact same sheet later (nothing on the form having changed)
+  // would show it as "no sesizare found" instead of correctly
+  // recognizing it as already imported and skipping it (see the
+  // unchanged-note check where matches actually get used). Archived
+  // stays excluded in both passes — a loose address guess resurrecting
+  // an old archived ticket is a real risk a widened pass shouldn't
+  // reintroduce. Either pass: more than one candidate on that street
+  // is genuinely ambiguous — flagged for the person to resolve by
+  // hand (typically by filling in the ticket number) rather than
+  // guessed at.
   function findTicketByStreet(street){
     const needleWords = streetWordSet(street);
-    const candidates = allTickets.filter(t =>
-      !t.archived && !t.resolution_note && t.address &&
-      streetWordsMatch(needleWords, streetWordSet(t.address))
-    );
-    if (candidates.length === 1) return { matched: candidates[0], matchedBy: 'street' };
-    if (candidates.length > 1) return { matched: null, matchedBy: 'ambiguous' };
+    const matchesStreet = t => !t.archived && t.address && streetWordsMatch(needleWords, streetWordSet(t.address));
+
+    const freshCandidates = allTickets.filter(t => !t.resolution_note && matchesStreet(t));
+    if (freshCandidates.length === 1) return { matched: freshCandidates[0], matchedBy: 'street' };
+    if (freshCandidates.length > 1) return { matched: null, matchedBy: 'ambiguous' };
+
+    const alreadyNotedCandidates = allTickets.filter(t => t.resolution_note && matchesStreet(t));
+    if (alreadyNotedCandidates.length === 1) return { matched: alreadyNotedCandidates[0], matchedBy: 'street' };
+    if (alreadyNotedCandidates.length > 1) return { matched: null, matchedBy: 'ambiguous' };
+
     return { matched: null, matchedBy: null };
   }
 
@@ -9115,14 +9860,27 @@
       reader.onload = (evt) => {
         try {
           const workbook = XLSX.read(evt.target.result, { type: 'array' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-
-          const headerRowIdx = rows.findIndex(r =>
-            r.some(cell => REPAIR_TICKET_HEADERS.includes(normalizeHeader(cell)))
-          );
-          if (headerRowIdx === -1) {
-            alert('Nu am găsit coloana "Nr. Tichet" în acest fișier. Verificați că este fișa de remedieri corectă.');
+          // Checks every sheet in the file, not just the first one --
+          // see REPAIR_SPECIFIC_HEADERS' own comment for why the first
+          // sheet (Coperta, if the workbook was returned unmodified
+          // alongside it) can't be trusted to be the real repair sheet
+          // just because it also has a ticket-number column.
+          let rows = null;
+          let headerRowIdx = -1;
+          for (const sheetName of workbook.SheetNames) {
+            const candidateRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: '' });
+            const idx = candidateRows.findIndex(r =>
+              r.some(cell => REPAIR_TICKET_HEADERS.includes(normalizeHeader(cell))) &&
+              r.some(cell => REPAIR_SPECIFIC_HEADERS.has(normalizeHeader(cell)))
+            );
+            if (idx !== -1) {
+              rows = candidateRows;
+              headerRowIdx = idx;
+              break;
+            }
+          }
+          if (!rows) {
+            alert('Nu am găsit fișa de remedieri completă în acest fișier — doar coperta? Verificați că ați încărcat fișierul cu foaia "Fisa remedieri" completată de echipa de teren.');
             repairSheetInput.value = '';
             return;
           }
@@ -9137,39 +9895,154 @@
           repairSkippedUnchangedCount = 0;
           pendingRepairRows = rows.slice(headerRowIdx + 1)
             .map((r, mapIdx) => {
+              // Multi-page printed sheets often repeat the header row
+              // on later pages (e.g. row 40 has "Nr. Tichet"/"Strada
+              // si nr." in it again, not real data). Only the first
+              // header row is skipped above via headerRowIdx — a
+              // repeated one here would otherwise get misread as a
+              // real row with ticket/street text literally equal to
+              // the column headers, producing a nonsense "ambiguous"
+              // or "not found" entry in the preview. Detected and
+              // skipped the same silent way a blank template row is.
               if ((ticketCol >= 0 && REPAIR_TICKET_HEADERS.includes(normalizeHeader(r[ticketCol])))
                 || (streetCol >= 0 && REPAIR_STREET_HEADERS.includes(normalizeHeader(r[streetCol])))) {
                 return null;
               }
+              // Excel/sheet row number (1-indexed, matching what the
+              // person sees when they open the file) so a flagged row
+              // in the preview can be traced back to the source file
+              // instead of just showing a street/ticket value with no
+              // way to locate it.
               const sourceRow = headerRowIdx + mapIdx + 2;
               const ticketDigits = ticketCol >= 0 ? extractTicketDigits(r[ticketCol]) : '';
               const street = streetCol >= 0 ? String(r[streetCol] || '').trim() : '';
+              // A row is worth looking at if it has either a ticket
+              // number or a street — a template row left completely
+              // blank (both empty) is silently skipped, same as
+              // before.
               if (!ticketDigits && !street) return null;
               const obsText = obsCol >= 0 ? String(r[obsCol] || '').trim() : '';
               const note = buildRepairNote(r, colIndex, obsText);
 
+              // Try the ticket number first when there is one; if
+              // that doesn't land a match (missing, mistyped, or
+              // just not written down) fall back to the street —
+              // matching is based on whichever of the two actually
+              // identifies the ticket, not "street only when the
+              // number is completely absent". Unlike the street path
+              // below, this one does NOT exclude archived tickets —
+              // ticket numbers are never reused in this system, so
+              // there's no "stale/reused number resurrects the wrong
+              // ticket" risk a number match could fall into the way a
+              // fuzzy address guess could. Excluding them used to mean
+              // a ticket that had already been manually archived (the
+              // bulk "Arhivează selectate" flow doesn't require a
+              // report first, only the automatic 14-day sweep does —
+              // see autoArchiveStaleTickets) could no longer receive
+              // its report at all once the field crew's paperwork
+              // caught up — shown as "no sesizare found" in the
+              // preview even though the ticket plainly still exists.
+              // Writing the note doesn't touch archived/status, so the
+              // ticket simply stays archived with its report now
+              // filled in (flagged in the preview via matchedArchived
+              // so it's still a visible, deliberate thing, not a
+              // silent write). A ticket that already has a
+              // resolution_note is still a valid match too, either
+              // way (lets a corrected sheet update an existing note).
+              // A ticket number that WAS written down but doesn't match
+              // anything real (mistyped, or just wrong) used to fall
+              // straight through to the street guess below -- silently
+              // attaching the report to a DIFFERENT ticket than the one
+              // actually named, with no sign anything was off. That
+              // fallback is only safe when the number cell was left
+              // blank in the first place (nothing typed to contradict
+              // a street guess); a wrong number is flagged for the
+              // person to correct instead of being guessed around.
               let matched = null;
               let matchedBy = null;
+              let numberNotFound = false;
               if (ticketDigits) {
-                matched = allTickets.find(t => !t.archived && extractTicketDigits(t.ticket_number) === ticketDigits) || null;
+                matched = allTickets.find(t => extractTicketDigits(t.ticket_number) === ticketDigits) || null;
                 if (matched) matchedBy = 'number';
+                else numberNotFound = true;
               }
-              if (!matched && street) {
+              if (!matched && !numberNotFound && street) {
                 const byStreet = findTicketByStreet(street);
                 matched = byStreet.matched;
                 matchedBy = byStreet.matchedBy;
               }
+              // A sheet row can name a ticket number that's since been
+              // marked a duplicate of another one -- writing the note
+              // there directly would leave it sitting on a ticket
+              // nobody looks at instead of the canonical ticket the
+              // issue is actually tracked under. Redirect the match
+              // itself to the canonical ticket up front, so every
+              // check below (archived, already-Terminat, the preview
+              // text) reflects the ticket the report is really going
+              // to land on, not the duplicate stub.
+              const matchedDuplicateNumber = (matched && isDuplicateTicket(matched)) ? matched.ticket_number : null;
+              if (matchedDuplicateNumber) {
+                matched = getCanonicalTicket(matched) || matched;
+              }
+              const matchedArchived = !!(matched && matched.archived);
 
+              // A ticket that already has a resolution_note identical
+              // to the note this row would produce has already been
+              // imported before (a re-uploaded sheet, or the same
+              // fișă run twice) — nothing would actually change, so
+              // it's dropped instead of cluttering the preview with a
+              // row nobody needs to act on. Only a genuinely different
+              // note (a correction, or a first-time note) shows up.
               if (matched && matched.resolution_note && matched.resolution_note.trim() === note.trim()) {
                 repairSkippedUnchangedCount++;
                 return null;
               }
 
+              // A repair report only makes sense on a ticket that's
+              // actually marked Terminat — the whole workflow assumes
+              // a ticket only reaches this sheet once someone's
+              // already closed it. Nothing in the matching above
+              // checks that, though, so flag it here instead of
+              // writing a note onto a still-Ongoing ticket with no
+              // signal anywhere that anything's off.
               const notTerminatYet = !!matched && matched.status !== 'Terminat';
 
-              return { sourceRow, ticketNumber: ticketDigits, street, note, matched, matchedBy, notTerminatYet, include: !!matched && !notTerminatYet };
+              // Left unchecked by default when the ticket isn't
+              // Terminat yet — same "make it a deliberate choice, not
+              // a silent default" reasoning as the manual-save warning
+              // above. The checkbox itself stays enabled, so checking
+              // it is a one-click, explicit "yes, this is intentional."
+              //
+              // An empty generated note (no box ticked, no observation
+              // written) saves as resolution_note: null -- for a ticket
+              // that already HAD a real report, that's a silent erase,
+              // not an update. Never auto-checked; see the checkbox
+              // wiring below for why it also can't just be checked by
+              // hand while still blank.
+              const noteEmpty = !note.trim();
+              return { sourceRow, ticketNumber: ticketDigits, street, note, matched, matchedBy, matchedArchived, matchedDuplicateNumber, notTerminatYet, numberNotFound, noteEmpty, include: !!matched && !notTerminatYet && !noteEmpty };
             })
             .filter(Boolean);
+
+          // Several sheet rows can name the same ticket (a duplicate
+          // line, or two different streets both matching the same
+          // ticket by number) -- saving all of them concurrently would
+          // race, and whichever request happened to finish last would
+          // silently win with no indication the others were ever
+          // dropped. Only the LAST matching row stays selectable; the
+          // earlier ones are flagged and force-excluded so there's
+          // never more than one in-flight write per ticket.
+          const seenTicketIds = new Set();
+          for (let i = pendingRepairRows.length - 1; i >= 0; i--) {
+            const row = pendingRepairRows[i];
+            if (!row.matched) continue;
+            if (seenTicketIds.has(row.matched.id)) {
+              row.duplicateTarget = true;
+              row.include = false;
+            } else {
+              seenTicketIds.add(row.matched.id);
+            }
+          }
 
           if (pendingRepairRows.length === 0) {
             alert(repairSkippedUnchangedCount > 0
@@ -9199,8 +10072,8 @@
       </tr></thead>
       <tbody>
         ${pendingRepairRows.map((r, i) => `
-          <tr class="${!r.matched ? 'row-error' : r.notTerminatYet ? 'row-warning' : ''}">
-            <td><input type="checkbox" class="repair-row-include" data-idx="${i}" ${r.include ? 'checked' : ''} ${r.matched ? '' : 'disabled'}></td>
+          <tr class="${!r.matched || r.duplicateTarget ? 'row-error' : r.notTerminatYet || r.noteEmpty ? 'row-warning' : ''}">
+            <td><input type="checkbox" class="repair-row-include" data-idx="${i}" ${r.include ? 'checked' : ''} ${(r.matched && !r.noteEmpty && !r.duplicateTarget) ? '' : 'disabled'}></td>
             <td>${r.sourceRow}</td>
             <td>${r.ticketNumber ? escapeHtml(r.ticketNumber) : '<em>(după stradă)</em>'}</td>
             <td>${escapeHtml(r.street) || '—'}</td>
@@ -9208,8 +10081,14 @@
               ? escapeHtml(r.matched.address || '—')
                 + (r.matchedBy === 'street' ? ' <strong>(găsit după adresă — verificați)</strong>' : '')
                 + (r.matched.resolution_note ? ' <strong>(are deja raport — va fi înlocuit)</strong>' : '')
+                + (r.matchedArchived ? ' <strong>(tichet arhivat — rămâne arhivat, doar raportul e actualizat)</strong>' : '')
+                + (r.matchedDuplicateNumber ? ` <strong>(${escapeHtml(r.matchedDuplicateNumber)} e duplicat al ${escapeHtml(r.matched.ticket_number)} — raportul va fi salvat pe sesizarea originală)</strong>` : '')
                 + (r.notTerminatYet ? ' <strong>(tichetul e încă Activ — nu va fi marcat automat ca soluționat, bifați doar dacă e intenționat)</strong>' : '')
-              : r.matchedBy === 'ambiguous'
+                + (r.noteEmpty ? ' <strong>(nicio căsuță bifată sau observație — nu va fi salvat, ar șterge un raport existent)</strong>' : '')
+                + (r.duplicateTarget ? ' <strong>(alt rând din fișier vizează aceeași sesizare — verificați și bifați doar unul)</strong>' : '')
+              : r.numberNotFound
+                ? `Numărul "${escapeHtml(r.ticketNumber)}" nu corespunde niciunui tichet — verificați dacă e scris corect`
+                : r.matchedBy === 'ambiguous'
                 ? 'Mai multe sesizări active pe această stradă — completați numărul de tichet'
                 : 'Nu a fost găsită nicio sesizare'}</td>
             <td><textarea class="repair-note-input" data-idx="${i}" rows="2" ${r.matched ? '' : 'disabled'}>${escapeHtml(r.note)}</textarea></td>
@@ -9229,7 +10108,21 @@
     });
     table.querySelectorAll('.repair-note-input').forEach(ta => {
       ta.addEventListener('input', () => {
-        pendingRepairRows[Number(ta.dataset.idx)].note = ta.value;
+        const idx = Number(ta.dataset.idx);
+        const row = pendingRepairRows[idx];
+        row.note = ta.value;
+        // Edited live, not just at initial preview build -- typing a
+        // note into a row that came in blank (or clearing one back
+        // out) must immediately re-lock the checkbox, since the
+        // "never save an empty note" protection has to hold no matter
+        // when the box ends up empty, not just at the moment the file
+        // was first read.
+        row.noteEmpty = !ta.value.trim();
+        const cb = table.querySelector(`.repair-row-include[data-idx="${idx}"]`);
+        if (cb && !row.duplicateTarget) {
+          cb.disabled = row.noteEmpty;
+          if (row.noteEmpty) { cb.checked = false; row.include = false; }
+        }
       });
     });
     wrap.style.display = 'block';
@@ -9247,7 +10140,12 @@
   const repairSheetConfirmBtn = document.getElementById('repairSheetConfirmBtn');
   if (repairSheetConfirmBtn) {
     repairSheetConfirmBtn.addEventListener('click', async () => {
-      const toSave = pendingRepairRows.filter(r => r.matched && r.include);
+      // Defense in depth, not the only guard -- the checkbox is
+      // already locked disabled+unchecked for an empty note or a
+      // duplicate-target row, but this is the one place that actually
+      // writes to the database, so it re-checks both conditions itself
+      // rather than trusting the checkbox's DOM state alone.
+      const toSave = pendingRepairRows.filter(r => r.matched && r.include && r.note.trim() !== '' && !r.duplicateTarget);
       if (toSave.length === 0) {
         alert('Niciun rând selectat de salvat.');
         return;
