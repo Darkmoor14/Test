@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Insta Grup — Panou admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink-900:#14181D; --ink-700:#2B333B; --ink-600:#525C66; --ink-400:#8A939C; --ink-300:#B7BEC4;
+    --paper-000:#FFFFFF; --paper-050:#F7F7F5; --paper-100:#EFEFEB;
+    --line:#E2E3DE; --line-strong:#D3D4CE;
+    --copper-600:#A81419; --copper-500:#D11F24; --copper-300:#E2686C; --copper-100:#F4C6C8; --copper-050:#FBEAEA;
+    --signal-green:#3E7A57; --signal-green-bg:#E9F3EC;
+    --signal-red:#B5502F; --signal-red-bg:#FBEDE7;
+    --signal-orange:#B5792F; --signal-orange-bg:#FBF2E7;
+    --signal-purple:#7C5CBF; --signal-purple-bg:#F1EDFB;
+    --signal-blue:#2F6FB5; --signal-blue-bg:#EAF1FB;
+    --display:'Space Grotesk',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
+    --sidebar-w:252px;
+    --radius-sm:6px; --radius-md:8px; --radius-lg:12px;
+    --shadow-sm:0 1px 2px rgba(20,24,29,0.06);
+    --shadow-md:0 4px 12px rgba(20,24,29,0.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:var(--body);color:var(--ink-900);background:var(--paper-050);
+    -webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;
+  }
+  button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit;}
+  a{color:inherit;text-decoration:none;}
+  svg{display:block;flex-shrink:0;}
+
+  /* ============================================================
+     SIDEBAR — the core "Plane-style" structural change: a fixed
+     left rail replaces the old tab bar entirely. Everyone (no more
+     per-email branching) sees the same four nav items plus the
+     account row at the bottom.
+     ============================================================ */
+  .app-shell{display:flex;min-height:100vh;}
+  .sidebar{
+    width:var(--sidebar-w);flex-shrink:0;height:100vh;position:fixed;left:0;top:0;
+    background:var(--paper-000);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;z-index:20;
+  }
+  .sidebar-brand{
+    display:flex;align-items:center;gap:10px;padding:18px 18px 14px;
+    border-bottom:1px solid var(--line);
+  }
+  .sidebar-brand-mark{
+    width:30px;height:30px;border-radius:var(--radius-sm);background:var(--copper-500);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--display);
+    font-weight:700;font-size:15px;flex-shrink:0;
+  }
+  .sidebar-brand-text{display:flex;flex-direction:column;min-width:0;}
+  .sidebar-brand-name{font-family:var(--display);font-weight:600;font-size:14.5px;color:var(--ink-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sidebar-brand-sub{font-size:11.5px;color:var(--ink-400);white-space:nowrap;}
+
+  .sidebar-nav{flex:1;overflow-y:auto;padding:14px 10px;display:flex;flex-direction:column;gap:2px;}
+  .sidebar-nav-label{
+    font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-400);
+    padding:10px 10px 6px;
+  }
+  .nav-item{
+    display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-sm);
+    color:var(--ink-700);font-size:13.5px;font-weight:500;cursor:pointer;border:none;background:none;
+    width:100%;text-align:left;transition:background .12s,color .12s;position:relative;
+  }
+  .nav-item svg{width:17px;height:17px;color:var(--ink-400);transition:color .12s;}
+  .nav-item:hover{background:var(--paper-050);color:var(--ink-900);}
+  .nav-item:hover svg{color:var(--ink-600);}
+  .nav-item.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;}
+  .nav-item.active svg{color:var(--copper-500);}
+  .nav-item-count{
+    margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--ink-400);
+    background:var(--paper-100);border-radius:20px;padding:1px 7px;
+  }
+  .nav-item.active .nav-item-count{background:var(--copper-100);color:var(--copper-600);}
+
+  .sidebar-footer{border-top:1px solid var(--line);padding:12px;}
+  .sidebar-account{
+    display:flex;align-items:center;gap:10px;padding:8px;border-radius:var(--radius-sm);
+    cursor:pointer;transition:background .12s;
+  }
+  .sidebar-account:hover{background:var(--paper-050);}
+  .sidebar-account-avatar{
+    width:28px;height:28px;border-radius:50%;background:var(--ink-900);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;
+  }
+  .sidebar-account-info{min-width:0;flex:1;}
+  .sidebar-account-email{font-size:12.5px;font-weight:500;color:var(--ink-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sidebar-account-role{font-size:11px;color:var(--ink-400);}
+  .sidebar-account svg{width:15px;height:15px;color:var(--ink-400);}
+
+  /* ============================================================
+     MAIN AREA
+     ============================================================ */
+  .main{margin-left:var(--sidebar-w);flex:1;min-width:0;display:flex;flex-direction:column;min-height:100vh;}
+  .topbar{
+    height:60px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+    padding:0 24px;border-bottom:1px solid var(--line);background:var(--paper-000);
+    position:sticky;top:0;z-index:10;
+  }
+  .topbar-title{font-family:var(--display);font-weight:600;font-size:18px;color:var(--ink-900);}
+  .topbar-actions{display:flex;align-items:center;gap:8px;}
+  .icon-btn{
+    width:32px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--paper-000);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-600);
+    transition:background .12s,border-color .12s;
+  }
+  .icon-btn svg{width:16px;height:16px;}
+  .icon-btn:hover{background:var(--paper-050);border-color:var(--line-strong);color:var(--ink-900);}
+  .btn{
+    display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);
+    border:1px solid var(--line-strong);background:var(--paper-000);color:var(--ink-700);
+    font-size:13px;font-weight:500;cursor:pointer;transition:background .12s,border-color .12s;
+  }
+  .btn:hover{background:var(--paper-050);}
+  .btn-primary{background:var(--copper-500);border-color:var(--copper-500);color:#fff;}
+  .btn-primary:hover{background:var(--copper-600);border-color:var(--copper-600);}
+
+  .page-body{padding:24px;flex:1;}
+
+  /* Stat cards row — Overview's priority summary, restyled */
+  .stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
+  .stat-card{
+    background:var(--paper-000);border:1px solid var(--line);border-radius:var(--radius-lg);
+    padding:16px 18px;display:flex;flex-direction:column;gap:6px;cursor:pointer;
+    transition:border-color .12s,box-shadow .12s;
+  }
+  .stat-card:hover{border-color:var(--line-strong);box-shadow:var(--shadow-sm);}
+  .stat-card-label{font-size:12px;color:var(--ink-600);font-weight:500;}
+  .stat-card-value{font-family:var(--display);font-size:26px;font-weight:700;color:var(--ink-900);}
+  .stat-card.accent .stat-card-value{color:var(--copper-500);}
+
+  /* List/card container — the main data-density pattern used for
+     tickets/projects/backlog, restyled with Plane's clean-row look:
+     one bordered container, thin dividers between rows instead of a
+     gap-separated stack of individually-bordered cards. */
+  .list-panel{background:var(--paper-000);border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;}
+  .list-row{
+    display:flex;align-items:center;gap:14px;padding:13px 18px;border-bottom:1px solid var(--line);
+    cursor:pointer;transition:background .1s;
+  }
+  .list-row:last-child{border-bottom:none;}
+  .list-row:hover{background:var(--paper-050);}
+  .list-row-num{font-family:var(--mono);font-size:12px;color:var(--ink-400);width:78px;flex-shrink:0;}
+  .list-row-title{font-size:13.5px;font-weight:500;color:var(--ink-900);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .list-row-meta{font-size:12.5px;color:var(--ink-600);width:160px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pill{
+    font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;flex-shrink:0;
+    display:inline-flex;align-items:center;gap:4px;
+  }
+  .pill-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .pill-active{background:var(--signal-blue-bg);color:var(--signal-blue);}
+  .pill-done{background:var(--signal-green-bg);color:var(--signal-green);}
+  .pill-urgent{background:var(--signal-red-bg);color:var(--signal-red);}
+
+  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .section-head h2{font-family:var(--display);font-size:15px;font-weight:600;color:var(--ink-900);}
+  .section-head-note{font-size:12.5px;color:var(--ink-400);}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-mark">IG</div>
+      <div class="sidebar-brand-text">
+        <span class="sidebar-brand-name">Insta Grup</span>
+        <span class="sidebar-brand-sub">Panou admin</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-nav-label">Spațiu de lucru</div>
+      <button type="button" class="nav-item active" data-tab="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        <span>Prezentare generală</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="tickets">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8a2 2 0 0 0 2 2 2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2 2 2 0 0 1-2-2 2 2 0 0 1 2-2 2 2 0 0 0 2-2"/></svg>
+        <span>Sesizări</span>
+        <span class="nav-item-count">12</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="projects">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M9 4v5"/></svg>
+        <span>Proiecte publice</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="backlog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+        <span>Avarii rețele</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-account">
+        <div class="sidebar-account-avatar">VS</div>
+        <div class="sidebar-account-info">
+          <div class="sidebar-account-email">sesizari@insta-grup.ro</div>
+          <div class="sidebar-account-role">Staff</div>
+        </div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title">Prezentare generală</span>
+      <div class="topbar-actions">
+        <button type="button" class="icon-btn" title="Căutare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+        <button type="button" class="icon-btn" title="Filtre"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></button>
+        <button type="button" class="btn btn-primary">+ Sesizare nouă</button>
+      </div>
+    </div>
+    <div class="page-body">
+      <div class="stat-grid">
+        <div class="stat-card"><span class="stat-card-label">Active</span><span class="stat-card-value">18</span></div>
+        <div class="stat-card accent"><span class="stat-card-label">Vechi (7+ zile)</span><span class="stat-card-value">4</span></div>
+        <div class="stat-card"><span class="stat-card-label">Defecte</span><span class="stat-card-value">14</span></div>
+        <div class="stat-card"><span class="stat-card-label">Accidente</span><span class="stat-card-value">4</span></div>
+        <div class="stat-card"><span class="stat-card-label">Soluționate</span><span class="stat-card-value">126</span></div>
+      </div>
+
+      <div class="section-head">
+        <h2>Sesizări recente</h2>
+        <span class="section-head-note">7 din 18</span>
+      </div>
+      <div class="list-panel">
+        <div class="list-row">
+          <span class="list-row-num">TICKET-0212</span>
+          <span class="list-row-title">Stâlp de iluminat defect, colț cu bloc B2</span>
+          <span class="list-row-meta">Str. Victoriei 12</span>
+          <span class="pill pill-urgent"><span class="pill-dot"></span>Accident</span>
+        </div>
+        <div class="list-row">
+          <span class="list-row-num">TICKET-0211</span>
+          <span class="list-row-title">Bec ars pe toată strada, zonă întunecată noaptea</span>
+          <span class="list-row-meta">Str. Măgurei 9</span>
+          <span class="pill pill-active"><span class="pill-dot"></span>În curs</span>
+        </div>
+        <div class="list-row">
+          <span class="list-row-num">TICKET-0210</span>
+          <span class="list-row-title">Cablu căzut lângă trecerea de pietoni</span>
+          <span class="list-row-meta">Bd. Republicii 45</span>
+          <span class="pill pill-done"><span class="pill-dot"></span>Soluționat</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
