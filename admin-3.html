@@ -198,13 +198,10 @@
   .rail-item:hover{background:var(--paper-100);color:var(--ink-900);}
   .rail-item.active{background:var(--copper-050);color:var(--copper-600);}
   .rail-footer{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;position:relative;}
-  .rail-collapse-btn,.rail-account{
+  .rail-account{
     width:32px;height:32px;border-radius:8px;border:none;background:none;color:var(--ink-400);
     display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
   }
-  .rail-collapse-btn:hover{background:var(--paper-100);color:var(--ink-700);}
-  .rail-collapse-btn svg{width:15px;height:15px;transition:transform .18s ease;}
-  .rail-collapse-btn.panel-collapsed svg{transform:rotate(180deg);}
   .rail-account{border-radius:50%;padding:0;}
   .rail-account:hover{background:var(--paper-100);}
   .sidebar-account-avatar{
@@ -234,7 +231,7 @@
     position:sticky;top:0;height:100vh;overflow-y:auto;overflow-x:hidden;
     transition:width .18s ease,opacity .15s ease;
   }
-  .category-panel.collapsed,.category-panel.empty{width:0;opacity:0;border-right:none;}
+  .category-panel.empty{width:0;opacity:0;border-right:none;}
   .category-panel-head{padding:18px 16px 8px;min-height:20px;}
   .category-panel-title{font-family:var(--display);font-weight:700;font-size:15px;color:var(--ink-900);white-space:nowrap;}
   .category-panel-nav{
@@ -1269,6 +1266,59 @@
     .backlog-actions{width:100%;justify-content:flex-end;}
   }
 
+  /* ===== PROGRAME LUCRĂRI — full month calendar =====
+     A bigger sibling of .home-mini-cal (same Monday-first grid math,
+     same dateKey()-based lookups), sized to actually hold a work
+     order's title inside each day cell rather than just a dot. */
+  .wo-calendar{margin:22px 0 28px;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .wo-calendar-head{
+    display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);
+    background:var(--paper-050);
+  }
+  .wo-calendar-month{font-family:var(--display);font-weight:700;font-size:16px;color:var(--ink-900);text-transform:capitalize;min-width:160px;}
+  .wo-cal-nav{
+    width:30px;height:30px;border-radius:7px;border:1px solid var(--line-strong);background:var(--paper-000);
+    color:var(--ink-600);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+  }
+  .wo-cal-nav:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .wo-calendar-head .btn{margin-left:auto;}
+  .wo-calendar-weekdays{
+    display:grid;grid-template-columns:repeat(7,1fr);
+    padding:8px 6px 0;background:var(--paper-050);
+  }
+  .wo-calendar-weekdays span{
+    text-align:center;font-family:var(--mono);font-size:11px;font-weight:600;
+    color:var(--ink-400);text-transform:uppercase;padding-bottom:8px;
+  }
+  .wo-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);background:var(--paper-050);gap:1px;padding:0 0 1px;}
+  .wo-cal-day{
+    background:var(--paper-000);min-height:104px;padding:6px;display:flex;flex-direction:column;gap:4px;
+    cursor:pointer;align-items:stretch;text-align:left;border:none;font:inherit;
+  }
+  .wo-cal-day:hover{background:var(--paper-100);}
+  .wo-cal-day.outside{background:var(--paper-050);}
+  .wo-cal-day.outside .wo-cal-day-num{color:var(--ink-300);}
+  .wo-cal-day-num{
+    font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--ink-700);
+    width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0;
+  }
+  .wo-cal-day.today .wo-cal-day-num{background:var(--copper-500);color:#fff;}
+  .wo-cal-day-chips{display:flex;flex-direction:column;gap:3px;overflow:hidden;}
+  .wo-cal-chip{
+    font-size:11px;padding:2px 6px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    background:var(--paper-100);color:var(--ink-700);border-left:3px solid var(--ink-400);
+  }
+  .wo-cal-chip.status-Planificat{background:color-mix(in srgb,var(--signal-blue) 12%,white);border-left-color:var(--signal-blue);color:var(--signal-blue-hover);}
+  .wo-cal-chip.status-In-lucru{background:color-mix(in srgb,var(--signal-orange) 16%,white);border-left-color:var(--signal-orange);color:var(--signal-orange);}
+  .wo-cal-chip.status-Finalizat{background:var(--signal-green-bg);border-left-color:var(--signal-green);color:var(--signal-green);}
+  .wo-cal-chip.status-Anulat{background:var(--paper-100);border-left-color:var(--ink-300);color:var(--ink-400);text-decoration:line-through;}
+  .wo-cal-chip-more{font-size:10.5px;color:var(--ink-400);padding:0 6px;}
+  @media(max-width:900px){
+    .wo-cal-day{min-height:72px;}
+    .wo-cal-day-chips{display:none;}
+  }
+  .wo-list-heading{font-family:var(--display);font-weight:700;font-size:15px;color:var(--ink-900);margin:0 0 12px;}
+
   .excel-preview{
     background:var(--paper-050);border:1px solid var(--line-strong);border-radius:5px;
     padding:22px 24px;margin-top:16px;
@@ -1782,9 +1832,6 @@
         </button>
       </div>
       <div class="rail-footer">
-        <button type="button" class="rail-collapse-btn" id="sidebarCollapseBtn" aria-label="Restrânge meniul" title="Restrânge meniul">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
         <button type="button" class="rail-account" id="sidebarAccountBtn" aria-haspopup="true" aria-expanded="false" title="Cont">
           <span class="sidebar-account-avatar" id="sidebarAccountAvatar">—</span>
         </button>
@@ -2288,6 +2335,23 @@
         <button type="button" class="btn btn-primary" id="addWorkOrderBtn">+ Programare nouă</button>
       </div>
 
+      <div class="wo-calendar">
+        <div class="wo-calendar-head">
+          <button type="button" class="wo-cal-nav" id="woCalPrevBtn" aria-label="Luna anterioară">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="wo-calendar-month" id="woCalMonthLabel">—</span>
+          <button type="button" class="wo-cal-nav" id="woCalNextBtn" aria-label="Luna următoare">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <button type="button" class="btn" id="woCalTodayBtn">Azi</button>
+        </div>
+        <div class="wo-calendar-weekdays">
+          <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+        </div>
+        <div class="wo-calendar-grid" id="woCalendarGrid"></div>
+      </div>
+
       <div class="project-form" id="workOrderForm" style="display:none;">
         <input type="hidden" id="wf-id">
         <div class="pf-grid">
@@ -2322,6 +2386,7 @@
         </div>
       </div>
 
+      <h3 class="wo-list-heading">Toate programările</h3>
       <div class="backlog-list" id="workOrdersList"></div>
     </div>
 
@@ -8957,8 +9022,8 @@
   });
 
   /* ============================================================
-     RAIL — category switching (which .category-panel-section shows)
-     and the category panel's own collapse toggle.
+     RAIL — category switching (which .category-panel-section shows).
+     The category panel itself always stays open (no collapse).
      ============================================================ */
   document.querySelectorAll('.rail-item[data-category]').forEach(item => {
     item.addEventListener('click', () => {
@@ -8975,24 +9040,6 @@
       }
     });
   });
-  const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
-  if (sidebarCollapseBtn && categoryPanel) {
-    const SIDEBAR_COLLAPSED_KEY = 'insta-grup-sidebar-collapsed-v1';
-    if (localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1') {
-      categoryPanel.classList.add('collapsed');
-      sidebarCollapseBtn.classList.add('panel-collapsed');
-    }
-    sidebarCollapseBtn.addEventListener('click', () => {
-      const collapsed = categoryPanel.classList.toggle('collapsed');
-      sidebarCollapseBtn.classList.toggle('panel-collapsed', collapsed);
-      sidebarCollapseBtn.setAttribute('aria-label', collapsed ? 'Extinde meniul' : 'Restrânge meniul');
-      sidebarCollapseBtn.title = collapsed ? 'Extinde meniul' : 'Restrânge meniul';
-      try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0'); } catch (e) {}
-      const accountMenu = document.getElementById('sidebarAccountMenu');
-      const accountBtn = document.getElementById('sidebarAccountBtn');
-      if (accountMenu && accountBtn) { accountMenu.classList.remove('open'); accountBtn.setAttribute('aria-expanded', 'false'); }
-    });
-  }
 
   /* ============================================================
      SIDEBAR — account bubble opens a small popup with the signed-in
@@ -9931,6 +9978,7 @@
     return `${day}.${m}.${y}`;
   }
   function renderWorkOrders(){
+    renderWorkOrdersCalendar();
     const list = document.getElementById('workOrdersList');
     if (!list) return;
     const countEl = document.getElementById('workOrdersCount');
@@ -9980,6 +10028,92 @@
       list.appendChild(row);
     });
   }
+
+  // Full month calendar — independent month cursor from the home
+  // page's mini-calendar (someone reviewing October's schedule
+  // shouldn't also flip the home widget to October). Same Monday-first
+  // grid math as renderHomeMiniCal(), sized for a day's work order
+  // titles to actually fit rather than just a dot.
+  let woCalYear = new Date().getFullYear();
+  let woCalMonthIdx = new Date().getMonth();
+  function workOrdersOnDate(dateKeyStr){
+    return allWorkOrders.filter(w => {
+      const start = w.scheduled_date;
+      const end = w.scheduled_end_date || w.scheduled_date;
+      return start && dateKeyStr >= start && dateKeyStr <= end;
+    });
+  }
+  function renderWorkOrdersCalendar(){
+    const monthEl = document.getElementById('woCalMonthLabel');
+    const gridEl = document.getElementById('woCalendarGrid');
+    if (!monthEl || !gridEl) return;
+    const todayKey = dateKey(new Date());
+    const year = woCalYear, month = woCalMonthIdx;
+    monthEl.textContent = `${HOME_CLOCK_MONTH_NAMES[month]} ${year}`;
+    const firstOfMonth = new Date(year, month, 1);
+    const startOffset = (firstOfMonth.getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+    const MAX_CHIPS = 3;
+    const dayCellHtml = (dNum, y, m, isOutside) => {
+      const thisKey = `${y}-${String(m + 1).padStart(2, '0')}-${String(dNum).padStart(2, '0')}`;
+      const dayOrders = isOutside ? [] : workOrdersOnDate(thisKey);
+      const shown = dayOrders.slice(0, MAX_CHIPS);
+      const extra = dayOrders.length - shown.length;
+      const chipsHtml = shown.map(w => `<span class="wo-cal-chip status-${w.status.replace(/\s+/g, '-')}" data-wo-id="${escapeHtml(w.id)}" title="${escapeHtml(w.title)}">${escapeHtml(w.title)}</span>`).join('')
+        + (extra > 0 ? `<span class="wo-cal-chip-more">+${extra} mai multe</span>` : '');
+      return `<button type="button" class="wo-cal-day${isOutside ? ' outside' : ''}${thisKey === todayKey ? ' today' : ''}" data-date="${thisKey}">
+        <span class="wo-cal-day-num">${dNum}</span>
+        <span class="wo-cal-day-chips">${chipsHtml}</span>
+      </button>`;
+    };
+    let html = '';
+    for (let i = 0; i < startOffset; i++) {
+      const prevMonth = month === 0 ? 11 : month - 1;
+      const prevYear = month === 0 ? year - 1 : year;
+      html += dayCellHtml(daysInPrevMonth - startOffset + i + 1, prevYear, prevMonth, true);
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      html += dayCellHtml(d, year, month, false);
+    }
+    const trailing = (7 - ((startOffset + daysInMonth) % 7)) % 7;
+    for (let i = 1; i <= trailing; i++) {
+      const nextMonth = month === 11 ? 0 : month + 1;
+      const nextYear = month === 11 ? year + 1 : year;
+      html += dayCellHtml(i, nextYear, nextMonth, true);
+    }
+    gridEl.innerHTML = html;
+    gridEl.querySelectorAll('.wo-cal-chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const w = allWorkOrders.find(x => String(x.id) === chip.dataset.woId);
+        if (w) openWorkOrderForm(w);
+      });
+    });
+    gridEl.querySelectorAll('.wo-cal-day[data-date]').forEach(cell => {
+      cell.addEventListener('click', () => {
+        openWorkOrderForm(null);
+        document.getElementById('wf-start').value = cell.dataset.date;
+      });
+    });
+  }
+  const woCalPrevBtn = document.getElementById('woCalPrevBtn');
+  if (woCalPrevBtn) woCalPrevBtn.addEventListener('click', () => {
+    woCalMonthIdx--; if (woCalMonthIdx < 0) { woCalMonthIdx = 11; woCalYear--; }
+    renderWorkOrdersCalendar();
+  });
+  const woCalNextBtn = document.getElementById('woCalNextBtn');
+  if (woCalNextBtn) woCalNextBtn.addEventListener('click', () => {
+    woCalMonthIdx++; if (woCalMonthIdx > 11) { woCalMonthIdx = 0; woCalYear++; }
+    renderWorkOrdersCalendar();
+  });
+  const woCalTodayBtn = document.getElementById('woCalTodayBtn');
+  if (woCalTodayBtn) woCalTodayBtn.addEventListener('click', () => {
+    const now = new Date();
+    woCalYear = now.getFullYear(); woCalMonthIdx = now.getMonth();
+    renderWorkOrdersCalendar();
+  });
+
   const workOrderForm = document.getElementById('workOrderForm');
   function openWorkOrderForm(w){
     document.getElementById('wf-id').value = w ? w.id : '';
