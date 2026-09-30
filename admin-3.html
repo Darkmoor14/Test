@@ -180,15 +180,14 @@
   .sidebar{
     width:260px;flex-shrink:0;display:flex;flex-direction:column;
     background:var(--paper-050);border-right:1px solid var(--line);
-    position:sticky;top:0;height:100vh;overflow-y:auto;
+    position:sticky;top:0;height:100vh;overflow:visible;
     transition:width .18s ease;
   }
   .sidebar.collapsed{width:72px;}
   .sidebar-brand{
-    display:flex;align-items:center;gap:10px;padding:16px 14px;
-    border-bottom:1px solid var(--line);min-height:64px;
+    display:flex;align-items:center;gap:10px;padding:14px;
+    border-bottom:1px solid var(--line);min-height:56px;
   }
-  .sidebar-brand-mark{width:30px;height:30px;object-fit:contain;flex-shrink:0;}
   .sidebar-brand-text{display:flex;flex-direction:column;gap:1px;min-width:0;overflow:hidden;}
   .sidebar-brand-name{font-family:var(--display);font-weight:700;font-size:14.5px;color:var(--ink-900);white-space:nowrap;}
   .sidebar-brand-sub{font-size:11px;color:var(--ink-400);white-space:nowrap;}
@@ -199,12 +198,10 @@
   .sidebar-collapse-btn:hover{background:var(--paper-100);color:var(--ink-700);}
   .sidebar-collapse-btn svg{width:15px;height:15px;transition:transform .18s ease;}
   .sidebar.collapsed .sidebar-collapse-btn svg{transform:rotate(180deg);}
-  .sidebar.collapsed .sidebar-brand{gap:0;}
-  .sidebar.collapsed .sidebar-brand-text,
-  .sidebar.collapsed .sidebar-collapse-btn{display:none;}
-  .sidebar.collapsed .sidebar-brand-mark{margin:0 auto;}
+  .sidebar.collapsed .sidebar-brand{justify-content:center;padding:14px 6px;}
+  .sidebar.collapsed .sidebar-brand-text{display:none;}
 
-  .sidebar-nav{flex:1;overflow-y:auto;padding:10px 8px;display:flex;flex-direction:column;gap:2px;}
+  .sidebar-nav{flex:1;overflow-y:auto;overflow-x:visible;padding:10px 8px;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;gap:1px;height:auto;}
   .sidebar-nav-item,.sidebar-nav-group-toggle{
     display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:8px;
     border:none;background:none;color:var(--ink-700);font-family:var(--body);font-size:13.5px;font-weight:500;
@@ -216,7 +213,9 @@
   .sidebar-nav-item.active svg{color:var(--copper-600);}
   .sidebar-nav-item-label{overflow:hidden;text-overflow:ellipsis;}
   .sidebar.collapsed .sidebar-nav-item-label{display:none;}
+  .sidebar.collapsed .sidebar-nav-item,.sidebar.collapsed .sidebar-nav-group-toggle{justify-content:center;padding:8px;}
 
+  .sidebar-nav-group{position:relative;}
   .sidebar-nav-group-chevron{width:13px;height:13px;flex-shrink:0;margin-left:auto;color:var(--ink-400);transition:transform .15s ease;}
   .sidebar-nav-group-toggle[aria-expanded="false"] .sidebar-nav-group-chevron{transform:rotate(-90deg);}
   .sidebar-nav-subitems{display:flex;flex-direction:column;gap:1px;padding-left:30px;margin-top:1px;}
@@ -228,13 +227,27 @@
   }
   .sidebar-nav-subitem:hover{background:var(--paper-100);color:var(--ink-900);}
   .sidebar-nav-subitem.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;}
-  .sidebar.collapsed .sidebar-nav-group-chevron,
-  .sidebar.collapsed .sidebar-nav-subitems{display:none;}
+  .sidebar.collapsed .sidebar-nav-group-chevron{display:none;}
+  /* Collapsed: the sub-items can't render inline (no room for the
+     label text), so they float as a small popover to the right of the
+     icon instead of disappearing — same trigger (the toggle button),
+     same aria-expanded state, just repositioned. */
+  .sidebar.collapsed .sidebar-nav-subitems{
+    display:none;position:fixed;margin:0;
+    background:var(--paper-000);border:1px solid var(--line);border-radius:9px;
+    box-shadow:0 8px 24px rgba(20,24,29,.14);padding:6px;min-width:190px;z-index:60;
+  }
+  .sidebar.collapsed .sidebar-nav-group-toggle[aria-expanded="true"] + .sidebar-nav-subitems{display:flex;flex-direction:column;}
+  .sidebar.collapsed .sidebar-nav-subitem{color:var(--ink-700);}
 
   .sidebar-nav-divider{height:1px;background:var(--line);margin:8px 10px;}
 
-  .sidebar-footer{border-top:1px solid var(--line);padding:10px 8px;}
-  .sidebar-account{display:flex;align-items:center;gap:10px;padding:6px;border-radius:8px;min-width:0;}
+  .sidebar-footer{border-top:1px solid var(--line);padding:8px;position:relative;}
+  .sidebar-account{
+    display:flex;align-items:center;gap:10px;padding:6px;border-radius:8px;min-width:0;width:100%;
+    border:none;background:none;cursor:pointer;font:inherit;text-align:left;
+  }
+  .sidebar-account:hover{background:var(--paper-100);}
   .sidebar-account-avatar{
     width:28px;height:28px;border-radius:50%;background:var(--copper-500);color:#fff;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--display);
@@ -242,15 +255,26 @@
   }
   .sidebar-account-info{min-width:0;overflow:hidden;}
   .sidebar-account-email{display:block;font-size:12px;color:var(--ink-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .sidebar-logout-btn{
-    margin-left:auto;flex-shrink:0;width:26px;height:26px;border-radius:6px;border:none;background:none;
-    color:var(--ink-400);display:flex;align-items:center;justify-content:center;cursor:pointer;
-  }
-  .sidebar-logout-btn:hover{background:var(--paper-100);color:var(--copper-600);}
-  .sidebar-logout-btn svg{width:15px;height:15px;}
-  .sidebar.collapsed .sidebar-account-info,
-  .sidebar.collapsed .sidebar-logout-btn{display:none;}
+  .sidebar.collapsed .sidebar-account-info{display:none;}
   .sidebar.collapsed .sidebar-account{justify-content:center;}
+
+  .sidebar-account-menu{
+    display:none;position:absolute;left:8px;right:8px;bottom:calc(100% + 6px);
+    background:var(--paper-000);border:1px solid var(--line);border-radius:9px;
+    box-shadow:0 8px 24px rgba(20,24,29,.14);padding:6px;z-index:60;
+  }
+  .sidebar.collapsed .sidebar-account-menu{left:64px;right:auto;bottom:8px;min-width:200px;}
+  .sidebar-account-menu.open{display:block;}
+  .sidebar-account-menu-email{
+    padding:6px 8px 8px;margin-bottom:4px;border-bottom:1px solid var(--line);
+    font-size:12px;color:var(--ink-600);word-break:break-all;
+  }
+  .sidebar-logout-btn{
+    display:flex;align-items:center;gap:8px;width:100%;padding:8px;border-radius:7px;border:none;background:none;
+    color:var(--copper-600);font-family:var(--body);font-size:13px;font-weight:500;cursor:pointer;text-align:left;
+  }
+  .sidebar-logout-btn:hover{background:var(--copper-050);}
+  .sidebar-logout-btn svg{width:16px;height:16px;flex-shrink:0;}
 
   .main{flex:1;min-width:0;display:flex;flex-direction:column;}
   .topbar{
@@ -406,9 +430,9 @@
      which hides this whole row's year-bars and un-hides the originals
      instead, leaving mobile's actual rendered elements exactly as
      they were before this feature existed. */
-  .admin-tabs-row .overview-year-bar{display:none;margin-top:0;margin-bottom:4px;}
+  .admin-tabs-row .overview-year-bar,.topbar-actions .overview-year-bar{display:none;margin-top:0;margin-bottom:4px;}
   @media(min-width:901px){
-    .admin-tabs-row .overview-year-bar.active{display:flex;}
+    .admin-tabs-row .overview-year-bar.active,.topbar-actions .overview-year-bar.active{display:flex;}
     .admin-panel .overview-year-bar{display:none;}
   }
 
@@ -1314,9 +1338,9 @@
   }
   .overview-search-wrap.expanded input[type="search"]{display:block;width:200px;margin-right:8px;}
   .overview-search-wrap.expanded .overview-icon-btn{display:none;}
-  .admin-tabs-row .overview-year-bar[data-year-panel="overview"]{display:none;}
-  .admin-tabs-row .overview-year-bar[data-year-panel="tickets"]{display:none;}
-  .admin-tabs-row .overview-year-bar[data-year-panel="projects"]{display:none;}
+  .admin-tabs-row .overview-year-bar[data-year-panel="overview"],.topbar-actions .overview-year-bar[data-year-panel="overview"]{display:none;}
+  .admin-tabs-row .overview-year-bar[data-year-panel="tickets"],.topbar-actions .overview-year-bar[data-year-panel="tickets"]{display:none;}
+  .admin-tabs-row .overview-year-bar[data-year-panel="projects"],.topbar-actions .overview-year-bar[data-year-panel="projects"]{display:none;}
   #panel-projects .toolbar .overview-year-bar{display:none;}
   @media(min-width:901px){
     .overview-search-wrap.expanded input[type="search"]{width:230px;}
@@ -1737,7 +1761,6 @@
   <div class="app-shell">
     <aside class="sidebar" id="appSidebar">
       <div class="sidebar-brand">
-        <img src="logo.png" alt="Insta Grup" class="sidebar-brand-mark">
         <div class="sidebar-brand-text">
           <span class="sidebar-brand-name">Insta Grup</span>
           <span class="sidebar-brand-sub">Panou admin</span>
@@ -1753,7 +1776,7 @@
         </button>
 
         <div class="sidebar-nav-group" id="sidebarTicketsGroup">
-          <button type="button" class="sidebar-nav-group-toggle" id="sidebarTicketsToggle" aria-expanded="true">
+          <button type="button" class="sidebar-nav-group-toggle" id="sidebarTicketsToggle" aria-expanded="true" title="Sesizări">
             <svg class="sidebar-nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><path d="M3 8a2 2 0 0 0 2 2 2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2 2 2 0 0 1-2-2 2 2 0 0 1 2-2 2 2 0 0 0 2-2"/></svg>
             <span class="sidebar-nav-item-label">Sesizări</span>
             <svg class="sidebar-nav-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -1790,13 +1813,17 @@
         </button>
       </nav>
       <div class="sidebar-footer">
-        <div class="sidebar-account">
+        <button type="button" class="sidebar-account" id="sidebarAccountBtn" aria-haspopup="true" aria-expanded="false">
           <span class="sidebar-account-avatar" id="sidebarAccountAvatar">—</span>
           <div class="sidebar-account-info">
             <span class="sidebar-account-email" id="userTag"></span>
           </div>
-          <button type="button" class="sidebar-logout-btn" id="logoutBtn" style="display:none;" title="Deconectare" aria-label="Deconectare">
+        </button>
+        <div class="sidebar-account-menu" id="sidebarAccountMenu">
+          <div class="sidebar-account-menu-email" id="sidebarAccountMenuEmail"></div>
+          <button type="button" class="sidebar-logout-btn" id="logoutBtn" style="display:none;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Deconectare</span>
           </button>
         </div>
       </div>
@@ -1805,7 +1832,7 @@
     <div class="main">
       <div class="topbar">
         <span class="topbar-title" id="topbarTitle">Acasă</span>
-        <div class="topbar-actions admin-tabs-row">
+        <div class="topbar-actions">
       <!-- Desktop-only year/month shortcuts for the first two panels. -->
       <div class="overview-year-bar admin-tabs-row-year active" data-year-panel="overview">
         <label for="yearFilterSelectDesktop">An:</label>
@@ -6459,7 +6486,7 @@
     document.querySelectorAll('.admin-panel').forEach(p => {
       p.classList.toggle('active', p.id === 'panel-' + panelId);
     });
-    document.querySelectorAll('.admin-tabs-row .overview-year-bar').forEach(bar => {
+    document.querySelectorAll('.topbar-actions .overview-year-bar').forEach(bar => {
       bar.classList.toggle('active', bar.dataset.yearPanel === panelId);
     });
     document.querySelectorAll('.overview-quick-filters').forEach(qf => {
@@ -8731,13 +8758,72 @@
       sidebarCollapseBtn.setAttribute('aria-label', collapsed ? 'Extinde meniul' : 'Restrânge meniul');
       sidebarCollapseBtn.title = collapsed ? 'Extinde meniul' : 'Restrânge meniul';
       try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0'); } catch (e) {}
+      const ticketsToggle = document.getElementById('sidebarTicketsToggle');
+      if (ticketsToggle) ticketsToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      const accountMenu = document.getElementById('sidebarAccountMenu');
+      const accountBtn = document.getElementById('sidebarAccountBtn');
+      if (accountMenu && accountBtn) { accountMenu.classList.remove('open'); accountBtn.setAttribute('aria-expanded', 'false'); }
     });
   }
   const sidebarTicketsToggle = document.getElementById('sidebarTicketsToggle');
+  const sidebarTicketsSubitems = document.getElementById('sidebarTicketsSubitems');
+  // When the sidebar is collapsed, the sub-items render as a fixed-position
+  // flyout instead of an inline list (see the .sidebar.collapsed CSS) —
+  // position:fixed escapes .sidebar-nav's own overflow:auto clipping,
+  // which position:absolute could not, so its coordinates are computed
+  // here from the toggle button's actual on-screen position.
+  function positionTicketsFlyout(){
+    if (!appSidebar || !appSidebar.classList.contains('collapsed') || !sidebarTicketsToggle || !sidebarTicketsSubitems) return;
+    const r = sidebarTicketsToggle.getBoundingClientRect();
+    sidebarTicketsSubitems.style.top = r.top + 'px';
+    sidebarTicketsSubitems.style.left = (r.right + 6) + 'px';
+  }
   if (sidebarTicketsToggle) {
     sidebarTicketsToggle.addEventListener('click', () => {
       const expanded = sidebarTicketsToggle.getAttribute('aria-expanded') === 'true';
       sidebarTicketsToggle.setAttribute('aria-expanded', String(!expanded));
+      if (!expanded) positionTicketsFlyout();
+    });
+  }
+  document.addEventListener('click', (e) => {
+    if (sidebarTicketsToggle && sidebarTicketsSubitems &&
+        appSidebar && appSidebar.classList.contains('collapsed') &&
+        !sidebarTicketsToggle.contains(e.target) && !sidebarTicketsSubitems.contains(e.target)) {
+      sidebarTicketsToggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+  if (sidebarTicketsSubitems && sidebarTicketsToggle) {
+    sidebarTicketsSubitems.querySelectorAll('.sidebar-nav-subitem').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (appSidebar && appSidebar.classList.contains('collapsed')) {
+          sidebarTicketsToggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+  }
+
+  /* ============================================================
+     SIDEBAR — account bubble opens a small popup with the signed-in
+     email and the logout action, instead of a bare logout icon.
+     ============================================================ */
+  const sidebarAccountBtn = document.getElementById('sidebarAccountBtn');
+  const sidebarAccountMenu = document.getElementById('sidebarAccountMenu');
+  const sidebarAccountMenuEmail = document.getElementById('sidebarAccountMenuEmail');
+  function closeSidebarAccountMenu(){
+    if (!sidebarAccountMenu || !sidebarAccountBtn) return;
+    sidebarAccountMenu.classList.remove('open');
+    sidebarAccountBtn.setAttribute('aria-expanded', 'false');
+  }
+  if (sidebarAccountBtn && sidebarAccountMenu) {
+    sidebarAccountBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const opening = !sidebarAccountMenu.classList.contains('open');
+      if (opening && sidebarAccountMenuEmail && userTag) sidebarAccountMenuEmail.textContent = userTag.textContent;
+      sidebarAccountMenu.classList.toggle('open', opening);
+      sidebarAccountBtn.setAttribute('aria-expanded', String(opening));
+    });
+    document.addEventListener('click', (e) => {
+      if (!sidebarAccountMenu.contains(e.target) && !sidebarAccountBtn.contains(e.target)) closeSidebarAccountMenu();
     });
   }
 
