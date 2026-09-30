@@ -614,6 +614,10 @@
   }
   .cef-actions{display:flex;gap:10px;}
   .cef-actions #cefSaveBtn{flex:1;}
+  .cef-attendees-list{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;}
+  .cef-attendee-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-700);cursor:pointer;}
+  .cef-attendees-empty{font-size:12.5px;color:var(--ink-400);}
+  .cef-attendees-hint{margin:6px 0 0;font-size:11.5px;color:var(--ink-400);}
   /* Ora început/sfârșit default to a quick 15-min-increment select (or
      a relative-duration select for the end time) — the native
      type="time" picker's scroll-wheel UI is the "annoying" part this
@@ -896,6 +900,26 @@
   .lps-variance-row{display:grid;grid-template-columns:140px minmax(0,1fr) 24px;align-items:center;gap:10px;margin-bottom:8px;font-size:12.5px;color:var(--ink-700);}
   .lps-variance-bar-track{height:8px;background:var(--paper-100);border-radius:4px;overflow:hidden;}
   .lps-variance-bar-fill{display:block;height:100%;background:var(--signal-red);border-radius:4px;}
+
+  /* ===== LPS Look-ahead — resources tied to the ERP inventory ===== */
+  .lps-resources{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);}
+  .lps-resource-row{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0;font-size:12.5px;
+  }
+  .lps-resource-row + .lps-resource-row{border-top:1px solid var(--paper-100);}
+  .lps-resource-name{font-weight:600;color:var(--ink-900);}
+  .lps-resource-detail{color:var(--ink-600);}
+  .lps-resource-status{
+    font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.04em;
+    padding:2px 7px;border-radius:3px;background:var(--paper-100);color:var(--ink-600);
+  }
+  .lps-resource-status.reserved{background:var(--signal-orange-bg);color:var(--signal-orange);}
+  .lps-resource-status.consumed{background:var(--signal-green-bg);color:var(--signal-green);}
+  .lps-resource-status.returned{background:var(--paper-100);color:var(--ink-400);}
+  .lps-resource-row .btn{padding:4px 9px;font-size:11px;margin-left:auto;}
+  .lps-resource-row .btn + .btn{margin-left:0;}
+  .lps-add-resource-btn{margin-top:8px;font-size:12px;}
+  .lps-resource-hint{margin:10px 0 0;font-size:12.5px;color:var(--ink-600);}
   .lps-gantt-wrap{margin-bottom:18px;}
   .lps-gantt-legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:10px;font-size:12px;color:var(--ink-600);}
   .lps-gantt-legend span{display:inline-flex;align-items:center;gap:6px;}
@@ -1250,6 +1274,9 @@
     font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
     padding:2px 8px;border-radius:3px;background:var(--paper-100);color:var(--ink-600);white-space:nowrap;
   }
+  .erp-type-tag.echipament{background:color-mix(in srgb,var(--signal-purple) 15%,white);color:var(--signal-purple);}
+  .erp-type-tag.material{background:color-mix(in srgb,var(--signal-blue) 12%,white);color:var(--signal-blue-hover);}
+  .erp-reservation-note{color:var(--copper-600);}
   .backlog-days{
     font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
     padding:2px 8px;border-radius:3px;white-space:nowrap;
@@ -1318,6 +1345,29 @@
     .wo-cal-day-chips{display:none;}
   }
   .wo-list-heading{font-family:var(--display);font-weight:700;font-size:15px;color:var(--ink-900);margin:0 0 12px;}
+  /* "Descarcă" on the calendar just triggers a normal browser print
+     scoped to the calendar (Save as PDF covers "download"; a real
+     printer covers "print") — far more reliable than rasterizing the
+     DOM to an image, and it naturally keeps every chip/note exactly as
+     shown on screen. body.print-calendar-only is added right before
+     window.print() and removed on the afterprint event. */
+  @media print{
+    body.print-calendar-only .rail,
+    body.print-calendar-only .category-panel,
+    body.print-calendar-only .topbar,
+    body.print-calendar-only .toolbar,
+    body.print-calendar-only .project-form,
+    body.print-calendar-only .wo-list-heading,
+    body.print-calendar-only #workOrdersList,
+    body.print-calendar-only .wo-cal-nav,
+    body.print-calendar-only .wo-calendar-head .btn{
+      display:none !important;
+    }
+    body.print-calendar-only .page-body{padding:0;}
+    body.print-calendar-only .wo-calendar{border:none;margin:0;}
+    body.print-calendar-only .wo-cal-day{min-height:90px;}
+    body.print-calendar-only .wo-cal-day-chips{display:flex !important;}
+  }
 
   .excel-preview{
     background:var(--paper-050);border:1px solid var(--line-strong);border-radius:5px;
@@ -2345,6 +2395,9 @@
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
           <button type="button" class="btn" id="woCalTodayBtn">Azi</button>
+          <button type="button" class="btn" id="woCalDownloadBtn" title="Descarcă / printează calendarul">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Descarcă
+          </button>
         </div>
         <div class="wo-calendar-weekdays">
           <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
@@ -2589,14 +2642,21 @@
             <input type="text" id="ef-name" placeholder="ex: Buldoexcavator JCB 3CX">
           </div>
           <div class="ctrl-field">
+            <label>Tip</label>
+            <select id="ef-type">
+              <option value="material">Material (consumabil — se scade din stoc)</option>
+              <option value="echipament">Echipament (se rezervă pe perioadă)</option>
+            </select>
+          </div>
+          <div class="ctrl-field">
             <label>Categorie</label>
             <input type="text" id="ef-category" placeholder="ex: Utilaj / Material / Sculă">
           </div>
-          <div class="ctrl-field">
+          <div class="ctrl-field" id="ef-quantity-field">
             <label>Cantitate</label>
             <input type="number" id="ef-quantity" min="0" step="1" value="1">
           </div>
-          <div class="ctrl-field">
+          <div class="ctrl-field" id="ef-unit-field">
             <label>Unitate</label>
             <input type="text" id="ef-unit" placeholder="ex: buc, kg, m">
           </div>
@@ -3045,9 +3105,56 @@
       <label for="cef-description">Descriere (opțional)</label>
       <input type="text" id="cef-description" placeholder="Detalii" autocomplete="off">
     </div>
+    <div class="ctrl-field">
+      <label>Alocat cui (opțional)</label>
+      <div class="cef-attendees-list" id="cefAttendeesList"></div>
+      <p class="cef-attendees-hint">Lăsat gol → vizibil pentru toată lumea pe Acasă. Bifat → apare doar în „De făcut" al persoanelor alese.</p>
+    </div>
     <div class="sheet-actions cef-actions">
       <button type="button" class="btn" id="cefDeleteBtn" style="display:none;">Șterge</button>
       <button type="button" class="btn btn-primary" id="cefSaveBtn">Salvează</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="addResourceSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="addResourceSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="addResourceSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div><h3 id="addResourceSheetTitle">Adaugă resursă din ERP</h3></div>
+      <button type="button" class="sheet-close" data-close-sheet="addResourceSheet" aria-label="Închide">×</button>
+    </div>
+    <input type="hidden" id="ares-lookahead-id">
+    <div class="ctrl-field">
+      <label>Tip</label>
+      <select id="ares-type">
+        <option value="material">Material (consumabil — se scade din stoc)</option>
+        <option value="echipament">Echipament (se rezervă pe perioadă)</option>
+      </select>
+    </div>
+    <div class="ctrl-field">
+      <label>Element din inventarul ERP</label>
+      <select id="ares-item"></select>
+    </div>
+    <div class="ctrl-field" id="ares-quantity-field">
+      <label>Cantitate necesară</label>
+      <input type="number" id="ares-quantity" min="0" step="0.1">
+    </div>
+    <div class="sheet-grid" id="ares-dates-field">
+      <div class="ctrl-field">
+        <label>De la</label>
+        <input type="date" id="ares-from">
+      </div>
+      <div class="ctrl-field">
+        <label>Până la</label>
+        <input type="date" id="ares-to">
+      </div>
+    </div>
+    <p class="lps-resource-hint" id="ares-hint"></p>
+    <div class="sheet-actions">
+      <button type="button" class="btn" data-close-sheet="addResourceSheet">Anulează</button>
+      <button type="button" class="btn btn-primary" id="aresSaveBtn">Adaugă</button>
     </div>
   </div>
 </div>
@@ -3309,6 +3416,15 @@
      them fill it in and then discovering a save error.
      ============================================================ */
   let currentUserRole = 'limited';
+  // Full staff roster (email list only) — used to populate the
+  // calendar event "assign to" picker, so an event can be aimed at a
+  // real platform account rather than free text.
+  let allStaffEmails = [];
+  async function loadStaffRoster(){
+    const { data, error } = await supabaseClient.from('staff_roles').select('email').order('email', { ascending: true });
+    if (error) { console.error(error); return; }
+    allStaffEmails = (data || []).map(r => r.email);
+  }
   async function fetchCurrentUserRole(email){
     try {
       const { data, error } = await supabaseClient
@@ -4122,6 +4238,7 @@
         loadProjects();
         loadBacklogProjects();
       });
+      loadStaffRoster();
     });
   }
 
@@ -5684,6 +5801,7 @@
           <div class="calendar-day-event-title">${recurIcon}${escapeHtml(e.title)}</div>
           ${e.location ? `<div class="calendar-day-event-meta">📍 ${escapeHtml(e.location)}</div>` : ''}
           ${e.description ? `<div class="calendar-day-event-meta">${escapeHtml(e.description)}</div>` : ''}
+          ${Array.isArray(e.attendees) && e.attendees.length ? `<div class="calendar-day-event-meta">👤 ${escapeHtml(e.attendees.join(', '))}</div>` : ''}
         </div>
         <span class="calendar-day-event-time">${escapeHtml(timeLabel)}</span>
       </div>
@@ -5982,6 +6100,12 @@
     document.getElementById('cef-reminder').value = event && event.reminder_minutes_before ? String(event.reminder_minutes_before) : '';
     document.getElementById('cefDeleteBtn').style.display = event ? '' : 'none';
 
+    const attendeesListEl = document.getElementById('cefAttendeesList');
+    const currentAttendees = (event && Array.isArray(event.attendees)) ? event.attendees : [];
+    attendeesListEl.innerHTML = allStaffEmails.length
+      ? allStaffEmails.map(email => `<label class="cef-attendee-item"><input type="checkbox" value="${escapeHtml(email)}"${currentAttendees.includes(email) ? ' checked' : ''}> ${escapeHtml(email)}</label>`).join('')
+      : '<span class="cef-attendees-empty">Lista de conturi nu s-a încărcat încă.</span>';
+
     pendingRecurrence = (event && event.recurrence_freq) ? {
       recurrence_freq: event.recurrence_freq,
       recurrence_interval: event.recurrence_interval || 1,
@@ -6033,7 +6157,9 @@
         recurrence_end_type: pendingRecurrence ? pendingRecurrence.recurrence_end_type : null,
         recurrence_end_date: pendingRecurrence ? pendingRecurrence.recurrence_end_date : null,
         recurrence_count: pendingRecurrence ? pendingRecurrence.recurrence_count : null,
+        attendees: Array.from(document.querySelectorAll('#cefAttendeesList input:checked')).map(cb => cb.value) || null,
       };
+      if (!payload.attendees.length) payload.attendees = null;
       cefSaveBtn.disabled = true;
       try {
         if (id) {
@@ -6090,9 +6216,14 @@
   // calendarEvents (see eventsOnDate()) rather than copied into
   // TODO_STORAGE_KEY, so there's exactly one source of truth and they
   // never drift out of sync with the calendar itself.
+  // An event with no attendees is a team-wide item, shown to everyone
+  // (the original behavior); one with attendees only shows up in the
+  // to-do list of the people it's actually assigned to.
   function todaysLinkedCalendarEvents(){
     if (typeof calendarEvents === 'undefined' || typeof eventsOnDate !== 'function') return [];
-    return eventsOnDate(dateKey(new Date()));
+    return eventsOnDate(dateKey(new Date())).filter(e => {
+      return !Array.isArray(e.attendees) || e.attendees.length === 0 || e.attendees.includes(currentSessionEmail);
+    });
   }
   function renderTodoNotes(){
     const list = document.getElementById('homeTodoList');
@@ -6336,7 +6467,7 @@
     const completeLast = weeklyLastCompleted.filter(item => item.status === 'Terminat').length;
     const missedLast = weeklyLastCompleted.filter(item => item.status === 'Neîndeplinit');
     const ppc = weeklyLastCompleted.length ? Math.round((completeLast / weeklyLastCompleted.length) * 100) : null;
-    const ready = data.lookahead.filter(item => item.ready).length;
+    const ready = lpsLookaheadItems.filter(item => item.ready).length;
     const openConstraints = data.constraints.filter(item => !item.resolved).length;
     document.getElementById('lpsPpcValue').textContent = ppc === null ? '–' : `${ppc}%`;
     document.getElementById('lpsPpcNote').textContent = weeklyLastCompleted.length
@@ -6360,13 +6491,9 @@
     const pullList = document.getElementById('lpsPullList');
     pullList.innerHTML = data.pull.length ? data.pull.map(item => lpsItemHtml('pull', item, `${item.from_owner || 'Nespecificat'} → ${item.to_owner || 'Nespecificat'}`, item.done ? 'Predat' : 'De predat', item.done ? 'done' : '', item.condition)).join('') : lpsEmpty('Adaugă predările necesare dintre echipe sau responsabili.');
     const lookaheadList = document.getElementById('lpsLookaheadList');
-    lookaheadList.innerHTML = data.lookahead.length ? data.lookahead.map(item => {
-      const meta = `${item.owner || 'Responsabil nealocat'} · ${lpsDate(item.start_date)} → ${lpsDate(item.due_date)}${item.location ? ' · ' + escapeHtml(item.location) : ''}`;
-      const action = item.ready
-        ? '<button type="button" class="btn lps-promote-btn">Promite săptămâna asta</button>'
-        : '<button type="button" class="btn lps-make-ready-btn">Marchează pregătită</button>';
-      return lpsItemHtml('lookahead', item, meta, item.ready ? 'Pregătit' : 'Blocată', item.ready ? 'ready' : 'blocked', '', action);
-    }).join('') : lpsEmpty('Adaugă lucrările care pot începe în următoarele șase săptămâni.');
+    lookaheadList.innerHTML = lpsLookaheadItems.length
+      ? lpsLookaheadItems.map(item => lpsLookaheadItemHtml(item)).join('')
+      : lpsEmpty('Adaugă lucrările care pot începe în următoarele șase săptămâni.');
     const constraintList = document.getElementById('lpsConstraintsList');
     constraintList.innerHTML = data.constraints.length ? data.constraints.map(item => {
       const meta = `${escapeHtml(item.category)} · ${item.owner || 'Responsabil nealocat'} · termen ${lpsDate(item.due_date)}`;
@@ -6527,6 +6654,74 @@
   function lpsItemHtml(collection, item, meta, status, statusClass = '', note = '', extraAction = ''){
     return `<article class="lps-item" data-lps-collection="${collection}" data-lps-id="${escapeHtml(item.id)}"><div><div class="lps-item-title">${escapeHtml(item.title)}</div><div class="lps-item-meta">${meta}</div><span class="lps-status ${statusClass}">${status}</span>${note ? `<p class="lps-item-note">${escapeHtml(note)}</p>` : ''}</div><div class="lps-item-actions">${extraAction}${['milestones', 'pull'].includes(collection) ? '<button type="button" class="btn lps-complete-btn">Finalizează</button>' : ''}<button type="button" class="btn lps-delete-btn">Șterge</button></div></article>`;
   }
+
+  /* ============================================================
+     LPS LOOK-AHEAD — the one LPS section backed by Supabase instead
+     of the local LPS_STORAGE_KEY blob (see the migration comment on
+     lps_lookahead_items), so equipment/material needs attached here
+     are visible to everyone and actually affect shared ERP stock.
+     Grouped by project_label (the local internal project's title —
+     internal projects themselves stay local, only look-ahead moved).
+     ============================================================ */
+  let lpsLookaheadItems = [];
+  async function loadLookaheadItems(){
+    const project = getSelectedLpsProject();
+    if (!project) { lpsLookaheadItems = []; return; }
+    const { data, error } = await supabaseClient
+      .from('lps_lookahead_items')
+      .select('*')
+      .eq('project_label', project.title)
+      .order('start_date', { ascending: true });
+    if (error) { console.error(error); lpsLookaheadItems = []; return; }
+    lpsLookaheadItems = data || [];
+  }
+  async function refreshLookaheadWorkspace(){
+    // Establishes internalProjects/lpsSelectedProjectId first (a plain
+    // sync render using whatever's already cached) so the async fetch
+    // right after knows which project to actually ask for — on the
+    // very first LPS visit nothing is selected yet until this runs.
+    renderLpsWorkspace();
+    const { data: eqData, error: eqError } = await supabaseClient.from('equipment_inventory').select('*').order('name', { ascending: true });
+    if (!eqError) allEquipment = eqData || [];
+    await Promise.all([loadLookaheadItems(), loadResourceAssignments()]);
+    renderLpsWorkspace();
+  }
+  function lpsLookaheadItemHtml(item){
+    const meta = `${item.owner || 'Responsabil nealocat'} · ${lpsDate(item.start_date)} → ${lpsDate(item.due_date)}${item.location ? ' · ' + escapeHtml(item.location) : ''}`;
+    const action = item.ready
+      ? '<button type="button" class="btn lps-promote-btn">Promite săptămâna asta</button>'
+      : '<button type="button" class="btn lps-make-ready-btn">Marchează pregătită</button>';
+    const myAssignments = allResourceAssignments.filter(a => a.lookahead_item_id === item.id);
+    const resourceRowsHtml = myAssignments.map(a => {
+      const inv = allEquipment.find(e => e.id === a.inventory_item_id);
+      const name = inv ? inv.name : '(șters din inventar)';
+      const detail = a.item_type === 'echipament'
+        ? `${formatWoDateRO(a.reserved_from)} – ${formatWoDateRO(a.reserved_to)}`
+        : `${a.quantity}${inv && inv.unit ? ' ' + inv.unit : ''}`;
+      const statusLabel = a.status === 'reserved' ? (a.item_type === 'material' ? 'Rezervat (proiect neterminat)' : 'Rezervat') : a.status === 'consumed' ? 'Consumat' : 'Eliberat';
+      const consumeBtn = a.status === 'reserved' && a.item_type === 'material' ? `<button type="button" class="btn lps-resource-consume" data-assignment-id="${escapeHtml(a.id)}">Marchează consumat</button>` : '';
+      const releaseBtn = a.status === 'reserved' && a.item_type === 'echipament' ? `<button type="button" class="btn lps-resource-release" data-assignment-id="${escapeHtml(a.id)}">Eliberează</button>` : '';
+      return `<div class="lps-resource-row">
+        <span class="lps-resource-name">${escapeHtml(name)}</span>
+        <span class="lps-resource-detail">${escapeHtml(detail)}</span>
+        <span class="lps-resource-status ${a.status}">${statusLabel}</span>
+        ${consumeBtn}${releaseBtn}
+        <button type="button" class="btn lps-resource-delete" data-assignment-id="${escapeHtml(a.id)}">Șterge</button>
+      </div>`;
+    }).join('');
+    return `<article class="lps-item" data-lps-collection="lookahead" data-lps-id="${escapeHtml(item.id)}">
+      <div>
+        <div class="lps-item-title">${escapeHtml(item.title)}</div>
+        <div class="lps-item-meta">${meta}</div>
+        <span class="lps-status ${item.ready ? 'ready' : 'blocked'}">${item.ready ? 'Pregătit' : 'Blocată'}</span>
+        <div class="lps-resources">
+          ${resourceRowsHtml}
+          <button type="button" class="btn lps-add-resource-btn" data-lookahead-id="${escapeHtml(item.id)}">+ Resursă (echipament/material)</button>
+        </div>
+      </div>
+      <div class="lps-item-actions">${action}<button type="button" class="btn lps-delete-btn">Șterge</button></div>
+    </article>`;
+  }
   function lpsWeeklyItemHtml(item){
     const statusOptions = ['Promis', 'Terminat', 'Neîndeplinit'].map(status => `<option${item.status === status ? ' selected' : ''}>${status}</option>`).join('');
     const reasonOptions = `<option value="">Alege motivul dacă nu s-a îndeplinit</option>${LPS_VARIANCE_REASONS.map(reason => `<option${item.variance === reason ? ' selected' : ''}>${reason}</option>`).join('')}`;
@@ -6552,7 +6747,28 @@
   }
   bindLpsForm('lpsMilestoneForm', 'milestones', values => ({ ...values, done: false }));
   bindLpsForm('lpsPullForm', 'pull', values => ({ ...values, done: false }));
-  bindLpsForm('lpsLookaheadForm', 'lookahead', values => ({ ...values, ready: values.ready === 'true' }));
+  document.getElementById('lpsLookaheadForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!isReportFocusedView() || !lpsSelectedProjectId) return;
+    const project = getSelectedLpsProject();
+    if (!project) return;
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form).entries());
+    if (!values.title) return;
+    const payload = {
+      project_label: project.title,
+      title: values.title,
+      owner: values.owner || null,
+      location: values.location || null,
+      start_date: values.start_date || null,
+      due_date: values.due_date || null,
+      ready: values.ready === 'true',
+    };
+    const { error } = await supabaseClient.from('lps_lookahead_items').insert(payload);
+    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+    form.reset();
+    await refreshLookaheadWorkspace();
+  });
   bindLpsForm('lpsConstraintForm', 'constraints', values => ({ ...values, resolved: false }));
   bindLpsForm('lpsWeeklyForm', 'weekly', values => ({ ...values, status: 'Promis', variance: '' }));
   document.getElementById('lpsHuddleForm').addEventListener('submit', event => {
@@ -6564,15 +6780,80 @@
     addLpsItem('huddles', { ...values, title: 'Huddle de coordonare' });
     form.reset();
   });
-  document.getElementById('lpsProjectSelect').addEventListener('change', event => { lpsSelectedProjectId = event.target.value; renderLpsWorkspace(); });
+  document.getElementById('lpsProjectSelect').addEventListener('change', event => { lpsSelectedProjectId = event.target.value; refreshLookaheadWorkspace(); });
   document.getElementById('lpsNewProjectBtn').addEventListener('click', () => showInternalProjectForm(null));
   document.querySelectorAll('.lps-tab').forEach(tab => tab.addEventListener('click', () => { lpsActiveView = tab.dataset.lpsView; renderLpsWorkspace(); }));
-  document.getElementById('panel-lps').addEventListener('click', event => {
+  document.getElementById('panel-lps').addEventListener('click', async event => {
+    // Look-ahead resource rows (Marchează consumat / Eliberează / Șterge
+    // on one equipment or material assignment) and the "+ Resursă"
+    // button aren't collection items themselves, so they're handled
+    // first, ahead of the [data-lps-collection] lookup below.
+    const addResourceBtn = event.target.closest('.lps-add-resource-btn');
+    if (addResourceBtn) { openAddResourceSheet(addResourceBtn.dataset.lookaheadId); return; }
+    const consumeBtn = event.target.closest('.lps-resource-consume');
+    const releaseBtn = event.target.closest('.lps-resource-release');
+    const deleteResourceBtn = event.target.closest('.lps-resource-delete');
+    if (consumeBtn || releaseBtn || deleteResourceBtn) {
+      const assignmentId = (consumeBtn || releaseBtn || deleteResourceBtn).dataset.assignmentId;
+      const assignment = allResourceAssignments.find(a => a.id === assignmentId);
+      if (!assignment) return;
+      if (consumeBtn) {
+        const { error } = await supabaseClient.from('lps_resource_assignments').update({ status: 'consumed' }).eq('id', assignmentId);
+        if (error) { console.error(error); alert('Eroare. Încercați din nou.'); return; }
+      } else if (releaseBtn) {
+        const { error } = await supabaseClient.from('lps_resource_assignments').update({ status: 'returned' }).eq('id', assignmentId);
+        if (error) { console.error(error); alert('Eroare. Încercați din nou.'); return; }
+      } else if (deleteResourceBtn) {
+        if (!confirm('Ștergeți această resursă din lucrare?')) return;
+        // A still-"reserved" material assignment already took real
+        // stock at creation time — deleting the record gives it back,
+        // since the material was only ever spoken-for, never consumed.
+        if (assignment.status === 'reserved' && assignment.item_type === 'material' && assignment.quantity) {
+          const inv = allEquipment.find(e => e.id === assignment.inventory_item_id);
+          if (inv) await supabaseClient.from('equipment_inventory').update({ quantity: Number(inv.quantity) + Number(assignment.quantity) }).eq('id', inv.id);
+        }
+        const { error } = await supabaseClient.from('lps_resource_assignments').delete().eq('id', assignmentId);
+        if (error) { console.error(error); alert('Eroare. Încercați din nou.'); return; }
+      }
+      await refreshLookaheadWorkspace();
+      return;
+    }
+
     const itemElement = event.target.closest('[data-lps-collection]');
     if (!itemElement || !isReportFocusedView()) return;
+    const collection = itemElement.dataset.lpsCollection;
+
+    if (collection === 'lookahead') {
+      const lookaheadId = itemElement.dataset.lpsId;
+      const item = lpsLookaheadItems.find(x => x.id === lookaheadId);
+      if (!item) return;
+      if (event.target.closest('.lps-delete-btn')) {
+        if (!window.confirm('Șterge această înregistrare LPS? Resursele asociate (rezervări echipament/material) se șterg și ele.')) return;
+        // Give back stock for any still-reserved material assignments
+        // before the cascade delete removes their rows.
+        const myAssignments = allResourceAssignments.filter(a => a.lookahead_item_id === lookaheadId);
+        for (const a of myAssignments) {
+          if (a.status === 'reserved' && a.item_type === 'material' && a.quantity) {
+            const inv = allEquipment.find(e => e.id === a.inventory_item_id);
+            if (inv) await supabaseClient.from('equipment_inventory').update({ quantity: Number(inv.quantity) + Number(a.quantity) }).eq('id', inv.id);
+          }
+        }
+        const { error } = await supabaseClient.from('lps_lookahead_items').delete().eq('id', lookaheadId);
+        if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
+      } else if (event.target.closest('.lps-make-ready-btn')) {
+        const { error } = await supabaseClient.from('lps_lookahead_items').update({ ready: true }).eq('id', lookaheadId);
+        if (error) { console.error(error); alert('Eroare. Încercați din nou.'); return; }
+      } else if (event.target.closest('.lps-promote-btn')) {
+        addLpsItem('weekly', { title: item.title, owner: item.owner || '', week_start: mondayIso(), planned_date: item.start_date || '', condition: item.location ? `Lucru realizat în ${item.location}` : '', status: 'Promis', variance: '' });
+      } else return;
+      await refreshLookaheadWorkspace();
+      return;
+    }
+
+    // The remaining sections (milestones/pull/constraints/weekly/huddles)
+    // still live entirely in local storage.
     const store = loadLpsStore();
     const data = getLpsProjectData(store, lpsSelectedProjectId);
-    const collection = itemElement.dataset.lpsCollection;
     const items = data[collection];
     const index = items.findIndex(item => item.id === itemElement.dataset.lpsId);
     if (index < 0) return;
@@ -6583,11 +6864,6 @@
       if (collection === 'milestones' || collection === 'pull') items[index].done = !items[index].done;
     } else if (event.target.closest('.lps-resolve-btn')) {
       items[index].resolved = true;
-    } else if (event.target.closest('.lps-make-ready-btn')) {
-      items[index].ready = true;
-    } else if (event.target.closest('.lps-promote-btn')) {
-      const source = items[index];
-      data.weekly.push({ id: lpsId(), title: source.title, owner: source.owner || '', week_start: mondayIso(), planned_date: source.start_date || '', condition: source.location ? `Lucru realizat în ${source.location}` : '', status: 'Promis', variance: '' });
     } else return;
     saveLpsStore(store);
     renderLpsWorkspace();
@@ -6607,6 +6883,99 @@
     } else return;
     saveLpsStore(store);
     renderLpsWorkspace();
+  });
+
+  /* ============================================================
+     ADD RESOURCE SHEET — attach an ERP equipment/material need to a
+     look-ahead item. Material inserts decrement equipment_inventory
+     right away (shown immediately as reserved-but-not-yet-consumed,
+     see the "ⓘ ... rezervat" note on the ERP panel); equipment inserts
+     are checked for a date-range overlap against that same item's
+     other active reservations first, with a confirm() warning (not a
+     hard block) on conflict.
+     ============================================================ */
+  const aresTypeSelect = document.getElementById('ares-type');
+  const aresItemSelect = document.getElementById('ares-item');
+  const aresQuantityField = document.getElementById('ares-quantity-field');
+  const aresDatesField = document.getElementById('ares-dates-field');
+  const aresHint = document.getElementById('ares-hint');
+  function populateAresItemSelect(){
+    const type = aresTypeSelect.value;
+    const options = allEquipment.filter(e => e.item_type === type);
+    aresItemSelect.innerHTML = options.length
+      ? options.map(e => `<option value="${escapeHtml(e.id)}">${escapeHtml(e.name)}</option>`).join('')
+      : '<option value="">Niciun element de acest tip în ERP</option>';
+    updateAresHint();
+  }
+  function updateAresHint(){
+    const type = aresTypeSelect.value;
+    const inv = allEquipment.find(e => e.id === aresItemSelect.value);
+    if (!inv) { aresHint.textContent = ''; return; }
+    if (type === 'material') {
+      const reserved = allResourceAssignments.filter(a => a.inventory_item_id === inv.id && a.status === 'reserved').reduce((sum, a) => sum + (Number(a.quantity) || 0), 0);
+      aresHint.textContent = `Disponibil: ${inv.quantity}${inv.unit ? ' ' + inv.unit : ''}` + (reserved ? ` (din care ${reserved}${inv.unit ? ' ' + inv.unit : ''} deja rezervat pe alte lucrări neterminate)` : '');
+    } else {
+      const upcoming = allResourceAssignments.filter(a => a.inventory_item_id === inv.id && a.status === 'reserved');
+      aresHint.textContent = upcoming.length
+        ? 'Deja rezervat: ' + upcoming.map(a => `${formatWoDateRO(a.reserved_from)}–${formatWoDateRO(a.reserved_to)}`).join(', ')
+        : 'Fără alte rezervări momentan.';
+    }
+  }
+  function syncAresFormFields(){
+    const isEquipment = aresTypeSelect.value === 'echipament';
+    aresQuantityField.style.display = isEquipment ? 'none' : '';
+    aresDatesField.style.display = isEquipment ? '' : 'none';
+  }
+  if (aresTypeSelect) {
+    aresTypeSelect.addEventListener('change', () => { syncAresFormFields(); populateAresItemSelect(); });
+    aresItemSelect.addEventListener('change', updateAresHint);
+  }
+  function openAddResourceSheet(lookaheadId){
+    document.getElementById('ares-lookahead-id').value = lookaheadId;
+    aresTypeSelect.value = 'material';
+    document.getElementById('ares-quantity').value = '';
+    document.getElementById('ares-from').value = '';
+    document.getElementById('ares-to').value = '';
+    syncAresFormFields();
+    populateAresItemSelect();
+    setSheetOpen('addResourceSheet', true);
+  }
+  const aresSaveBtn = document.getElementById('aresSaveBtn');
+  if (aresSaveBtn) aresSaveBtn.addEventListener('click', async () => {
+    const lookaheadId = document.getElementById('ares-lookahead-id').value;
+    const type = aresTypeSelect.value;
+    const inventoryId = aresItemSelect.value;
+    if (!lookaheadId || !inventoryId) { alert('Alegeți un element din inventar.'); return; }
+    const inv = allEquipment.find(e => e.id === inventoryId);
+    if (!inv) return;
+    if (type === 'material') {
+      const quantity = parseFloat(document.getElementById('ares-quantity').value);
+      if (!quantity || quantity <= 0) { alert('Introduceți o cantitate validă.'); return; }
+      if (quantity > Number(inv.quantity)) {
+        if (!confirm(`Doar ${inv.quantity}${inv.unit ? ' ' + inv.unit : ''} disponibil în stoc — cantitatea cerută (${quantity}) depășește stocul curent. Rezervați oricum?`)) return;
+      }
+      const { error: assignError } = await supabaseClient.from('lps_resource_assignments').insert({
+        lookahead_item_id: lookaheadId, inventory_item_id: inventoryId, item_type: 'material', quantity, status: 'reserved',
+      });
+      if (assignError) { console.error(assignError); alert('Eroare la salvare. Încercați din nou.'); return; }
+      const { error: qtyError } = await supabaseClient.from('equipment_inventory').update({ quantity: Number(inv.quantity) - quantity }).eq('id', inv.id);
+      if (qtyError) console.error(qtyError);
+    } else {
+      const from = document.getElementById('ares-from').value;
+      const to = document.getElementById('ares-to').value;
+      if (!from || !to) { alert('Completați perioada de rezervare.'); return; }
+      if (to < from) { alert('Data de sfârșit e înaintea celei de început.'); return; }
+      const conflict = allResourceAssignments.some(a => a.inventory_item_id === inventoryId && a.status === 'reserved' && a.reserved_from <= to && a.reserved_to >= from);
+      if (conflict) {
+        if (!confirm(`„${inv.name}” este deja rezervat(ă) într-o perioadă care se suprapune cu ${formatWoDateRO(from)}–${formatWoDateRO(to)}. Rezervați oricum?`)) return;
+      }
+      const { error: assignError } = await supabaseClient.from('lps_resource_assignments').insert({
+        lookahead_item_id: lookaheadId, inventory_item_id: inventoryId, item_type: 'echipament', reserved_from: from, reserved_to: to, status: 'reserved',
+      });
+      if (assignError) { console.error(assignError); alert('Eroare la salvare. Încercați din nou.'); return; }
+    }
+    setSheetOpen('addResourceSheet', false);
+    await refreshLookaheadWorkspace();
   });
 
   const reportNavBtn = document.getElementById('reportNavBtn');
@@ -6780,6 +7149,7 @@
     else if (tabKey === 'workorders') loadWorkOrders();
     else if (tabKey === 'equipment') loadEquipment();
     else if (tabKey === 'projects-home') renderProjectsHomeStats();
+    else if (tabKey === 'lps' && isReportFocusedView()) refreshLookaheadWorkspace();
     // Proiecte publice always opens on "Active" — otherwise whichever
     // status chip was last clicked earlier in the session (e.g. "Toate"
     // while triaging) silently stuck for every later visit to this tab,
@@ -10113,6 +10483,14 @@
     woCalYear = now.getFullYear(); woCalMonthIdx = now.getMonth();
     renderWorkOrdersCalendar();
   });
+  const woCalDownloadBtn = document.getElementById('woCalDownloadBtn');
+  if (woCalDownloadBtn) woCalDownloadBtn.addEventListener('click', () => {
+    document.body.classList.add('print-calendar-only');
+    window.print();
+  });
+  window.addEventListener('afterprint', () => {
+    document.body.classList.remove('print-calendar-only');
+  });
 
   const workOrderForm = document.getElementById('workOrderForm');
   function openWorkOrderForm(w){
@@ -10164,15 +10542,37 @@
      again: what exists, where it is, and who's using it right now.
      ============================================================ */
   let allEquipment = [];
-  async function loadEquipment(){
+  // ALL LPS resource assignments (every status) — loaded alongside the
+  // inventory so the ERP list can show what's spoken for, and so each
+  // look-ahead item's resource list can still show a row's final state
+  // (Consumat/Eliberat) after it stops being active, rather than the
+  // row just vanishing. Anywhere that means "currently active", filter
+  // locally for status === 'reserved' (see renderEquipment,
+  // updateAresHint, and the conflict check in aresSaveBtn).
+  let allResourceAssignments = [];
+  async function loadResourceAssignments(){
     const { data, error } = await supabaseClient
-      .from('equipment_inventory')
-      .select('*')
-      .order('name', { ascending: true });
+      .from('lps_resource_assignments')
+      .select('*');
     if (error) { console.error(error); return; }
-    allEquipment = data || [];
+    allResourceAssignments = data || [];
+  }
+  async function loadEquipment(){
+    const [eqResult] = await Promise.all([
+      supabaseClient.from('equipment_inventory').select('*').order('name', { ascending: true }),
+      loadResourceAssignments(),
+    ]);
+    if (eqResult.error) { console.error(eqResult.error); return; }
+    allEquipment = eqResult.data || [];
     renderEquipment();
   }
+  function formatWoDateRO(d){
+    if (!d) return '';
+    const [y, m, day] = d.split('-');
+    return `${day}.${m}.${y}`;
+  }
+  const EQUIPMENT_STATUS_CYCLE = { 'Disponibil': 'In folosinta', 'In folosinta': 'Service', 'Service': 'Disponibil', 'Indisponibil': 'Disponibil' };
+  const EQUIPMENT_STATUS_LABEL = { 'Disponibil': 'Disponibil', 'In folosinta': 'În folosință', 'Service': 'Service', 'Indisponibil': 'Indisponibil' };
   function renderEquipment(){
     const list = document.getElementById('equipmentList');
     if (!list) return;
@@ -10182,31 +10582,41 @@
       list.innerHTML = '<div class="no-results" style="padding:40px 0;text-align:center;color:var(--ink-400);">Niciun echipament sau material înregistrat.</div>';
       return;
     }
-    const STATUS_CYCLE = { 'Disponibil': 'In folosinta', 'In folosinta': 'Service', 'Service': 'Disponibil', 'Indisponibil': 'Disponibil' };
-    const STATUS_LABEL = { 'Disponibil': 'Disponibil', 'In folosinta': 'În folosință', 'Service': 'Service', 'Indisponibil': 'Indisponibil' };
     list.innerHTML = '';
     allEquipment.forEach(eq => {
-      const qtyLabel = eq.quantity != null ? (Number(eq.quantity) + (eq.unit ? ' ' + eq.unit : '')) : '';
+      const isEquipment = eq.item_type === 'echipament';
+      const qtyLabel = !isEquipment && eq.quantity != null ? (Number(eq.quantity) + (eq.unit ? ' ' + eq.unit : '')) : '';
+      const myAssignments = allResourceAssignments.filter(a => a.inventory_item_id === eq.id && a.status === 'reserved');
+      let reservationNote = '';
+      if (isEquipment && myAssignments.length) {
+        const ranges = myAssignments.map(a => `${formatWoDateRO(a.reserved_from)}–${formatWoDateRO(a.reserved_to)}`).join(', ');
+        reservationNote = `Rezervat: ${ranges}`;
+      } else if (!isEquipment && myAssignments.length) {
+        const reservedTotal = myAssignments.reduce((sum, a) => sum + (Number(a.quantity) || 0), 0);
+        reservationNote = `${reservedTotal}${eq.unit ? ' ' + eq.unit : ''} rezervat pe proiecte neterminate`;
+      }
       const row = document.createElement('div');
       row.className = 'backlog-row' + (eq.status === 'Indisponibil' ? ' done' : '');
       row.innerHTML = `
         <div class="backlog-main">
           <div class="backlog-title-line">
             <span class="backlog-title">${escapeHtml(eq.name)}</span>
-            <span class="backlog-tag">${escapeHtml(STATUS_LABEL[eq.status] || eq.status)}</span>
+            <span class="backlog-tag erp-type-tag ${isEquipment ? 'echipament' : 'material'}">${isEquipment ? 'Echipament' : 'Material'}</span>
+            <span class="backlog-tag">${escapeHtml(EQUIPMENT_STATUS_LABEL[eq.status] || eq.status)}</span>
             ${qtyLabel ? `<span class="backlog-days">${escapeHtml(qtyLabel)}</span>` : ''}
           </div>
           <div class="backlog-meta-line">${escapeHtml(eq.category || '')}${eq.location ? ' · ' + escapeHtml(eq.location) : ''}${eq.assigned_to ? ' · alocat: ' + escapeHtml(eq.assigned_to) : ''}${eq.serial_number ? ' · SN ' + escapeHtml(eq.serial_number) : ''}</div>
+          ${reservationNote ? `<div class="backlog-meta-line erp-reservation-note">ⓘ ${escapeHtml(reservationNote)}</div>` : ''}
         </div>
         <div class="backlog-actions">
           <button class="btn eq-edit">Editează</button>
-          <button class="btn btn-primary eq-status">${escapeHtml(STATUS_LABEL[STATUS_CYCLE[eq.status]] || 'Schimbă starea')}</button>
+          <button class="btn btn-primary eq-status">${escapeHtml(EQUIPMENT_STATUS_LABEL[EQUIPMENT_STATUS_CYCLE[eq.status]] || 'Schimbă starea')}</button>
           <button class="btn eq-delete">Șterge</button>
         </div>
       `;
       row.querySelector('.eq-edit').addEventListener('click', () => openEquipmentForm(eq));
       row.querySelector('.eq-status').addEventListener('click', async () => {
-        const nextStatus = STATUS_CYCLE[eq.status] || 'Disponibil';
+        const nextStatus = EQUIPMENT_STATUS_CYCLE[eq.status] || 'Disponibil';
         const { error } = await supabaseClient.from('equipment_inventory').update({ status: nextStatus }).eq('id', eq.id);
         if (error) { console.error(error); alert('Eroare la actualizare. Încercați din nou.'); return; }
         loadEquipment();
@@ -10221,9 +10631,17 @@
     });
   }
   const equipmentForm = document.getElementById('equipmentForm');
+  const efTypeSelect = document.getElementById('ef-type');
+  function syncEquipmentFormFields(){
+    const isEquipment = efTypeSelect.value === 'echipament';
+    document.getElementById('ef-quantity-field').style.display = isEquipment ? 'none' : '';
+    document.getElementById('ef-unit-field').style.display = isEquipment ? 'none' : '';
+  }
+  if (efTypeSelect) efTypeSelect.addEventListener('change', syncEquipmentFormFields);
   function openEquipmentForm(eq){
     document.getElementById('ef-id').value = eq ? eq.id : '';
     document.getElementById('ef-name').value = eq ? eq.name : '';
+    document.getElementById('ef-type').value = eq ? (eq.item_type || 'material') : 'material';
     document.getElementById('ef-category').value = eq ? (eq.category || '') : '';
     document.getElementById('ef-quantity').value = eq ? eq.quantity : 1;
     document.getElementById('ef-unit').value = eq ? (eq.unit || '') : '';
@@ -10231,6 +10649,7 @@
     document.getElementById('ef-location').value = eq ? (eq.location || '') : '';
     document.getElementById('ef-assigned').value = eq ? (eq.assigned_to || '') : '';
     document.getElementById('ef-notes').value = eq ? (eq.notes || '') : '';
+    syncEquipmentFormFields();
     equipmentForm.style.display = 'block';
     equipmentForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -10242,6 +10661,7 @@
   if (efSaveBtn) efSaveBtn.addEventListener('click', async () => {
     const id = document.getElementById('ef-id').value;
     const name = document.getElementById('ef-name').value.trim();
+    const item_type = document.getElementById('ef-type').value;
     const category = document.getElementById('ef-category').value.trim();
     const quantity = parseFloat(document.getElementById('ef-quantity').value) || 0;
     const unit = document.getElementById('ef-unit').value.trim();
@@ -10254,7 +10674,7 @@
       return;
     }
     const payload = {
-      name, quantity,
+      name, quantity, item_type,
       category: category || null,
       unit: unit || null,
       serial_number: serial_number || null,
