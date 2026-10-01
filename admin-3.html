@@ -3577,26 +3577,12 @@
         <label>Categorie ERP</label>
         <select id="ef-type">
           <option value="echipament">Echipament (se rezervă pe perioadă)</option>
-          <option value="masina">Mașină (se rezervă pe perioadă)</option>
           <option value="material">Material (consumabil — se scade din stoc)</option>
         </select>
       </div>
       <div class="ctrl-field" id="ef-category-field">
         <label>Subcategorie</label>
         <input type="text" id="ef-category" placeholder="ex: Utilaj greu / Material electric">
-      </div>
-      <div class="ctrl-field" id="ef-vehicle-subcat-field" style="display:none;">
-        <label>Subcategorie</label>
-        <select id="ef-vehicle-subcat">
-          <option value="masina_mica">Mașină mică</option>
-          <option value="autoutilitara">Autoutilitară</option>
-          <option value="camion">Camion</option>
-          <option value="utilaj">Utilaj</option>
-        </select>
-      </div>
-      <div class="ctrl-field" id="ef-plate-field" style="display:none;">
-        <label>Nr. înmatriculare</label>
-        <input type="text" id="ef-plate-number" placeholder="ex: CJ 01 ABC">
       </div>
       <div class="ctrl-field" id="ef-quantity-field">
         <label>Cantitate</label>
@@ -3610,16 +3596,8 @@
         <label>Prag reaprovizionare</label>
         <input type="number" id="ef-reorder-threshold" min="0" step="1" placeholder="ex: 50 (opțional)">
       </div>
-      <div class="ctrl-field" id="ef-odometer-field">
-        <label>Kilometraj (km)</label>
-        <input type="number" id="ef-odometer" min="0" step="1" placeholder="ex: 48200">
-      </div>
-      <div class="ctrl-field" id="ef-service-interval-field">
-        <label>Interval revizie (km)</label>
-        <input type="number" id="ef-service-interval" min="0" step="100" placeholder="ex: 10000 (opțional)">
-      </div>
       <div class="ctrl-field">
-        <label id="ef-serial-label">Nr. serie / inventar</label>
+        <label>Nr. serie / inventar</label>
         <input type="text" id="ef-serial" placeholder="ex: SN-4471">
       </div>
       <div class="ctrl-field">
@@ -3634,37 +3612,52 @@
         <label>Notițe</label>
         <input type="text" id="ef-notes" placeholder="Detalii suplimentare">
       </div>
-      <div id="ef-vehicle-docs-section" style="display:none;grid-column:1/-1;">
-        <h4 class="status-subhead" style="margin-top:6px;">Documente mașină</h4>
-      </div>
-      <div class="ctrl-field" id="ef-itp-field" style="display:none;">
-        <label>ITP — data expirării</label>
-        <input type="date" id="ef-itp-expires">
-      </div>
-      <div class="ctrl-field" id="ef-insurance-field" style="display:none;">
-        <label>Asigurare — data expirării</label>
-        <input type="date" id="ef-insurance-expires">
-      </div>
-      <div class="ctrl-field" id="ef-transport-license-field" style="display:none;">
-        <label>Licență transport — data expirării</label>
-        <input type="date" id="ef-transport-license-expires">
-      </div>
-      <div class="ctrl-field" id="ef-parking-ticket-field" style="display:none;">
-        <label>Tichete parcare — data expirării</label>
-        <input type="date" id="ef-parking-ticket-expires">
-      </div>
-      <div class="ctrl-field" id="ef-vignette-field" style="display:none;">
-        <label>Rovinietă — data expirării</label>
-        <input type="date" id="ef-vignette-expires">
-      </div>
-      <div class="ctrl-field" id="ef-tachograph-field" style="display:none;">
-        <label>Tahograf — data expirării</label>
-        <input type="date" id="ef-tachograph-expires">
-      </div>
     </div>
     <div class="sheet-actions">
       <button class="btn" id="efCancelBtn" type="button" data-close-sheet="erpItemFormSheet">Anulează</button>
       <button class="btn btn-primary" id="efSaveBtn" type="button">Salvează</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="vehicleDocsEditSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="vehicleDocsEditSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vehicleDocsEditSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div><h3 id="vehicleDocsEditSheetTitle">Documente mașină</h3></div>
+      <button type="button" class="sheet-close" data-close-sheet="vehicleDocsEditSheet" aria-label="Închide">×</button>
+    </div>
+    <input type="hidden" id="vde-id">
+    <div class="pf-grid">
+      <div class="ctrl-field">
+        <label>ITP — data expirării</label>
+        <input type="date" id="vde-itp-expires">
+      </div>
+      <div class="ctrl-field">
+        <label>Asigurare — data expirării</label>
+        <input type="date" id="vde-insurance-expires">
+      </div>
+      <div class="ctrl-field" id="vde-transport-license-field" style="display:none;">
+        <label>Licență transport — data expirării</label>
+        <input type="date" id="vde-transport-license-expires">
+      </div>
+      <div class="ctrl-field">
+        <label>Tichete parcare — data expirării</label>
+        <input type="date" id="vde-parking-ticket-expires">
+      </div>
+      <div class="ctrl-field">
+        <label>Rovinietă — data expirării</label>
+        <input type="date" id="vde-vignette-expires">
+      </div>
+      <div class="ctrl-field" id="vde-tachograph-field" style="display:none;">
+        <label>Tahograf — data expirării</label>
+        <input type="date" id="vde-tachograph-expires">
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn" type="button" data-close-sheet="vehicleDocsEditSheet">Anulează</button>
+      <button class="btn btn-primary" id="vdeSaveBtn" type="button">Salvează</button>
     </div>
   </div>
 </div>
@@ -11836,9 +11829,6 @@
   function isLowStock(eq){
     return eq.erp_category === 'material' && eq.reorder_threshold != null && Number(eq.quantity) <= Number(eq.reorder_threshold);
   }
-  function needsService(eq){
-    return eq.erp_category === 'masina' && eq.next_service_km != null && eq.odometer_km != null && Number(eq.odometer_km) >= Number(eq.next_service_km);
-  }
   // Licență transport/Tahograf se aplică doar subcategoriei Camion —
   // celelalte 3 subcategorii nu le au în formular, deci nu intră în
   // verificarea de expirare pentru ele.
@@ -11864,9 +11854,8 @@
   function renderErpRow(eq){
     const isEquipment = eq.item_type === 'echipament';
     const erpCategory = eq.erp_category || (isEquipment ? 'echipament' : 'material');
-    const qtyLabel = !isEquipment && eq.quantity != null ? (Number(eq.quantity) + (eq.unit ? ' ' + eq.unit : '')) : (erpCategory === 'masina' && eq.odometer_km != null ? Number(eq.odometer_km).toLocaleString('ro-RO') + ' km' : '');
+    const qtyLabel = !isEquipment && eq.quantity != null ? (Number(eq.quantity) + (eq.unit ? ' ' + eq.unit : '')) : '';
     const lowStock = isLowStock(eq);
-    const dueService = needsService(eq);
     const expiredDocs = hasExpiredDocs(eq);
     const isVehicleRow = eq.erp_category === 'masina';
     const myAssignments = allResourceAssignments.filter(a => a.inventory_item_id === eq.id && a.status === 'reserved');
@@ -11888,33 +11877,22 @@
           <span class="backlog-tag">${escapeHtml(EQUIPMENT_STATUS_LABEL[eq.status] || eq.status)}</span>
           ${isVehicleRow && eq.category ? `<span class="backlog-tag">${escapeHtml(VEHICLE_SUBCAT_LABEL[eq.category] || eq.category)}</span>` : ''}
           ${lowStock ? '<span class="backlog-tag erp-warning-tag">⚠ Stoc redus</span>' : ''}
-          ${dueService ? '<span class="backlog-tag erp-warning-tag">⚠ Revizie necesară</span>' : ''}
           ${expiredDocs ? '<span class="backlog-tag erp-warning-tag">⚠ Acte expirate</span>' : ''}
           ${qtyLabel ? `<span class="backlog-days">${escapeHtml(qtyLabel)}</span>` : ''}
         </div>
         <div class="backlog-meta-line">${isVehicleRow ? '' : escapeHtml(eq.category || '')}${isVehicleRow && eq.plate_number ? (eq.category ? ' · ' : '') + escapeHtml(eq.plate_number) : ''}${eq.location ? ' · ' + escapeHtml(eq.location) : ''}${eq.assigned_to ? ' · alocat: ' + escapeHtml(eq.assigned_to) : ''}${eq.serial_number ? (isVehicleRow ? ' · Șasiu ' : ' · SN ') + escapeHtml(eq.serial_number) : ''}</div>
         ${reservationNote ? `<div class="backlog-meta-line erp-reservation-note">ⓘ ${escapeHtml(reservationNote)}</div>` : ''}
-        ${eq.erp_category === 'masina' && eq.next_service_km != null ? `<div class="backlog-meta-line">ⓘ Revizie la ${Number(eq.next_service_km).toLocaleString('ro-RO')} km</div>` : ''}
       </div>
       <div class="backlog-actions">
         <button class="btn eq-edit">Editează</button>
         ${erpCategory === 'masina' ? '' : `<button class="btn btn-primary eq-status">${escapeHtml(EQUIPMENT_STATUS_LABEL[EQUIPMENT_STATUS_CYCLE[eq.status]] || 'Schimbă starea')}</button>`}
         ${erpCategory === 'material' ? '<button class="btn eq-ledger">Jurnal stoc</button>' : ''}
-        ${eq.erp_category === 'masina' && eq.service_interval_km != null ? '<button class="btn eq-service-done">Revizie efectuată</button>' : ''}
         <button class="btn eq-delete">Șterge</button>
       </div>
     `;
-    row.querySelector('.eq-edit').addEventListener('click', () => openEquipmentForm(eq));
+    row.querySelector('.eq-edit').addEventListener('click', () => isVehicleRow ? openVehicleDocsEdit(eq) : openEquipmentForm(eq));
     const ledgerBtn = row.querySelector('.eq-ledger');
     if (ledgerBtn) ledgerBtn.addEventListener('click', () => openStockLedgerSheet(eq.id, eq.name));
-    const serviceDoneBtn = row.querySelector('.eq-service-done');
-    if (serviceDoneBtn) serviceDoneBtn.addEventListener('click', async () => {
-      const nextServiceKm = (Number(eq.odometer_km) || 0) + Number(eq.service_interval_km);
-      const { error } = await supabaseClient.from('equipment_inventory').update({ next_service_km: nextServiceKm }).eq('id', eq.id);
-      if (error) { console.error(error); alert('Eroare la actualizare. Încercați din nou.'); return; }
-      showToast(`Următoarea revizie: ${nextServiceKm.toLocaleString('ro-RO')} km.`);
-      loadEquipment();
-    });
     const statusBtn = row.querySelector('.eq-status');
     if (statusBtn) statusBtn.addEventListener('click', async () => {
       const nextStatus = EQUIPMENT_STATUS_CYCLE[eq.status] || 'Disponibil';
@@ -11972,9 +11950,8 @@
     const list = document.getElementById('erpAlertsList');
     if (!wrap || !list) return;
     const lowStockItems = allEquipment.filter(isLowStock);
-    const dueServiceItems = allEquipment.filter(needsService);
     const expiredDocsItems = allEquipment.filter(hasExpiredDocs);
-    if (!lowStockItems.length && !dueServiceItems.length && !expiredDocsItems.length) { wrap.style.display = 'none'; list.innerHTML = ''; return; }
+    if (!lowStockItems.length && !expiredDocsItems.length) { wrap.style.display = 'none'; list.innerHTML = ''; return; }
     wrap.style.display = '';
     const lowStockHtml = lowStockItems.map(eq => `
       <div class="status-history-item" data-goto-tab="materials">
@@ -11983,16 +11960,6 @@
         <div>
           <div class="status-history-check">${escapeHtml(eq.name)}</div>
           <div class="status-history-message">Stoc redus: ${eq.quantity}${eq.unit ? ' ' + escapeHtml(eq.unit) : ''} (prag ${eq.reorder_threshold}${eq.unit ? ' ' + escapeHtml(eq.unit) : ''})</div>
-        </div>
-      </div>
-    `).join('');
-    const dueServiceHtml = dueServiceItems.map(eq => `
-      <div class="status-history-item" data-goto-tab="machines">
-        <span class="status-history-time">MAȘINĂ</span>
-        <span class="status-history-dot"></span>
-        <div>
-          <div class="status-history-check">${escapeHtml(eq.name)}</div>
-          <div class="status-history-message">Revizie necesară: ${Number(eq.odometer_km).toLocaleString('ro-RO')} km (prag ${Number(eq.next_service_km).toLocaleString('ro-RO')} km)</div>
         </div>
       </div>
     `).join('');
@@ -12006,7 +11973,7 @@
         </div>
       </div>
     `).join('');
-    list.innerHTML = lowStockHtml + dueServiceHtml + expiredDocsHtml;
+    list.innerHTML = lowStockHtml + expiredDocsHtml;
     list.querySelectorAll('.status-history-item').forEach(row => row.addEventListener('click', () => openAdminTab(row.dataset.gotoTab)));
   }
   const erpHomeEquipmentCard = document.getElementById('erpHomeEquipmentCard');
@@ -12026,55 +11993,22 @@
   const ERP_ITEM_FORM_TITLE = { echipament: 'echipament', masina: 'mașină', material: 'material' };
   function syncEquipmentFormFields(){
     const isMaterial = efTypeSelect.value === 'material';
-    const isVehicle = efTypeSelect.value === 'masina';
     document.getElementById('ef-quantity-field').style.display = isMaterial ? '' : 'none';
     document.getElementById('ef-unit-field').style.display = isMaterial ? '' : 'none';
     document.getElementById('ef-reorder-field').style.display = isMaterial ? '' : 'none';
-    document.getElementById('ef-odometer-field').style.display = isVehicle ? '' : 'none';
-    document.getElementById('ef-service-interval-field').style.display = isVehicle ? '' : 'none';
-    document.getElementById('ef-category-field').style.display = isVehicle ? 'none' : '';
-    document.getElementById('ef-vehicle-subcat-field').style.display = isVehicle ? '' : 'none';
-    document.getElementById('ef-plate-field').style.display = isVehicle ? '' : 'none';
-    document.getElementById('ef-serial-label').textContent = isVehicle ? 'Serie șasiu' : 'Nr. serie / inventar';
-    document.getElementById('ef-vehicle-docs-section').style.display = isVehicle ? '' : 'none';
-    document.getElementById('ef-itp-field').style.display = isVehicle ? '' : 'none';
-    document.getElementById('ef-insurance-field').style.display = isVehicle ? '' : 'none';
-    document.getElementById('ef-parking-ticket-field').style.display = isVehicle ? '' : 'none';
-    document.getElementById('ef-vignette-field').style.display = isVehicle ? '' : 'none';
-    const isCamion = isVehicle && document.getElementById('ef-vehicle-subcat').value === 'camion';
-    document.getElementById('ef-transport-license-field').style.display = isCamion ? '' : 'none';
-    document.getElementById('ef-tachograph-field').style.display = isCamion ? '' : 'none';
   }
   if (efTypeSelect) efTypeSelect.addEventListener('change', syncEquipmentFormFields);
-  const efVehicleSubcatSelect = document.getElementById('ef-vehicle-subcat');
-  if (efVehicleSubcatSelect) efVehicleSubcatSelect.addEventListener('change', syncEquipmentFormFields);
-  let efEditingOriginalOdometer = null;
   let efEditingOriginalQuantity = null;
-  let efEditingOriginalServiceInterval = null;
-  let efEditingOriginalNextService = null;
   function openEquipmentForm(eq, presetCategory){
-    efEditingOriginalOdometer = eq && eq.odometer_km != null ? Number(eq.odometer_km) : null;
     efEditingOriginalQuantity = eq && eq.quantity != null ? Number(eq.quantity) : null;
-    efEditingOriginalServiceInterval = eq && eq.service_interval_km != null ? Number(eq.service_interval_km) : null;
-    efEditingOriginalNextService = eq && eq.next_service_km != null ? Number(eq.next_service_km) : null;
     const erpCategory = eq ? (eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material')) : (presetCategory || 'echipament');
     document.getElementById('ef-id').value = eq ? eq.id : '';
     document.getElementById('ef-name').value = eq ? eq.name : '';
     document.getElementById('ef-type').value = erpCategory;
-    document.getElementById('ef-category').value = erpCategory === 'masina' ? '' : (eq ? (eq.category || '') : '');
-    document.getElementById('ef-vehicle-subcat').value = eq && eq.category && VEHICLE_SUBCAT_LABEL[eq.category] ? eq.category : 'masina_mica';
-    document.getElementById('ef-plate-number').value = eq ? (eq.plate_number || '') : '';
+    document.getElementById('ef-category').value = eq ? (eq.category || '') : '';
     document.getElementById('ef-quantity').value = eq ? eq.quantity : 1;
     document.getElementById('ef-unit').value = eq ? (eq.unit || '') : '';
     document.getElementById('ef-reorder-threshold').value = eq && eq.reorder_threshold != null ? eq.reorder_threshold : '';
-    document.getElementById('ef-odometer').value = eq && eq.odometer_km != null ? eq.odometer_km : '';
-    document.getElementById('ef-service-interval').value = eq && eq.service_interval_km != null ? eq.service_interval_km : '';
-    document.getElementById('ef-itp-expires').value = eq && eq.itp_expires_on ? eq.itp_expires_on : '';
-    document.getElementById('ef-insurance-expires').value = eq && eq.insurance_expires_on ? eq.insurance_expires_on : '';
-    document.getElementById('ef-transport-license-expires').value = eq && eq.transport_license_expires_on ? eq.transport_license_expires_on : '';
-    document.getElementById('ef-parking-ticket-expires').value = eq && eq.parking_ticket_expires_on ? eq.parking_ticket_expires_on : '';
-    document.getElementById('ef-vignette-expires').value = eq && eq.vignette_expires_on ? eq.vignette_expires_on : '';
-    document.getElementById('ef-tachograph-expires').value = eq && eq.tachograph_expires_on ? eq.tachograph_expires_on : '';
     document.getElementById('ef-serial').value = eq ? (eq.serial_number || '') : '';
     document.getElementById('ef-location').value = eq ? (eq.location || '') : '';
     document.getElementById('ef-assigned').value = eq ? (eq.assigned_to || '') : '';
@@ -12088,9 +12022,9 @@
   if (addEquipmentBtn) addEquipmentBtn.addEventListener('click', () => openEquipmentForm(null, 'echipament'));
   // Adăugarea unei mașini e un formular separat, minimal (Nr.
   // înmatriculare / Serie șasiu / Subcategorie / Alocat la / Notițe) —
-  // restul detaliilor (kilometraj, documente etc.) se completează
-  // ulterior din "Editează", care deschide formularul complet
-  // erpItemFormSheet.
+  // restul (actele cu dată de expirare) se completează ulterior din
+  // "Editează", care deschide vehicleDocsEditSheet — un formular
+  // separat de erpItemFormSheet, folosit doar de echipament/material.
   const addMachineBtn = document.getElementById('addMachineBtn');
   if (addMachineBtn) addMachineBtn.addEventListener('click', () => {
     document.getElementById('vqa-plate').value = '';
@@ -12118,6 +12052,42 @@
     showToast('Mașina a fost adăugată.');
     loadEquipment();
   });
+  // "Editează" pe o mașină deschide DOAR actele cu dată de expirare —
+  // nimic altceva (numele, subcategoria etc. se stabilesc o singură
+  // dată, la adăugare, și nu mai sunt editabile din UI în acest flux).
+  function openVehicleDocsEdit(eq){
+    document.getElementById('vde-id').value = eq.id;
+    document.getElementById('vde-itp-expires').value = eq.itp_expires_on || '';
+    document.getElementById('vde-insurance-expires').value = eq.insurance_expires_on || '';
+    document.getElementById('vde-transport-license-expires').value = eq.transport_license_expires_on || '';
+    document.getElementById('vde-parking-ticket-expires').value = eq.parking_ticket_expires_on || '';
+    document.getElementById('vde-vignette-expires').value = eq.vignette_expires_on || '';
+    document.getElementById('vde-tachograph-expires').value = eq.tachograph_expires_on || '';
+    const isCamion = eq.category === 'camion';
+    document.getElementById('vde-transport-license-field').style.display = isCamion ? '' : 'none';
+    document.getElementById('vde-tachograph-field').style.display = isCamion ? '' : 'none';
+    const titleEl = document.getElementById('vehicleDocsEditSheetTitle');
+    if (titleEl) titleEl.textContent = `Documente mașină — ${eq.name}`;
+    setSheetOpen('vehicleDocsEditSheet', true);
+  }
+  const vdeSaveBtn = document.getElementById('vdeSaveBtn');
+  if (vdeSaveBtn) vdeSaveBtn.addEventListener('click', async () => {
+    const id = document.getElementById('vde-id').value;
+    const isCamion = document.getElementById('vde-transport-license-field').style.display !== 'none';
+    const payload = {
+      itp_expires_on: document.getElementById('vde-itp-expires').value || null,
+      insurance_expires_on: document.getElementById('vde-insurance-expires').value || null,
+      parking_ticket_expires_on: document.getElementById('vde-parking-ticket-expires').value || null,
+      vignette_expires_on: document.getElementById('vde-vignette-expires').value || null,
+      transport_license_expires_on: isCamion ? (document.getElementById('vde-transport-license-expires').value || null) : null,
+      tachograph_expires_on: isCamion ? (document.getElementById('vde-tachograph-expires').value || null) : null,
+    };
+    const { error } = await supabaseClient.from('equipment_inventory').update(payload).eq('id', id);
+    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+    setSheetOpen('vehicleDocsEditSheet', false);
+    showToast('Documentele au fost actualizate.');
+    loadEquipment();
+  });
   const erpMachinesToggle = document.querySelector('[data-erp-toggle="machines"]');
   const erpMachinesSubgroup = document.querySelector('[data-erp-subgroup="machines"]');
   if (erpMachinesToggle && erpMachinesSubgroup) {
@@ -12140,35 +12110,11 @@
     const name = document.getElementById('ef-name').value.trim();
     const erp_category = document.getElementById('ef-type').value;
     const item_type = erp_category === 'material' ? 'material' : 'echipament';
-    const category = erp_category === 'masina'
-      ? document.getElementById('ef-vehicle-subcat').value
-      : document.getElementById('ef-category').value.trim();
-    const isCamion = erp_category === 'masina' && category === 'camion';
-    const plate_number = erp_category === 'masina' ? document.getElementById('ef-plate-number').value.trim() : '';
-    const itp_expires_on = erp_category === 'masina' ? (document.getElementById('ef-itp-expires').value || null) : null;
-    const insurance_expires_on = erp_category === 'masina' ? (document.getElementById('ef-insurance-expires').value || null) : null;
-    const parking_ticket_expires_on = erp_category === 'masina' ? (document.getElementById('ef-parking-ticket-expires').value || null) : null;
-    const vignette_expires_on = erp_category === 'masina' ? (document.getElementById('ef-vignette-expires').value || null) : null;
-    const transport_license_expires_on = isCamion ? (document.getElementById('ef-transport-license-expires').value || null) : null;
-    const tachograph_expires_on = isCamion ? (document.getElementById('ef-tachograph-expires').value || null) : null;
+    const category = document.getElementById('ef-category').value.trim();
     const quantity = parseFloat(document.getElementById('ef-quantity').value) || 0;
     const unit = document.getElementById('ef-unit').value.trim();
     const reorderRaw = document.getElementById('ef-reorder-threshold').value;
     const reorder_threshold = erp_category === 'material' && reorderRaw !== '' ? parseFloat(reorderRaw) : null;
-    const odometerRaw = document.getElementById('ef-odometer').value;
-    const odometer_km = erp_category === 'masina' && odometerRaw !== '' ? parseFloat(odometerRaw) : null;
-    const serviceIntervalRaw = document.getElementById('ef-service-interval').value;
-    const service_interval_km = erp_category === 'masina' && serviceIntervalRaw !== '' ? parseFloat(serviceIntervalRaw) : null;
-    // next_service_km e un prag fix, nu recalculat la fiecare schimbare
-    // de kilometraj — altfel revizia n-ar fi niciodată "ajunsă din urmă".
-    // Se recalculează doar la un interval nou/prim-setat, sau explicit
-    // prin butonul "Revizie efectuată" de pe rândul mașinii.
-    let next_service_km = efEditingOriginalNextService;
-    if (service_interval_km == null) {
-      next_service_km = null;
-    } else if (service_interval_km !== efEditingOriginalServiceInterval || next_service_km == null) {
-      next_service_km = (odometer_km || 0) + service_interval_km;
-    }
     const serial_number = document.getElementById('ef-serial').value.trim();
     const location = document.getElementById('ef-location').value.trim();
     const assigned_to = document.getElementById('ef-assigned').value.trim();
@@ -12182,23 +12128,11 @@
       category: category || null,
       unit: unit || null,
       reorder_threshold,
-      odometer_km,
-      service_interval_km,
-      next_service_km,
-      plate_number: plate_number || null,
-      itp_expires_on,
-      insurance_expires_on,
-      transport_license_expires_on,
-      parking_ticket_expires_on,
-      vignette_expires_on,
-      tachograph_expires_on,
-      odometer_updated_at: odometer_km != null && odometer_km !== efEditingOriginalOdometer ? new Date().toISOString() : undefined,
       serial_number: serial_number || null,
       location: location || null,
       assigned_to: assigned_to || null,
       notes: notes || null,
     };
-    if (payload.odometer_updated_at === undefined) delete payload.odometer_updated_at;
     // Materialele au cantitatea urmărită în stock_ledger — o editare
     // manuală aici e doar un alt tip de mișcare de stoc, nu o
     // suprascriere tăcută, ca să rămână un istoric complet.
@@ -12809,7 +12743,7 @@
     const solvedTickets = (typeof allTickets !== 'undefined' ? allTickets : []).filter(t => !isDuplicateTicket(t) && t.status === 'Terminat' && t.resolved_on && parseTicketDate(t.resolved_on).getTime() >= sevenDaysAgo).length;
     const newProjects = (typeof allProjects !== 'undefined' ? allProjects : []).filter(p => p.created_at && new Date(p.created_at).getTime() >= sevenDaysAgo).length;
     const solvedBacklog = (typeof allBacklogProjects !== 'undefined' ? allBacklogProjects : []).filter(p => p.resolved_on && new Date(p.resolved_on).getTime() >= sevenDaysAgo).length;
-    const activeAlerts = (typeof allEquipment !== 'undefined' ? allEquipment : []).filter(e => isLowStock(e) || needsService(e) || hasExpiredDocs(e)).length;
+    const activeAlerts = (typeof allEquipment !== 'undefined' ? allEquipment : []).filter(e => isLowStock(e) || hasExpiredDocs(e)).length;
     const tiles = [
       { num: newTickets, label: 'Sesizări noi', tab: 'overview' },
       { num: solvedTickets, label: 'Sesizări soluționate', tab: 'overview' },
