@@ -3693,6 +3693,14 @@
           <option value="utilaj">Utilaj</option>
         </select>
       </div>
+      <div class="ctrl-field">
+        <label>Alocat la</label>
+        <input type="text" id="vqa-assigned" placeholder="ex: Echipa 2 / Ionel Ghiurchi">
+      </div>
+      <div class="ctrl-field" style="grid-column:1/-1;">
+        <label>Notițe</label>
+        <input type="text" id="vqa-notes" placeholder="Detalii suplimentare">
+      </div>
     </div>
     <div class="sheet-actions">
       <button class="btn" type="button" data-close-sheet="vehicleQuickAddSheet">Anulează</button>
@@ -12075,15 +12083,18 @@
   }
   const addEquipmentBtn = document.getElementById('addEquipmentBtn');
   if (addEquipmentBtn) addEquipmentBtn.addEventListener('click', () => openEquipmentForm(null, 'echipament'));
-  // Adăugarea unei mașini e un formular separat, minimal (doar Nr.
-  // înmatriculare / Serie șasiu / Subcategorie) — restul detaliilor
-  // (kilometraj, documente etc.) se completează ulterior din
-  // "Editează", care deschide formularul complet erpItemFormSheet.
+  // Adăugarea unei mașini e un formular separat, minimal (Nr.
+  // înmatriculare / Serie șasiu / Subcategorie / Alocat la / Notițe) —
+  // restul detaliilor (kilometraj, documente etc.) se completează
+  // ulterior din "Editează", care deschide formularul complet
+  // erpItemFormSheet.
   const addMachineBtn = document.getElementById('addMachineBtn');
   if (addMachineBtn) addMachineBtn.addEventListener('click', () => {
     document.getElementById('vqa-plate').value = '';
     document.getElementById('vqa-chassis').value = '';
     document.getElementById('vqa-subcat').value = 'masina_mica';
+    document.getElementById('vqa-assigned').value = '';
+    document.getElementById('vqa-notes').value = '';
     setSheetOpen('vehicleQuickAddSheet', true);
   });
   const vqaSaveBtn = document.getElementById('vqaSaveBtn');
@@ -12091,10 +12102,13 @@
     const plate = document.getElementById('vqa-plate').value.trim();
     const chassis = document.getElementById('vqa-chassis').value.trim();
     const subcat = document.getElementById('vqa-subcat').value;
+    const assigned = document.getElementById('vqa-assigned').value.trim();
+    const notes = document.getElementById('vqa-notes').value.trim();
     if (!plate) { alert('Completați numărul de înmatriculare.'); return; }
     const { error } = await supabaseClient.from('equipment_inventory').insert({
       name: plate, item_type: 'echipament', erp_category: 'masina', category: subcat,
       plate_number: plate, serial_number: chassis || null, status: 'Disponibil',
+      assigned_to: assigned || null, notes: notes || null,
     });
     if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
     setSheetOpen('vehicleQuickAddSheet', false);
