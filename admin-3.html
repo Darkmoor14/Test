@@ -897,6 +897,36 @@
     #calendarDaySheet .sheet-handle,
     #calendarEventFormSheet .sheet-handle{display:none;}
   }
+  /* Same reasoning as the calendar sheets above — vehicleQuickAddSheet
+     (3-5 fields) and vehicleDocsEditSheet (≤6 fields) inherited the
+     full-width bottom-sheet sizing built for the much larger generic
+     erpItemFormSheet, which left them looking mostly empty. */
+  #vehicleQuickAddSheet .ctrl-field,
+  #vehicleDocsEditSheet .ctrl-field{min-width:0;margin-bottom:12px;}
+  #vehicleQuickAddSheet .ctrl-field label,
+  #vehicleDocsEditSheet .ctrl-field label{font-size:10px;margin-bottom:4px;}
+  #vehicleQuickAddSheet .ctrl-field input,
+  #vehicleQuickAddSheet .ctrl-field select,
+  #vehicleDocsEditSheet .ctrl-field input{
+    font-size:12.5px;padding:7px 9px;height:34px;
+  }
+  #vehicleQuickAddSheet .pf-grid,
+  #vehicleDocsEditSheet .pf-grid{gap:0 14px;}
+  #vehicleQuickAddSheet .sheet-head h3,
+  #vehicleDocsEditSheet .sheet-head h3{font-size:16px;}
+  #vehicleQuickAddSheet .status-note{font-size:12px;margin-bottom:14px;}
+  @media(min-width:901px){
+    #vehicleQuickAddSheet .mobile-sheet-panel,
+    #vehicleDocsEditSheet .mobile-sheet-panel{
+      position:fixed;top:50%;left:50%;right:auto;bottom:auto;
+      transform:translate(-50%,-50%);
+      width:420px;max-width:calc(100vw - 40px);
+      border-radius:14px;padding:18px 20px;max-height:82vh;
+      box-shadow:0 20px 60px rgba(20,24,29,0.28);
+    }
+    #vehicleQuickAddSheet .sheet-handle,
+    #vehicleDocsEditSheet .sheet-handle{display:none;}
+  }
   .home-todo-card{
     background:var(--paper-000);border:1px solid var(--line-strong);border-radius:9px;
     padding:22px;
@@ -1129,22 +1159,14 @@
   .priority-card.active{border-color:var(--copper-500);background:var(--copper-050);}
   .priority-card.active .k{color:var(--copper-600);}
   .priority-card.active .num{color:var(--copper-600);}
-  .machines-table-wrap{overflow-x:auto;border:1px solid var(--line-strong);border-radius:6px;}
-  .machines-table{width:100%;border-collapse:collapse;font-size:13px;}
-  .machines-table th{
-    text-align:left;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.04em;
-    color:var(--ink-600);padding:10px 14px;border-bottom:1px solid var(--line-strong);background:var(--paper-050);
-    white-space:nowrap;
-  }
-  .machines-table td{padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle;}
-  .machines-table tr:last-child td{border-bottom:none;}
-  .machines-table .mt-name{font-weight:600;color:var(--ink-900);}
-  .machines-table .mt-subcat{font-size:11.5px;color:var(--ink-600);margin-top:2px;}
-  .machines-table .mt-na{color:var(--ink-400);}
-  .machines-table .mt-date{color:var(--ink-700);}
-  .machines-table .mt-date.mt-warn{color:var(--signal-orange);font-weight:600;}
-  .machines-table .mt-date.mt-expired{color:var(--signal-red);font-weight:600;}
-  .machines-table .mt-actions{display:flex;gap:8px;}
+  /* Mașini's table reuses .overview-table (Sesizări) wholesale for a
+     consistent look — only the vehicle-specific bits below are new. */
+  #machinesTable .mt-name-cell{white-space:normal;}
+  #machinesTable .mt-name{font-weight:600;color:var(--ink-900);}
+  #machinesTable .mt-subcat{font-size:11.5px;color:var(--ink-600);margin-top:2px;}
+  #machinesTable .mt-na{color:var(--ink-400);}
+  #machinesTable .mt-warn{color:var(--signal-orange);font-weight:600;}
+  #machinesTable .mt-expired{color:var(--signal-red);font-weight:600;}
   .machines-table-empty{padding:40px 0;text-align:center;color:var(--ink-400);}
 
   .active-narrow-filter{
@@ -2151,6 +2173,7 @@
             <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="utilaj">Utilaj</button>
           </div>
           <button type="button" class="admin-tab category-panel-item" data-tab="materials">Materiale</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="erp-audit">Jurnal de activitate</button>
         </div>
         <div class="category-panel-section" data-category="docs">
           <button type="button" class="category-panel-item docs-nav-group-btn active" data-docs-group="home">Home</button>
@@ -2965,8 +2988,13 @@
         <button type="button" class="btn btn-primary" id="addMachineBtn">+ Adaugă mașină</button>
       </div>
       <div class="priority-grid" id="machinesFilterCards"></div>
-      <div class="machines-table-wrap">
-        <table class="machines-table" id="machinesTable">
+      <div class="overview-table-wrap">
+        <table class="overview-table" id="machinesTable">
+          <colgroup>
+            <col style="width:16%"><col style="width:14%"><col style="width:12%">
+            <col style="width:12%"><col style="width:14%"><col style="width:12%">
+            <col style="width:10%"><col style="width:10%">
+          </colgroup>
           <thead>
             <tr>
               <th>Mașină</th>
@@ -2977,7 +3005,6 @@
               <th>Tichete parcare</th>
               <th>Rovinietă</th>
               <th>Tahograf</th>
-              <th></th>
             </tr>
           </thead>
           <tbody id="machinesTableBody"></tbody>
@@ -2992,6 +3019,28 @@
         <button type="button" class="btn btn-primary" id="addMaterialBtn">+ Adaugă material</button>
       </div>
       <div class="backlog-list" id="materialsList"></div>
+    </div>
+
+    <div class="admin-panel" id="panel-erp-audit">
+      <div class="status-panel-head">
+        <div><div class="home-eyebrow">ERP</div><h2>Jurnal de activitate</h2></div>
+      </div>
+      <div class="status-grid">
+        <div class="status-card status-card-wide" id="statusCardErpAuditProjects">
+          <div class="status-card-head">
+            <h4>Proiecte</h4>
+          </div>
+          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Proiecte publice, avarii de rețea și elemente Look-ahead din LPS.</p>
+          <div class="entity-log-list" id="erpAuditProjectsList" style="max-height:420px;"></div>
+        </div>
+        <div class="status-card status-card-wide" id="statusCardErpAuditErp">
+          <div class="status-card-head">
+            <h4>ERP</h4>
+          </div>
+          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Echipamente, mașini și materiale din inventarul ERP.</p>
+          <div class="entity-log-list" id="erpAuditErpList" style="max-height:420px;"></div>
+        </div>
+      </div>
     </div>
 
     <div class="admin-panel" id="panel-status">
@@ -3694,6 +3743,7 @@
       </div>
     </div>
     <div class="sheet-actions">
+      <button class="btn" type="button" id="vdeDeleteBtn" style="margin-right:auto;">Șterge mașina</button>
       <button class="btn" type="button" data-close-sheet="vehicleDocsEditSheet">Anulează</button>
       <button class="btn btn-primary" id="vdeSaveBtn" type="button">Salvează</button>
     </div>
@@ -4836,7 +4886,7 @@
     if (isReportAccount) {
       // Land back on whatever tab was open before a refresh instead of
       // always restarting at the home page — see initialHashTab above.
-      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects-home', 'projects', 'backlog', 'lps', 'workorders', 'erp-home', 'equipment', 'machines', 'materials', 'status', 'status-improve', 'status-audit', 'docs'];
+      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects-home', 'projects', 'backlog', 'lps', 'workorders', 'erp-home', 'equipment', 'machines', 'materials', 'erp-audit', 'status', 'status-improve', 'status-audit', 'docs'];
       const restoredTab = validReportTabs.includes(initialHashTab) ? initialHashTab : 'home';
       openAdminTab(restoredTab, true);
       history.replaceState({ adminTab: restoredTab }, '', window.location.pathname + window.location.search + '#' + restoredTab);
@@ -8229,6 +8279,7 @@
     equipment: 'Echipamente',
     machines: 'Mașini',
     materials: 'Materiale',
+    'erp-audit': 'Jurnal de activitate',
     status: 'Stare sistem',
     'status-improve': 'Auto-îmbunătățire',
     'status-audit': 'Jurnal de activitate',
@@ -8240,7 +8291,7 @@
   const TAB_CATEGORY = {
     overview: 'tickets', 'tickets-functional': 'tickets', 'tickets-accident': 'tickets',
     'projects-home': 'projects', projects: 'projects', backlog: 'projects', lps: 'projects', workorders: 'projects',
-    'erp-home': 'erp', equipment: 'erp', machines: 'erp', materials: 'erp',
+    'erp-home': 'erp', equipment: 'erp', machines: 'erp', materials: 'erp', 'erp-audit': 'erp',
     docs: 'docs',
     status: 'status', 'status-improve': 'status', 'status-audit': 'status',
   };
@@ -8340,6 +8391,7 @@
     else if (tabKey === 'tickets-accident') setTicketTypeFilter('accident', { skipRender: true });
     else if (tabKey === 'status' || tabKey === 'status-improve') loadSystemStatus();
     else if (tabKey === 'status-audit') loadAuditLog();
+    else if (tabKey === 'erp-audit') loadErpAuditLog();
     else if (tabKey === 'workorders') loadWorkOrders();
     else if (tabKey === 'equipment' || tabKey === 'machines' || tabKey === 'materials' || tabKey === 'erp-home') loadEquipment();
     else if (tabKey === 'projects-home') renderProjectsHomeStats();
@@ -11951,51 +12003,43 @@
       : `${filtered.length} din ${allVehicles.length} mașini`;
 
     if (!filtered.length) {
-      tbody.innerHTML = `<tr><td colspan="9"><div class="machines-table-empty">Nicio mașină ${machinesSubcatFilter === 'Toate' ? 'înregistrată' : 'în această categorie'}.</div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8"><div class="machines-table-empty">Nicio mașină ${machinesSubcatFilter === 'Toate' ? 'înregistrată' : 'în această categorie'}.</div></td></tr>`;
       return;
     }
     function dateCell(dateStr, applicable){
       if (!applicable) return '<td class="mt-na">—</td>';
-      if (!dateStr) return '<td class="mt-date mt-na">—</td>';
+      if (!dateStr) return '<td class="mt-na">—</td>';
       const cls = docDateClass(dateStr);
-      return `<td class="mt-date${cls ? ' ' + cls : ''}">${formatWoDateRO(dateStr)}${cls ? ' ⚠' : ''}</td>`;
+      return `<td class="${cls}">${formatWoDateRO(dateStr)}${cls ? ' ⚠' : ''}</td>`;
     }
+    // Numărul de înmatriculare e singurul punct de intrare spre
+    // editare acum — fără butoane separate Editează/Șterge pe rând
+    // (Șterge a mutat în vehicleDocsEditSheet, ca acțiune secundară
+    // acolo, nu ca o a doua coloană în tabel).
     tbody.innerHTML = filtered.map(eq => {
       const isCamion = eq.category === 'camion';
       return `
         <tr>
-          <td><div class="mt-name">${escapeHtml(eq.name)}</div><div class="mt-subcat">${escapeHtml(VEHICLE_SUBCAT_LABEL[eq.category] || '')}</div></td>
-          <td>${escapeHtml(eq.plate_number || '—')}</td>
+          <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div><div class="mt-subcat">${escapeHtml(VEHICLE_SUBCAT_LABEL[eq.category] || '')}</div></td>
+          <td><a href="#" class="ticket-link" data-vehicle-id="${escapeHtml(eq.id)}">${escapeHtml(eq.plate_number || '—')}</a></td>
           ${dateCell(eq.itp_expires_on, true)}
           ${dateCell(eq.insurance_expires_on, true)}
           ${dateCell(eq.transport_license_expires_on, isCamion)}
           ${dateCell(eq.parking_ticket_expires_on, true)}
           ${dateCell(eq.vignette_expires_on, true)}
           ${dateCell(eq.tachograph_expires_on, isCamion)}
-          <td class="mt-actions">
-            <button type="button" class="btn mt-edit-btn" data-id="${escapeHtml(eq.id)}">Editează</button>
-            <button type="button" class="btn mt-delete-btn" data-id="${escapeHtml(eq.id)}">Șterge</button>
-          </td>
         </tr>
       `;
     }).join('');
-    tbody.querySelectorAll('.mt-edit-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const eq = allVehicles.find(v => v.id === btn.dataset.id);
-        if (eq) openVehicleDocsEdit(eq);
-      });
-    });
-    tbody.querySelectorAll('.mt-delete-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const eq = allVehicles.find(v => v.id === btn.dataset.id);
-        if (!eq) return;
-        if (!confirm(`Ștergeți definitiv „${eq.name}” din inventar?`)) return;
-        const { error } = await supabaseClient.from('equipment_inventory').delete().eq('id', eq.id);
-        if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
-        loadEquipment();
-      });
-    });
   }
+  const machinesTableBody = document.getElementById('machinesTableBody');
+  if (machinesTableBody) machinesTableBody.addEventListener('click', (e) => {
+    const link = e.target.closest('.ticket-link');
+    if (!link) return;
+    e.preventDefault();
+    const eq = allEquipment.find(v => v.id === link.dataset.vehicleId);
+    if (eq) openVehicleDocsEdit(eq);
+  });
   function renderErpRow(eq){
     const isEquipment = eq.item_type === 'echipament';
     const erpCategory = eq.erp_category || (isEquipment ? 'echipament' : 'material');
@@ -12039,12 +12083,14 @@
       const nextStatus = EQUIPMENT_STATUS_CYCLE[eq.status] || 'Disponibil';
       const { error } = await supabaseClient.from('equipment_inventory').update({ status: nextStatus }).eq('id', eq.id);
       if (error) { console.error(error); alert('Eroare la actualizare. Încercați din nou.'); return; }
+      logEntityActivity(erpCategory, eq.id, `Stare schimbată în „${EQUIPMENT_STATUS_LABEL[nextStatus] || nextStatus}”.`);
       loadEquipment();
     });
     row.querySelector('.eq-delete').addEventListener('click', async () => {
       if (!confirm(`Ștergeți definitiv „${eq.name}” din inventar?`)) return;
       const { error } = await supabaseClient.from('equipment_inventory').delete().eq('id', eq.id);
       if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
+      logEntityActivity(erpCategory, eq.id, `„${eq.name}” a fost șters din inventar.`);
       loadEquipment();
     });
     return row;
@@ -12178,12 +12224,13 @@
     const assigned = document.getElementById('vqa-assigned').value.trim();
     const notes = document.getElementById('vqa-notes').value.trim();
     if (!plate) { alert('Completați numărul de înmatriculare.'); return; }
-    const { error } = await supabaseClient.from('equipment_inventory').insert({
+    const { data, error } = await supabaseClient.from('equipment_inventory').insert({
       name: plate, item_type: 'echipament', erp_category: 'masina', category: subcat,
       plate_number: plate, serial_number: chassis || null, status: 'Disponibil',
       assigned_to: assigned || null, notes: notes || null,
-    });
+    }).select();
     if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+    if (data && data[0]) logEntityActivity('masina', data[0].id, 'Mașină adăugată.');
     setSheetOpen('vehicleQuickAddSheet', false);
     showToast('Mașina a fost adăugată.');
     loadEquipment();
@@ -12220,8 +12267,22 @@
     };
     const { error } = await supabaseClient.from('equipment_inventory').update(payload).eq('id', id);
     if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+    logEntityActivity('masina', id, 'Documentele mașinii au fost actualizate.');
     setSheetOpen('vehicleDocsEditSheet', false);
     showToast('Documentele au fost actualizate.');
+    loadEquipment();
+  });
+  const vdeDeleteBtn = document.getElementById('vdeDeleteBtn');
+  if (vdeDeleteBtn) vdeDeleteBtn.addEventListener('click', async () => {
+    const id = document.getElementById('vde-id').value;
+    if (!id) return;
+    const eq = allEquipment.find(v => v.id === id);
+    if (!confirm(`Ștergeți mașina${eq ? ' „' + eq.name + '"' : ''}? Această acțiune nu poate fi anulată.`)) return;
+    const { error } = await supabaseClient.from('equipment_inventory').delete().eq('id', id);
+    if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
+    logEntityActivity('masina', id, 'Mașina a fost ștearsă.');
+    setSheetOpen('vehicleDocsEditSheet', false);
+    showToast('Mașina a fost ștearsă.');
     loadEquipment();
   });
   const erpMachinesToggle = document.querySelector('[data-erp-toggle="machines"]');
@@ -12278,9 +12339,11 @@
       if (erp_category === 'material' && efEditingOriginalQuantity !== null && quantity !== efEditingOriginalQuantity) {
         logStockLedger(id, name, quantity - efEditingOriginalQuantity, quantity, 'Editare manuală');
       }
+      logEntityActivity(erp_category, id, `„${name}” a fost actualizat.`);
     } else {
       const { data, error } = await supabaseClient.from('equipment_inventory').insert(payload).select();
       if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+      if (data && data[0]) logEntityActivity(erp_category, data[0].id, `„${name}” a fost adăugat.`);
       if (erp_category === 'material' && data && data[0]) {
         logStockLedger(data[0].id, name, quantity, quantity, 'Articol adăugat');
       }
@@ -12348,12 +12411,18 @@
   });
 
   /* ============================================================
-     JURNAL DE ACTIVITATE (status-audit) — vedere globală peste
-     entity_log, pe toate categoriile (Proiecte publice, Avarii
-     rețele, LPS Look-ahead), filtrabilă cu un dropdown — tabul
-     "Jurnal de activitate" din Stare sistem.
+     JURNAL DE ACTIVITATE — vedere globală peste entity_log, pe
+     toate categoriile. Se afișează în două locuri din aceleași
+     date (auditLogEntries): tabul "Jurnal de activitate" din Stare
+     sistem (doar categoriile de proiecte, cu dropdown de filtrare)
+     și tabul omonim din ERP (split Proiecte / ERP, fără filtru).
      ============================================================ */
-  const ENTITY_TYPE_LABEL = { project: 'Proiect public', backlog: 'Avarie rețea', lookahead: 'LPS Look-ahead' };
+  const PROJECT_ENTITY_TYPES = ['project', 'backlog', 'lookahead'];
+  const ERP_ENTITY_TYPES = ['echipament', 'masina', 'material'];
+  const ENTITY_TYPE_LABEL = {
+    project: 'Proiect public', backlog: 'Avarie rețea', lookahead: 'LPS Look-ahead',
+    echipament: 'Echipament', masina: 'Mașină', material: 'Material',
+  };
   let auditLogEntries = [];
   let auditLogLookaheadTitles = {};
   function auditLogEntityTitle(row){
@@ -12366,16 +12435,14 @@
       return p ? p.title : 'Avarie ștearsă';
     }
     if (row.entity_type === 'lookahead') return auditLogLookaheadTitles[row.entity_id] || 'Element șters';
+    if (ERP_ENTITY_TYPES.includes(row.entity_type)) {
+      const eq = (typeof allEquipment !== 'undefined' ? allEquipment : []).find(x => x.id === row.entity_id);
+      return eq ? eq.name : 'Element șters';
+    }
     return row.entity_type;
   }
-  function renderAuditLog(){
-    const listEl = document.getElementById('auditLogList');
-    if (!listEl) return;
-    const filterSelect = document.getElementById('auditLogCategoryFilter');
-    const filterVal = filterSelect ? filterSelect.value : 'all';
-    const rows = filterVal === 'all' ? auditLogEntries : auditLogEntries.filter(r => r.entity_type === filterVal);
-    if (!rows.length) { listEl.innerHTML = '<p class="status-history-empty">Niciun eveniment încă.</p>'; return; }
-    listEl.innerHTML = rows.map(row => `
+  function entityLogRowHtml(row){
+    return `
       <div class="entity-log-item ${row.kind}">
         <span class="entity-log-time">${formatLogTimeRO(row.created_at)}</span>
         <div>
@@ -12383,20 +12450,57 @@
           ${row.user_email ? `<div class="entity-log-author">${escapeHtml(row.user_email)}</div>` : ''}
         </div>
       </div>
-    `).join('');
+    `;
   }
-  async function loadAuditLog(){
+  function renderAuditLog(){
     const listEl = document.getElementById('auditLogList');
-    if (listEl) listEl.innerHTML = '<p class="status-history-empty">Se încarcă…</p>';
+    if (!listEl) return;
+    const filterSelect = document.getElementById('auditLogCategoryFilter');
+    const filterVal = filterSelect ? filterSelect.value : 'all';
+    const projectRows = auditLogEntries.filter(r => PROJECT_ENTITY_TYPES.includes(r.entity_type));
+    const rows = filterVal === 'all' ? projectRows : projectRows.filter(r => r.entity_type === filterVal);
+    if (!rows.length) { listEl.innerHTML = '<p class="status-history-empty">Niciun eveniment încă.</p>'; return; }
+    listEl.innerHTML = rows.map(entityLogRowHtml).join('');
+  }
+  function renderErpAuditSections(){
+    const projectsList = document.getElementById('erpAuditProjectsList');
+    const erpList = document.getElementById('erpAuditErpList');
+    if (!projectsList || !erpList) return;
+    const projectRows = auditLogEntries.filter(r => PROJECT_ENTITY_TYPES.includes(r.entity_type));
+    const erpRows = auditLogEntries.filter(r => ERP_ENTITY_TYPES.includes(r.entity_type));
+    projectsList.innerHTML = projectRows.length ? projectRows.map(entityLogRowHtml).join('') : '<p class="status-history-empty">Niciun eveniment încă.</p>';
+    erpList.innerHTML = erpRows.length ? erpRows.map(entityLogRowHtml).join('') : '<p class="status-history-empty">Niciun eveniment încă.</p>';
+  }
+  async function fetchAuditLogEntries(){
     const [{ data: logData, error: logError }, { data: laData }] = await Promise.all([
       supabaseClient.from('entity_log').select('*').order('created_at', { ascending: false }).limit(200),
       supabaseClient.from('lps_lookahead_items').select('id,title'),
     ]);
     auditLogLookaheadTitles = {};
     (laData || []).forEach(item => { auditLogLookaheadTitles[item.id] = item.title; });
-    if (logError) { if (listEl) listEl.innerHTML = '<p class="status-history-empty">Jurnalul nu a putut fi încărcat.</p>'; return; }
+    if (logError) { auditLogEntries = []; return false; }
     auditLogEntries = logData || [];
+    return true;
+  }
+  async function loadAuditLog(){
+    const listEl = document.getElementById('auditLogList');
+    if (listEl) listEl.innerHTML = '<p class="status-history-empty">Se încarcă…</p>';
+    const ok = await fetchAuditLogEntries();
+    if (!ok) { if (listEl) listEl.innerHTML = '<p class="status-history-empty">Jurnalul nu a putut fi încărcat.</p>'; return; }
     renderAuditLog();
+  }
+  async function loadErpAuditLog(){
+    const projectsList = document.getElementById('erpAuditProjectsList');
+    const erpList = document.getElementById('erpAuditErpList');
+    if (projectsList) projectsList.innerHTML = '<p class="status-history-empty">Se încarcă…</p>';
+    if (erpList) erpList.innerHTML = '<p class="status-history-empty">Se încarcă…</p>';
+    const ok = await fetchAuditLogEntries();
+    if (!ok) {
+      if (projectsList) projectsList.innerHTML = '<p class="status-history-empty">Jurnalul nu a putut fi încărcat.</p>';
+      if (erpList) erpList.innerHTML = '<p class="status-history-empty">Jurnalul nu a putut fi încărcat.</p>';
+      return;
+    }
+    renderErpAuditSections();
   }
   const auditLogCategoryFilter = document.getElementById('auditLogCategoryFilter');
   if (auditLogCategoryFilter) auditLogCategoryFilter.addEventListener('change', renderAuditLog);
