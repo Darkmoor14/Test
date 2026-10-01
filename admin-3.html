@@ -204,6 +204,11 @@
      beat .admin-tab's one regardless of stylesheet order. */
   .rail-item.admin-tab{padding:0;border-bottom:none;margin-bottom:0;font:inherit;}
   .rail-footer{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;position:relative;}
+  .rail-help-btn{
+    width:32px;height:32px;border-radius:50%;border:none;background:none;color:var(--ink-400);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+  }
+  .rail-help-btn:hover{background:var(--paper-100);color:var(--ink-900);}
   .rail-account{
     width:32px;height:32px;border-radius:8px;border:none;background:none;color:var(--ink-400);
     display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
@@ -543,6 +548,21 @@
     max-width:1680px;margin:0 auto;box-sizing:border-box;
   }
   .home-start-grid{display:grid;grid-template-columns:300px minmax(0,1fr) 440px;gap:26px;align-items:start;}
+  .home-smart-search{margin-bottom:4px;}
+  .home-smart-search-input-wrap{
+    display:flex;align-items:center;gap:10px;
+    border:1px solid var(--line-strong);border-radius:8px;padding:4px 4px 4px 14px;background:var(--paper-000);
+  }
+  .home-smart-search-input-wrap svg{color:var(--ink-400);flex-shrink:0;}
+  .home-smart-search-input-wrap input{
+    flex:1;border:none;outline:none;font:inherit;font-size:14px;color:var(--ink-900);background:transparent;min-width:0;
+  }
+  .home-smart-search-input-wrap input::placeholder{color:var(--ink-400);}
+  .home-smart-search-result{
+    margin-top:10px;padding:12px 16px;border:1px solid var(--line-strong);border-radius:8px;background:var(--paper-050);
+    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  }
+  .home-smart-search-answer{margin:0;font-size:14px;color:var(--ink-900);}
   .home-nav-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:22px;}
   .home-nav-btn{
     display:flex;flex-direction:column;align-items:flex-start;gap:10px;
@@ -697,6 +717,10 @@
   .status-card-head h4{font-size:14px;margin:0;}
   .status-card-head-actions{display:flex;gap:8px;margin-left:auto;}
   .status-card-head-btn{font-size:11.5px;padding:4px 10px;}
+  .status-subhead{font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-400);margin:16px 0 6px;}
+  .status-subhead:first-of-type{margin-top:0;}
+  .status-workflow-bar{height:5px;border-radius:3px;background:var(--paper-100);margin-top:5px;overflow:hidden;}
+  .status-workflow-bar-fill{height:100%;background:var(--copper-500);border-radius:3px;}
   .status-dot{
     width:9px;height:9px;border-radius:50%;background:var(--ink-300);flex-shrink:0;
   }
@@ -1590,6 +1614,34 @@
   .sheet-actions{
     display:flex;gap:10px;justify-content:flex-end;margin-top:18px;
   }
+  /* ===== Onboarding guided tour — a spotlight cutout (one element,
+     a huge box-shadow trick) plus a tooltip, both repositioned with
+     getBoundingClientRect() on every step. Not a mobile-sheet: it
+     needs to float over a live, specific part of the real page
+     rather than slide up as its own panel. */
+  .onboarding-overlay{position:fixed;inset:0;z-index:10000;}
+  .onboarding-overlay[hidden]{display:none;}
+  .onboarding-spotlight{
+    position:fixed;z-index:10001;border-radius:8px;
+    box-shadow:0 0 0 9999px rgba(20,24,29,0.6);
+    transition:top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+    pointer-events:none;
+  }
+  .onboarding-tooltip{
+    position:fixed;z-index:10002;max-width:320px;
+    background:var(--paper-000);border:1px solid var(--line-strong);border-radius:10px;
+    padding:16px 18px;box-shadow:0 12px 32px rgba(20,24,29,0.22);
+    transition:top 0.2s ease, left 0.2s ease;
+  }
+  .onboarding-tooltip-step{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+    color:var(--copper-600);margin-bottom:6px;
+  }
+  .onboarding-tooltip h4{margin:0 0 6px;font-size:15px;}
+  .onboarding-tooltip p{margin:0 0 14px;font-size:13px;color:var(--ink-600);line-height:1.5;}
+  .onboarding-tooltip-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .onboarding-tooltip-nav{display:flex;gap:8px;}
+  .onboarding-tooltip-actions .btn{font-size:12px;padding:6px 12px;}
   .month-picker-list{
     display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;
   }
@@ -1891,6 +1943,9 @@
         </button>
       </div>
       <div class="rail-footer">
+        <button type="button" class="rail-help-btn" id="railHelpBtn" title="Tur rapid / Ajutor">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
+        </button>
         <button type="button" class="rail-account" id="sidebarAccountBtn" aria-haspopup="true" aria-expanded="false" title="Cont">
           <span class="sidebar-account-avatar" id="sidebarAccountAvatar">—</span>
         </button>
@@ -2147,6 +2202,14 @@
         <div class="home-start-main">
           <div class="home-intro">
             <div><div class="home-eyebrow">Acasă</div><h2 id="homeGreeting">Bine ai revenit.</h2></div>
+          </div>
+          <div class="home-smart-search">
+            <div class="home-smart-search-input-wrap">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="search" id="homeSmartSearchInput" placeholder="Întreabă ceva: ex. „cât cablu CYABY mai am”, „unde e excavatorul”, „câte mașini sunt disponibile”">
+              <button type="button" class="btn btn-primary" id="homeSmartSearchBtn">Caută</button>
+            </div>
+            <div class="home-smart-search-result" id="homeSmartSearchResult" hidden></div>
           </div>
           <div class="home-nav-grid">
             <button type="button" class="home-nav-btn" id="homeNavTickets">
@@ -2799,6 +2862,31 @@
           <div class="status-history-list" id="statusFrictionList"></div>
         </div>
 
+        <div class="status-card status-card-wide" id="statusCardWorkflow">
+          <div class="status-card-head">
+            <h4>Workflow — cum se folosește platforma</h4>
+            <div class="status-card-head-actions">
+              <button type="button" class="btn status-card-head-btn" id="statusDownloadWorkflowBtn">Descarcă JSON</button>
+            </div>
+          </div>
+          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Timp petrecut pe fiecare pagină și acțiunile cele mai folosite, ca să se știe unde chiar contează efortul de îmbunătățire.</p>
+          <h5 class="status-subhead">Timp petrecut pe pagini (ultimele 30 de zile)</h5>
+          <div class="status-history-list" id="statusTimeByTabList"></div>
+          <h5 class="status-subhead">Acțiuni cele mai folosite</h5>
+          <div class="status-history-list" id="statusTopActionsList"></div>
+        </div>
+
+        <div class="status-card status-card-wide" id="statusCardSearches">
+          <div class="status-card-head">
+            <h4>Ce caută oamenii</h4>
+            <div class="status-card-head-actions">
+              <button type="button" class="btn status-card-head-btn" id="statusDownloadSearchesBtn">Descarcă JSON</button>
+            </div>
+          </div>
+          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Întrebările puse în căutarea de pe Acasă — inclusiv cele fără răspuns găsit, care arată ce lipsește din date.</p>
+          <div class="status-history-list" id="statusSearchesList"></div>
+        </div>
+
         <div class="status-card status-card-wide" id="statusCardChangelog">
           <div class="status-card-head">
             <h4>Istoric actualizări</h4>
@@ -3242,6 +3330,10 @@
         <label>Unitate</label>
         <input type="text" id="ef-unit" placeholder="ex: buc, kg, m">
       </div>
+      <div class="ctrl-field" id="ef-odometer-field">
+        <label>Kilometraj (km)</label>
+        <input type="number" id="ef-odometer" min="0" step="1" placeholder="ex: 48200">
+      </div>
       <div class="ctrl-field">
         <label>Nr. serie / inventar</label>
         <input type="text" id="ef-serial" placeholder="ex: SN-4471">
@@ -3435,6 +3527,22 @@
     <div class="sheet-actions">
       <button type="button" class="btn" id="duplicateLinkCancelBtn">Anulează</button>
       <button type="button" class="btn btn-primary" id="duplicateLinkConfirmBtn" style="display:none;" disabled>Confirmă</button>
+    </div>
+  </div>
+</div>
+
+<div class="onboarding-overlay" id="onboardingTour" hidden>
+  <div class="onboarding-spotlight" id="onboardingSpotlight"></div>
+  <div class="onboarding-tooltip" id="onboardingTooltip">
+    <div class="onboarding-tooltip-step" id="onboardingStepLabel"></div>
+    <h4 id="onboardingTooltipTitle"></h4>
+    <p id="onboardingTooltipText"></p>
+    <div class="onboarding-tooltip-actions">
+      <button type="button" class="btn" id="onboardingSkipBtn">Sari peste tur</button>
+      <div class="onboarding-tooltip-nav">
+        <button type="button" class="btn" id="onboardingPrevBtn">Înapoi</button>
+        <button type="button" class="btn btn-primary" id="onboardingNextBtn">Următor</button>
+      </div>
     </div>
   </div>
 </div>
@@ -4346,6 +4454,13 @@
         loadBacklogProjects();
       });
       loadStaffRoster();
+      // First-ever login on this browser — walk through the basics once,
+      // automatically. Re-openable anytime from the "?" button in the rail.
+      try {
+        if (isReportFocusedView() && !localStorage.getItem(ONBOARDING_SEEN_KEY)) {
+          setTimeout(() => { if (typeof startOnboardingTour === 'function') startOnboardingTour(); }, 900);
+        }
+      } catch (e) { /* localStorage unavailable — just skip auto-start */ }
     });
   }
 
@@ -5177,6 +5292,7 @@
     loadProjects();
     loadBacklogProjects();
     loadCalendarEvents();
+    loadEquipment(); // also keeps the home-page smart search answerable without visiting ERP first
   }
 
   function setHomeTabFilter(tabKey){
@@ -5724,6 +5840,8 @@
       checkStatusSystem(),
       loadErrorLog(),
       loadFrictionSignals(),
+      loadWorkflowStats(),
+      loadSearchQueries(),
     ]);
     renderChangelog();
     if (lastCheckedEl) {
@@ -5805,11 +5923,17 @@
   const RAGE_CLICK_WINDOW_MS = 700;
   const RAGE_CLICK_THRESHOLD = 3;
   const RAGE_CLICK_THROTTLE_MS = 60000;
+  // Workflow tracking — tallied in memory and flushed periodically (not
+  // one row per click) so "what do people click most" is answerable
+  // without writing a row on every single click in the app.
+  const featureClickTally = new Map();
   document.addEventListener('click', (e) => {
     const target = e.target.closest('button, a, [role="button"]');
     if (!target) return;
     const sig = frictionElementLabel(target);
     const now = Date.now();
+    const tallyKey = (typeof currentAdminTab !== 'undefined' ? currentAdminTab : '') + '|' + sig;
+    featureClickTally.set(tallyKey, (featureClickTally.get(tallyKey) || 0) + 1);
     const rec = rageClickTracker.get(sig);
     if (rec && (now - rec.firstTs) < RAGE_CLICK_WINDOW_MS) {
       rec.count++;
@@ -5825,6 +5949,40 @@
       rageClickTracker.set(sig, { count: 1, firstTs: now });
     }
   }, true);
+  async function flushFeatureClickTally(){
+    if (featureClickTally.size === 0) return;
+    const rows = Array.from(featureClickTally.entries()).map(([key, count]) => {
+      const sepIdx = key.indexOf('|');
+      return {
+        tab: key.slice(0, sepIdx) || null,
+        target_label: key.slice(sepIdx + 1),
+        click_count: count,
+        user_email: currentSessionEmail || null,
+      };
+    });
+    featureClickTally.clear();
+    try { await supabaseClient.from('app_feature_clicks').insert(rows); } catch (e) { /* best effort */ }
+  }
+  setInterval(flushFeatureClickTally, 120000);
+  window.addEventListener('beforeunload', () => {
+    flushFeatureClickTally();
+    if (typeof currentAdminTab !== 'undefined') recordTabDwellTime(currentAdminTab);
+  });
+
+  // Tab dwell time — how long each tab stays open before switching away.
+  let tabEnteredAt = Date.now();
+  async function logPageView(tab, durationSeconds){
+    try {
+      await supabaseClient.from('app_page_views').insert({ tab, duration_seconds: Math.round(durationSeconds), user_email: currentSessionEmail || null });
+    } catch (e) { /* best effort */ }
+  }
+  function recordTabDwellTime(prevTab){
+    if (!prevTab) return;
+    const seconds = (Date.now() - tabEnteredAt) / 1000;
+    tabEnteredAt = Date.now();
+    if (seconds < 2) return; // ignore accidental instant tab flicks
+    logPageView(prevTab, seconds);
+  }
   // Heavy typing: a text field that soaks up far more keystrokes than a
   // short answer would — a candidate for a picker/autocomplete/shorter
   // flow instead of free text.
@@ -5932,6 +6090,105 @@
   const statusDownloadFrictionBtn = document.getElementById('statusDownloadFrictionBtn');
   if (statusDownloadFrictionBtn) statusDownloadFrictionBtn.addEventListener('click', () => {
     downloadJson(`semnale-frictiune-ui-${new Date().toISOString().slice(0, 10)}.json`, lastFrictionSignalRows);
+  });
+
+  let lastPageViewRows = [];
+  let lastFeatureClickRows = [];
+  async function loadWorkflowStats(){
+    const timeListEl = document.getElementById('statusTimeByTabList');
+    const actionsListEl = document.getElementById('statusTopActionsList');
+    if (!timeListEl || !actionsListEl) return;
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const [viewsResult, clicksResult] = await Promise.all([
+      supabaseClient.from('app_page_views').select('*').gte('created_at', cutoff).order('created_at', { ascending: false }).limit(2000),
+      supabaseClient.from('app_feature_clicks').select('*').gte('created_at', cutoff).order('created_at', { ascending: false }).limit(2000),
+    ]);
+    lastPageViewRows = viewsResult.data || [];
+    lastFeatureClickRows = clicksResult.data || [];
+
+    if (lastPageViewRows.length === 0) {
+      timeListEl.innerHTML = '<p class="status-history-empty">Încă nu sunt date despre timpul petrecut pe pagini.</p>';
+    } else {
+      const byTab = new Map();
+      lastPageViewRows.forEach(row => {
+        const tabLabel = BREADCRUMB_TABS[row.tab] || row.tab || '—';
+        byTab.set(tabLabel, (byTab.get(tabLabel) || 0) + Number(row.duration_seconds || 0));
+      });
+      const sorted = Array.from(byTab.entries()).sort((a, b) => b[1] - a[1]).slice(0, 12);
+      const maxSeconds = sorted.length ? sorted[0][1] : 1;
+      timeListEl.innerHTML = sorted.map(([tabLabel, seconds]) => {
+        const minutes = Math.round(seconds / 60);
+        const pct = Math.max(4, Math.round((seconds / maxSeconds) * 100));
+        return `
+          <div class="status-history-item ok">
+            <span class="status-history-time">${minutes} min</span>
+            <span class="status-history-dot"></span>
+            <div>
+              <div class="status-history-check">${escapeHtml(tabLabel)}</div>
+              <div class="status-workflow-bar"><div class="status-workflow-bar-fill" style="width:${pct}%"></div></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    if (lastFeatureClickRows.length === 0) {
+      actionsListEl.innerHTML = '<p class="status-history-empty">Încă nu sunt date despre acțiunile folosite.</p>';
+    } else {
+      const byAction = new Map();
+      lastFeatureClickRows.forEach(row => {
+        const key = (row.tab || '—') + '|' + (row.target_label || '—');
+        byAction.set(key, (byAction.get(key) || 0) + (Number(row.click_count) || 0));
+      });
+      const sorted = Array.from(byAction.entries()).sort((a, b) => b[1] - a[1]).slice(0, 15);
+      actionsListEl.innerHTML = sorted.map(([key, count]) => {
+        const sepIdx = key.indexOf('|');
+        const tab = key.slice(0, sepIdx);
+        const label = key.slice(sepIdx + 1);
+        const tabLabel = BREADCRUMB_TABS[tab] || tab;
+        return `
+          <div class="status-history-item ok">
+            <span class="status-history-time">×${count}</span>
+            <span class="status-history-dot"></span>
+            <div>
+              <div class="status-history-check">${escapeHtml(label)}</div>
+              <div class="status-history-message">${escapeHtml(tabLabel || '')}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+  const statusDownloadWorkflowBtn = document.getElementById('statusDownloadWorkflowBtn');
+  if (statusDownloadWorkflowBtn) statusDownloadWorkflowBtn.addEventListener('click', () => {
+    downloadJson(`workflow-${new Date().toISOString().slice(0, 10)}.json`, { page_views: lastPageViewRows, feature_clicks: lastFeatureClickRows });
+  });
+
+  let lastSearchQueryRows = [];
+  async function loadSearchQueries(){
+    const listEl = document.getElementById('statusSearchesList');
+    if (!listEl) return;
+    const { data, error } = await supabaseClient.from('app_interaction_signals').select('*').eq('signal_type', 'search_query').order('created_at', { ascending: false }).limit(100);
+    if (error) { listEl.innerHTML = '<p class="status-history-empty">Căutările nu au putut fi încărcate.</p>'; return; }
+    lastSearchQueryRows = data || [];
+    if (lastSearchQueryRows.length === 0) { listEl.innerHTML = '<p class="status-history-empty">Nicio căutare înregistrată încă.</p>'; return; }
+    listEl.innerHTML = lastSearchQueryRows.map(row => {
+      const matched = !!(row.meta && row.meta.matched);
+      return `
+        <div class="status-history-item${matched ? ' ok' : ''}">
+          <span class="status-history-time">${formatLogTimeRO(row.created_at)}</span>
+          <span class="status-history-dot"></span>
+          <div>
+            <div class="status-history-check">„${escapeHtml(row.target_label || '')}”</div>
+            <div class="status-history-message">${matched ? 'răspuns găsit' : 'fără răspuns'}${row.user_email ? ' · ' + escapeHtml(row.user_email) : ''}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  const statusDownloadSearchesBtn = document.getElementById('statusDownloadSearchesBtn');
+  if (statusDownloadSearchesBtn) statusDownloadSearchesBtn.addEventListener('click', () => {
+    downloadJson(`cautari-acasa-${new Date().toISOString().slice(0, 10)}.json`, lastSearchQueryRows);
   });
 
   // Updated by hand each time a real change ships — a plain, visible
@@ -7517,6 +7774,10 @@
     // does on login.
     if (tabKey !== currentAdminTab) {
       refreshAllAdminData();
+    }
+    if (tabKey !== currentAdminTab && typeof recordTabDwellTime === 'function') {
+      recordTabDwellTime(currentAdminTab);
+      if (typeof flushFeatureClickTally === 'function') flushFeatureClickTally();
     }
     currentAdminTab = tabKey;
   }
@@ -10927,7 +11188,7 @@
   function renderErpRow(eq){
     const isEquipment = eq.item_type === 'echipament';
     const erpCategory = eq.erp_category || (isEquipment ? 'echipament' : 'material');
-    const qtyLabel = !isEquipment && eq.quantity != null ? (Number(eq.quantity) + (eq.unit ? ' ' + eq.unit : '')) : '';
+    const qtyLabel = !isEquipment && eq.quantity != null ? (Number(eq.quantity) + (eq.unit ? ' ' + eq.unit : '')) : (erpCategory === 'masina' && eq.odometer_km != null ? Number(eq.odometer_km).toLocaleString('ro-RO') + ' km' : '');
     const myAssignments = allResourceAssignments.filter(a => a.inventory_item_id === eq.id && a.status === 'reserved');
     let reservationNote = '';
     if (isEquipment && myAssignments.length) {
@@ -11018,11 +11279,15 @@
   const ERP_ITEM_FORM_TITLE = { echipament: 'echipament', masina: 'mașină', material: 'material' };
   function syncEquipmentFormFields(){
     const isMaterial = efTypeSelect.value === 'material';
+    const isVehicle = efTypeSelect.value === 'masina';
     document.getElementById('ef-quantity-field').style.display = isMaterial ? '' : 'none';
     document.getElementById('ef-unit-field').style.display = isMaterial ? '' : 'none';
+    document.getElementById('ef-odometer-field').style.display = isVehicle ? '' : 'none';
   }
   if (efTypeSelect) efTypeSelect.addEventListener('change', syncEquipmentFormFields);
+  let efEditingOriginalOdometer = null;
   function openEquipmentForm(eq, presetCategory){
+    efEditingOriginalOdometer = eq && eq.odometer_km != null ? Number(eq.odometer_km) : null;
     const erpCategory = eq ? (eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material')) : (presetCategory || 'echipament');
     document.getElementById('ef-id').value = eq ? eq.id : '';
     document.getElementById('ef-name').value = eq ? eq.name : '';
@@ -11030,6 +11295,7 @@
     document.getElementById('ef-category').value = eq ? (eq.category || '') : '';
     document.getElementById('ef-quantity').value = eq ? eq.quantity : 1;
     document.getElementById('ef-unit').value = eq ? (eq.unit || '') : '';
+    document.getElementById('ef-odometer').value = eq && eq.odometer_km != null ? eq.odometer_km : '';
     document.getElementById('ef-serial').value = eq ? (eq.serial_number || '') : '';
     document.getElementById('ef-location').value = eq ? (eq.location || '') : '';
     document.getElementById('ef-assigned').value = eq ? (eq.assigned_to || '') : '';
@@ -11054,6 +11320,8 @@
     const category = document.getElementById('ef-category').value.trim();
     const quantity = parseFloat(document.getElementById('ef-quantity').value) || 0;
     const unit = document.getElementById('ef-unit').value.trim();
+    const odometerRaw = document.getElementById('ef-odometer').value;
+    const odometer_km = erp_category === 'masina' && odometerRaw !== '' ? parseFloat(odometerRaw) : null;
     const serial_number = document.getElementById('ef-serial').value.trim();
     const location = document.getElementById('ef-location').value.trim();
     const assigned_to = document.getElementById('ef-assigned').value.trim();
@@ -11066,11 +11334,14 @@
       name, quantity, item_type, erp_category,
       category: category || null,
       unit: unit || null,
+      odometer_km,
+      odometer_updated_at: odometer_km != null && odometer_km !== efEditingOriginalOdometer ? new Date().toISOString() : undefined,
       serial_number: serial_number || null,
       location: location || null,
       assigned_to: assigned_to || null,
       notes: notes || null,
     };
+    if (payload.odometer_updated_at === undefined) delete payload.odometer_updated_at;
     const { error } = id
       ? await supabaseClient.from('equipment_inventory').update(payload).eq('id', id)
       : await supabaseClient.from('equipment_inventory').insert(payload);
@@ -11079,6 +11350,132 @@
     showToast(id ? 'Articolul a fost actualizat.' : 'Articolul a fost adăugat.');
     loadEquipment();
   });
+
+  /* ============================================================
+     ACASĂ — CĂUTARE INTELIGENTĂ. Un motor pe reguli (nu AI — fără
+     cost, fără cheie API, răspunde instant) peste inventarul ERP
+     (allEquipment), pentru întrebări de genul "cât cablu X mai am",
+     "unde e excavatorul", "câte mașini sunt disponibile", "câți km
+     are mașina Y". Acoperă tiparele de mai jos; orice altceva
+     primește un mesaj clar că nu a fost găsit, mai degrabă decât un
+     răspuns ghicit greșit. Fiecare căutare e logată ca semnal
+     ('search_query') — inclusiv cele nereușite, care arată exact ce
+     lipsește din date — vizibil în Stare sistem, sub „Ce caută
+     oamenii”.
+     ============================================================ */
+  function normalizeSearchText(s){
+    return (s || '').toString().toLowerCase()
+      .replace(/ă/g, 'a').replace(/â/g, 'a').replace(/î/g, 'i').replace(/ș/g, 's').replace(/ş/g, 's').replace(/ț/g, 't').replace(/ţ/g, 't')
+      .replace(/[^a-z0-9 ]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  const SEARCH_STOPWORDS = new Set(['de', 'la', 'in', 'din', 'pe', 'si', 'cu', 'al', 'a', 'un', 'o', 'ce', 'mai', 'e', 'este', 'sunt', 'am', 'are']);
+  function searchTokens(s){
+    return normalizeSearchText(s).split(' ').filter(t => t.length >= 2 && !SEARCH_STOPWORDS.has(t));
+  }
+  function tabForErpCategory(cat){ return cat === 'echipament' ? 'equipment' : cat === 'masina' ? 'machines' : 'materials'; }
+  function findBestEquipmentMatch(queryNorm){
+    // Real item names carry a brand/model ("Excavator JCB 3CX") nobody
+    // actually types ("unde e excavatorul") — so this picks whichever
+    // item has the most of its name tokens present in the query at all
+    // (not a strict majority), tie-broken by how much of the name that
+    // covers, rather than requiring most of the name to be typed out.
+    let best = null, bestHits = 0, bestRatio = 0;
+    (typeof allEquipment !== 'undefined' ? allEquipment : []).forEach(eq => {
+      const nameTokens = searchTokens(eq.name);
+      if (!nameTokens.length) return;
+      let hits = 0;
+      nameTokens.forEach(t => { if (queryNorm.indexOf(t) !== -1) hits++; });
+      if (hits === 0) return;
+      const ratio = hits / nameTokens.length;
+      if (hits > bestHits || (hits === bestHits && ratio > bestRatio)) {
+        best = eq; bestHits = hits; bestRatio = ratio;
+      }
+    });
+    return best;
+  }
+  const SEARCH_CATEGORY_WORDS = { echipament: ['echipament', 'echipamente'], masina: ['masina', 'masini'], material: ['material', 'materiale'] };
+  const SEARCH_STATUS_WORDS = { 'Disponibil': ['disponibil', 'disponibile'], 'In folosinta': ['folosinta', 'folosita', 'folosite'], 'Service': ['service'], 'Indisponibil': ['indisponibil', 'indisponibile'] };
+  function answerSmartQuery(raw){
+    const q = normalizeSearchText(raw);
+    if (!q) return { text: 'Scrie o întrebare — de exemplu „cât cablu CYABY mai am” sau „unde e excavatorul”.', tab: null, matched: false };
+
+    // 1) Aggregate/count questions: "câte <categorie> [stare]"
+    if (/\b(cat|cate|cati)\b/.test(q)) {
+      let matchedCategory = null;
+      for (const cat of Object.keys(SEARCH_CATEGORY_WORDS)) { if (SEARCH_CATEGORY_WORDS[cat].some(w => q.includes(w))) { matchedCategory = cat; break; } }
+      if (matchedCategory) {
+        let matchedStatus = null;
+        for (const status of Object.keys(SEARCH_STATUS_WORDS)) { if (SEARCH_STATUS_WORDS[status].some(w => q.includes(w))) { matchedStatus = status; break; } }
+        let items = (allEquipment || []).filter(e => (e.erp_category || '') === matchedCategory);
+        if (matchedStatus) items = items.filter(e => e.status === matchedStatus);
+        const catLabel = { echipament: 'echipamente', masina: 'mașini', material: 'materiale' }[matchedCategory];
+        const statusLabel = matchedStatus ? ' ' + (EQUIPMENT_STATUS_LABEL[matchedStatus] || matchedStatus).toLowerCase() : '';
+        const names = items.slice(0, 6).map(e => e.name).join(', ');
+        return {
+          text: `${items.length} ${catLabel}${statusLabel}${items.length ? ': ' + names + (items.length > 6 ? '…' : '') : '.'}`,
+          tab: tabForErpCategory(matchedCategory), matched: true,
+        };
+      }
+    }
+
+    // 2) Item-specific questions — find the best-matching ERP item by name.
+    const item = findBestEquipmentMatch(q);
+    if (item) {
+      const isVehicle = item.erp_category === 'masina';
+      const isMaterial = item.erp_category === 'material';
+      const tab = tabForErpCategory(item.erp_category);
+      if (isVehicle && /\bkm\b|kilometr/.test(q)) {
+        if (item.odometer_km != null) {
+          const updated = item.odometer_updated_at ? ` (actualizat ${formatLogTimeRO(item.odometer_updated_at)})` : '';
+          return { text: `${item.name} are ${Number(item.odometer_km).toLocaleString('ro-RO')} km${updated}.`, tab, matched: true };
+        }
+        return { text: `Nu există încă un kilometraj înregistrat pentru ${item.name}.`, tab, matched: false };
+      }
+      if (/\bunde\b|cine are|la cine/.test(q)) {
+        const loc = item.location ? `se află la ${item.location}` : 'nu are o locație înregistrată';
+        const assigned = item.assigned_to ? `, alocat(ă) la ${item.assigned_to}` : '';
+        return { text: `${item.name} ${loc}${assigned}.`, tab, matched: true };
+      }
+      if (isMaterial && (/\bstoc\b|ramas|\bcat\b|\bcate\b/.test(q))) {
+        const reserved = (allResourceAssignments || []).filter(a => a.inventory_item_id === item.id && a.status === 'reserved' && a.item_type === 'material').reduce((s, a) => s + (Number(a.quantity) || 0), 0);
+        const reservedNote = reserved ? ` (din care ${reserved}${item.unit ? ' ' + item.unit : ''} rezervat pe proiecte neterminate)` : '';
+        return { text: `Mai sunt ${Number(item.quantity)}${item.unit ? ' ' + item.unit : ''} din ${item.name}${reservedNote}.`, tab, matched: true };
+      }
+      if (/status|stare|disponibil/.test(q)) {
+        return { text: `${item.name}: ${EQUIPMENT_STATUS_LABEL[item.status] || item.status}.`, tab, matched: true };
+      }
+      // Fallback — a general summary of the best-matching item.
+      const parts = [`${item.name} — ${EQUIPMENT_STATUS_LABEL[item.status] || item.status}`];
+      if (isMaterial) parts.push(`stoc: ${Number(item.quantity)}${item.unit ? ' ' + item.unit : ''}`);
+      if (item.location) parts.push(`locație: ${item.location}`);
+      if (item.assigned_to) parts.push(`alocat: ${item.assigned_to}`);
+      if (isVehicle && item.odometer_km != null) parts.push(`${Number(item.odometer_km).toLocaleString('ro-RO')} km`);
+      return { text: parts.join(' · '), tab, matched: true };
+    }
+
+    return { text: `Nu am găsit niciun rezultat pentru „${raw.trim()}”. Încearcă numele unui echipament/mașină/material, sau o întrebare ca „unde e X”, „cât X mai am”, „câte mașini sunt disponibile”.`, tab: null, matched: false };
+  }
+  const homeSmartSearchInput = document.getElementById('homeSmartSearchInput');
+  const homeSmartSearchBtn = document.getElementById('homeSmartSearchBtn');
+  const homeSmartSearchResult = document.getElementById('homeSmartSearchResult');
+  function runHomeSmartSearch(){
+    if (!homeSmartSearchInput || !homeSmartSearchResult) return;
+    const raw = homeSmartSearchInput.value;
+    if (!raw.trim()) { homeSmartSearchResult.hidden = true; return; }
+    const result = answerSmartQuery(raw);
+    homeSmartSearchResult.hidden = false;
+    homeSmartSearchResult.innerHTML = `
+      <p class="home-smart-search-answer">${escapeHtml(result.text)}</p>
+      ${result.tab ? '<button type="button" class="btn" id="homeSmartSearchGoto">Vezi în ERP</button>' : ''}
+    `;
+    const gotoBtn = document.getElementById('homeSmartSearchGoto');
+    if (gotoBtn) gotoBtn.addEventListener('click', () => openAdminTab(result.tab));
+    if (typeof logFrictionSignal === 'function') logFrictionSignal('search_query', raw.trim().slice(0, 120), { matched: result.matched, tab: result.tab });
+  }
+  if (homeSmartSearchBtn) homeSmartSearchBtn.addEventListener('click', runHomeSmartSearch);
+  if (homeSmartSearchInput) homeSmartSearchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); runHomeSmartSearch(); } });
 
   /* ============================================================
      PROIECTE → HOME — a small analytics summary across all four
@@ -11790,6 +12187,133 @@
       loadTickets();
     });
   }
+
+  /* ============================================================
+     ONBOARDING — un tur ghidat rapid pentru cineva nou, cu un
+     spotlight peste elementele reale ale paginii (nu capturi de
+     ecran statice — arată exact unde e fiecare lucru chiar acum).
+     Pornește automat o singură dată per browser (vezi mai sus, în
+     showDashboard) și poate fi redeschis oricând din butonul „?”
+     din bara principală.
+     ============================================================ */
+  const ONBOARDING_SEEN_KEY = 'onboarding_tour_seen_v1';
+  let onboardingSavedCategory = null;
+  const ONBOARDING_STEPS = [
+    {
+      selector: '.rail',
+      title: 'Bara principală',
+      text: 'De aici treci între zonele mari ale platformei — Sesizări, Proiecte, ERP, Documentație și Stare sistem. Rămâne mereu vizibilă, pe orice pagină.',
+    },
+    {
+      selector: '.category-panel',
+      title: 'Submeniul',
+      text: 'Fiecare zonă își arată aici paginile proprii. De exemplu, sub „Proiecte” găsești Proiecte publice, Avarii rețele, Proiecte LPS și Programe lucrări.',
+      beforeShow(){ onboardingSavedCategory = TAB_CATEGORY[currentAdminTab] || 'home'; setActiveCategory('projects'); },
+      afterHide(){ setActiveCategory(onboardingSavedCategory); },
+    },
+    {
+      selector: '.home-smart-search',
+      title: 'Căutare rapidă',
+      text: 'Scrie o întrebare simplă — „cât cablu X mai am”, „unde e excavatorul”, „câte mașini sunt disponibile” — și primești direct răspunsul, fără să cauți manual prin ERP.',
+    },
+    {
+      selector: '.home-nav-grid',
+      title: 'Acces rapid',
+      text: 'Fiecare buton te duce direct unde contează cel mai des — de exemplu, „Sesizări” te duce direct la cele active, nu la tot istoricul.',
+    },
+    {
+      selector: '.home-todo-card',
+      title: 'Notițele tale',
+      text: 'Un spațiu personal, tip post-it, salvat doar în acest browser — nu e vizibil pentru alți utilizatori.',
+    },
+    {
+      selector: '[data-tab="docs"]',
+      title: 'Documentație completă',
+      text: 'Dacă vrei detalii pas cu pas pentru orice pagină sau buton din platformă, ghidul complet e mereu aici.',
+    },
+  ];
+  let onboardingStepIndex = 0;
+  function positionOnboardingStep(){
+    const step = ONBOARDING_STEPS[onboardingStepIndex];
+    const target = document.querySelector(step.selector);
+    const spotlight = document.getElementById('onboardingSpotlight');
+    const tooltip = document.getElementById('onboardingTooltip');
+    if (!target || !spotlight || !tooltip) { onboardingNext(); return; }
+    const rect = target.getBoundingClientRect();
+    const pad = 6;
+    spotlight.style.top = (rect.top - pad) + 'px';
+    spotlight.style.left = (rect.left - pad) + 'px';
+    spotlight.style.width = (rect.width + pad * 2) + 'px';
+    spotlight.style.height = (rect.height + pad * 2) + 'px';
+
+    document.getElementById('onboardingStepLabel').textContent = `Pasul ${onboardingStepIndex + 1} din ${ONBOARDING_STEPS.length}`;
+    document.getElementById('onboardingTooltipTitle').textContent = step.title;
+    document.getElementById('onboardingTooltipText').textContent = step.text;
+    document.getElementById('onboardingPrevBtn').style.visibility = onboardingStepIndex === 0 ? 'hidden' : 'visible';
+    document.getElementById('onboardingNextBtn').textContent = onboardingStepIndex === ONBOARDING_STEPS.length - 1 ? 'Am înțeles' : 'Următor';
+
+    // Prefer to the right of the spotlight if there's room, else below it,
+    // clamped so the tooltip never runs off the viewport.
+    const tooltipWidth = 320;
+    let top = rect.top;
+    let left = rect.right + 16;
+    if (left + tooltipWidth > window.innerWidth) {
+      left = Math.max(16, rect.left);
+      top = rect.bottom + 18;
+    }
+    if (top + 220 > window.innerHeight) top = Math.max(16, window.innerHeight - 240);
+    if (left + tooltipWidth > window.innerWidth) left = Math.max(16, window.innerWidth - tooltipWidth - 16);
+    tooltip.style.top = Math.max(16, top) + 'px';
+    tooltip.style.left = left + 'px';
+  }
+  function showOnboardingStep(){
+    const step = ONBOARDING_STEPS[onboardingStepIndex];
+    if (step.beforeShow) step.beforeShow();
+    // Wait a frame for any layout change (e.g. the category panel
+    // opening) to settle before measuring the target's position.
+    requestAnimationFrame(() => requestAnimationFrame(positionOnboardingStep));
+  }
+  function hideCurrentOnboardingStep(){
+    const step = ONBOARDING_STEPS[onboardingStepIndex];
+    if (step && step.afterHide) step.afterHide();
+  }
+  function onboardingNext(){
+    hideCurrentOnboardingStep();
+    if (onboardingStepIndex >= ONBOARDING_STEPS.length - 1) { endOnboardingTour(); return; }
+    onboardingStepIndex++;
+    showOnboardingStep();
+  }
+  function onboardingPrev(){
+    if (onboardingStepIndex === 0) return;
+    hideCurrentOnboardingStep();
+    onboardingStepIndex--;
+    showOnboardingStep();
+  }
+  function startOnboardingTour(){
+    onboardingStepIndex = 0;
+    if (currentAdminTab !== 'home') openAdminTab('home');
+    const overlay = document.getElementById('onboardingTour');
+    if (overlay) overlay.hidden = false;
+    showOnboardingStep();
+    try { localStorage.setItem(ONBOARDING_SEEN_KEY, '1'); } catch (e) { /* ignore */ }
+  }
+  function endOnboardingTour(){
+    hideCurrentOnboardingStep();
+    const overlay = document.getElementById('onboardingTour');
+    if (overlay) overlay.hidden = true;
+  }
+  window.addEventListener('resize', () => {
+    const overlay = document.getElementById('onboardingTour');
+    if (overlay && !overlay.hidden) positionOnboardingStep();
+  });
+  const railHelpBtn = document.getElementById('railHelpBtn');
+  if (railHelpBtn) railHelpBtn.addEventListener('click', startOnboardingTour);
+  const onboardingNextBtn = document.getElementById('onboardingNextBtn');
+  if (onboardingNextBtn) onboardingNextBtn.addEventListener('click', onboardingNext);
+  const onboardingPrevBtn = document.getElementById('onboardingPrevBtn');
+  if (onboardingPrevBtn) onboardingPrevBtn.addEventListener('click', onboardingPrev);
+  const onboardingSkipBtn = document.getElementById('onboardingSkipBtn');
+  if (onboardingSkipBtn) onboardingSkipBtn.addEventListener('click', endOnboardingTour);
 
   checkSession();
 </script>
