@@ -575,6 +575,17 @@
   .home-smart-search-suggestions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
   .home-smart-suggestion-chip{cursor:pointer;}
   .home-nav-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:22px;}
+  .home-digest-card{
+    margin-top:22px;background:var(--paper-000);border:1px solid var(--line-strong);
+    border-radius:9px;padding:20px 22px;
+  }
+  .home-digest-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:14px;}
+  .home-digest-head h3{margin:0;font-size:15px;}
+  .home-digest-range{font-family:var(--mono);font-size:11px;color:var(--ink-400);}
+  .home-digest-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:18px;}
+  .home-digest-tile{cursor:pointer;}
+  .home-digest-tile .status-stat.warn{color:var(--signal-orange);}
+  .home-digest-empty{font-size:13px;color:var(--ink-400);}
   .home-nav-btn{
     display:flex;flex-direction:column;align-items:flex-start;gap:10px;
     background:var(--paper-000);border:1px solid var(--line-strong);border-radius:9px;
@@ -2387,6 +2398,13 @@
               </span>
               <span class="home-nav-text"><span class="home-nav-label">Stare sistem</span><span class="home-nav-sub">Conexiune, funcții, memento-uri</span></span>
             </button>
+          </div>
+          <div class="home-digest-card" id="homeDigestCard">
+            <div class="home-digest-head">
+              <h3>Rezumatul săptămânii</h3>
+              <span class="home-digest-range" id="homeDigestRange"></span>
+            </div>
+            <div class="home-digest-grid" id="homeDigestGrid"></div>
           </div>
         </div>
         <div class="home-todo-card">
@@ -8184,6 +8202,7 @@
     else if (tabKey === 'workorders') loadWorkOrders();
     else if (tabKey === 'equipment' || tabKey === 'machines' || tabKey === 'materials' || tabKey === 'erp-home') loadEquipment();
     else if (tabKey === 'projects-home') renderProjectsHomeStats();
+    else if (tabKey === 'home') renderHomeDigest();
     else if (tabKey === 'lps' && isReportFocusedView()) refreshLookaheadWorkspace();
     // Proiecte publice always opens on "Active" — otherwise whichever
     // status chip was last clicked earlier in the session (e.g. "Toate"
@@ -12517,6 +12536,40 @@
       closeCommandPalette();
     }
   });
+
+  /* ============================================================
+     REZUMATUL SĂPTĂMÂNII (home digest) — un rezumat client-side din
+     datele deja încărcate (nu un cron/email de server, pentru care
+     n-avem un furnizor de email configurat): sesizări noi/soluționate,
+     proiecte noi, avarii soluționate și alertele ERP active, din
+     ultimele 7 zile.
+     ============================================================ */
+  function renderHomeDigest(){
+    const grid = document.getElementById('homeDigestGrid');
+    if (!grid) return;
+    const rangeEl = document.getElementById('homeDigestRange');
+    if (rangeEl) rangeEl.textContent = 'ultimele 7 zile';
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const newTickets = (typeof allTickets !== 'undefined' ? allTickets : []).filter(t => !isDuplicateTicket(t) && t.submitted_on && parseTicketDate(t.submitted_on).getTime() >= sevenDaysAgo).length;
+    const solvedTickets = (typeof allTickets !== 'undefined' ? allTickets : []).filter(t => !isDuplicateTicket(t) && t.status === 'Terminat' && t.resolved_on && parseTicketDate(t.resolved_on).getTime() >= sevenDaysAgo).length;
+    const newProjects = (typeof allProjects !== 'undefined' ? allProjects : []).filter(p => p.created_at && new Date(p.created_at).getTime() >= sevenDaysAgo).length;
+    const solvedBacklog = (typeof allBacklogProjects !== 'undefined' ? allBacklogProjects : []).filter(p => p.resolved_on && new Date(p.resolved_on).getTime() >= sevenDaysAgo).length;
+    const activeAlerts = (typeof allEquipment !== 'undefined' ? allEquipment : []).filter(e => isLowStock(e) || needsService(e)).length;
+    const tiles = [
+      { num: newTickets, label: 'Sesizări noi', tab: 'overview' },
+      { num: solvedTickets, label: 'Sesizări soluționate', tab: 'overview' },
+      { num: newProjects, label: 'Proiecte noi', tab: 'projects' },
+      { num: solvedBacklog, label: 'Avarii soluționate', tab: 'backlog' },
+      { num: activeAlerts, label: 'Alerte ERP active', tab: 'erp-home', warn: activeAlerts > 0 },
+    ];
+    grid.innerHTML = tiles.map(t => `
+      <div class="home-digest-tile" data-goto-tab="${t.tab}">
+        <div class="status-stat${t.warn ? ' warn' : ''}">${t.num}</div>
+        <div class="status-stat-label">${escapeHtml(t.label)}</div>
+      </div>
+    `).join('');
+    grid.querySelectorAll('.home-digest-tile').forEach(tile => tile.addEventListener('click', () => openAdminTab(tile.dataset.gotoTab)));
+  }
 
   /* ============================================================
      PROIECTE → HOME — a small analytics summary across all four
