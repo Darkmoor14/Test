@@ -1,0 +1,2073 @@
+
+  :root{
+    --ink-900:#14181D; --ink-700:#2B333B; --ink-600:#525C66; --ink-400:#8A939C;
+    --paper-000:#FFFFFF; --paper-050:#F7F7F5; --paper-100:#EFEFEB;
+    --line:#E2E3DE; --line-strong:#D3D4CE;
+    --copper-600:#A81419; --copper-500:#D11F24; --copper-300:#E2686C; --copper-050:#FBEAEA;
+    --signal-green:#3E7A57; --signal-green-bg:#E9F3EC;
+    --signal-green-bright:#1E9E5A; --signal-green-bright-bg:#E4F7EC;
+    --signal-red:#B5502F; --signal-red-bg:#FBEDE7;
+    --signal-orange:#B5792F; --signal-orange-bg:#FBF2E7;
+    --signal-purple:#7C5CBF; --signal-purple-bg:#F1EDFB;
+    --signal-blue:#2F6FB5; --signal-blue-hover:#255A93;
+    --display:'Space Grotesk',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{overflow-x:hidden;}
+  body{font-family:var(--body);color:var(--ink-900);background:var(--paper-000);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{color:inherit;text-decoration:none;}
+  img{display:block;max-width:100%;}
+  :focus-visible{outline:2px solid var(--copper-500);outline-offset:3px;}
+  .wrap{max-width:1400px;margin:0 auto;padding:0 32px;}
+  h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:-0.01em;}
+
+  header{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+  nav{max-width:1180px;margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:76px;}
+  .logo-img{height:56px;width:auto;display:block;}
+  .nav-brand{display:flex;align-items:center;}
+  /* Compact tab bar that swaps in for the logo once the page has
+     scrolled past the real tab bar further down — lets you jump
+     between "Prezentare generală" / "Sesizări" / "Proiecte curente"
+     without scrolling all the way back to the top, which matters
+     when quickly working through a long ticket list. */
+  .nav-header-tabs{display:none;gap:6px;}
+  header.scrolled .logo-img{display:none;}
+  header.scrolled .nav-header-tabs{display:flex;}
+  .header-tab-btn{
+    font-family:var(--mono);font-size:13px;font-weight:500;
+    background:none;border:none;color:var(--ink-600);cursor:pointer;
+    padding:8px 12px;border-radius:3px;transition:all .15s;white-space:nowrap;
+  }
+  .header-tab-btn:hover{color:var(--ink-900);background:var(--paper-100);}
+  .header-tab-btn.active{color:var(--copper-600);background:var(--copper-050);}
+
+  /* ===== MOBILE HAMBURGER MENU + SIDEBAR =====
+     Replaces the old fixed bottom tab bar with a slide-in sidebar,
+     opened via a hamburger button in the now-mostly-empty mobile
+     header (the "Insta Grup Admin" title and the standalone logout
+     link both moved out of that header entirely — logout now lives
+     at the bottom of this same sidebar instead of floating on its
+     own). Tab buttons inside the sidebar reuse the .mobile-tab-btn
+     class name (not a new one) purely so openAdminTab()'s existing
+     `document.querySelectorAll('.mobile-tab-btn')` active-state
+     toggling keeps working unmodified — the layout below is
+     otherwise a full rewrite from the old horizontal bar style. */
+  .mobile-menu-btn{display:none;}
+  .mobile-sidebar-backdrop{display:none;}
+  .mobile-sidebar{display:none;}
+  @media(max-width:900px){
+    .nav-header-tabs{display:none !important;}
+    header.scrolled .logo-img{display:block !important;}
+
+    .mobile-menu-btn{
+      display:flex;flex-direction:column;justify-content:center;gap:5px;
+      width:36px;height:36px;flex-shrink:0;
+      background:none;border:none;cursor:pointer;padding:0;
+    }
+    .mobile-menu-btn span{
+      display:block;width:22px;height:2px;background:var(--ink-900);border-radius:1px;
+    }
+
+    .mobile-sidebar-backdrop{
+      display:block;position:fixed;inset:0;background:rgba(20,24,29,0.45);z-index:299;
+      opacity:0;pointer-events:none;transition:opacity .25s;
+    }
+    .mobile-sidebar-backdrop.open{opacity:1;pointer-events:auto;}
+    /* Stays interactive (though invisible, opacity already back to 0
+       via .open being removed) for a short buffer after closing —
+       see setMobileSidebarOpen()'s JS comment for why this needs to
+       be a separate class rather than tied to .open itself. */
+    .mobile-sidebar-backdrop.closing-guard{pointer-events:auto;}
+    .mobile-sidebar{
+      display:flex;flex-direction:column;
+      position:fixed;top:0;left:0;bottom:0;width:78%;max-width:300px;z-index:300;
+      background:var(--paper-000);
+      transform:translateX(-100%);transition:transform .25s ease;
+      box-shadow:2px 0 28px rgba(20,24,29,0.18);
+      padding-top:env(safe-area-inset-top, 0);
+      padding-bottom:env(safe-area-inset-bottom, 0);
+    }
+    .mobile-sidebar.open{transform:translateX(0);}
+    .mobile-sidebar-head{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:20px 20px 16px;border-bottom:1px solid var(--line);flex-shrink:0;
+    }
+    .mobile-sidebar-head span{font-family:var(--display);font-weight:600;font-size:16px;color:var(--ink-900);}
+    /* Explicitly overriding display/flex-direction/justify-content/
+       height here, not just adding flex:1 — this is a <nav> element,
+       and the page's generic tag-based `nav{display:flex;...}` rule
+       (built for the desktop header bar) was otherwise leaking
+       through and laying these buttons out in a horizontal row
+       instead of stacked, which is why they need to be undone
+       explicitly rather than just adding what's missing. */
+    .mobile-sidebar-nav{
+      display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
+      height:auto;max-width:none;margin:0;padding:10px 0;
+      flex:1;overflow-y:auto;
+    }
+    .mobile-tab-btn{
+      display:flex;align-items:center;width:100%;text-align:left;
+      padding:15px 20px;background:none;border:none;border-left:3px solid transparent;
+      cursor:pointer;font-family:var(--body);font-size:15.5px;color:var(--ink-900);
+    }
+    .mobile-tab-btn .mtb-dash{display:none;}
+    .mobile-tab-btn.active{
+      color:var(--copper-600);border-left-color:var(--copper-500);
+      background:var(--copper-050);font-weight:600;
+    }
+    .mobile-sidebar-foot{padding:16px 20px;border-top:1px solid var(--line);flex-shrink:0;}
+    .mobile-sidebar-foot .btn{width:100%;justify-content:center;}
+    /* No more fixed bottom bar to reserve space for now that
+       navigation moved into the sidebar — back to normal padding. */
+
+  }
+  .nav-right{display:flex;align-items:center;gap:16px;}
+  .nav-tag{font-family:var(--mono);font-size:12px;color:var(--ink-400);}
+  .btn{
+    font-family:var(--mono);font-size:13px;font-weight:500;padding:10px 18px;border-radius:2px;
+    display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:1px solid var(--line-strong);
+    background:var(--paper-000);color:var(--ink-900);transition:all .15s;
+  }
+  .btn:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .btn-primary{background:var(--copper-500);color:#fff;border-color:var(--copper-500);}
+  .btn-primary:hover{background:var(--copper-600);color:#fff;}
+  .btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+  /* ===== LOGIN ===== */
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--paper-050);}
+  .login-logo{height:36px;margin-bottom:18px;display:block;}
+  .login-card{
+    background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;
+    padding:44px;width:100%;max-width:380px;box-shadow:0 2px 10px rgba(20,24,29,0.04);
+  }
+  .login-card h2{font-size:22px;margin-bottom:8px;}
+  .login-card p.sub{color:var(--ink-600);font-size:14px;margin-bottom:28px;}
+  .field{margin-bottom:18px;}
+  .field label{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-600);display:block;margin-bottom:8px;}
+  .field input{
+    width:100%;padding:11px 13px;border:1px solid var(--line-strong);border-radius:3px;
+    font-family:var(--body);font-size:14.5px;background:var(--paper-050);color:var(--ink-900);
+  }
+  .field input:focus{border-color:var(--copper-500);background:var(--paper-000);}
+  .login-error{
+    background:var(--signal-red-bg);border:1px solid rgba(181,80,47,0.3);color:var(--signal-red);
+    padding:11px 14px;border-radius:3px;font-size:13.5px;margin-bottom:18px;display:none;
+  }
+  .login-error.show{display:block;}
+
+  /* ===== ADMIN DASHBOARD ===== */
+  .dash{display:none;}
+  .dash.show{display:block;}
+
+  /* ===== APP SHELL (rail + category panel + topbar + page body) =====
+     Two sidebars: .rail is a fixed-width icon strip that never
+     collapses (it's the top-level "which area of the app" switcher —
+     Acasă is a direct destination, the rest are categories); each
+     category owns one .category-panel-section, shown/hidden by JS
+     based on the rail's selected data-category. .category-panel itself
+     collapses (width -> 0) independently of the rail. */
+  .app-shell{display:flex;align-items:stretch;min-height:100vh;}
+  .rail{
+    width:60px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+    background:var(--paper-050);border-right:1px solid var(--line);
+    position:sticky;top:0;height:100vh;overflow:visible;padding:12px 0;
+  }
+  .rail-items{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;}
+  .rail-item{
+    width:42px;height:42px;border-radius:10px;border:none;background:none;color:var(--ink-400);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+  }
+  .rail-item svg{width:20px;height:20px;}
+  .rail-item-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
+  .rail-item:hover{background:var(--paper-100);color:var(--ink-900);}
+  .rail-item.active{background:var(--copper-050);color:var(--copper-600);}
+  /* Acasă also carries .admin-tab (needed so the existing generic
+     .admin-tab click wiring picks it up) — that class's own padding/
+     border-bottom, meant for the old text-tab strip, was squeezing
+     its icon down to a sliver inside the 42px box. Two classes here
+     beat .admin-tab's one regardless of stylesheet order. */
+  .rail-item.admin-tab{padding:0;border-bottom:none;margin-bottom:0;font:inherit;}
+  .rail-footer{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;position:relative;}
+  .rail-help-btn{
+    width:32px;height:32px;border-radius:50%;border:none;background:none;color:var(--ink-400);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+  }
+  .rail-help-btn:hover{background:var(--paper-100);color:var(--ink-900);}
+  .rail-account{
+    width:32px;height:32px;border-radius:8px;border:none;background:none;color:var(--ink-400);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+  }
+  .rail-account{border-radius:50%;padding:0;}
+  .rail-account:hover{background:var(--paper-100);}
+  .sidebar-account-avatar{
+    width:30px;height:30px;border-radius:50%;background:var(--copper-500);color:#fff;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--display);
+    text-transform:uppercase;
+  }
+  .sidebar-account-menu{
+    display:none;position:absolute;left:calc(100% + 8px);bottom:0;
+    background:var(--paper-000);border:1px solid var(--line);border-radius:9px;
+    box-shadow:0 8px 24px rgba(20,24,29,.14);padding:6px;z-index:60;min-width:200px;
+  }
+  .sidebar-account-menu.open{display:block;}
+  .sidebar-account-menu-email{
+    padding:6px 8px 8px;margin-bottom:4px;border-bottom:1px solid var(--line);
+    font-size:12px;color:var(--ink-600);word-break:break-all;
+  }
+  .sidebar-logout-btn{
+    display:flex;align-items:center;gap:8px;width:100%;padding:8px;border-radius:7px;border:none;background:none;
+    color:var(--copper-600);font-family:var(--body);font-size:13px;font-weight:500;cursor:pointer;text-align:left;
+  }
+  .sidebar-logout-btn:hover{background:var(--copper-050);}
+  .sidebar-logout-btn svg{width:16px;height:16px;flex-shrink:0;}
+
+  .category-panel{
+    width:230px;flex-shrink:0;background:var(--paper-000);border-right:1px solid var(--line);
+    position:sticky;top:0;height:100vh;overflow-y:auto;overflow-x:hidden;
+    transition:width .18s ease,opacity .15s ease;
+  }
+  .category-panel.empty{width:0;opacity:0;border-right:none;}
+  .category-panel-head{padding:18px 16px 8px;min-height:20px;}
+  .category-panel-title{font-family:var(--display);font-weight:700;font-size:15px;color:var(--ink-900);white-space:nowrap;}
+  .category-panel-nav{
+    padding:4px 10px 16px;display:block;height:auto;max-width:none;margin:0;
+    align-items:stretch;justify-content:flex-start;
+  }
+  .category-panel-section{display:none;flex-direction:column;gap:2px;}
+  .category-panel-section.active{display:flex;}
+  .category-panel-item{
+    display:block;width:100%;padding:9px 12px;border-radius:8px;border:none;background:none;
+    color:var(--ink-700);font-family:var(--body);font-size:13.5px;font-weight:500;text-align:left;cursor:pointer;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .category-panel-item:hover{background:var(--paper-100);color:var(--ink-900);}
+  .category-panel-item.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;}
+  /* .admin-tab is also used on several sidebar items purely so the
+     existing generic .admin-tab click handler picks them up — but its
+     own look (monospace, lighter ink-400, wider padding, bottom
+     border) was built for the old horizontal tab strip
+     (.admin-tabs-row), not the sidebar. Both classes have equal CSS
+     specificity, so whichever rule happens to be declared later in
+     the stylesheet silently won — this reasserts .category-panel-item's
+     own look so every sidebar item matches regardless of that. */
+  .category-panel-item.admin-tab{
+    font-family:var(--body);font-size:13.5px;font-weight:500;color:var(--ink-700);
+    padding:9px 12px;border-bottom:none;margin-bottom:0;
+  }
+  .category-panel-item.admin-tab:hover{background:var(--paper-100);color:var(--ink-900);}
+  .category-panel-item.admin-tab.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;border-bottom-color:transparent;}
+  /* Documentație's own sidebar nav — same look as the rest of the
+     category-panel, plus a collapsible group for Proiecte's four
+     sub-sections (the one case so far with a real nested structure). */
+  .docs-nav-toggle{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+  .docs-nav-toggle svg{flex-shrink:0;transition:transform .15s ease;}
+  .docs-nav-toggle.open svg{transform:rotate(90deg);}
+  .docs-nav-subgroup{display:none;flex-direction:column;gap:2px;padding-left:12px;}
+  .docs-nav-subgroup.open{display:flex;}
+  /* Sub-items keep the same size/weight/color as their parent — only
+     the indent (padding-left on .docs-nav-subgroup) marks them as
+     nested. A smaller font here was the one remaining visible
+     inconsistency across the sidebar after the .admin-tab fix above. */
+
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    padding:14px 28px;border-bottom:1px solid var(--line);background:var(--paper-000);
+    position:sticky;top:0;z-index:20;
+  }
+  .topbar-title{font-family:var(--display);font-weight:700;font-size:18px;color:var(--ink-900);flex-shrink:0;}
+  .topbar-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .page-body{flex:1;padding:24px 28px;min-width:0;}
+  @media(max-width:900px){
+    .rail{display:none;}
+    .category-panel{display:none;}
+    .topbar{padding:14px 16px;}
+    .page-body{padding:16px;}
+  }
+  .dash-head{padding:36px 0 24px;border-bottom:1px solid var(--line);}
+  .dash-head h1{font-size:26px;margin-bottom:6px;}
+  .dash-head p{color:var(--ink-600);font-size:14.5px;}
+  /* vlasbogdan@ doesn't need the generic page title/subtitle repeated
+     here — the breadcrumb next to the logo (see .nav-breadcrumb)
+     already says where she is. On desktop this empties .dash-head
+     out completely (its other children — the mobile hamburger/logout
+     link — are mobile-only), so the whole bar collapses there too;
+     mobile keeps it, since .dash-head is the mobile hamburger's home
+     once the real <header> hides below 900px. */
+  html.report-focused-view .dash-head-title{display:none;}
+  @media(min-width:901px){
+    html.report-focused-view .dash-head{display:none;}
+  }
+  /* Mobile-only logout link — the header (which normally holds the
+     logout button) is hidden entirely below 900px, so this is the
+     one bit of header functionality that needs a new home. Kept
+     deliberately small and out of the way rather than another
+     floating button. */
+  .mobile-logout-link{display:none;}
+  @media(max-width:900px){
+    header{display:none;}
+    .admin-tabs{display:none !important;}
+    /* Both children of .admin-tabs-row (.admin-tabs above, and the
+       desktop-only duplicate year-bars) are already hidden on mobile
+       independently — this just collapses the now-empty row itself
+       so it can't leave any stray gap/margin behind. */
+    .admin-tabs-row{display:none !important;}
+    .dash-head{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      /* header is gone on mobile, so this is now the top of the page —
+         padding-top keeps it clear of the status bar / notch area,
+         which viewport-fit=cover now lets content render behind */
+      padding-top:calc(18px + env(safe-area-inset-top, 0));
+      padding-bottom:14px;
+    }
+    .dash-head h1{
+      display:none;
+    }
+    .dash-head p{
+      display:none;
+    }
+    .mobile-logout-link{
+      display:none;
+    }
+  }
+
+  /* ===== BACK TO TOP =====
+     Same small floating button on both desktop and mobile — appears
+     once you've scrolled down a bit, fades out near the top. Used to
+     need extra bottom offset on mobile to clear the old fixed bottom
+     tab bar; that bar is gone now (navigation moved into the
+     sidebar), so it just uses the same default position everywhere. */
+  .back-to-top{
+    position:fixed;right:20px;bottom:24px;z-index:150;
+    width:44px;height:44px;border-radius:50%;
+    background:var(--paper-000);border:1px solid var(--line-strong);
+    color:var(--ink-700);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 2px 10px rgba(20,24,29,0.15);
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+    transform:translateY(8px);
+  }
+  .back-to-top.show{opacity:1;pointer-events:auto;transform:translateY(0);}
+  .back-to-top:hover{border-color:var(--copper-500);color:var(--copper-600);}
+
+  /* ===== TOAST NOTIFICATION =====
+     Small confirmation box after a save — bottom-center, above
+     everything else. Used to need the same bottom-bar-clearing
+     offset as .back-to-top on mobile; no longer necessary now that
+     the bottom tab bar is gone. */
+  .toast{
+    position:fixed;left:50%;bottom:24px;z-index:250;
+    transform:translate(-50%,12px);
+    background:var(--ink-900);color:#fff;
+    padding:12px 20px;border-radius:6px;
+    font-family:var(--body);font-size:13.5px;font-weight:500;
+    box-shadow:0 8px 24px rgba(20,24,29,0.25);
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+    display:flex;align-items:center;gap:8px;max-width:90vw;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0);}
+  .toast .toast-dot{width:7px;height:7px;border-radius:50%;background:var(--signal-green);flex-shrink:0;}
+
+  /* Hides these four fixed-bottom elements entirely while the on-
+     screen keyboard is open (html.kb-open, toggled in JS via the
+     visualViewport API near the end of the page) — see the comment
+     there for why hiding is used instead of trying to calculate the
+     exact gap to sit flush above the keyboard. None of these are
+     things you need while actively typing into a field, and they
+     reappear immediately once the keyboard closes. */
+  html.kb-open .mobile-sidebar-backdrop,
+  html.kb-open .mobile-sidebar,
+  html.kb-open .back-to-top,
+  html.kb-open .toast,
+  html.kb-open .archive-bar{
+    display:none !important;
+  }
+
+  /* Safari in a bookmarked/home-screen web app can briefly report the
+     keyboard as "closed" before the visual viewport has actually
+     snapped back into place, which makes fixed bottom UI reappear a
+     little too early and look like it's floating. Keeping the same
+     elements hidden for one short settling beat after close avoids
+     that jump. */
+  html.kb-settling .mobile-sidebar-backdrop,
+  html.kb-settling .mobile-sidebar,
+  html.kb-settling .back-to-top,
+  html.kb-settling .toast,
+  html.kb-settling .archive-bar{
+    display:none !important;
+  }
+
+  .toolbar{padding:20px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+  /* Desktop default: the wrapper adds no box of its own (children lay
+     out directly in the toolbar's flex row, unchanged from before),
+     so the icon-only toggle button stays hidden — that's a
+     mobile-only affordance, added below in the 900px breakpoint. */
+  .ticket-search-wrap{display:contents;}
+  .search-icon-btn{display:none;}
+
+  .admin-tabs-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .admin-tabs{display:flex;gap:6px;margin:24px 0 4px;border-bottom:1px solid var(--line);}
+  .admin-tab{
+    font-family:var(--mono);font-size:13px;font-weight:500;color:var(--ink-400);
+    padding:10px 18px;border:none;background:none;cursor:pointer;
+    border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;
+  }
+  .admin-tab:hover{color:var(--ink-700);}
+  .admin-tab.active{color:var(--copper-600);border-bottom-color:var(--copper-500);}
+  .admin-panel{display:none;}
+  /* Desktop-only duplicate year-bars in .admin-tabs-row, kept in sync
+     with the originals (still inside each panel, used on mobile) via
+     the same querySelectorAll groups that already keep Overview and
+     Sesizări's selects synced to each other. Hidden by default here;
+     shown on desktop only, and only the one matching the active tab.
+     Mobile never sees these at all — see the 900px breakpoint below,
+     which hides this whole row's year-bars and un-hides the originals
+     instead, leaving mobile's actual rendered elements exactly as
+     they were before this feature existed. */
+  .admin-tabs-row .overview-year-bar,.topbar-actions .overview-year-bar{display:none;margin-top:0;margin-bottom:4px;}
+  @media(min-width:901px){
+    .admin-tabs-row .overview-year-bar.active,.topbar-actions .overview-year-bar.active{display:flex;}
+    .admin-panel .overview-year-bar{display:none;}
+  }
+
+  /* ===== PRIORITY SUMMARY CARDS =====
+     The very first thing shown on "Prezentare generală" — answers
+     "do I need to worry about anything right now" before any
+     scrolling or scanning. Deliberately just 4 cards (dashboard
+     research consistently points to 4-6 as the effective range before
+     cognitive overload sets in), and deliberately reflects true
+     right-now reality regardless of whichever year is selected in the
+     table below — an active accident matters regardless of what
+     year's archive you happen to be browsing.
+     Color follows the same convention used everywhere else on this
+     page, without exception: red = accident/urgent, orange = aging /
+     at-risk, and NOT green for the "routine" card, since green is
+     already reserved site-wide to mean "resolved" — reusing it here
+     for something else would break that convention rather than
+     reinforce it. */
+  /* ===== HOME (vlasbogdan@ only) =====
+     A workflow-relevant landing screen instead of dropping straight
+     into a specific tab after login — leads with the one number that
+     matters most for this report-writing role (tickets awaiting a
+     report), then a row of secondary cards for the other three tabs,
+     each with its own live count so this screen is useful at a
+     glance, not just a navigation menu. */
+  /* vlasbogdan@ uses the breadcrumb/menu/home page as her navigation
+     system instead of clicking through tabs directly, so only the
+     text tab strip itself is hidden here — .admin-tabs-row is also
+     where .overview-quick-filters (the Filtre/Add/Search icon row —
+     see its own CSS) and .overview-year-bar live, and those aren't
+     optional navigation chrome, they're how she adds a ticket,
+     searches, and filters on every panel. Used to hide the whole row
+     (before the icon row existed here), which also silently took the
+     "+" button and search out with it. */
+  html.report-focused-view .admin-tabs{display:none;}
+  /* With .admin-tabs (the text tab strip) hidden for her at every
+     width, not just below 900px like admin.html's own mobile-only
+     version of this same fix, .admin-tabs-row's only visible content
+     is the icon row right below — it would otherwise sit flush
+     against the header's divider line, looking cramped/touching it,
+     on desktop too. */
+  html.report-focused-view .admin-tabs-row{margin-top:16px;}
+  html:not(.report-focused-view) #panel-home{display:none!important;}
+  html:not(.report-focused-view) #panel-lps{display:none!important;}
+  html:not(.report-focused-view) #panel-docs{display:none!important;}
+  .dash.home-active .dash-head{border-bottom:none;padding-bottom:16px;}
+  html.report-focused-view header.scrolled .nav-header-tabs{display:none;}
+  html.report-focused-view header.scrolled .logo-img{display:block;}
+  .dash-head{position:relative;}
+  .report-nav-wrap{display:none;}
+  /* Now a normal flex child of .nav-right, right next to the Acasă
+     button — used to be position:absolute;right:0 for its old spot
+     inside .dash-head, which (after the move) just pinned it to the
+     far right of whatever positioned ancestor it landed near instead
+     of sitting next to Acasă. position:relative is still needed here
+     so .report-nav-menu's own position:absolute anchors to this
+     button, not the page. */
+  html.report-focused-view .report-nav-wrap{display:block;position:relative;}
+  .report-nav-btn{min-width:112px;justify-content:center;}
+  .report-nav-menu{display:none;position:absolute;right:0;top:calc(100% + 8px);z-index:80;min-width:220px;padding:6px;background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;box-shadow:0 10px 24px rgba(20,24,29,.14);}
+  .report-nav-menu.show{display:block;}
+  .report-nav-link{display:block;width:100%;padding:10px 12px;text-align:left;border:0;background:none;color:var(--ink-900);font:inherit;font-size:14px;cursor:pointer;border-radius:3px;}
+  .report-nav-link:hover{background:var(--paper-050);color:var(--copper-600);}
+  .vlas-only{display:none!important;}
+  html.report-focused-view .vlas-only{display:block!important;}
+  /* Sesizări switcher (Prezentare generală/Funcționale/Accidente) —
+     only needed by vlasbogdan@: everyone else already has all three
+     as separate tabs in .admin-tabs, but that's hidden in
+     report-focused-view, leaving no way to reach them from the shared
+     Sesizări panel other than this. Only shown on the three panels it
+     actually covers (Prezentare generală/Sesizări), same
+     active-toggle pattern as .overview-quick-filters right below —
+     showing it on Proiecte/Avarii/Stare sistem too would be
+     misleading, since clicking any of its three buttons from there
+     wouldn't land on whichever of those she was actually looking at.
+     The .active requirement (added on top of .vlas-only's own
+     display:block!important above) needs a more specific selector,
+     since this needs flex, not block, and only when actually active. */
+  .ticket-type-switch{display:none;gap:8px;}
+  /* .vlas-only's own display:block!important above (an !important
+     rule) beats a plain display:none regardless of specificity, so
+     hiding this needs its own !important too, at higher specificity
+     than .vlas-only's bare version — then .active layers an even
+     more specific override on top of that. */
+  html.report-focused-view .ticket-type-switch.vlas-only{display:none!important;}
+  html.report-focused-view .ticket-type-switch.vlas-only.active{display:flex!important;}
+  .ticket-type-switch-btn{
+    padding:8px 14px;border:1px solid var(--line-strong);border-radius:20px;
+    background:var(--paper-000);font:inherit;font-size:13px;color:var(--ink-700);cursor:pointer;
+  }
+  .ticket-type-switch-btn:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .ticket-type-switch-btn.active{background:var(--copper-500);border-color:var(--copper-500);color:#fff;}
+  /* Breadcrumb next to the logo (vlasbogdan@ only) — stands in for
+     the tab bar she doesn't see (see .admin-tabs-row's own
+     report-focused-view display:none), Finder/Explorer-style: every
+     segment, not just the last one, is its own button that jumps
+     straight there. Same .vlas-only display:block!important override
+     pattern as .ticket-type-switch above — this needs flex, not block. */
+  .nav-breadcrumb{align-items:center;gap:6px;margin-left:18px;}
+  html.report-focused-view .nav-breadcrumb.vlas-only{display:flex!important;}
+  .nav-breadcrumb-item{
+    background:none;border:0;padding:4px 2px;font:inherit;font-size:13.5px;
+    color:var(--ink-600);cursor:pointer;border-radius:3px;
+  }
+  .nav-breadcrumb-item:hover{color:var(--copper-600);text-decoration:underline;}
+  .nav-breadcrumb-item.current{color:var(--ink-900);font-weight:600;cursor:default;}
+  .nav-breadcrumb-item.current:hover{text-decoration:none;}
+  .nav-breadcrumb-sep{color:var(--ink-300);font-size:13px;}
+  .home-eyebrow{
+    font-family:var(--mono);font-size:12.5px;text-transform:uppercase;
+    letter-spacing:0.06em;color:var(--copper-600);
+  }
+  .home-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:22px;}
+  .home-intro h2{margin:6px 0 0;}
+  .home-intro-copy{margin:0;color:var(--ink-600);font-size:14px;max-width:430px;text-align:right;}
+  /* ===== New vlasbogdan@ start page (panel-home) — replaces the old
+     metrics grid / process strip / work-queue layout entirely. Three
+     columns: clock+calendar on the left, nav buttons in the middle,
+     a bigger sticky-notes to-do list on the right. Source order
+     (clock, main, todo) matches left-to-right on desktop; the mobile
+     breakpoint below reorders so the nav buttons come first there. */
+  /* The home page (clock+calendar/nav/to-do) used to break out of
+     .wrap's 1180px cap with a width:100vw + negative-margin trick —
+     no longer needed now that #panel-home lives in .page-body, which
+     is already the full width available next to the sidebar. Its own
+     max-width below just keeps line lengths sane on very wide
+     monitors. */
+  #panel-home .home-start-grid{
+    max-width:1680px;margin:0 auto;box-sizing:border-box;
+  }
+  .home-start-grid{display:grid;grid-template-columns:300px minmax(0,1fr) 440px;gap:26px;align-items:start;}
+  .home-smart-search{margin-bottom:4px;}
+  .home-smart-search-input-wrap{
+    display:flex;align-items:center;gap:10px;
+    border:1px solid var(--line-strong);border-radius:8px;padding:4px 4px 4px 14px;background:var(--paper-000);
+  }
+  .home-smart-search-input-wrap svg{color:var(--ink-400);flex-shrink:0;}
+  .home-smart-search-input-wrap input{
+    flex:1;border:none;outline:none;font:inherit;font-size:14px;color:var(--ink-900);background:transparent;min-width:0;
+  }
+  .home-smart-search-input-wrap input::placeholder{color:var(--ink-400);}
+  .home-smart-search-result{
+    margin-top:10px;padding:12px 16px;border:1px solid var(--line-strong);border-radius:8px;background:var(--paper-050);
+  }
+  .home-smart-search-answer-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+  .home-smart-search-answer{margin:0;font-size:14px;color:var(--ink-900);}
+  .home-smart-search-suggestions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .home-smart-suggestion-chip{cursor:pointer;}
+  .home-nav-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:22px;}
+  .home-digest-card{
+    margin-top:22px;background:var(--paper-000);border:1px solid var(--line-strong);
+    border-radius:9px;padding:20px 22px;
+  }
+  .home-digest-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:14px;}
+  .home-digest-head h3{margin:0;font-size:15px;}
+  .home-digest-range{font-family:var(--mono);font-size:11px;color:var(--ink-400);}
+  .home-digest-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:18px;}
+  .home-digest-tile{cursor:pointer;}
+  .home-digest-tile .status-stat.warn{color:var(--signal-orange);}
+  .home-digest-empty{font-size:13px;color:var(--ink-400);}
+  .home-nav-btn{
+    display:flex;flex-direction:column;align-items:flex-start;gap:10px;
+    background:var(--paper-000);border:1px solid var(--line-strong);border-radius:9px;
+    padding:22px;text-align:left;font:inherit;color:var(--ink-900);cursor:pointer;
+    transition:border-color .15s,box-shadow .15s,transform .15s;
+  }
+  .home-nav-btn:hover{border-color:var(--copper-500);box-shadow:0 4px 14px rgba(20,24,29,.1);transform:translateY(-1px);}
+  .home-nav-btn:focus-visible{outline:2px solid var(--copper-500);outline-offset:2px;}
+  .home-nav-icon{
+    display:flex;align-items:center;justify-content:center;
+    width:44px;height:44px;border-radius:50%;
+    background:var(--copper-050);color:var(--copper-600);
+  }
+  .home-nav-text{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;}
+  .home-nav-label{font-size:16px;font-weight:600;}
+  .home-nav-sub{font-size:12.5px;color:var(--ink-600);}
+  .home-nav-sub::before{content:"·";margin-right:6px;color:var(--ink-300);}
+  .home-clock-card{
+    background:var(--paper-000);border:1px solid var(--line-strong);border-radius:9px;
+    padding:20px;text-align:center;
+  }
+  .home-clock-time{font-family:var(--display);font-size:34px;font-weight:700;color:var(--ink-900);letter-spacing:.02em;font-variant-numeric:tabular-nums;}
+  .home-clock-date{margin-top:4px;font-size:13px;color:var(--ink-600);text-transform:capitalize;}
+  .home-mini-cal{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);}
+  .home-mini-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .home-mini-cal-month{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--ink-900);text-transform:capitalize;}
+  .home-mini-cal-nav{
+    display:flex;align-items:center;justify-content:center;
+    width:22px;height:22px;border-radius:50%;border:1px solid var(--line-strong);
+    background:var(--paper-000);color:var(--ink-600);cursor:pointer;font-size:13px;line-height:1;padding:0;
+  }
+  .home-mini-cal-nav:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .home-mini-cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px;}
+  .home-mini-cal-weekdays span{font-family:var(--mono);font-size:10px;color:var(--ink-400);}
+  .home-mini-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);row-gap:3px;}
+  .home-mini-cal-day{
+    position:relative;display:flex;align-items:center;justify-content:center;
+    aspect-ratio:1;font-size:11.5px;color:var(--ink-700);border-radius:50%;
+    border:none;background:none;font-family:inherit;cursor:pointer;
+  }
+  .home-mini-cal-day:hover{background:var(--copper-050);}
+  .home-mini-cal-day.outside{color:var(--ink-300);}
+  .home-mini-cal-day.today{background:var(--copper-500);color:#fff;font-weight:600;}
+  .home-mini-cal-day-dots{
+    position:absolute;bottom:2px;left:50%;transform:translateX(-50%);
+    display:flex;gap:2px;
+  }
+  .home-mini-cal-day-dot{width:3.5px;height:3.5px;border-radius:50%;background:var(--copper-500);flex-shrink:0;}
+  .home-mini-cal-day.today .home-mini-cal-day-dot{background:#fff;}
+  .home-cal-today{
+    margin-top:14px;padding-top:14px;border-top:1px solid var(--line);
+    text-align:left;font-size:12px;color:var(--ink-600);
+  }
+  .home-cal-today > .k{
+    display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;
+    letter-spacing:0.04em;color:var(--ink-400);margin-bottom:8px;
+  }
+  .home-cal-today .calendar-day-events{margin-top:0;max-height:260px;overflow-y:auto;}
+  .home-cal-add-btn{width:100%;justify-content:center;margin-top:14px;}
+  .calendar-day-events{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+  .calendar-day-event{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+    padding:12px;border:1px solid var(--line-strong);border-radius:6px;cursor:pointer;
+  }
+  .calendar-day-event:hover{border-color:var(--copper-500);}
+  .calendar-day-event.happening-now{border-color:var(--copper-500);background:var(--copper-050);}
+  .calendar-day-event-time{font-family:var(--mono);font-size:11.5px;color:var(--ink-400);white-space:nowrap;}
+  .calendar-day-event-title{font-weight:600;color:var(--ink-900);margin-bottom:2px;}
+  .calendar-day-event-meta{font-size:12px;color:var(--ink-600);}
+  .calendar-day-events-empty{color:var(--ink-400);font-size:13px;padding:8px 0;}
+  .cef-allday-field{
+    display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-700);
+    margin:4px 0 16px;cursor:pointer;
+  }
+  .cef-actions{display:flex;gap:10px;}
+  .cef-actions #cefSaveBtn{flex:1;}
+  .cef-attendees-list{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;}
+  .cef-attendee-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-700);cursor:pointer;}
+  .cef-attendees-empty{font-size:12.5px;color:var(--ink-400);}
+  .cef-attendees-hint{margin:6px 0 0;font-size:11.5px;color:var(--ink-400);}
+  /* Ora început/sfârșit default to a quick 15-min-increment select (or
+     a relative-duration select for the end time) — the native
+     type="time" picker's scroll-wheel UI is the "annoying" part this
+     replaces for the common case. The clock button swaps in that same
+     native input, hidden the rest of the time, for anyone who needs a
+     time that isn't on the grid. */
+  .cef-time-row{display:flex;align-items:center;gap:6px;}
+  .cef-time-row select,
+  .cef-time-row .cef-time-precise{flex:1;min-width:0;}
+  .cef-time-edit-btn{
+    flex-shrink:0;width:34px;height:34px;border-radius:6px;
+    border:1px solid var(--line-strong);background:var(--paper-000);
+    cursor:pointer;font-size:14px;line-height:1;padding:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .cef-time-edit-btn:hover{border-color:var(--copper-500);}
+  .cef-time-edit-btn.active{border-color:var(--copper-500);background:var(--copper-050);color:var(--copper-600);}
+  .cef-recur-btn{width:100%;justify-content:flex-start;}
+  .cef-recur-btn.active{border-color:var(--copper-500);color:var(--copper-600);background:var(--copper-050);}
+  .recur-section{margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--line);}
+  .recur-section:last-of-type{border-bottom:none;}
+  .recur-section-label{
+    display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;
+    letter-spacing:0.04em;color:var(--ink-400);margin-bottom:10px;
+  }
+  .recur-freq-row{display:flex;flex-wrap:wrap;gap:10px 18px;margin-bottom:12px;}
+  .recur-radio{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-700);cursor:pointer;}
+  .recur-interval-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-700);margin-bottom:12px;}
+  .recur-interval-row input[type="number"]{width:56px;padding:6px 8px;border:1px solid var(--line-strong);border-radius:4px;font:inherit;font-size:13px;}
+  .recur-weekdays-row{display:flex;flex-wrap:wrap;gap:8px 14px;}
+  .recur-checkbox{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink-700);cursor:pointer;}
+  .recur-radio-row{
+    display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-700);
+    cursor:pointer;margin-bottom:10px;
+  }
+  .recur-radio-row input[type="date"],
+  .recur-radio-row input[type="number"]{
+    padding:6px 8px;border:1px solid var(--line-strong);border-radius:4px;font:inherit;font-size:12.5px;
+  }
+  .recur-radio-row input[type="number"]{width:56px;}
+  #recurStartDate{padding:7px 9px;border:1px solid var(--line-strong);border-radius:4px;font:inherit;font-size:12.5px;width:100%;box-sizing:border-box;}
+  /* ===== Stare sistem — live health checks run from the browser
+     itself (DB round-trip, auth session, an Edge Functions ping, the
+     calendar-reminder cron job's recent runs, push subscription
+     state) plus a row-count snapshot. Deliberately does NOT show
+     server CPU/memory/bandwidth — those need a privileged Supabase
+     Management API token, which must never be embedded in a page
+     that ships to the browser; that's what Supabase's own dashboard
+     is for. */
+  .status-panel-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;}
+  .status-panel-head h2{margin:6px 0 0;}
+  .status-info-btn{
+    width:30px;height:30px;flex-shrink:0;border-radius:50%;
+    border:1px solid var(--line-strong);background:var(--paper-000);color:var(--ink-600);
+    font-family:var(--display);font-weight:700;font-size:13px;font-style:italic;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+  }
+  .status-info-btn:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .status-grid{
+    display:grid;grid-template-columns:repeat(3, 1fr);gap:18px;
+  }
+  @media(max-width:900px){
+    .status-grid{grid-template-columns:1fr;}
+  }
+  .status-card{
+    background:var(--paper-000);border:1px solid var(--line-strong);border-radius:9px;
+    padding:18px;
+  }
+  .status-card-wide{grid-column:1/-1;}
+  .status-card-head{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+  .status-card-head h4{font-size:14px;margin:0;}
+  .status-card-head-actions{display:flex;gap:8px;margin-left:auto;}
+  .status-card-head-btn{font-size:11.5px;padding:4px 10px;}
+  .status-subhead{font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-400);margin:16px 0 6px;}
+  .status-subhead:first-of-type{margin-top:0;}
+  .status-workflow-bar{height:5px;border-radius:3px;background:var(--paper-100);margin-top:5px;overflow:hidden;}
+  .status-workflow-bar-fill{height:100%;background:var(--copper-500);border-radius:3px;}
+  .status-dot{
+    width:9px;height:9px;border-radius:50%;background:var(--ink-300);flex-shrink:0;
+  }
+  .status-dot.ok{background:var(--signal-green-bright);}
+  .status-dot.bad{background:var(--signal-red);}
+  .status-dot.checking{background:var(--signal-orange);}
+  .status-card-body{margin-bottom:10px;}
+  .status-stat{font-family:var(--display);font-size:22px;font-weight:700;color:var(--ink-900);}
+  .status-stat-label{font-size:11.5px;color:var(--ink-600);margin-top:2px;}
+  .status-chart{width:100%;max-height:60px;}
+  .status-chart-tall{max-height:180px;}
+  .status-push-enable-btn{margin-top:4px;font-size:12.5px;padding:7px 12px;}
+  .status-function-list{list-style:none;margin:0;padding:0;font-size:12px;color:var(--ink-600);}
+  .status-function-list li{
+    display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid var(--line);
+  }
+  .status-function-list li:first-child{border-top:none;}
+  .status-refresh-row{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    margin-top:18px;font-size:12px;color:var(--ink-400);
+  }
+  .status-note{
+    margin-top:14px;font-size:12px;color:var(--ink-400);max-width:640px;
+  }
+  .status-history-list{display:flex;flex-direction:column;gap:2px;}
+  .status-history-item{
+    display:grid;grid-template-columns:80px 10px 1fr;align-items:start;gap:10px;
+    padding:10px 0;border-top:1px solid var(--line);
+  }
+  .status-history-item:first-child{border-top:none;}
+  .status-history-time{font-family:var(--mono);font-size:11px;color:var(--ink-400);white-space:nowrap;padding-top:2px;}
+  .status-history-dot{
+    width:9px;height:9px;border-radius:50%;margin-top:5px;flex-shrink:0;
+    background:var(--signal-red);
+  }
+  .status-history-item.ok .status-history-dot{background:var(--signal-green-bright);}
+  .status-history-check{font-size:13px;font-weight:600;color:var(--ink-900);}
+  .status-history-message{font-size:12.5px;color:var(--ink-600);margin-top:2px;}
+  .status-history-empty{padding:30px 0;text-align:center;color:var(--ink-400);font-size:13px;}
+  /* Entity log (activity + notes) — reuses the status-history-item look
+     for the timeline, with notes tinted to stand out from system-
+     generated activity entries. */
+  .entity-log-list{max-height:280px;overflow-y:auto;margin-bottom:14px;}
+  .entity-log-item{display:grid;grid-template-columns:70px 1fr;gap:10px;padding:8px 0;border-top:1px solid var(--line);}
+  .entity-log-item:first-child{border-top:none;}
+  .entity-log-time{font-family:var(--mono);font-size:11px;color:var(--ink-400);white-space:nowrap;padding-top:2px;}
+  .entity-log-text{font-size:13px;color:var(--ink-900);}
+  .entity-log-item.note .entity-log-text{background:var(--paper-050);border-radius:6px;padding:6px 10px;}
+  .entity-log-author{font-size:11px;color:var(--ink-400);margin-top:2px;}
+  .audit-log-badge{display:inline-block;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.02em;color:var(--ink-400);background:var(--paper-050);border-radius:4px;padding:1px 6px;margin-right:4px;}
+  .entity-log-add{display:flex;flex-direction:column;gap:8px;}
+  .entity-log-add textarea{
+    width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line-strong);border-radius:6px;
+    font:inherit;font-size:13.5px;resize:vertical;
+  }
+  .entity-log-add .btn{align-self:flex-end;}
+  /* Checklist / sub-tasks */
+  .checklist-items{display:flex;flex-direction:column;gap:2px;margin-bottom:14px;max-height:320px;overflow-y:auto;}
+  .checklist-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line);}
+  .checklist-item:first-child{border-top:none;}
+  .checklist-item-text{flex:1;font-size:13.5px;color:var(--ink-900);}
+  .checklist-item.done .checklist-item-text{color:var(--ink-400);text-decoration:line-through;}
+  .checklist-item-remove{background:none;border:none;color:var(--ink-400);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px;}
+  .checklist-item-remove:hover{color:var(--copper-600);}
+  .checklist-add{display:flex;gap:8px;}
+  .checklist-add input{
+    flex:1;box-sizing:border-box;padding:9px 12px;border:1px solid var(--line-strong);border-radius:6px;font:inherit;font-size:13.5px;
+  }
+  .checklist-progress{font-family:var(--mono);font-size:11px;color:var(--ink-400);}
+
+  /* ===== Documentație — a plain in-app help article, not fetched from
+     anywhere external. TOC entries scroll within the panel via JS
+     (see docsToc's click handler) instead of real #anchors, which
+     would collide with the tab-restore system's own use of the URL
+     hash. */
+  .docs-intro{color:var(--ink-600);font-size:14px;max-width:760px;margin:0 0 18px;}
+  #docsHomeSearchWrap{max-width:420px;margin-bottom:18px;}
+  .docs-search-empty{padding:24px 0;text-align:center;color:var(--ink-400);font-size:13px;}
+  .docs-toc{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:28px;max-width:980px;}
+  @media(max-width:900px){.docs-toc{grid-template-columns:1fr 1fr;}}
+  @media(max-width:600px){.docs-toc{grid-template-columns:1fr;}}
+  .docs-toc-link{
+    text-align:left;padding:10px 14px;border:1px solid var(--line-strong);border-radius:6px;
+    background:var(--paper-000);color:var(--ink-700);font:inherit;font-size:13px;cursor:pointer;
+  }
+  .docs-toc-link:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .docs-body{display:flex;flex-direction:column;gap:22px;max-width:860px;}
+  .docs-section{
+    padding:20px 22px;background:var(--paper-000);border:1px solid var(--line-strong);border-radius:9px;
+    scroll-margin-top:20px;
+  }
+  .docs-section h3{margin:0 0 10px;font-size:17px;}
+  .docs-section h4{margin:16px 0 6px;font-size:13.5px;color:var(--ink-700);}
+  .docs-section p{margin:0 0 10px;font-size:13.5px;color:var(--ink-700);line-height:1.55;}
+  .docs-section ul,.docs-section ol{margin:0 0 10px;padding-left:20px;font-size:13.5px;color:var(--ink-700);line-height:1.6;}
+  .docs-section li{margin-bottom:6px;}
+  .docs-callout{
+    margin-top:12px;padding:12px 14px;background:var(--copper-050);
+    border:1px solid var(--copper-300);border-radius:6px;font-size:13px;color:var(--ink-700);
+  }
+  .docs-pdf-box{
+    margin-top:14px;padding:16px 18px;background:var(--paper-050);border:1px solid var(--line-strong);
+    border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  }
+  .docs-pdf-box strong{display:block;font-size:13.5px;color:var(--ink-900);margin-bottom:4px;}
+  .docs-pdf-box p{margin:0;font-size:13px;color:var(--ink-600);max-width:480px;}
+  .docs-pdf-download{flex-shrink:0;white-space:nowrap;}
+  /* The day-detail/add-event sheets are small by nature (one card's
+     worth of content) — full-width edge-to-edge bottom sheets, the
+     same pattern used for the much bigger Filtre/report sheets, look
+     oversized for them, especially on a wide desktop screen. Smaller
+     fields/spacing throughout, and a compact centered pop-up instead
+     of a full-width bottom sheet once there's room for one. */
+  #calendarDaySheet .ctrl-field,
+  #calendarEventFormSheet .ctrl-field{min-width:0;}
+  #calendarEventFormSheet .ctrl-field{margin-bottom:12px;}
+  #calendarEventFormSheet .ctrl-field label{font-size:10px;margin-bottom:4px;}
+  #calendarEventFormSheet .ctrl-field input,
+  #calendarEventFormSheet .ctrl-field select{
+    font-size:12.5px;padding:7px 9px;height:34px;
+  }
+  #calendarEventFormSheet .sheet-grid{grid-template-columns:1fr;gap:0;}
+  #calendarDaySheet .sheet-head h3,
+  #calendarEventFormSheet .sheet-head h3{font-size:16px;}
+  #calendarDaySheet .calendar-day-event{padding:9px 10px;}
+  @media(min-width:901px){
+    #calendarDaySheet .mobile-sheet-panel,
+    #calendarEventFormSheet .mobile-sheet-panel{
+      position:fixed;top:50%;left:50%;right:auto;bottom:auto;
+      transform:translate(-50%,-50%);
+      width:340px;max-width:calc(100vw - 40px);
+      border-radius:14px;padding:18px 20px;max-height:82vh;
+      box-shadow:0 20px 60px rgba(20,24,29,0.28);
+    }
+    #calendarDaySheet .sheet-handle,
+    #calendarEventFormSheet .sheet-handle{display:none;}
+  }
+  /* Same reasoning as the calendar sheets above — vehicleFormSheet (one
+     merged form: identity + documents) inherited the full-width
+     bottom-sheet sizing built for the much larger generic
+     erpItemFormSheet, which left it looking mostly empty. */
+  #vehicleFormSheet .ctrl-field{min-width:0;margin-bottom:12px;}
+  #vehicleFormSheet .ctrl-field label{font-size:10px;margin-bottom:4px;}
+  #vehicleFormSheet .ctrl-field input,
+  #vehicleFormSheet .ctrl-field select{
+    font-size:12.5px;padding:7px 9px;height:34px;
+  }
+  #vehicleFormSheet .pf-grid{gap:0 14px;}
+  #vehicleFormSheet .sheet-head h3{font-size:16px;}
+  #vehicleFormSheet .vf-docs-divider{font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-500);margin:4px 0 10px;}
+  /* A subcategory's table (Mașină mică, Camion, ...) is a worklist of
+     full cards instead — like how a ticket, once opened from Sesizări
+     Overview, shows itself fully rather than behind another click. */
+  .vehicle-cards-list{display:flex;flex-direction:column;gap:12px;}
+  .vehicle-big-card{
+    position:relative;border:1px solid var(--line-strong);border-radius:10px;
+    padding:16px 18px;background:var(--paper-000);
+  }
+  .vehicle-big-card .backlog-title-line{margin-bottom:6px;padding-right:70px;}
+  .vehicle-big-card .backlog-meta-line{white-space:normal;}
+  .vehicle-big-card .vd-docs-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:10px;
+    padding-top:10px;border-top:1px solid var(--line);
+  }
+  .vehicle-big-card .vd-doc-item .vd-doc-label{font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.04em;}
+  .vehicle-big-card .vd-doc-item .vd-doc-value{font-size:13px;margin-top:2px;}
+  .vehicle-big-card-actions{position:absolute;top:14px;right:14px;display:flex;gap:6px;}
+  .vehicle-big-card.jump-highlight{animation:ticket-jump-highlight 1.8s ease-out;}
+  @media(min-width:901px){
+    #vehicleFormSheet .mobile-sheet-panel{
+      position:fixed;top:50%;left:50%;right:auto;bottom:auto;
+      transform:translate(-50%,-50%);
+      width:460px;max-width:calc(100vw - 40px);
+      border-radius:14px;padding:18px 20px;max-height:86vh;
+      box-shadow:0 20px 60px rgba(20,24,29,0.28);
+    }
+    #vehicleFormSheet .sheet-handle{display:none;}
+  }
+  .home-todo-card{
+    background:var(--paper-000);border:1px solid var(--line-strong);border-radius:9px;
+    padding:22px;
+  }
+  .home-todo-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;}
+  .home-todo-head h3{margin:0;font-size:16px;}
+  .home-todo-add{
+    font-family:var(--mono);font-size:12.5px;color:var(--copper-600);
+    background:var(--copper-050);border:1px solid var(--copper-500);border-radius:4px;
+    padding:7px 12px;cursor:pointer;
+  }
+  .home-todo-add:hover{background:var(--copper-500);color:#fff;}
+  .home-todo-list{display:flex;flex-direction:column;gap:14px;}
+  /* Rotating sticky-note colors — same idea as a real Post-it pad,
+     assigned by index (see renderTodoNotes()), not stored per note.
+     Bigger than the first version (more padding, taller textarea) —
+     the column now has the room a real sticky note would use. */
+  .home-todo-note{
+    position:relative;padding:16px 36px 16px 16px;border-radius:6px;
+    background:#fff6c9;box-shadow:0 2px 6px rgba(20,24,29,.08);
+  }
+  .home-todo-note.color-1{background:#fff6c9;}
+  .home-todo-note.color-2{background:#ffe1e8;}
+  .home-todo-note.color-3{background:#d9f2ff;}
+  .home-todo-note.color-4{background:#dcf7de;}
+  .home-todo-note textarea{
+    width:100%;min-height:90px;resize:vertical;border:0;background:none;
+    font:inherit;font-size:14.5px;color:var(--ink-900);line-height:1.5;
+  }
+  .home-todo-note textarea:focus{outline:none;}
+  .home-todo-note-delete{
+    position:absolute;top:10px;right:10px;width:24px;height:24px;
+    display:flex;align-items:center;justify-content:center;
+    background:none;border:0;color:var(--ink-600);cursor:pointer;font-size:17px;line-height:1;
+  }
+  .home-todo-note-delete:hover{color:var(--signal-red);}
+  .home-todo-empty{margin:0;padding:20px 4px;color:var(--ink-600);font-size:13px;text-align:center;}
+  /* Today's calendar events, surfaced inline with the to-do notes so a
+     scheduled thing-to-do doesn't only live on the calendar widget.
+     Visually distinct from a real sticky note (no color, a dashed
+     border, an "i" badge) and read-only here — clicking opens the same
+     event editor the calendar's own day view uses. */
+  .home-todo-note-calendar{
+    position:relative;padding:14px 16px;border-radius:6px;cursor:pointer;
+    background:var(--paper-050);border:1px dashed var(--line-strong);
+    display:flex;flex-direction:column;gap:6px;
+  }
+  .home-todo-note-calendar:hover{border-color:var(--copper-500);background:var(--copper-050);}
+  .home-todo-note-calendar-badge{
+    display:inline-flex;align-items:center;gap:5px;width:fit-content;
+    font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--copper-600);
+  }
+  .home-todo-note-calendar-badge svg{width:13px;height:13px;flex-shrink:0;}
+  .home-todo-note-calendar-text{margin:0;font-size:14.5px;color:var(--ink-900);line-height:1.4;}
+  .home-todo-note-calendar-time{font-size:12.5px;color:var(--ink-600);}
+  .internal-projects-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;}
+  .internal-projects-head h2{margin:6px 0 0;}
+  .internal-projects-copy{max-width:460px;margin:0;color:var(--ink-600);font-size:14px;text-align:right;}
+  .lps-project-bar{display:flex;align-items:end;gap:12px;margin-bottom:18px;padding:16px 18px;background:var(--paper-050);border:1px solid var(--line-strong);border-radius:8px;}
+  .lps-project-bar .ctrl-field{flex:1;}
+  .lps-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+  .lps-kpi{padding:15px 16px;background:var(--paper-000);border:1px solid var(--line-strong);border-radius:7px;}
+  .lps-kpi-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-600);}
+  .lps-kpi-value{margin-top:8px;font-family:var(--display);font-size:28px;font-weight:700;color:var(--ink-900);}
+  .lps-kpi-note{margin-top:4px;font-size:12px;color:var(--ink-600);}
+  .lps-tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:18px;padding-bottom:2px;}
+  .lps-tab{flex:0 0 auto;padding:9px 12px;border:1px solid var(--line-strong);border-radius:4px;background:var(--paper-000);font:inherit;font-size:13px;color:var(--ink-700);cursor:pointer;}
+  .lps-tab.active{border-color:var(--copper-500);background:var(--copper-050);color:var(--copper-600);font-weight:600;}
+  .lps-section{display:none;}
+  .lps-section.active{display:block;}
+  .lps-section-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:16px;}
+  .lps-section-head h3{margin:0;font-size:19px;}
+  .lps-section-head p{margin:5px 0 0;color:var(--ink-600);font-size:13px;max-width:680px;}
+  .lps-form{margin-bottom:16px;padding:18px;background:var(--paper-050);border:1px solid var(--line-strong);border-radius:8px;}
+  .lps-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;}
+  .lps-form-grid .full{grid-column:1/-1;}
+  .lps-list{display:grid;gap:10px;}
+  .lps-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;padding:15px 17px;background:var(--paper-000);border:1px solid var(--line-strong);border-radius:7px;}
+  .lps-item-title{font-size:15px;font-weight:600;}
+  .lps-item-meta{margin-top:4px;font-size:12.5px;color:var(--ink-600);}
+  .lps-item-note{margin:9px 0 0;font-size:13px;color:var(--ink-700);}
+  .lps-item-actions{display:flex;gap:7px;align-items:flex-start;}
+  .lps-status{display:inline-flex;margin-top:9px;padding:3px 7px;border-radius:3px;background:var(--paper-100);font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-700);}
+  .lps-status.ready,.lps-status.done{background:var(--signal-green-bg);color:var(--signal-green);}
+  .lps-status.blocked,.lps-status.missed{background:var(--signal-red-bg);color:var(--signal-red);}
+  .lps-overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;}
+  .lps-guide{padding:18px;background:var(--paper-000);border:1px solid var(--line-strong);border-radius:8px;}
+  .lps-guide h3{margin:0 0 12px;font-size:16px;}
+  .lps-guide ol{margin:0;padding-left:20px;color:var(--ink-700);font-size:13px;line-height:1.7;}
+  .lps-empty{padding:32px 18px;border:1px dashed var(--line-strong);border-radius:7px;color:var(--ink-600);font-size:14px;text-align:center;}
+  .lps-eval{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px;margin-top:10px;}
+  .lps-live-note{margin:7px 0 0;font-size:12.5px;color:var(--ink-600);font-style:italic;}
+  .lps-variance-breakdown{margin-bottom:16px;padding:16px 18px;background:var(--paper-000);border:1px solid var(--line-strong);border-radius:8px;}
+  .lps-variance-breakdown h4{margin:0 0 12px;font-size:14px;}
+  .lps-variance-row{display:grid;grid-template-columns:140px minmax(0,1fr) 24px;align-items:center;gap:10px;margin-bottom:8px;font-size:12.5px;color:var(--ink-700);}
+  .lps-variance-bar-track{height:8px;background:var(--paper-100);border-radius:4px;overflow:hidden;}
+  .lps-variance-bar-fill{display:block;height:100%;background:var(--signal-red);border-radius:4px;}
+
+  /* ===== LPS Look-ahead — resources tied to the ERP inventory ===== */
+  .lps-resources{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);}
+  .lps-resource-row{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0;font-size:12.5px;
+  }
+  .lps-resource-row + .lps-resource-row{border-top:1px solid var(--paper-100);}
+  .lps-resource-name{font-weight:600;color:var(--ink-900);}
+  .lps-resource-detail{color:var(--ink-600);}
+  .lps-resource-status{
+    font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.04em;
+    padding:2px 7px;border-radius:3px;background:var(--paper-100);color:var(--ink-600);
+  }
+  .lps-resource-status.reserved{background:var(--signal-orange-bg);color:var(--signal-orange);}
+  .lps-resource-status.consumed{background:var(--signal-green-bg);color:var(--signal-green);}
+  .lps-resource-status.returned{background:var(--paper-100);color:var(--ink-400);}
+  .lps-resource-row .btn{padding:4px 9px;font-size:11px;margin-left:auto;}
+  .lps-resource-row .btn + .btn{margin-left:0;}
+  .lps-add-resource-btn{margin-top:8px;font-size:12px;}
+  .lps-resource-hint{margin:10px 0 0;font-size:12.5px;color:var(--ink-600);}
+  .lps-gantt-wrap{margin-bottom:18px;}
+  .lps-gantt-legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:10px;font-size:12px;color:var(--ink-600);}
+  .lps-gantt-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .lps-gantt-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;flex:0 0 auto;}
+  .lps-gantt{display:flex;max-height:440px;overflow-y:auto;border:1px solid var(--line-strong);border-radius:8px;background:var(--paper-000);}
+  .lps-gantt-labels{flex:0 0 190px;border-right:1px solid var(--line-strong);}
+  .lps-gantt-track-wrap{flex:1;position:relative;min-width:0;}
+  .lps-gantt-label-spacer,.lps-gantt-scale{height:28px;position:sticky;top:0;background:var(--paper-000);z-index:2;border-bottom:1px solid var(--line-strong);}
+  .lps-gantt-scale{position:sticky;}
+  .lps-gantt-tick-label{position:absolute;top:7px;font-family:var(--mono);font-size:10.5px;color:var(--ink-600);transform:translateX(-50%);white-space:nowrap;}
+  .lps-gantt-gridline{position:absolute;top:0;bottom:0;width:1px;background:var(--line);}
+  .lps-gantt-today-line{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed var(--copper-500);z-index:1;}
+  .lps-gantt-today-line span{position:absolute;top:6px;left:4px;font-family:var(--mono);font-size:10px;color:var(--copper-600);white-space:nowrap;}
+  .lps-gantt-group-label{height:26px;display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-600);background:var(--paper-050);}
+  .lps-gantt-group-row{height:26px;background:var(--paper-050);}
+  .lps-gantt-label{height:30px;display:flex;align-items:center;padding:0 12px;font-size:12.5px;color:var(--ink-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lps-gantt-track-row{height:30px;position:relative;}
+  .lps-gantt-marker{position:absolute;top:50%;width:10px;height:10px;transform:translate(-50%,-50%) rotate(45deg);border-radius:2px;}
+  .lps-gantt-marker.milestone-open{background:var(--copper-500);}
+  .lps-gantt-marker.milestone-done{background:var(--signal-green);}
+  .lps-gantt-marker.constraint{background:var(--signal-red);}
+  .lps-gantt-dot{position:absolute;top:50%;width:9px;height:9px;transform:translate(-50%,-50%);border-radius:50%;}
+  .lps-gantt-dot.status-done{background:var(--signal-green);}
+  .lps-gantt-dot.status-missed{background:var(--signal-red);}
+  .lps-gantt-dot.status-pending{background:var(--ink-400);}
+  .lps-gantt-bar{position:absolute;top:8px;height:14px;border-radius:4px;min-width:8px;}
+  .lps-gantt-bar.ready{background:var(--signal-green);}
+  .lps-gantt-bar.blocked{background:var(--signal-red);}
+  .lps-gantt-empty{padding:24px 18px;text-align:center;color:var(--ink-600);font-size:13px;}
+  @media(max-width:900px){
+    .home-intro{align-items:flex-start;margin-top:8px;}
+    .home-intro-copy{display:none;}
+    html.report-focused-view .report-nav-wrap{display:none;}
+    /* Single column on mobile — nav buttons first (the main reason
+       to be on this page), then the clock, then the to-do list,
+       reordered from their left/middle/right desktop positions via
+       source order (clock, main, todo). */
+    .home-start-grid{grid-template-columns:1fr;}
+    .home-start-main{order:1;}
+    .home-clock-card{order:2;}
+    .home-todo-card{order:3;}
+    .internal-projects-head{align-items:flex-start;}
+    .internal-projects-copy{display:none;}
+    .lps-kpi-grid{grid-template-columns:repeat(2,1fr);}
+    .lps-overview-grid{grid-template-columns:1fr;}
+    .lps-gantt-labels{flex:0 0 120px;}
+    .lps-gantt-label,.lps-gantt-group-label{padding:0 8px;font-size:11.5px;}
+  }
+  @media(max-width:600px){
+    .home-nav-grid{grid-template-columns:1fr;}
+  }
+  @media(max-width:480px){
+    .lps-project-bar{align-items:stretch;flex-direction:column;}
+    .lps-form-grid{grid-template-columns:1fr;}
+    .lps-eval{grid-template-columns:1fr;}
+  }
+
+  .priority-grid{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:14px;
+    margin-bottom:28px;
+  }
+  /* Home icon/tab only exist for vlasbogdan@ — the start screen (see
+     panel-home, initHomeClock()/renderTodoNotes()) is built
+     specifically around what this one report-writing role needs to
+     see first, and wouldn't mean anything to a general admin login. */
+  .home-icon-btn{display:none;}
+  html.report-focused-view .home-icon-btn{display:inline-flex;}
+  /* Overrides the generic rule above specifically inside the mobile
+     sidebar list, where sibling .mobile-tab-btn entries use plain
+     flex (not inline-flex) for their row layout — matching that
+     exactly rather than leaving this one entry subtly
+     inconsistent with the others next to it. */
+  html.report-focused-view .mobile-sidebar-nav .home-icon-btn{display:flex;}
+  /* Desktop only — on mobile, .admin-tabs-row (the tabs this spacing
+     is meant to separate from) is hidden entirely, replaced by the
+     bottom tab bar, so this specific relationship doesn't apply
+     there; adding a universal margin-top would still visibly shift
+     mobile's spacing even though the tabs it's meant to sit below
+     aren't shown. */
+  @media(min-width:901px){
+    .priority-grid{margin-top:28px;}
+  }
+  .priority-card{
+    border:1px solid var(--line-strong);border-radius:4px;
+    padding:16px 18px;background:var(--paper-050);
+    cursor:pointer;transition:border-color .15s,transform .15s;
+    text-align:left;
+  }
+  .priority-card:hover{border-color:var(--copper-500);transform:translateY(-1px);}
+  .priority-card.danger{border-color:rgba(181,80,47,0.3);background:var(--signal-red-bg);}
+  .priority-card.warn{border-color:rgba(181,121,47,0.3);background:var(--signal-orange-bg);}
+  .priority-card.done{border-color:rgba(30,158,90,0.3);background:var(--signal-green-bright-bg);}
+  .priority-card .k{
+    display:flex;align-items:center;gap:6px;
+    font-family:var(--mono);font-size:11px;letter-spacing:0.04em;text-transform:uppercase;
+    color:var(--ink-600);margin-bottom:10px;
+  }
+  .priority-card.danger .k{color:var(--signal-red);}
+  .priority-card.warn .k{color:var(--signal-orange);}
+  .priority-card.done .k{color:var(--signal-green-bright);}
+  .priority-card .num{font-family:var(--display);font-weight:700;font-size:32px;line-height:1;color:var(--ink-900);}
+  .priority-card.danger .num{color:var(--signal-red);}
+  .priority-card.warn .num{color:var(--signal-orange);}
+  .priority-card.done .num{color:var(--signal-green-bright);}
+  .priority-card .sub{font-size:12px;color:var(--ink-600);margin-top:6px;}
+  @media(max-width:900px){
+    .priority-grid{display:none;}
+  }
+  @media(max-width:560px){
+    .priority-grid{grid-template-columns:1fr;}
+  }
+  .priority-card.active{border-color:var(--copper-500);background:var(--copper-050);}
+  .priority-card.active .k{color:var(--copper-600);}
+  .priority-card.active .num{color:var(--copper-600);}
+  /* Parc Auto's table reuses .overview-table (Sesizări) wholesale for a
+     consistent look — only the vehicle-specific bits below are new. */
+  #machinesTable .mt-name-cell{white-space:normal;}
+  #machinesTable .mt-name{font-weight:600;color:var(--ink-900);}
+  #machinesTable .mt-subcat{font-size:11.5px;color:var(--ink-600);margin-top:2px;}
+  #machinesTable .mt-na{color:var(--ink-400);}
+  #machinesTable .mt-warn{color:var(--signal-orange);font-weight:600;}
+  #machinesTable .mt-expired{color:var(--signal-red);font-weight:600;}
+  .machines-table-empty{padding:40px 0;text-align:center;color:var(--ink-400);}
+  .mt-row-actions{display:flex;gap:6px;justify-content:flex-end;}
+  .mt-row-icon-btn{
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:26px;height:26px;border-radius:6px;
+    border:1px solid var(--line-strong);background:var(--paper-000);
+    color:var(--ink-600);cursor:pointer;padding:0;
+  }
+  .mt-row-icon-btn:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .mt-row-icon-btn.danger:hover{border-color:var(--signal-red);color:var(--signal-red);}
+
+  .active-narrow-filter{
+    display:none;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:12px;color:var(--copper-600);
+    margin-bottom:14px;
+  }
+  .active-narrow-filter.show{display:flex;}
+  .active-narrow-filter button{
+    background:none;border:none;color:var(--copper-600);cursor:pointer;
+    text-decoration:underline;font-family:inherit;font-size:inherit;padding:0;
+  }
+
+  /* ===== TICKET OVERVIEW TABLE + CHARTS =====
+     Purely a glanceable summary — a compact, sortable table of every
+     non-archived ticket with resolved ones pushed to the bottom, plus
+     two small charts. Editing still happens in the detailed cards
+     below exactly as before; this section doesn't touch them. */
+  .overview-year-bar{
+    display:flex;align-items:center;gap:10px;margin-top:20px;flex-wrap:wrap;
+  }
+  .overview-year-bar label{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-600);}
+  .overview-year-bar select{
+    font-family:var(--body);font-size:13px;padding:7px 10px;
+    border:1px solid var(--line-strong);border-radius:3px;background:var(--paper-000);color:var(--ink-900);
+  }
+  .overview-year-bar select.not-current-year{
+    border-color:var(--signal-orange);background:var(--signal-orange-bg);
+    color:var(--signal-orange);font-weight:600;
+  }
+  /* This has to come AFTER the base .overview-year-bar rule above,
+     not just be wrapped in a media query — a media query doesn't add
+     specificity, so with an identical single-class selector on both
+     sides, plain source order decides the tie, and the earlier
+     mobile-hide rule that used to sit up near the top of the file
+     was silently losing to this one. Moving the override to after
+     its target, not just adding a rule with the same selector
+     somewhere convenient, is what actually makes it win. */
+  @media(max-width:900px){
+    .overview-year-bar{display:none;}
+  }
+  .year-warning{
+    display:none;
+    font-family:var(--mono);font-size:12px;font-weight:600;color:var(--signal-orange);
+    white-space:nowrap;
+  }
+  .year-warning.show{display:inline;}
+  .overview-section{
+    display:flex;flex-direction:column;gap:20px;
+    margin-top:14px;
+  }
+  .overview-table-wrap{
+    border:1px solid var(--line-strong);border-radius:6px;
+    background:var(--paper-000);
+    /* Header + ~15 data rows before its own scrollbar kicks in (kept
+       independent from the page's scroll) — the header stays pinned
+       via position:sticky on .overview-table th as you scroll within
+       this box specifically. */
+    max-height:600px;overflow-y:auto;overflow-x:auto;
+  }
+  .overview-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px;}
+  /* Explicit widths (table-layout:fixed) instead of letting the
+     browser distribute space based on content length — that's what
+     was leaving odd, uneven gaps between columns before. Headers
+     wrap onto a second line where needed rather than being forced
+     onto one and cut off (same idea as the address cells below,
+     which already wrap and shouldn't change) — with headers this
+     descriptive in a 9-column table, something has to give, and a
+     wrapped label reads far better than a truncated one. */
+  .overview-table col.col-num{width:10%;}
+  .overview-table col.col-date{width:9%;}
+  .overview-table col.col-type{width:8%;}
+  .overview-table col.col-name{width:12%;}
+  .overview-table col.col-phone{width:10%;}
+  .overview-table col.col-address{width:22%;}
+  .overview-table col.col-status{width:11%;}
+  .overview-table col.col-resolved{width:9%;}
+  .overview-table col.col-duration{width:9%;}
+  .overview-table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .overview-table td.overview-address-cell,
+  .overview-table td.overview-name-cell{white-space:normal;}
+  .overview-table th{
+    position:sticky;top:0;background:var(--paper-050);z-index:1;
+    text-align:left;padding:10px 12px;font-family:var(--mono);font-size:10px;
+    text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-600);
+    border-bottom:1px solid var(--line-strong);
+    white-space:normal;line-height:1.35;
+  }
+  .overview-table td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink-900);}
+  .overview-table tr:last-child td{border-bottom:none;}
+  .overview-table tbody tr:hover{background:var(--paper-050);}
+  .overview-table tr.done-row{opacity:0.7;}
+  /* Active (still-open, non-urgent) rows get genuinely darker, slightly
+     heavier text so they read as the "current, matters now" rows at a
+     glance — especially next to done rows, which are already faded via
+     opacity above. Explicitly excludes both .done-row and .urgent-row
+     so this can't accidentally fight with either of their own text
+     colors regardless of any future edits to this area. */
+  .overview-table tr:not(.done-row):not(.urgent-row) td:not(.aging-date){color:#000;font-weight:500;}
+  .overview-table tr.urgent-row{background:var(--signal-red-bg);}
+  .overview-table tr.urgent-row:hover{background:var(--signal-red-bg);}
+  .overview-table tr.urgent-row td{border-bottom-color:rgba(181,80,47,0.25);}
+  .overview-table tr.urgent-row td:first-child{border-left:3px solid var(--signal-red);}
+  .overview-table tr.urgent-row td:not(:first-child){color:var(--signal-red);font-weight:600;}
+  .overview-table td.aging-date{color:var(--signal-orange);font-weight:600;}
+  .status-bubble{width:11px;height:11px;border-radius:50%;display:block;flex-shrink:0;}
+  .status-bubble.active{background:var(--signal-orange);}
+  .status-bubble.done{background:var(--signal-green);}
+  /* Real chip rather than bare text — tinted background matching the
+     status color. Text-only now (dot removed to save width); padding
+     is a bit more even left/right since there's no dot to balance
+     against on the left anymore. */
+  .status-pill{
+    display:inline-flex;align-items:center;
+    font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;
+  }
+  .status-pill-active{background:var(--copper-050);color:var(--copper-500);}
+  .status-pill-done{background:var(--signal-green-bright-bg);color:var(--signal-green-bright);}
+  .overview-empty{padding:24px;text-align:center;color:var(--ink-400);font-size:13px;}
+  .ticket-link{color:var(--signal-blue);text-decoration:underline;text-underline-offset:2px;font-weight:500;}
+  .ticket-link:hover{color:var(--signal-blue-hover);}
+  @keyframes ticket-jump-highlight{
+    0%{box-shadow:0 0 0 3px var(--copper-500);}
+    100%{box-shadow:0 0 0 3px transparent;}
+  }
+  .ticket-card.jump-highlight{animation:ticket-jump-highlight 1.8s ease-out;}
+  .overview-sidebar{display:flex;flex-direction:row;gap:16px;}
+  .overview-sidebar .chart-card{flex:1;}
+  .chart-card{border:1px solid var(--line-strong);border-radius:4px;padding:16px;background:var(--paper-000);}
+  .chart-card h4{font-size:12.5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.03em;color:var(--ink-600);margin-bottom:14px;font-weight:500;}
+  .chart-card canvas{max-height:170px;}
+  .chart-stat{font-family:var(--mono);font-size:20px;color:var(--copper-600);text-align:center;margin-top:10px;}
+  /* ===== MOBILE/TABLET TICKET CARDS =====
+     Not a CSS reflow of the desktop table — a genuinely different
+     layout, purpose-built for someone glancing at a phone in the
+     field, not reading a spreadsheet. Leads with the address (the one
+     field that actually matters for "do I need to go there"), keeps
+     ticket number/phone/date as small secondary text, and makes the
+     entire card a large tap target instead of a small text link —
+     thumb-friendly, not mouse-precise. Built from the same sorted,
+     filtered data as the desktop table, so the two never drift out
+     of sync with each other. */
+  .overview-cards-mobile{display:none;flex-direction:column;gap:10px;}
+  .ov-card{
+    display:block;width:100%;text-align:left;cursor:pointer;
+    border:1px solid var(--line-strong);border-radius:6px;
+    background:var(--paper-000);padding:14px 16px;margin:0;
+    border-left:4px solid var(--signal-orange);
+    font-family:var(--body);
+  }
+  .ov-card.done{border-left-color:var(--signal-green);opacity:0.75;}
+  .ov-card.urgent{border-left-color:var(--signal-red);background:var(--signal-red-bg);}
+  .ov-card-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .ov-card-top .status-bubble{flex-shrink:0;}
+  .ov-card-type{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.04em;
+    color:var(--ink-600);
+  }
+  .ov-card.urgent .ov-card-type{color:var(--signal-red);font-weight:600;}
+  .ov-card-num{
+    margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--copper-600);font-weight:600;
+  }
+  .ov-card-address{font-size:16px;font-weight:600;color:var(--ink-900);line-height:1.35;margin-bottom:6px;}
+  .ov-card-meta{
+    display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    font-size:12.5px;color:var(--ink-600);
+  }
+  .ov-card-meta .aging{color:var(--signal-orange);font-weight:600;}
+  .ov-card-resolved{margin-top:8px;font-size:12px;color:var(--ink-600);}
+
+  @media(max-width:900px){
+    .overview-table-wrap{display:none;}
+    .overview-cards-mobile{display:flex;}
+    .overview-sidebar{display:none;}
+    .overview-section{gap:14px;}
+    .priority-grid{margin-bottom:18px;}
+  }
+  .admin-panel.active{display:block;}
+
+  .project-form{
+    background:var(--paper-050);border:1px solid var(--line-strong);border-radius:5px;
+    padding:22px 24px;margin-top:16px;
+  }
+  .pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;}
+  /* Stacks two ctrl-field children vertically inside a single pf-grid
+     cell — used to keep "Data soluționării" directly under "Data
+     sesizării" rather than letting it flow into the next grid cell
+     over (which is what happens by default in a 2-column grid, since
+     items just fill left-to-right, top-to-bottom in HTML order). */
+  .ctrl-field-stack{display:flex;flex-direction:column;gap:16px;}
+  .pf-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+
+  .project-list{padding:20px 0 60px;display:flex;flex-direction:column;gap:12px;}
+  .project-card{
+    border:1px solid var(--line-strong);border-radius:5px;padding:18px 22px;background:var(--paper-000);
+  }
+  .pc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;}
+  .pc-title{font-weight:600;font-size:15px;color:var(--ink-900);margin-bottom:4px;}
+  .pc-address{font-size:13px;color:var(--ink-600);}
+  .pc-status{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+    padding:4px 9px;border-radius:3px;white-space:nowrap;
+  }
+  .pc-status.scheduled{background:var(--paper-100);color:var(--ink-600);}
+  .pc-status.progress{background:var(--copper-050);color:var(--copper-600);}
+  .pc-status.done{background:var(--signal-green-bg);color:var(--signal-green);}
+  .pc-bar-track{width:100%;height:5px;background:var(--paper-100);border-radius:4px;overflow:hidden;margin:12px 0 8px;}
+  .pc-bar-fill{height:100%;background:var(--copper-500);border-radius:4px;}
+  .pc-meta{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-600);margin-bottom:14px;}
+  .pc-actions{display:flex;gap:10px;}
+  .pc-actions .btn{padding:8px 14px;font-size:12px;}
+  .project-card.archived{background:var(--paper-050);opacity:0.85;}
+
+  /* ===== BACKLOG PROJECTS — deliberately more compact than
+     .project-card above. Rendered as table-like rows (border-bottom
+     between rows, not a separate bordered box per item) with a
+     ticket-style colored left accent, so a long backlog list doesn't
+     eat vertical space the way full project cards would. Accent
+     color escalates with how long the item has been sitting
+     (green → amber → red) as a passive "this has been waiting a
+     while" signal, reusing the same status-color variables as
+     elsewhere in this file rather than inventing new ones. */
+  .backlog-list{
+    border:1px solid var(--line-strong);border-radius:5px;overflow:hidden;
+    background:var(--paper-000);margin-top:16px;
+  }
+  .backlog-row{
+    display:flex;align-items:center;gap:16px;
+    padding:10px 16px;border-bottom:1px solid var(--line);
+    border-left:3px solid var(--line-strong);
+    transition:background .15s;
+  }
+  .backlog-row:last-child{border-bottom:none;}
+  .backlog-row:hover{background:var(--paper-050);}
+  .backlog-row.age-fresh{border-left-color:var(--signal-green);}
+  .backlog-row.age-aging{border-left-color:var(--copper-500);}
+  .backlog-row.age-stale{border-left-color:var(--signal-red);}
+  .backlog-main{flex:1 1 auto;min-width:0;}
+  .backlog-title-line{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  .backlog-title{font-weight:600;font-size:14px;color:var(--ink-900);}
+  .backlog-tag{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+    padding:2px 8px;border-radius:3px;background:var(--paper-100);color:var(--ink-600);white-space:nowrap;
+  }
+  .erp-type-tag.echipament{background:color-mix(in srgb,var(--signal-purple) 15%,white);color:var(--signal-purple);}
+  .erp-type-tag.masina{background:color-mix(in srgb,var(--signal-orange) 15%,white);color:var(--signal-orange);}
+  .erp-type-tag.material{background:color-mix(in srgb,var(--signal-blue) 12%,white);color:var(--signal-blue-hover);}
+  .erp-warning-tag{background:var(--signal-orange-bg);color:var(--signal-orange);}
+  .erp-alerts-wrap .status-history-item{cursor:pointer;}
+  .erp-alerts-wrap .status-history-dot{background:var(--signal-orange);}
+  .erp-reservation-note{color:var(--copper-600);}
+  .backlog-days{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+    padding:2px 8px;border-radius:3px;white-space:nowrap;
+  }
+  .age-fresh .backlog-days{background:var(--signal-green-bg);color:var(--signal-green);}
+  .age-aging .backlog-days{background:var(--copper-050);color:var(--copper-600);}
+  .age-stale .backlog-days{background:var(--signal-red-bg);color:var(--signal-red);}
+  .backlog-meta-line{font-size:12.5px;color:var(--ink-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .backlog-actions{display:flex;gap:8px;flex-shrink:0;}
+  .backlog-actions .btn{padding:6px 12px;font-size:11.5px;}
+  @media(max-width:700px){
+    .backlog-row{flex-wrap:wrap;}
+    .backlog-meta-line{white-space:normal;}
+    .backlog-actions{width:100%;justify-content:flex-end;}
+  }
+
+  /* ===== PROGRAME LUCRĂRI — full month calendar =====
+     A bigger sibling of .home-mini-cal (same Monday-first grid math,
+     same dateKey()-based lookups), sized to actually hold a work
+     order's title inside each day cell rather than just a dot. */
+  .wo-calendar{margin:22px 0 28px;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .wo-calendar-head{
+    display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);
+    background:var(--paper-050);
+  }
+  .wo-calendar-month{font-family:var(--display);font-weight:700;font-size:16px;color:var(--ink-900);text-transform:capitalize;min-width:160px;}
+  .wo-cal-nav{
+    width:30px;height:30px;border-radius:7px;border:1px solid var(--line-strong);background:var(--paper-000);
+    color:var(--ink-600);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+  }
+  .wo-cal-nav:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .wo-calendar-head .btn{margin-left:auto;}
+  .wo-calendar-weekdays{
+    display:grid;grid-template-columns:repeat(7,1fr);
+    padding:8px 6px 0;background:var(--paper-050);
+  }
+  .wo-calendar-weekdays span{
+    text-align:center;font-family:var(--mono);font-size:11px;font-weight:600;
+    color:var(--ink-400);text-transform:uppercase;padding-bottom:8px;
+  }
+  .wo-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);background:var(--paper-050);gap:1px;padding:0 0 1px;}
+  .wo-cal-day{
+    background:var(--paper-000);min-height:104px;padding:6px;display:flex;flex-direction:column;gap:4px;
+    cursor:pointer;align-items:stretch;text-align:left;border:none;font:inherit;
+  }
+  .wo-cal-day:hover{background:var(--paper-100);}
+  .wo-cal-day.outside{background:var(--paper-050);}
+  .wo-cal-day.outside .wo-cal-day-num{color:var(--ink-300);}
+  .wo-cal-day-num{
+    font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--ink-700);
+    width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0;
+  }
+  .wo-cal-day.today .wo-cal-day-num{background:var(--copper-500);color:#fff;}
+  .wo-cal-day-chips{display:flex;flex-direction:column;gap:3px;overflow:hidden;}
+  .wo-cal-chip{
+    font-size:11px;padding:2px 6px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    background:var(--paper-100);color:var(--ink-700);border-left:3px solid var(--ink-400);
+  }
+  .wo-cal-chip.status-Planificat{background:color-mix(in srgb,var(--signal-blue) 12%,white);border-left-color:var(--signal-blue);color:var(--signal-blue-hover);}
+  .wo-cal-chip.status-In-lucru{background:color-mix(in srgb,var(--signal-orange) 16%,white);border-left-color:var(--signal-orange);color:var(--signal-orange);}
+  .wo-cal-chip.status-Finalizat{background:var(--signal-green-bg);border-left-color:var(--signal-green);color:var(--signal-green);}
+  .wo-cal-chip.status-Anulat{background:var(--paper-100);border-left-color:var(--ink-300);color:var(--ink-400);text-decoration:line-through;}
+  .wo-cal-chip-more{font-size:10.5px;color:var(--ink-400);padding:0 6px;}
+  @media(max-width:900px){
+    .wo-cal-day{min-height:72px;}
+    .wo-cal-day-chips{display:none;}
+  }
+  .wo-list-heading{font-family:var(--display);font-weight:700;font-size:15px;color:var(--ink-900);margin:0 0 12px;}
+  /* "Descarcă" on the calendar just triggers a normal browser print
+     scoped to the calendar (Save as PDF covers "download"; a real
+     printer covers "print") — far more reliable than rasterizing the
+     DOM to an image, and it naturally keeps every chip/note exactly as
+     shown on screen. body.print-calendar-only is added right before
+     window.print() and removed on the afterprint event. */
+  @media print{
+    body.print-calendar-only .rail,
+    body.print-calendar-only .category-panel,
+    body.print-calendar-only .topbar,
+    body.print-calendar-only .toolbar,
+    body.print-calendar-only .project-form,
+    body.print-calendar-only .wo-list-heading,
+    body.print-calendar-only #workOrdersList,
+    body.print-calendar-only .wo-cal-nav,
+    body.print-calendar-only .wo-calendar-head .btn{
+      display:none !important;
+    }
+    body.print-calendar-only .page-body{padding:0;}
+    body.print-calendar-only .wo-calendar{border:none;margin:0;}
+    body.print-calendar-only .wo-cal-day{min-height:90px;}
+    body.print-calendar-only .wo-cal-day-chips{display:flex !important;}
+  }
+
+  .excel-preview{
+    background:var(--paper-050);border:1px solid var(--line-strong);border-radius:5px;
+    padding:22px 24px;margin-top:16px;
+  }
+  .excel-preview-note{font-size:13px;color:var(--ink-600);margin-bottom:14px;}
+  .excel-preview-table-wrap{overflow-x:auto;max-height:340px;overflow-y:auto;border:1px solid var(--line-strong);border-radius:3px;}
+  .excel-preview-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .excel-preview-table th{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.04em;
+    color:var(--ink-400);text-align:left;padding:9px 12px;background:var(--paper-100);
+    position:sticky;top:0;
+  }
+  .excel-preview-table td{padding:9px 12px;border-top:1px solid var(--line);color:var(--ink-700);}
+  .excel-preview-table tr.row-error td{background:var(--signal-red-bg);color:var(--signal-red);}
+  .excel-preview-table tr.row-duplicate td{background:var(--signal-orange-bg);color:var(--signal-orange);}
+  .excel-preview-table tr.row-warning td{background:var(--signal-orange-bg);color:var(--signal-orange);}
+  .repair-note-input{
+    width:100%;min-height:52px;font:inherit;font-size:13px;padding:6px 8px;
+    border:1px solid var(--line-strong);border-radius:3px;resize:vertical;color:var(--ink-900);
+  }
+  .repair-note-input:disabled{background:var(--paper-050);color:var(--ink-600);}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;}
+  .chip{
+    font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:20px;
+    border:1px solid var(--line-strong);color:var(--ink-600);cursor:pointer;
+    transition:all .15s;background:var(--paper-000);white-space:nowrap;
+  }
+  .chip:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .chip.active{background:var(--copper-500);border-color:var(--copper-500);color:#fff;}
+  /* ===== ICON ROW + FILTER POPOVER — ported from admin.html, which
+     replaced the old mobile bottom-sheet "Filtre" pattern with this
+     same icon row + popover at every width. Kept 1:1 with admin.html's
+     own classes/structure/comments so both files can be diffed
+     against each other and stay in sync going forward. */
+  .overview-quick-filters{display:none;}
+  .overview-quick-filters.active{
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    position:relative;
+  }
+  @media(min-width:901px){
+    .overview-quick-filters.active{margin-left:auto;}
+  }
+  .overview-icon-btn{
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:38px;height:38px;border-radius:50%;
+    border:1px solid var(--line-strong);background:var(--paper-000);
+    color:var(--ink-600);cursor:pointer;
+  }
+  .overview-icon-btn.active{color:var(--copper-600);border-color:var(--copper-500);}
+  .overview-icon-btn.add-btn{
+    background:var(--copper-500);border-color:var(--copper-500);color:#fff;
+  }
+  .overview-icon-btn.add-btn:hover{background:var(--copper-600);border-color:var(--copper-600);}
+  .overview-popover-wrap{display:flex;align-items:center;}
+  @media(min-width:901px){
+    .overview-popover-wrap{position:relative;}
+  }
+  .overview-search-wrap{position:relative;display:flex;align-items:center;}
+  .overview-search-wrap input[type="search"]{
+    display:none;width:0;font-family:var(--body);font-size:13px;
+    padding:8px 12px;border:1px solid var(--line-strong);border-radius:3px;
+  }
+  .overview-search-wrap.expanded input[type="search"]{display:block;width:200px;margin-right:8px;}
+  .overview-search-wrap.expanded .overview-icon-btn{display:none;}
+  .admin-tabs-row .overview-year-bar[data-year-panel="overview"],.topbar-actions .overview-year-bar[data-year-panel="overview"]{display:none;}
+  .admin-tabs-row .overview-year-bar[data-year-panel="tickets"],.topbar-actions .overview-year-bar[data-year-panel="tickets"]{display:none;}
+  .admin-tabs-row .overview-year-bar[data-year-panel="projects"],.topbar-actions .overview-year-bar[data-year-panel="projects"]{display:none;}
+  #panel-projects .toolbar .overview-year-bar{display:none;}
+  @media(min-width:901px){
+    .overview-search-wrap.expanded input[type="search"]{width:230px;}
+  }
+  .filter-popover{
+    display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:60;
+    background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;
+    padding:16px;box-shadow:0 8px 24px rgba(20,24,29,0.15);width:280px;
+  }
+  .filter-popover.open{display:block;}
+  @media(min-width:901px){
+    .filter-popover{left:auto;right:0;}
+  }
+  .filter-popover .sheet-grid{margin-bottom:14px;gap:14px 10px;}
+  .filter-popover .ctrl-field select{font-size:12.5px;padding:9px 8px;}
+  .filter-popover .ctrl-field{min-width:0;}
+  .filter-popover .sheet-filter-status label{
+    font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;
+    color:var(--ink-600);display:block;margin-bottom:10px;
+  }
+  .filter-popover .popover-daygrid{display:none;}
+  @media(min-width:901px){
+    .filter-popover .popover-yearmonth{display:none;}
+    .filter-popover .popover-daygrid{display:block;}
+  }
+  .sheet-mini-calendar{margin-bottom:14px;}
+  .mini-cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .mini-cal-month-label{font-family:var(--mono);font-size:13px;color:var(--ink-900);text-transform:capitalize;background:none;border:none;border-radius:4px;padding:2px 7px;cursor:pointer;}
+  .mini-cal-month-label:hover{background:var(--paper-050);color:var(--copper-600);}
+  .mini-cal-month-label.active-filter{background:var(--copper-050);color:var(--copper-600);}
+  .mini-cal-header button:not(.mini-cal-month-label){
+    width:26px;height:26px;flex-shrink:0;border-radius:50%;border:1px solid var(--line-strong);
+    background:var(--paper-000);color:var(--ink-700);cursor:pointer;font-size:14px;line-height:1;
+  }
+  .mini-cal-header button:not(.mini-cal-month-label):hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .mini-cal-month-label{white-space:nowrap;}
+  .mini-cal-weekdays{
+    display:grid;grid-template-columns:repeat(7,1fr);
+    font-family:var(--mono);font-size:10.5px;color:var(--ink-400);
+    text-align:center;margin-bottom:4px;
+  }
+  .mini-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+  .mini-cal-day{
+    width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+    font-size:12.5px;color:var(--ink-900);background:none;border:none;border-radius:4px;
+    cursor:pointer;
+  }
+  .mini-cal-day:hover{background:var(--paper-050);}
+  .mini-cal-day.outside{color:var(--ink-300);}
+  .mini-cal-day.today{font-weight:700;color:var(--copper-600);}
+  .mini-cal-day.selected{background:var(--copper-500);color:#fff;}
+  .mini-cal-clear-btn{
+    width:100%;margin-top:10px;padding:7px;font-family:var(--mono);font-size:11px;
+    text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-600);
+    background:none;border:1px solid var(--line-strong);border-radius:4px;cursor:pointer;
+  }
+  .mini-cal-clear-btn:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .mini-cal-clear-btn.active-filter{border-color:var(--copper-500);color:var(--copper-600);background:var(--copper-050);}
+  .overview-quick-filters-count{
+    margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink-400);white-space:nowrap;
+  }
+  @media(min-width:901px){
+    .overview-quick-filters-count{display:none;}
+  }
+  /* A pill, not quiet inline text — selecting a non-default filter
+     used to be easy to miss entirely (tiny 12px monospace text, far
+     in the corner of the page). Now it reads as a small colored badge
+     wherever it sits, so "you're not looking at everything" is
+     obvious at a glance rather than something you have to notice. */
+  .filter-status-note{
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:var(--mono);font-size:12px;font-weight:700;color:var(--copper-600);white-space:nowrap;
+    background:var(--copper-050);border:1px solid var(--copper-300);border-radius:999px;
+    padding:4px 6px 4px 10px;
+  }
+  .filter-status-note:empty{display:none;padding:0;border:none;background:none;}
+  .filter-status-note button{
+    background:var(--copper-500);border:none;color:#fff;cursor:pointer;border-radius:50%;
+    width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;
+    font-size:12px;line-height:1;padding:0;font-family:inherit;flex-shrink:0;
+  }
+  .filter-status-note button:hover{background:var(--copper-600);}
+  @media(min-width:901px){
+    .overview-quick-filters .filter-status-note{display:none;}
+  }
+  @media(min-width:901px){
+    .overview-quick-filters .filter-status-note.filter-status-note-overview{display:inline-flex;}
+  }
+  .result-count{font-family:var(--mono);font-size:12.5px;color:var(--ink-400);}
+  /* Hidden on mobile — the icon row's own .overview-quick-filters-count
+     shows the same "X din Y" text there instead, so this desktop-only
+     .toolbar count doesn't double up with it. */
+  @media(max-width:900px){
+    .result-count{display:none;}
+  }
+  /* Avarii rețele / Proiecte publice: keep the "X din Y" count (and
+     its filter note) on the same line as their icon row — like the
+     mobile layout already does — instead of the separate .toolbar
+     line underneath, at every width. The toolbar itself would
+     otherwise be left as an empty bordered strip once its only two
+     children move up here. */
+  #panel-backlog .toolbar, #panel-projects .toolbar{display:none;}
+  #backlogCountMobile, #projectsCountMobile{display:inline;}
+  #backlogFilterNoteMobile, #projectsFilterNoteMobile{display:inline-flex;}
+  .filter-inline-group{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  }
+  .filter-inline-group .chips{align-items:center;}
+  .sheet-filter-status{
+    margin-top:16px;
+  }
+  .sheet-filter-status .chips{
+    gap:10px;
+  }
+  .sheet-filter-status .chip{
+    text-align:center;
+  }
+  .popover-saved-views{
+    margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
+  }
+  .popover-saved-views label{
+    font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;
+    color:var(--ink-600);display:block;margin-bottom:10px;
+  }
+  .saved-views-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+  .saved-views-chips:empty{margin-bottom:0;}
+  .saved-view-chip{
+    display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11.5px;
+    padding:6px 6px 6px 12px;border-radius:16px;border:1px solid var(--line-strong);
+    color:var(--ink-600);cursor:pointer;background:var(--paper-000);white-space:nowrap;
+  }
+  .saved-view-chip:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .saved-view-chip-remove{
+    display:flex;align-items:center;justify-content:center;width:16px;height:16px;
+    border-radius:50%;color:var(--ink-400);font-size:13px;line-height:1;
+  }
+  .saved-view-chip-remove:hover{background:var(--line);color:var(--ink-900);}
+  .save-view-btn{
+    display:block;width:100%;font-family:var(--mono);font-size:11.5px;text-align:center;
+    padding:8px;border-radius:4px;border:1px dashed var(--line-strong);background:transparent;
+    color:var(--ink-600);cursor:pointer;
+  }
+  .save-view-btn:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  /* ===== COMMAND PALETTE (Cmd/Ctrl+K) ===== */
+  .command-palette{position:fixed;inset:0;z-index:400;display:none;}
+  .command-palette.show{display:block;}
+  .command-palette-backdrop{position:absolute;inset:0;background:rgba(20,24,29,0.48);}
+  .command-palette-box{
+    position:absolute;top:14vh;left:50%;transform:translateX(-50%);
+    width:560px;max-width:calc(100vw - 32px);max-height:min(60vh, 520px);
+    background:var(--paper-000);border-radius:12px;box-shadow:0 20px 60px rgba(20,24,29,0.28);
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  .command-palette-input-wrap{
+    display:flex;align-items:center;gap:10px;padding:14px 16px;
+    border-bottom:1px solid var(--line);flex-shrink:0;color:var(--ink-400);
+  }
+  .command-palette-input-wrap input{
+    flex:1;border:none;outline:none;font:inherit;font-size:15px;color:var(--ink-900);background:transparent;
+  }
+  .command-palette-esc{
+    font-family:var(--mono);font-size:10.5px;color:var(--ink-400);
+    border:1px solid var(--line-strong);border-radius:4px;padding:2px 6px;
+  }
+  .command-palette-results{overflow-y:auto;padding:8px;}
+  .command-palette-empty{padding:20px 12px;text-align:center;color:var(--ink-400);font-size:13px;}
+  .command-palette-group-label{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+    color:var(--ink-400);padding:8px 10px 4px;
+  }
+  .command-palette-item{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    padding:10px 10px;border-radius:7px;border:none;background:transparent;
+    font:inherit;font-size:13.5px;color:var(--ink-900);cursor:pointer;
+  }
+  .command-palette-item .cp-icon{flex-shrink:0;color:var(--ink-400);display:flex;}
+  .command-palette-item .cp-meta{font-size:11px;color:var(--ink-400);margin-left:auto;}
+  .command-palette-item.active{background:var(--copper-050);}
+  .command-palette-item.active .cp-icon{color:var(--copper-600);}
+  .mobile-sheet{
+    position:fixed;inset:0;z-index:320;display:none;
+  }
+  .mobile-sheet.show{display:block;}
+  .mobile-sheet-backdrop{
+    position:absolute;inset:0;background:rgba(20,24,29,0.48);
+  }
+  .mobile-sheet-panel{
+    position:absolute;left:0;right:0;bottom:0;
+    background:var(--paper-000);
+    border-radius:22px 22px 0 0;
+    padding:18px 20px calc(22px + env(safe-area-inset-bottom, 0));
+    box-shadow:0 -16px 40px rgba(20,24,29,0.18);
+    max-height:min(78vh, 680px);overflow:auto;
+  }
+  .sheet-handle{
+    width:44px;height:5px;border-radius:999px;background:var(--line-strong);
+    margin:0 auto 16px;
+  }
+  .sheet-head{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+    margin-bottom:16px;
+  }
+  .sheet-head h3{font-size:20px;}
+  .sheet-head p{font-size:13px;color:var(--ink-600);margin-top:4px;}
+  .sheet-close{
+    width:36px;height:36px;border-radius:50%;
+    border:1px solid var(--line-strong);background:var(--paper-000);cursor:pointer;
+    font-size:18px;color:var(--ink-600);flex-shrink:0;
+  }
+  .sheet-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;
+  }
+  .sheet-actions{
+    display:flex;gap:10px;justify-content:flex-end;margin-top:18px;
+  }
+  /* ===== Onboarding guided tour — a spotlight cutout (one element,
+     a huge box-shadow trick) plus a tooltip, both repositioned with
+     getBoundingClientRect() on every step. Not a mobile-sheet: it
+     needs to float over a live, specific part of the real page
+     rather than slide up as its own panel. */
+  .onboarding-overlay{position:fixed;inset:0;z-index:10000;}
+  .onboarding-overlay[hidden]{display:none;}
+  .onboarding-spotlight{
+    position:fixed;z-index:10001;border-radius:8px;
+    box-shadow:0 0 0 9999px rgba(20,24,29,0.6);
+    transition:top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+    pointer-events:none;
+  }
+  .onboarding-tooltip{
+    position:fixed;z-index:10002;max-width:320px;
+    background:var(--paper-000);border:1px solid var(--line-strong);border-radius:10px;
+    padding:16px 18px;box-shadow:0 12px 32px rgba(20,24,29,0.22);
+    transition:top 0.2s ease, left 0.2s ease;
+  }
+  .onboarding-tooltip-step{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+    color:var(--copper-600);margin-bottom:6px;
+  }
+  .onboarding-tooltip h4{margin:0 0 6px;font-size:15px;}
+  .onboarding-tooltip p{margin:0 0 14px;font-size:13px;color:var(--ink-600);line-height:1.5;}
+  .onboarding-tooltip-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .onboarding-tooltip-nav{display:flex;gap:8px;}
+  .onboarding-tooltip-actions .btn{font-size:12px;padding:6px 12px;}
+  .month-picker-list{
+    display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;
+  }
+  .month-picker-option{
+    display:flex;align-items:center;gap:10px;
+    border:1px solid var(--line-strong);border-radius:10px;
+    padding:12px 14px;background:var(--paper-050);
+  }
+  .month-picker-option input{accent-color:var(--copper-500);width:16px;height:16px;flex-shrink:0;}
+  .month-picker-option span{font-size:13.5px;color:var(--ink-900);}
+  .month-picker-all{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    border:1px solid var(--line-strong);border-radius:12px;
+    padding:14px 16px;background:var(--paper-000);
+  }
+  .month-picker-all p{font-size:13px;color:var(--ink-600);margin-top:4px;}
+  .report-type-list{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
+  .report-type-option{
+    display:block;width:100%;text-align:left;font-family:var(--body);
+    border:1px solid var(--line-strong);border-radius:12px;
+    padding:14px 16px;background:var(--paper-000);cursor:pointer;
+  }
+  .report-type-option:hover{border-color:var(--copper-500);}
+  .report-type-option strong{display:block;font-size:14px;color:var(--ink-900);}
+  .report-type-option span{display:block;font-size:12.5px;color:var(--ink-600);margin-top:4px;}
+  @media(max-width:640px){
+    .sheet-grid, .month-picker-list{grid-template-columns:1fr;}
+    .sheet-actions{flex-direction:column-reverse;}
+    .sheet-actions .btn{width:100%;justify-content:center;}
+  }
+
+  /* Floats in a fixed position (bottom of the screen, same pattern as
+     .back-to-top and .toast) rather than sitting inline in the page
+     flow where it used to live — that meant selecting a card deep in
+     a long list left this bar rendering far off-screen above, easy
+     to miss entirely without scrolling back up to look for it. Now
+     it's always immediately visible the moment something's selected,
+     regardless of scroll position. */
+  .archive-bar{
+    display:none;align-items:center;gap:14px;
+    position:fixed;left:50%;bottom:24px;z-index:250;
+    transform:translate(-50%,12px);
+    padding:12px 18px;border-radius:8px;
+    background:var(--paper-000);border:1px solid var(--line-strong);
+    box-shadow:0 8px 24px rgba(20,24,29,0.18);
+    font-family:var(--mono);font-size:12.5px;color:var(--ink-600);
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+    max-width:92vw;flex-wrap:wrap;justify-content:center;
+  }
+  .archive-bar.show{display:flex;opacity:1;pointer-events:auto;transform:translate(-50%,0);}
+  .ticket-select{
+    display:flex;align-items:flex-start;gap:10px;
+  }
+  .ticket-select input[type="checkbox"]{
+    width:16px;height:16px;margin-top:2px;accent-color:var(--copper-500);cursor:pointer;flex-shrink:0;
+  }
+  .ticket-card.archived{background:var(--paper-050);opacity:0.85;}
+  .archived-badge{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+    padding:4px 9px;border-radius:3px;background:var(--paper-100);color:var(--ink-400);
+  }
+  /* Duplicate tickets — see isDuplicateTicket()'s own comment. Purple
+     throughout (card, overview row/card, badges) so a duplicate never
+     reads as just another archived/resolved ticket. */
+  .ticket-card.duplicate{border-color:rgba(124,92,191,0.4);background:var(--signal-purple-bg);opacity:1;}
+  .duplicate-badge{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+    padding:4px 9px;border-radius:3px;background:var(--signal-purple-bg);color:var(--signal-purple);
+    border:1px solid rgba(124,92,191,0.35);
+  }
+  button.duplicate-badge{cursor:pointer;transition:background .15s,border-color .15s;}
+  button.duplicate-badge:hover{background:rgba(124,92,191,0.22);border-color:var(--signal-purple);}
+  .duplicate-link-note{
+    font-size:13px;color:var(--signal-purple);background:var(--signal-purple-bg);
+    border:1px solid rgba(124,92,191,0.3);border-radius:4px;padding:8px 10px;
+  }
+  .ov-card-goto-original{cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+  .overview-table tr.duplicate-row{background:var(--signal-purple-bg);}
+  .overview-table tr.duplicate-row:hover{background:var(--signal-purple-bg);}
+  .overview-table tr.duplicate-row td:first-child{border-left:3px solid var(--signal-purple);}
+  .ov-card.duplicate{border-left-color:var(--signal-purple);background:var(--signal-purple-bg);}
+  .duplicate-link-search{
+    width:100%;padding:11px 13px;border:1px solid var(--line-strong);border-radius:5px;
+    font-family:var(--body);font-size:14.5px;background:var(--paper-050);color:var(--ink-900);
+    margin:12px 0;box-sizing:border-box;
+  }
+  .duplicate-link-search:focus{border-color:var(--copper-500);background:var(--paper-000);outline:none;}
+  .duplicate-link-results{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+  .duplicate-link-result-item{
+    display:flex;align-items:stretch;border:1px solid var(--line);border-radius:5px;
+    background:var(--paper-000);transition:border-color .15s;
+  }
+  .duplicate-link-result-item:hover{border-color:var(--copper-500);}
+  .duplicate-link-result-item.checked{border-color:var(--signal-purple);background:var(--signal-purple-bg);}
+  .duplicate-link-result-checkwrap{
+    display:flex;align-items:center;padding:0 4px 0 12px;cursor:pointer;
+  }
+  .duplicate-link-result-checkwrap input[type="checkbox"]{
+    width:17px;height:17px;accent-color:var(--signal-purple);cursor:pointer;flex-shrink:0;
+  }
+  .duplicate-link-result-pickbtn{
+    display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding:10px 12px 10px 8px;
+    background:transparent;border:none;cursor:pointer;text-align:left;font:inherit;color:inherit;
+  }
+  .duplicate-link-result-pickbtn:active{background:var(--paper-050);}
+  .duplicate-link-result-pick{
+    flex-shrink:0;font-family:var(--mono);font-size:11px;font-weight:600;text-transform:uppercase;
+    color:var(--copper-600);border:1px solid var(--copper-300);border-radius:4px;padding:4px 8px;
+    letter-spacing:0.02em;
+  }
+  .duplicate-link-result-num{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--ink-900);flex-shrink:0;}
+  .duplicate-link-result-address{font-size:13px;color:var(--ink-600);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .duplicate-link-extra-count{font-size:12.5px;color:var(--signal-purple);font-weight:600;padding:2px 2px 0;}
+
+  .ticket-list{padding:24px 0 80px;display:flex;flex-direction:column;gap:14px;}
+  .ticket-card{
+    border:1px solid var(--line-strong);border-radius:5px;padding:24px;background:var(--paper-000);
+    transition:border-color .2s;
+  }
+  .ticket-card.urgent{border-color:rgba(181,80,47,0.4);background:var(--signal-red-bg);}
+  .ticket-card.done{opacity:0.6;}
+  /* nowrap + min-width:0 on .ticket-meta + shrink:0/nowrap on
+     .ticket-date — ported from admin.html: without these, "Trimis:
+     <date>" wrapped to its own line below the ticket number/type
+     instead of staying on the same line as them. */
+  .ticket-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:nowrap;margin-bottom:10px;}
+  .ticket-return-row{margin:-2px 0 16px;}
+  .ticket-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;}
+  .ticket-num{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink-900);}
+  .ticket-tag{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+    padding:4px 9px;border-radius:3px;background:var(--paper-100);color:var(--ink-600);
+  }
+  .ticket-tag.urgent-tag{background:var(--signal-red-bg);color:var(--signal-red);}
+  .ticket-date{font-family:var(--mono);font-size:11.5px;color:var(--ink-400);white-space:nowrap;flex-shrink:0;}
+  .ticket-body{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;font-size:14px;color:var(--ink-700);margin-bottom:16px;}
+  .ticket-body .full{grid-column:1/-1;}
+  .ticket-body .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;color:var(--ink-400);letter-spacing:0.04em;display:block;margin-bottom:2px;}
+  /* Three columns instead of two once there's enough room, matching
+     admin.html — fewer wrapped rows per card across a long list means
+     noticeably less scrolling on desktop. */
+  @media(min-width:901px){
+    .ticket-body{grid-template-columns:repeat(3, 1fr);}
+  }
+  .ticket-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding-top:14px;border-top:1px solid var(--line);}
+  /* Salvează/Dezarhivează is a flex item right alongside the other
+     fields, not split onto its own row below — Stare/Soluționat
+     de/Ce s-a făcut/Data soluționării are shrunk specifically so
+     there's room for it to fit on the same line instead of always
+     wrapping down. flex-wrap above still lets it drop to its own row
+     when the card genuinely isn't wide enough (mobile in particular —
+     see the @media(max-width:600px) block, where every .ctrl-field
+     already forces itself to 100% width, which pushes the button
+     below them the same way regardless). */
+  /* "Soluționat" is longer than "Terminat" was — the base
+     .ctrl-field min-width:160px left this dropdown too narrow to
+     show the full word once the row got crowded with its neighbors,
+     so the browser silently truncated it with "…" in the closed
+     state. Compound selector (not just .stare-field alone) so this
+     genuinely outweighs the base .ctrl-field rule regardless of file
+     order — same specificity pattern as the fields below it, after
+     getting bitten by the equal-specificity version of this exact
+     mistake more than once already in this file. */
+  .ctrl-field.stare-field{min-width:115px;}
+  .ctrl-field.resolver-field{min-width:130px;}
+  .ctrl-field.resolved-date-field{min-width:135px;}
+  .ctrl-field.resnote-field{min-width:220px;}
+
+  @media(max-width:600px){
+    /* .ticket-controls uses flex, not grid (unlike .pf-grid/
+       .ticket-body below, which already collapse cleanly via
+       grid-template-columns:1fr) — with flex, mixing fields that have
+       different width rules (some forced to 100%, some just
+       flexible with a min-width) can genuinely produce an
+       unpredictable, overlapping mess on a narrow screen once several
+       of them are competing for the same row. Forcing every field in
+       here onto its own full-width row sidesteps that ambiguity
+       entirely, rather than trying to carefully balance individual
+       field widths against each other. */
+    .ticket-controls .ctrl-field{flex:1 1 100%;width:100%;min-width:0;}
+
+    /* The min-width above was sized for desktop and doesn't fit a
+       narrow phone's actual available width after page + card
+       padding — same overflow pattern caught and fixed elsewhere in
+       this file. Below 600px: the field can shrink freely. */
+    .ctrl-field.resolved-date-field{min-width:0;width:100%;}
+    .ctrl-field.resnote-field{min-width:0;width:100%;}
+
+    /* The per-card "Leagă duplicate" button is redundant clutter
+       at this width — select the ticket's checkbox instead and use
+       the same action from the bulk-selection bar's own popup
+       (markDuplicatesSelectedBtn, see its mobile-specific 1-selected
+       threshold further down in the JS). Desktop keeps the per-card
+       button as-is. */
+    .f-mark-duplicate{display:none;}
+
+    /* .pf-grid and .ticket-body are display:grid (not flex), so unlike
+       .toolbar/.ticket-controls they can't wrap — a 1fr track still
+       can't shrink below its content's min-width. .ctrl-field's
+       min-width:160px meant two 1fr columns needed ~340px minimum
+       before any container padding, which genuinely doesn't fit a
+       320-375px phone and forced the whole page to scroll sideways
+       to accommodate it. Collapsing to one column here removes that
+       floor entirely. */
+    .pf-grid{grid-template-columns:1fr;}
+    .ticket-body{grid-template-columns:1fr;}
+  }
+  .ctrl-field input[type="file"]{
+    width:100%;background:var(--paper-050);border:1px solid var(--line-strong);
+    color:var(--ink-700);padding:8px 10px;border-radius:2px;font-family:var(--body);font-size:12.5px;
+  }
+  .ctrl-field{flex:1;min-width:160px;}
+  .ctrl-field label{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-600);display:block;margin-bottom:6px;}
+  .ctrl-field input, .ctrl-field select{
+    width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:3px;
+    font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-900);
+    line-height:1.3;height:38px;box-sizing:border-box;
+  }
+  /* "Ce s-a făcut" grows downward as its text wraps onto more lines
+     (see the .autogrow JS below), rather than staying a fixed single
+     line and either cutting text off or forcing horizontal scroll
+     within the box. Matches the surrounding inputs' exact look at
+     rest (same padding/border/font) so it isn't visually distinct
+     until it actually needs the extra room. resize:none — the auto-
+     grow logic already handles sizing, so the browser's own manual
+     resize handle would just be redundant and easy to misuse. */
+  .ctrl-field textarea.autogrow{
+    width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:3px;
+    font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-900);
+    resize:none;overflow:hidden;line-height:1.3;
+    display:block;min-height:38px;box-sizing:border-box;
+  }
+  /* Read-only "Ce s-a făcut" for a 'limited'-role account — only
+     rendered at all once there's actual content to show (an empty/
+     pending report shows nothing here rather than a placeholder
+     message). Plain text, no input-style border/background, so it
+     doesn't look like something clickable — matches the textarea's
+     own padding/sizing so the row still lines up with its siblings. */
+  .resnote-readonly{
+    width:100%;padding:9px 11px;min-height:38px;box-sizing:border-box;
+    font-family:var(--body);font-size:13.5px;line-height:1.3;color:var(--ink-900);
+    display:flex;align-items:center;
+  }
+  .ctrl-field input:focus, .ctrl-field select:focus, .ctrl-field textarea:focus{border-color:var(--copper-500);background:var(--paper-000);}
+  .save-status{font-family:var(--mono);font-size:11.5px;color:var(--signal-green);margin-left:8px;opacity:0;transition:opacity .2s;}
+  .save-status.show{opacity:1;}
+  .no-results{padding:60px 0;text-align:center;color:var(--ink-400);font-size:14.5px;}
