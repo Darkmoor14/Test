@@ -280,7 +280,10 @@
   .docs-nav-toggle.open svg{transform:rotate(90deg);}
   .docs-nav-subgroup{display:none;flex-direction:column;gap:2px;padding-left:12px;}
   .docs-nav-subgroup.open{display:flex;}
-  .docs-nav-subitem{font-size:12.5px;}
+  /* Sub-items keep the same size/weight/color as their parent — only
+     the indent (padding-left on .docs-nav-subgroup) marks them as
+     nested. A smaller font here was the one remaining visible
+     inconsistency across the sidebar after the .admin-tab fix above. */
 
   .main{flex:1;min-width:0;display:flex;flex-direction:column;}
   .topbar{
