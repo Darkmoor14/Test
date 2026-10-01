@@ -695,7 +695,8 @@
   .status-card-wide{grid-column:1/-1;}
   .status-card-head{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
   .status-card-head h4{font-size:14px;margin:0;}
-  .status-card-head-btn{margin-left:auto;font-size:11.5px;padding:4px 10px;}
+  .status-card-head-actions{display:flex;gap:8px;margin-left:auto;}
+  .status-card-head-btn{font-size:11.5px;padding:4px 10px;}
   .status-dot{
     width:9px;height:9px;border-radius:50%;background:var(--ink-300);flex-shrink:0;
   }
@@ -2779,7 +2780,10 @@
         <div class="status-card status-card-wide" id="statusCardErrors">
           <div class="status-card-head">
             <h4>Jurnal erori</h4>
-            <button type="button" class="btn status-card-head-btn" id="statusClearErrorsBtn">Golește</button>
+            <div class="status-card-head-actions">
+              <button type="button" class="btn status-card-head-btn" id="statusDownloadErrorsBtn">Descarcă JSON</button>
+              <button type="button" class="btn status-card-head-btn" id="statusClearErrorsBtn">Golește</button>
+            </div>
           </div>
           <div class="status-history-list" id="statusErrorList"></div>
         </div>
@@ -2787,6 +2791,9 @@
         <div class="status-card status-card-wide" id="statusCardFriction">
           <div class="status-card-head">
             <h4>Sugestii de îmbunătățire</h4>
+            <div class="status-card-head-actions">
+              <button type="button" class="btn status-card-head-btn" id="statusDownloadFrictionBtn">Descarcă JSON</button>
+            </div>
           </div>
           <p class="status-note" style="margin-top:0;margin-bottom:12px;">Detectate automat din clicuri repetate pe același buton (semn de frustrare) și câmpuri unde se scrie mult de mână (candidați pentru o listă/completare automată în loc de text liber).</p>
           <div class="status-history-list" id="statusFrictionList"></div>
@@ -3057,6 +3064,7 @@
     </div>
     <div class="status-history-list" id="statusHistoryList"></div>
     <div class="sheet-actions">
+      <button type="button" class="btn" id="statusHistoryDownloadBtn">Descarcă JSON</button>
       <button type="button" class="btn" id="statusHistoryClearBtn">Golește istoricul</button>
     </div>
   </div>
@@ -5512,6 +5520,10 @@
     lastLoggedStatusByCheck = {};
     renderStatusHistory();
   });
+  const statusHistoryDownloadBtn = document.getElementById('statusHistoryDownloadBtn');
+  if (statusHistoryDownloadBtn) statusHistoryDownloadBtn.addEventListener('click', () => {
+    downloadJson(`istoric-verificari-${new Date().toISOString().slice(0, 10)}.json`, loadStatusHistory());
+  });
 
   function setStatusDot(id, state){
     const el = document.getElementById(id);
@@ -5842,13 +5854,26 @@
     const d = new Date(iso);
     return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   }
+  function downloadJson(filename, data){
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  let lastErrorLogRows = [];
   async function loadErrorLog(){
     const listEl = document.getElementById('statusErrorList');
     if (!listEl) return;
     const { data, error } = await supabaseClient.from('app_error_log').select('*').order('created_at', { ascending: false }).limit(50);
     if (error) { listEl.innerHTML = '<p class="status-history-empty">Jurnalul nu a putut fi încărcat.</p>'; return; }
-    if (!data || data.length === 0) { listEl.innerHTML = '<p class="status-history-empty">Nicio eroare înregistrată.</p>'; return; }
-    listEl.innerHTML = data.map(row => `
+    lastErrorLogRows = data || [];
+    if (lastErrorLogRows.length === 0) { listEl.innerHTML = '<p class="status-history-empty">Nicio eroare înregistrată.</p>'; return; }
+    listEl.innerHTML = lastErrorLogRows.map(row => `
       <div class="status-history-item">
         <span class="status-history-time">${formatLogTimeRO(row.created_at)}</span>
         <span class="status-history-dot"></span>
@@ -5866,15 +5891,21 @@
     if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
     loadErrorLog();
   });
+  const statusDownloadErrorsBtn = document.getElementById('statusDownloadErrorsBtn');
+  if (statusDownloadErrorsBtn) statusDownloadErrorsBtn.addEventListener('click', () => {
+    downloadJson(`jurnal-erori-${new Date().toISOString().slice(0, 10)}.json`, lastErrorLogRows);
+  });
 
+  let lastFrictionSignalRows = [];
   async function loadFrictionSignals(){
     const listEl = document.getElementById('statusFrictionList');
     if (!listEl) return;
     const { data, error } = await supabaseClient.from('app_interaction_signals').select('*').order('created_at', { ascending: false }).limit(300);
     if (error) { listEl.innerHTML = '<p class="status-history-empty">Semnalele nu au putut fi încărcate.</p>'; return; }
-    if (!data || data.length === 0) { listEl.innerHTML = '<p class="status-history-empty">Niciun semnal de fricțiune înregistrat încă.</p>'; return; }
+    lastFrictionSignalRows = data || [];
+    if (lastFrictionSignalRows.length === 0) { listEl.innerHTML = '<p class="status-history-empty">Niciun semnal de fricțiune înregistrat încă.</p>'; return; }
     const groups = new Map();
-    data.forEach(row => {
+    lastFrictionSignalRows.forEach(row => {
       const key = row.signal_type + '|' + (row.tab || '') + '|' + (row.target_label || '');
       const g = groups.get(key) || { signal_type: row.signal_type, tab: row.tab, target_label: row.target_label, count: 0, lastSeen: row.created_at, users: new Set() };
       g.count++;
@@ -5898,6 +5929,10 @@
       `;
     }).join('');
   }
+  const statusDownloadFrictionBtn = document.getElementById('statusDownloadFrictionBtn');
+  if (statusDownloadFrictionBtn) statusDownloadFrictionBtn.addEventListener('click', () => {
+    downloadJson(`semnale-frictiune-ui-${new Date().toISOString().slice(0, 10)}.json`, lastFrictionSignalRows);
+  });
 
   // Updated by hand each time a real change ships — a plain, visible
   // record of what's been built, not an automated log.
