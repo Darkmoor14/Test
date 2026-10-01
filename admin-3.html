@@ -897,44 +897,49 @@
     #calendarDaySheet .sheet-handle,
     #calendarEventFormSheet .sheet-handle{display:none;}
   }
-  /* Same reasoning as the calendar sheets above — vehicleQuickAddSheet
-     (3-5 fields), vehicleDocsEditSheet (≤6 fields) and vehicleDetailSheet
-     (a card + 3 buttons) inherited the full-width bottom-sheet sizing
-     built for the much larger generic erpItemFormSheet, which left them
-     looking mostly empty. */
-  #vehicleQuickAddSheet .ctrl-field,
-  #vehicleDocsEditSheet .ctrl-field{min-width:0;margin-bottom:12px;}
-  #vehicleQuickAddSheet .ctrl-field label,
-  #vehicleDocsEditSheet .ctrl-field label{font-size:10px;margin-bottom:4px;}
-  #vehicleQuickAddSheet .ctrl-field input,
-  #vehicleQuickAddSheet .ctrl-field select,
-  #vehicleDocsEditSheet .ctrl-field input{
+  /* Same reasoning as the calendar sheets above — vehicleFormSheet (one
+     merged form: identity + documents) and vehicleDetailSheet (the big
+     read-only card + Editează/Șterge) inherited the full-width
+     bottom-sheet sizing built for the much larger generic
+     erpItemFormSheet, which left them looking mostly empty. */
+  #vehicleFormSheet .ctrl-field{min-width:0;margin-bottom:12px;}
+  #vehicleFormSheet .ctrl-field label{font-size:10px;margin-bottom:4px;}
+  #vehicleFormSheet .ctrl-field input,
+  #vehicleFormSheet .ctrl-field select{
     font-size:12.5px;padding:7px 9px;height:34px;
   }
-  #vehicleQuickAddSheet .pf-grid,
-  #vehicleDocsEditSheet .pf-grid{gap:0 14px;}
-  #vehicleQuickAddSheet .sheet-head h3,
-  #vehicleDocsEditSheet .sheet-head h3,
+  #vehicleFormSheet .pf-grid{gap:0 14px;}
+  #vehicleFormSheet .sheet-head h3,
   #vehicleDetailSheet .sheet-head h3{font-size:16px;}
-  #vehicleQuickAddSheet .status-note{font-size:12px;margin-bottom:14px;}
+  #vehicleFormSheet .vf-docs-divider{font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-500);margin:4px 0 10px;}
   .vehicle-detail-card{
     border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:4px;
   }
   .vehicle-detail-card .backlog-title-line{margin-bottom:6px;}
   .vehicle-detail-card .backlog-meta-line{white-space:normal;}
+  .vehicle-detail-card .vd-docs-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:10px;
+    padding-top:10px;border-top:1px solid var(--line);
+  }
+  .vehicle-detail-card .vd-doc-item .vd-doc-label{font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.04em;}
+  .vehicle-detail-card .vd-doc-item .vd-doc-value{font-size:13px;margin-top:2px;}
   #vehicleDetailSheet .sheet-actions{flex-wrap:wrap;row-gap:8px;}
   @media(min-width:901px){
-    #vehicleQuickAddSheet .mobile-sheet-panel,
-    #vehicleDocsEditSheet .mobile-sheet-panel,
+    #vehicleFormSheet .mobile-sheet-panel{
+      position:fixed;top:50%;left:50%;right:auto;bottom:auto;
+      transform:translate(-50%,-50%);
+      width:460px;max-width:calc(100vw - 40px);
+      border-radius:14px;padding:18px 20px;max-height:86vh;
+      box-shadow:0 20px 60px rgba(20,24,29,0.28);
+    }
     #vehicleDetailSheet .mobile-sheet-panel{
       position:fixed;top:50%;left:50%;right:auto;bottom:auto;
       transform:translate(-50%,-50%);
-      width:420px;max-width:calc(100vw - 40px);
+      width:440px;max-width:calc(100vw - 40px);
       border-radius:14px;padding:18px 20px;max-height:82vh;
       box-shadow:0 20px 60px rgba(20,24,29,0.28);
     }
-    #vehicleQuickAddSheet .sheet-handle,
-    #vehicleDocsEditSheet .sheet-handle,
+    #vehicleFormSheet .sheet-handle,
     #vehicleDetailSheet .sheet-handle{display:none;}
   }
   .home-todo-card{
@@ -3730,80 +3735,36 @@
     <div class="vehicle-detail-card" id="vehicleDetailCard"></div>
     <div class="sheet-actions">
       <button class="btn" type="button" id="vdDeleteBtn" style="margin-right:auto;">Șterge mașina</button>
-      <button class="btn" type="button" id="vdDateMasinaBtn">Date mașină</button>
-      <button class="btn btn-primary" type="button" id="vdEditDateBtn">Editează date</button>
+      <button class="btn btn-primary" type="button" id="vdEditBtn">Editează</button>
     </div>
   </div>
 </div>
 
-<div class="mobile-sheet" id="vehicleDocsEditSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="vehicleDocsEditSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vehicleDocsEditSheetTitle">
+<div class="mobile-sheet" id="vehicleFormSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="vehicleFormSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vehicleFormSheetTitle">
     <div class="sheet-handle"></div>
     <div class="sheet-head">
-      <div><h3 id="vehicleDocsEditSheetTitle">Documente mașină</h3></div>
-      <button type="button" class="sheet-close" data-close-sheet="vehicleDocsEditSheet" aria-label="Închide">×</button>
+      <div><h3 id="vehicleFormSheetTitle">Adaugă mașină</h3></div>
+      <button type="button" class="sheet-close" data-close-sheet="vehicleFormSheet" aria-label="Închide">×</button>
     </div>
-    <input type="hidden" id="vde-id">
-    <div class="pf-grid">
-      <div class="ctrl-field">
-        <label>ITP — data expirării</label>
-        <input type="date" id="vde-itp-expires">
-      </div>
-      <div class="ctrl-field">
-        <label>Asigurare — data expirării</label>
-        <input type="date" id="vde-insurance-expires">
-      </div>
-      <div class="ctrl-field" id="vde-transport-license-field" style="display:none;">
-        <label>Licență transport — data expirării</label>
-        <input type="date" id="vde-transport-license-expires">
-      </div>
-      <div class="ctrl-field">
-        <label>Tichete parcare — data expirării</label>
-        <input type="date" id="vde-parking-ticket-expires">
-      </div>
-      <div class="ctrl-field">
-        <label>Rovinietă — data expirării</label>
-        <input type="date" id="vde-vignette-expires">
-      </div>
-      <div class="ctrl-field" id="vde-tachograph-field" style="display:none;">
-        <label>Tahograf — data expirării</label>
-        <input type="date" id="vde-tachograph-expires">
-      </div>
-    </div>
-    <div class="sheet-actions">
-      <button class="btn" type="button" data-close-sheet="vehicleDocsEditSheet">Anulează</button>
-      <button class="btn btn-primary" id="vdeSaveBtn" type="button">Salvează</button>
-    </div>
-  </div>
-</div>
-
-<div class="mobile-sheet" id="vehicleQuickAddSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="vehicleQuickAddSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vehicleQuickAddSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div><h3 id="vehicleQuickAddSheetTitle">Adaugă mașină</h3></div>
-      <button type="button" class="sheet-close" data-close-sheet="vehicleQuickAddSheet" aria-label="Închide">×</button>
-    </div>
-    <p class="status-note" style="margin-top:0;" id="vqaHint">Documentele cu dată de expirare (ITP, asigurare etc.) se completează separat, din „Editează date”.</p>
-    <input type="hidden" id="vqa-id">
+    <input type="hidden" id="vf-id">
     <div class="pf-grid">
       <div class="ctrl-field" style="grid-column:1/-1;">
         <label>Titlu</label>
-        <input type="text" id="vqa-title" placeholder="ex: Dacia Logan — Șantier Nord">
+        <input type="text" id="vf-title" placeholder="ex: Dacia Logan — Șantier Nord">
       </div>
       <div class="ctrl-field">
         <label>Nr. înmatriculare</label>
-        <input type="text" id="vqa-plate" placeholder="ex: CJ 01 ABC">
+        <input type="text" id="vf-plate" placeholder="ex: CJ 01 ABC">
       </div>
       <div class="ctrl-field">
         <label>Serie șasiu</label>
-        <input type="text" id="vqa-chassis" placeholder="ex: SASIU-4471">
+        <input type="text" id="vf-chassis" placeholder="ex: SASIU-4471">
       </div>
       <div class="ctrl-field" style="grid-column:1/-1;">
         <label>Subcategorie</label>
-        <select id="vqa-subcat">
+        <select id="vf-subcat">
           <option value="masina_mica">Mașină mică</option>
           <option value="autoutilitara">Autoutilitară</option>
           <option value="camion">Camion</option>
@@ -3812,16 +3773,43 @@
       </div>
       <div class="ctrl-field">
         <label>Alocat la</label>
-        <input type="text" id="vqa-assigned" placeholder="ex: Echipa 2 / Ionel Ghiurchi">
+        <input type="text" id="vf-assigned" placeholder="ex: Echipa 2 / Ionel Ghiurchi">
       </div>
       <div class="ctrl-field" style="grid-column:1/-1;">
         <label>Notițe</label>
-        <input type="text" id="vqa-notes" placeholder="Detalii suplimentare">
+        <input type="text" id="vf-notes" placeholder="Detalii suplimentare">
+      </div>
+    </div>
+    <p class="status-note vf-docs-divider">Documente — date de expirare</p>
+    <div class="pf-grid">
+      <div class="ctrl-field">
+        <label>ITP — data expirării</label>
+        <input type="date" id="vf-itp-expires">
+      </div>
+      <div class="ctrl-field">
+        <label>Asigurare — data expirării</label>
+        <input type="date" id="vf-insurance-expires">
+      </div>
+      <div class="ctrl-field" id="vf-transport-license-field" style="display:none;">
+        <label>Licență transport — data expirării</label>
+        <input type="date" id="vf-transport-license-expires">
+      </div>
+      <div class="ctrl-field">
+        <label>Tichete parcare — data expirării</label>
+        <input type="date" id="vf-parking-ticket-expires">
+      </div>
+      <div class="ctrl-field">
+        <label>Rovinietă — data expirării</label>
+        <input type="date" id="vf-vignette-expires">
+      </div>
+      <div class="ctrl-field" id="vf-tachograph-field" style="display:none;">
+        <label>Tahograf — data expirării</label>
+        <input type="date" id="vf-tachograph-expires">
       </div>
     </div>
     <div class="sheet-actions">
-      <button class="btn" type="button" data-close-sheet="vehicleQuickAddSheet">Anulează</button>
-      <button class="btn btn-primary" id="vqaSaveBtn" type="button">Adaugă</button>
+      <button class="btn" type="button" data-close-sheet="vehicleFormSheet">Anulează</button>
+      <button class="btn btn-primary" id="vfSaveBtn" type="button">Adaugă</button>
     </div>
   </div>
 </div>
@@ -12072,16 +12060,21 @@
       const cls = docDateClass(dateStr);
       return `<td class="${cls}">${formatWoDateRO(dateStr)}${cls ? ' ⚠' : ''}</td>`;
     }
-    // Numărul de înmatriculare e singurul punct de intrare spre mașină
-    // acum — fără butoane separate Editează/Șterge pe rând. Deschide
-    // vehicleDetailSheet (fișa mașinii, ca un card), de unde pornesc
-    // cele trei acțiuni: Date mașină, Editează date, Șterge.
+    // Clicking into a car's full detail/edit flow is only available
+    // from a specific subcategory's table (Mașină mică, Camion, ...) —
+    // on "Prezentare generală" the plate number is plain text, since
+    // that page is meant as a read-only overview (see machinesSidebarKey).
+    const platesClickable = machinesSidebarKey !== 'Toate';
     tbody.innerHTML = filtered.map(eq => {
       const isCamion = eq.category === 'camion';
+      const plateText = escapeHtml(eq.plate_number || '—');
+      const plateCell = platesClickable
+        ? `<a href="#" class="ticket-link" data-vehicle-id="${escapeHtml(eq.id)}">${plateText}</a>`
+        : plateText;
       return `
         <tr>
-          <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div><div class="mt-subcat">${escapeHtml(VEHICLE_SUBCAT_LABEL[eq.category] || '')}</div></td>
-          <td><a href="#" class="ticket-link" data-vehicle-id="${escapeHtml(eq.id)}">${escapeHtml(eq.plate_number || '—')}</a></td>
+          <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div><div class="mt-subcat">${eq.notes ? escapeHtml(eq.notes) : ''}</div></td>
+          <td>${plateCell}</td>
           ${dateCell(eq.itp_expires_on, true)}
           ${dateCell(eq.insurance_expires_on, true)}
           ${dateCell(eq.transport_license_expires_on, isCamion)}
@@ -12262,130 +12255,133 @@
   }
   const addEquipmentBtn = document.getElementById('addEquipmentBtn');
   if (addEquipmentBtn) addEquipmentBtn.addEventListener('click', () => openEquipmentForm(null, 'echipament'));
-  // Adăugarea unei mașini e un formular separat, minimal (Nr.
-  // înmatriculare / Serie șasiu / Subcategorie / Alocat la / Notițe) —
-  // restul (actele cu dată de expirare) se completează ulterior din
-  // "Editează", care deschide vehicleDocsEditSheet — un formular
-  // separat de erpItemFormSheet, folosit doar de echipament/material.
-  // vehicleQuickAddSheet is dual-purpose: "+ Adaugă mașină" opens it
-  // empty (vqa-id blank → insert on save); "Date mașină" from the
-  // vehicle detail sheet opens it pre-filled for an existing vehicle
-  // (vqa-id set → update on save instead).
+  // vehicleFormSheet is the one merged vehicle form — identity (Titlu,
+  // Nr. înmatriculare, Serie șasiu, Subcategorie, Alocat la, Notițe)
+  // and documents (ITP, Asigurare, ...) together, used both for
+  // "+ Adaugă mașină" (vf-id blank → insert) and for "Editează" on the
+  // detail card (vf-id set → update). Licență transport/Tahograf only
+  // apply to Camion, and toggle live as the Subcategorie select changes.
+  function syncVehicleFormCamionFields(){
+    const isCamion = document.getElementById('vf-subcat').value === 'camion';
+    document.getElementById('vf-transport-license-field').style.display = isCamion ? '' : 'none';
+    document.getElementById('vf-tachograph-field').style.display = isCamion ? '' : 'none';
+  }
+  const vfSubcatSelect = document.getElementById('vf-subcat');
+  if (vfSubcatSelect) vfSubcatSelect.addEventListener('change', syncVehicleFormCamionFields);
   const addMachineBtn = document.getElementById('addMachineBtn');
   if (addMachineBtn) addMachineBtn.addEventListener('click', () => {
-    document.getElementById('vqa-id').value = '';
-    document.getElementById('vqa-title').value = '';
-    document.getElementById('vqa-plate').value = '';
-    document.getElementById('vqa-chassis').value = '';
-    document.getElementById('vqa-subcat').value = 'masina_mica';
-    document.getElementById('vqa-assigned').value = '';
-    document.getElementById('vqa-notes').value = '';
-    const titleEl = document.getElementById('vehicleQuickAddSheetTitle');
+    document.getElementById('vf-id').value = '';
+    document.getElementById('vf-title').value = '';
+    document.getElementById('vf-plate').value = '';
+    document.getElementById('vf-chassis').value = '';
+    document.getElementById('vf-subcat').value = 'masina_mica';
+    document.getElementById('vf-assigned').value = '';
+    document.getElementById('vf-notes').value = '';
+    document.getElementById('vf-itp-expires').value = '';
+    document.getElementById('vf-insurance-expires').value = '';
+    document.getElementById('vf-transport-license-expires').value = '';
+    document.getElementById('vf-parking-ticket-expires').value = '';
+    document.getElementById('vf-vignette-expires').value = '';
+    document.getElementById('vf-tachograph-expires').value = '';
+    syncVehicleFormCamionFields();
+    const titleEl = document.getElementById('vehicleFormSheetTitle');
     if (titleEl) titleEl.textContent = 'Adaugă mașină';
-    const hintEl = document.getElementById('vqaHint');
-    if (hintEl) hintEl.textContent = 'Documentele cu dată de expirare (ITP, asigurare etc.) se completează separat, din „Editează date”.';
-    const saveBtn = document.getElementById('vqaSaveBtn');
+    const saveBtn = document.getElementById('vfSaveBtn');
     if (saveBtn) saveBtn.textContent = 'Adaugă';
-    setSheetOpen('vehicleQuickAddSheet', true);
+    setSheetOpen('vehicleFormSheet', true);
   });
-  function openVehicleIdentityEdit(eq){
-    document.getElementById('vqa-id').value = eq.id;
-    document.getElementById('vqa-title').value = eq.name || '';
-    document.getElementById('vqa-plate').value = eq.plate_number || '';
-    document.getElementById('vqa-chassis').value = eq.serial_number || '';
-    document.getElementById('vqa-subcat').value = eq.category || 'masina_mica';
-    document.getElementById('vqa-assigned').value = eq.assigned_to || '';
-    document.getElementById('vqa-notes').value = eq.notes || '';
-    const titleEl = document.getElementById('vehicleQuickAddSheetTitle');
-    if (titleEl) titleEl.textContent = `Date mașină — ${eq.name}`;
-    const hintEl = document.getElementById('vqaHint');
-    if (hintEl) hintEl.textContent = 'Documentele cu dată de expirare se editează separat, din „Editează date”.';
-    const saveBtn = document.getElementById('vqaSaveBtn');
+  function openVehicleEdit(eq){
+    document.getElementById('vf-id').value = eq.id;
+    document.getElementById('vf-title').value = eq.name || '';
+    document.getElementById('vf-plate').value = eq.plate_number || '';
+    document.getElementById('vf-chassis').value = eq.serial_number || '';
+    document.getElementById('vf-subcat').value = eq.category || 'masina_mica';
+    document.getElementById('vf-assigned').value = eq.assigned_to || '';
+    document.getElementById('vf-notes').value = eq.notes || '';
+    document.getElementById('vf-itp-expires').value = eq.itp_expires_on || '';
+    document.getElementById('vf-insurance-expires').value = eq.insurance_expires_on || '';
+    document.getElementById('vf-transport-license-expires').value = eq.transport_license_expires_on || '';
+    document.getElementById('vf-parking-ticket-expires').value = eq.parking_ticket_expires_on || '';
+    document.getElementById('vf-vignette-expires').value = eq.vignette_expires_on || '';
+    document.getElementById('vf-tachograph-expires').value = eq.tachograph_expires_on || '';
+    syncVehicleFormCamionFields();
+    const titleEl = document.getElementById('vehicleFormSheetTitle');
+    if (titleEl) titleEl.textContent = `Editează — ${eq.name}`;
+    const saveBtn = document.getElementById('vfSaveBtn');
     if (saveBtn) saveBtn.textContent = 'Salvează';
-    setSheetOpen('vehicleQuickAddSheet', true);
+    setSheetOpen('vehicleFormSheet', true);
   }
-  const vqaSaveBtn = document.getElementById('vqaSaveBtn');
-  if (vqaSaveBtn) vqaSaveBtn.addEventListener('click', async () => {
-    const id = document.getElementById('vqa-id').value;
-    const title = document.getElementById('vqa-title').value.trim();
-    const plate = document.getElementById('vqa-plate').value.trim();
-    const chassis = document.getElementById('vqa-chassis').value.trim();
-    const subcat = document.getElementById('vqa-subcat').value;
-    const assigned = document.getElementById('vqa-assigned').value.trim();
-    const notes = document.getElementById('vqa-notes').value.trim();
+  const vfSaveBtn = document.getElementById('vfSaveBtn');
+  if (vfSaveBtn) vfSaveBtn.addEventListener('click', async () => {
+    const id = document.getElementById('vf-id').value;
+    const title = document.getElementById('vf-title').value.trim();
+    const plate = document.getElementById('vf-plate').value.trim();
+    const chassis = document.getElementById('vf-chassis').value.trim();
+    const subcat = document.getElementById('vf-subcat').value;
+    const assigned = document.getElementById('vf-assigned').value.trim();
+    const notes = document.getElementById('vf-notes').value.trim();
     if (!plate) { alert('Completați numărul de înmatriculare.'); return; }
+    const isCamion = subcat === 'camion';
     // Titlul e opțional — fără el, numărul de înmatriculare rămâne
     // afișat în tabel la coloana "Mașină", ca înainte.
     const name = title || plate;
+    const docsPayload = {
+      itp_expires_on: document.getElementById('vf-itp-expires').value || null,
+      insurance_expires_on: document.getElementById('vf-insurance-expires').value || null,
+      parking_ticket_expires_on: document.getElementById('vf-parking-ticket-expires').value || null,
+      vignette_expires_on: document.getElementById('vf-vignette-expires').value || null,
+      transport_license_expires_on: isCamion ? (document.getElementById('vf-transport-license-expires').value || null) : null,
+      tachograph_expires_on: isCamion ? (document.getElementById('vf-tachograph-expires').value || null) : null,
+    };
     if (id) {
-      const payload = {
+      const payload = Object.assign({
         name, category: subcat, plate_number: plate,
         serial_number: chassis || null, assigned_to: assigned || null, notes: notes || null,
-      };
+      }, docsPayload);
       const { error } = await supabaseClient.from('equipment_inventory').update(payload).eq('id', id);
       if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
-      logEntityActivity('masina', id, 'Datele mașinii au fost actualizate.');
-      setSheetOpen('vehicleQuickAddSheet', false);
-      showToast('Datele mașinii au fost actualizate.');
+      logEntityActivity('masina', id, 'Mașina a fost actualizată.');
+      setSheetOpen('vehicleFormSheet', false);
+      showToast('Mașina a fost actualizată.');
       loadEquipment();
     } else {
-      const { data, error } = await supabaseClient.from('equipment_inventory').insert({
+      const payload = Object.assign({
         name, item_type: 'echipament', erp_category: 'masina', category: subcat,
         plate_number: plate, serial_number: chassis || null, status: 'Disponibil',
         assigned_to: assigned || null, notes: notes || null,
-      }).select();
+      }, docsPayload);
+      const { data, error } = await supabaseClient.from('equipment_inventory').insert(payload).select();
       if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
       if (data && data[0]) logEntityActivity('masina', data[0].id, 'Mașină adăugată.');
-      setSheetOpen('vehicleQuickAddSheet', false);
+      setSheetOpen('vehicleFormSheet', false);
       showToast('Mașina a fost adăugată.');
       loadEquipment();
     }
   });
-  function openVehicleDocsEdit(eq){
-    document.getElementById('vde-id').value = eq.id;
-    document.getElementById('vde-itp-expires').value = eq.itp_expires_on || '';
-    document.getElementById('vde-insurance-expires').value = eq.insurance_expires_on || '';
-    document.getElementById('vde-transport-license-expires').value = eq.transport_license_expires_on || '';
-    document.getElementById('vde-parking-ticket-expires').value = eq.parking_ticket_expires_on || '';
-    document.getElementById('vde-vignette-expires').value = eq.vignette_expires_on || '';
-    document.getElementById('vde-tachograph-expires').value = eq.tachograph_expires_on || '';
-    const isCamion = eq.category === 'camion';
-    document.getElementById('vde-transport-license-field').style.display = isCamion ? '' : 'none';
-    document.getElementById('vde-tachograph-field').style.display = isCamion ? '' : 'none';
-    const titleEl = document.getElementById('vehicleDocsEditSheetTitle');
-    if (titleEl) titleEl.textContent = `Documente mașină — ${eq.name}`;
-    setSheetOpen('vehicleDocsEditSheet', true);
-  }
-  const vdeSaveBtn = document.getElementById('vdeSaveBtn');
-  if (vdeSaveBtn) vdeSaveBtn.addEventListener('click', async () => {
-    const id = document.getElementById('vde-id').value;
-    const isCamion = document.getElementById('vde-transport-license-field').style.display !== 'none';
-    const payload = {
-      itp_expires_on: document.getElementById('vde-itp-expires').value || null,
-      insurance_expires_on: document.getElementById('vde-insurance-expires').value || null,
-      parking_ticket_expires_on: document.getElementById('vde-parking-ticket-expires').value || null,
-      vignette_expires_on: document.getElementById('vde-vignette-expires').value || null,
-      transport_license_expires_on: isCamion ? (document.getElementById('vde-transport-license-expires').value || null) : null,
-      tachograph_expires_on: isCamion ? (document.getElementById('vde-tachograph-expires').value || null) : null,
-    };
-    const { error } = await supabaseClient.from('equipment_inventory').update(payload).eq('id', id);
-    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
-    logEntityActivity('masina', id, 'Documentele mașinii au fost actualizate.');
-    setSheetOpen('vehicleDocsEditSheet', false);
-    showToast('Documentele au fost actualizate.');
-    loadEquipment();
-  });
   /* ============================================================
      FIȘA MAȘINII (vehicleDetailSheet) — click pe numărul de
-     înmatriculare din tabel deschide mașina ca un card (identitate +
-     etichete), cu trei acțiuni: Date mașină (identitate), Editează
-     date (documente) și Șterge — în loc de butoane separate pe rând.
+     înmatriculare, DOAR din tabelul unei subcategorii specifice (nu
+     din Prezentare generală — acolo numărul e text simplu, fără
+     editare), deschide mașina ca un card mare, cu toate datele
+     (identitate + documente) și doar două acțiuni: Editează (deschide
+     vehicleFormSheet, cu totul editabil) și Șterge.
      ============================================================ */
   let vehicleDetailCurrentId = null;
   function vehicleDetailCardHtml(eq){
     const metaParts = [];
     if (eq.serial_number) metaParts.push(`Serie șasiu: ${escapeHtml(eq.serial_number)}`);
     if (eq.assigned_to) metaParts.push(`Alocat la: ${escapeHtml(eq.assigned_to)}`);
+    const isCamion = eq.category === 'camion';
+    const docsHtml = VEHICLE_DOC_FIELDS.filter(f => !f.camionOnly || isCamion).map(f => {
+      const val = eq[f.key];
+      const cls = docDateClass(val);
+      return `
+        <div class="vd-doc-item">
+          <div class="vd-doc-label">${escapeHtml(f.label)}</div>
+          <div class="vd-doc-value ${cls}">${val ? escapeHtml(formatWoDateRO(val)) + (cls ? ' ⚠' : '') : '—'}</div>
+        </div>
+      `;
+    }).join('');
     return `
       <div class="backlog-title-line">
         <span class="backlog-title">${escapeHtml(eq.plate_number || eq.name)}</span>
@@ -12393,6 +12389,7 @@
       </div>
       ${metaParts.length ? `<div class="backlog-meta-line">${metaParts.join(' · ')}</div>` : ''}
       ${eq.notes ? `<div class="backlog-meta-line">Notițe: ${escapeHtml(eq.notes)}</div>` : ''}
+      <div class="vd-docs-grid">${docsHtml}</div>
     `;
   }
   function openVehicleDetail(eq){
@@ -12403,19 +12400,12 @@
     if (cardEl) cardEl.innerHTML = vehicleDetailCardHtml(eq);
     setSheetOpen('vehicleDetailSheet', true);
   }
-  const vdDateMasinaBtn = document.getElementById('vdDateMasinaBtn');
-  if (vdDateMasinaBtn) vdDateMasinaBtn.addEventListener('click', () => {
+  const vdEditBtn = document.getElementById('vdEditBtn');
+  if (vdEditBtn) vdEditBtn.addEventListener('click', () => {
     const eq = allEquipment.find(v => v.id === vehicleDetailCurrentId);
     if (!eq) return;
     setSheetOpen('vehicleDetailSheet', false);
-    openVehicleIdentityEdit(eq);
-  });
-  const vdEditDateBtn = document.getElementById('vdEditDateBtn');
-  if (vdEditDateBtn) vdEditDateBtn.addEventListener('click', () => {
-    const eq = allEquipment.find(v => v.id === vehicleDetailCurrentId);
-    if (!eq) return;
-    setSheetOpen('vehicleDetailSheet', false);
-    openVehicleDocsEdit(eq);
+    openVehicleEdit(eq);
   });
   const vdDeleteBtn = document.getElementById('vdDeleteBtn');
   if (vdDeleteBtn) vdDeleteBtn.addEventListener('click', async () => {
