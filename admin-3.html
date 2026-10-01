@@ -258,6 +258,20 @@
   }
   .category-panel-item:hover{background:var(--paper-100);color:var(--ink-900);}
   .category-panel-item.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;}
+  /* .admin-tab is also used on several sidebar items purely so the
+     existing generic .admin-tab click handler picks them up — but its
+     own look (monospace, lighter ink-400, wider padding, bottom
+     border) was built for the old horizontal tab strip
+     (.admin-tabs-row), not the sidebar. Both classes have equal CSS
+     specificity, so whichever rule happens to be declared later in
+     the stylesheet silently won — this reasserts .category-panel-item's
+     own look so every sidebar item matches regardless of that. */
+  .category-panel-item.admin-tab{
+    font-family:var(--body);font-size:13.5px;font-weight:500;color:var(--ink-700);
+    padding:9px 12px;border-bottom:none;margin-bottom:0;
+  }
+  .category-panel-item.admin-tab:hover{background:var(--paper-100);color:var(--ink-900);}
+  .category-panel-item.admin-tab.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;border-bottom-color:transparent;}
   /* Documentație's own sidebar nav — same look as the rest of the
      category-panel, plus a collapsible group for Proiecte's four
      sub-sections (the one case so far with a real nested structure). */
