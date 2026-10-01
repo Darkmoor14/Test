@@ -258,6 +258,15 @@
   }
   .category-panel-item:hover{background:var(--paper-100);color:var(--ink-900);}
   .category-panel-item.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;}
+  /* Documentație's own sidebar nav — same look as the rest of the
+     category-panel, plus a collapsible group for Proiecte's four
+     sub-sections (the one case so far with a real nested structure). */
+  .docs-nav-toggle{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+  .docs-nav-toggle svg{flex-shrink:0;transition:transform .15s ease;}
+  .docs-nav-toggle.open svg{transform:rotate(90deg);}
+  .docs-nav-subgroup{display:none;flex-direction:column;gap:2px;padding-left:12px;}
+  .docs-nav-subgroup.open{display:flex;}
+  .docs-nav-subitem{font-size:12.5px;}
 
   .main{flex:1;min-width:0;display:flex;flex-direction:column;}
   .topbar{
@@ -769,13 +778,7 @@
      would collide with the tab-restore system's own use of the URL
      hash. */
   .docs-intro{color:var(--ink-600);font-size:14px;max-width:760px;margin:0 0 18px;}
-  .docs-search-wrap{position:relative;max-width:420px;margin-bottom:18px;}
-  .docs-search-wrap svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--ink-400);pointer-events:none;}
-  .docs-search-wrap input{
-    width:100%;box-sizing:border-box;padding:10px 14px 10px 38px;
-    border:1px solid var(--line-strong);border-radius:6px;font:inherit;font-size:13.5px;color:var(--ink-900);
-  }
-  .docs-search-wrap input:focus{outline:none;border-color:var(--copper-500);}
+  #docsHomeSearchWrap{max-width:420px;margin-bottom:18px;}
   .docs-search-empty{padding:24px 0;text-align:center;color:var(--ink-400);font-size:13px;}
   .docs-toc{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:28px;max-width:980px;}
   @media(max-width:900px){.docs-toc{grid-template-columns:1fr 1fr;}}
@@ -1994,7 +1997,19 @@
           <button type="button" class="admin-tab category-panel-item" data-tab="materials">Materiale</button>
         </div>
         <div class="category-panel-section" data-category="docs">
-          <button type="button" class="admin-tab category-panel-item" data-tab="docs">Documentație</button>
+          <button type="button" class="category-panel-item docs-nav-group-btn active" data-docs-group="home">Home</button>
+          <button type="button" class="category-panel-item docs-nav-group-btn" data-docs-group="tickets">Sesizări</button>
+          <button type="button" class="category-panel-item docs-nav-toggle" data-docs-toggle="projects">
+            <span>Proiecte</span>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <div class="docs-nav-subgroup" data-docs-subgroup="projects">
+            <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-projects">Proiecte publice</button>
+            <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-backlog">Avarii rețele</button>
+            <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-lps">Proiecte LPS</button>
+            <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-workorders">Programe lucrări</button>
+          </div>
+          <button type="button" class="category-panel-item docs-nav-group-btn" data-docs-group="erp">ERP</button>
         </div>
         <div class="category-panel-section" data-category="status">
           <button type="button" class="admin-tab category-panel-item" data-tab="status">Stare sistem</button>
@@ -2917,11 +2932,13 @@
       <div class="internal-projects-head">
         <div><div class="home-eyebrow">Ghid</div><h2>Documentație</h2></div>
       </div>
-      <p class="docs-intro">Acest ghid explică, pas cu pas, fiecare pagină și fiecare buton din platformă — de la pagina de start până la Planificarea LPS. Apasă pe o secțiune din lista de mai jos ca să sari direct la ea, sau citește tot, de sus în jos.</p>
+      <p class="docs-intro" id="docsGroupIntro">Acest ghid explică, pas cu pas, fiecare pagină și fiecare buton din platformă. Alege o secțiune din bara din stânga, sau caută direct mai jos.</p>
 
-      <div class="docs-search-wrap">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="search" id="docsSearchBox" placeholder="Caută în documentație… (ex: raport, calendar, LPS)">
+      <div class="home-smart-search" id="docsHomeSearchWrap">
+        <div class="home-smart-search-input-wrap">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" id="docsSearchBox" placeholder="Caută în documentație… (ex: raport, calendar, LPS, ERP)">
+        </div>
       </div>
       <p class="docs-search-empty" id="docsSearchEmpty" style="display:none;">Niciun rezultat pentru această căutare.</p>
 
@@ -2930,51 +2947,57 @@
         <button type="button" class="docs-toc-link" data-docs-target="docs-home">Pagina de start (Acasă)</button>
         <button type="button" class="docs-toc-link" data-docs-target="docs-calendar">Calendarul</button>
         <button type="button" class="docs-toc-link" data-docs-target="docs-todo">Notițele</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-status">Stare sistem</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-push">Notificări push</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-faq">Întrebări frecvente</button>
         <button type="button" class="docs-toc-link" data-docs-target="docs-overview">Sesizări — Prezentare generală</button>
         <button type="button" class="docs-toc-link" data-docs-target="docs-tickets">Sesizări — Funcționale și Accidente</button>
         <button type="button" class="docs-toc-link" data-docs-target="docs-report">Cum adaugi un raport</button>
         <button type="button" class="docs-toc-link" data-docs-target="docs-projects">Proiecte publice</button>
         <button type="button" class="docs-toc-link" data-docs-target="docs-backlog">Avarii rețele</button>
         <button type="button" class="docs-toc-link" data-docs-target="docs-lps">Proiecte LPS</button>
-        <button type="button" class="docs-toc-link" data-docs-target="docs-status">Stare sistem</button>
-        <button type="button" class="docs-toc-link" data-docs-target="docs-push">Notificări push</button>
-        <button type="button" class="docs-toc-link" data-docs-target="docs-faq">Întrebări frecvente</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-workorders">Programe lucrări</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-erp">ERP</button>
       </div>
 
       <div class="docs-body">
 
-        <section class="docs-section" id="docs-nav">
+        <section class="docs-section" id="docs-nav" data-docs-group="home">
           <h3>Cum navighezi</h3>
-          <p>Platforma este organizată pe pagini: <strong>Acasă</strong>, <strong>Sesizări</strong> (cu trei vederi — Prezentare generală, Funcționale, Accidente), <strong>Proiecte publice</strong>, <strong>Avarii rețele</strong>, <strong>Proiecte LPS</strong>, <strong>Stare sistem</strong> și această pagină, <strong>Documentație</strong>.</p>
+          <p>Platforma este organizată pe cinci zone, fiecare cu propria bară laterală (a doua coloană, chiar lângă cea cu iconițe): <strong>Sesizări</strong> (Prezentare generală, Funcționale, Accidente), <strong>Proiecte</strong> (Home, Proiecte publice, Avarii rețele, Proiecte LPS, Programe lucrări), <strong>ERP</strong> (Home, Echipamente, Mașini, Materiale), <strong>Documentație</strong> (pagina de față) și <strong>Stare sistem</strong> (Stare sistem, Auto-îmbunătățire).</p>
           <ul>
-            <li><strong>⌂ Acasă</strong> (colțul stânga sus, lângă siglă) — te duce oricând înapoi la pagina de start, din orice altă pagină te-ai afla.</li>
-            <li><strong>☰ Meniu</strong> — o listă rapidă cu Acasă, Sesizări active, Proiecte în lucru, Planificare LPS și Avarii deschise, disponibilă din orice pagină, fără să te întorci mai întâi la Acasă.</li>
-            <li><strong>Traseul din stânga</strong> (ex: „Acasă / Sesizări funcționale”) — arată mereu unde te afli. Poți apăsa pe „Acasă” din el ca să te întorci direct.</li>
+            <li><strong>⌂ Acasă</strong> (prima iconiță din bara principală) — te duce oricând înapoi la pagina de start, din orice altă pagină te-ai afla.</li>
+            <li><strong>Bara principală</strong> (coloana îngustă, cu iconițe) — comută între cele cinci zone de mai sus. Rămâne mereu vizibilă.</li>
+            <li><strong>A doua bară laterală</strong> — arată paginile zonei alese. Pentru Acasă nu există o a doua bară (nu are sub-pagini).</li>
+            <li><strong>☰ Meniu</strong> (pe telefon) — o listă rapidă cu Acasă, Sesizări active, Proiecte în lucru, Planificare LPS și Avarii deschise, disponibilă din orice pagină, fără să te întorci mai întâi la Acasă.</li>
+            <li><strong>Traseul din capul paginii</strong> (ex: „Acasă / Sesizări funcționale”) — arată mereu unde te afli. Poți apăsa pe „Acasă” din el ca să te întorci direct.</li>
             <li>Pe paginile de Sesizări, cele trei butoane de sus — <strong>Prezentare generală / Sesizări funcționale / Sesizări accidente</strong> — comută între cele trei vederi fără să părăsești pagina.</li>
             <li><strong>Deconectare</strong> (colțul dreapta sus) — închide sesiunea curentă.</li>
           </ul>
         </section>
 
-        <section class="docs-section" id="docs-home">
+        <section class="docs-section" id="docs-home" data-docs-group="home">
           <h3>Pagina de start (Acasă)</h3>
           <p>Este prima pagină pe care o vezi după autentificare și cea la care te întorci mereu cu butonul „⌂ Acasă”. Este împărțită în trei zone.</p>
           <h4>Ceasul și calendarul (stânga)</h4>
           <p>Ora și data curentă, plus un calendar lunar cu programările tale. Explicat pe larg mai jos, în secțiunea „Calendarul”.</p>
-          <h4>Butoanele de navigare (mijloc)</h4>
-          <p>Fiecare buton te duce direct la pagina corespunzătoare, deja pregătită pe ce contează de obicei — de exemplu, „Sesizări” te duce direct la sesizările active, nu la toate din istoric:</p>
+          <h4>Căutarea rapidă și butoanele de navigare (mijloc)</h4>
+          <p>Chiar sub titlu e o <strong>căutare rapidă</strong> — scrie o întrebare ca „cât cablu CYABY mai am”, „unde e excavatorul” sau „cine lucrează la avaria de pe strada X” și primești direct răspunsul, din datele reale din ERP, Proiecte publice, Avarii rețele, Proiecte LPS și Programe lucrări. Dacă nu găsește exact ce ai scris, îți arată sugestii apropiate — iar alegerea unei sugestii „învață” acea întrebare pentru data viitoare.</p>
+          <p>Sub căutare, fiecare buton te duce direct la pagina corespunzătoare, deja pregătită pe ce contează de obicei:</p>
           <ul>
             <li><strong>Sesizări</strong> — Prezentare generală, cu sesizările funcționale și accidentele deja filtrate pe cele active.</li>
-            <li><strong>Proiecte publice</strong> — lista de proiecte, filtrată pe „Active”.</li>
-            <li><strong>Avarii rețele</strong> — lucrările din teren, filtrate pe „Active”.</li>
-            <li><strong>Proiecte LPS</strong> — planificarea Last Planner System.</li>
-            <li><strong>Stare sistem</strong> — verificări live ale conexiunii, funcțiilor și notificărilor.</li>
+            <li><strong>Proiecte</strong> — pagina de start a Proiectelor, cu Proiecte publice, Avarii rețele, Proiecte LPS și Programe lucrări.</li>
+            <li><strong>ERP</strong> — pagina de start a ERP-ului, cu Echipamente, Mașini și Materiale.</li>
             <li><strong>Documentație</strong> — pagina de față.</li>
+            <li><strong>Stare sistem</strong> — verificări live ale conexiunii, funcțiilor și notificărilor.</li>
           </ul>
           <h4>Notițele (dreapta)</h4>
           <p>Spațiul tău personal de notițe tip post-it. Vezi secțiunea „Notițele” de mai jos pentru detalii.</p>
+          <h4>Turul rapid</h4>
+          <p>Butonul <strong>„?”</strong> din bara principală (sub iconițe, deasupra avatarului de cont) redeschide oricând turul ghidat care arată, pas cu pas, unde e fiecare lucru — pornește automat o singură dată, la prima conectare dintr-un browser nou.</p>
         </section>
 
-        <section class="docs-section" id="docs-calendar">
+        <section class="docs-section" id="docs-calendar" data-docs-group="home">
           <h3>Calendarul</h3>
           <p>Calendarul lunar stă chiar pe pagina de start, deasupra notițelor. Zilele cu un <strong>punct</strong> sub cifră au cel puțin o programare; ziua de azi este evidențiată. Săgețile <strong>‹</strong> / <strong>›</strong> din capul calendarului schimbă luna afișată.</p>
           <h4>Cum vezi programările unei zile</h4>
@@ -2996,7 +3019,7 @@
           <p>Când se apropie ora aleasă la „Memento”, primești o notificare — vizual, pe pagină, chiar dacă doar ai lăsat tab-ul deschis, și ca notificare reală a telefonului/calculatorului dacă ai activat notificările push (vezi secțiunea „Notificări push” mai jos).</p>
         </section>
 
-        <section class="docs-section" id="docs-todo">
+        <section class="docs-section" id="docs-todo" data-docs-group="home">
           <h3>Notițele</h3>
           <p>În dreapta paginii de start ai un spațiu personal de notițe tip post-it, pentru lucruri de reținut care nu au nevoie de o sesizare sau un proiect formal.</p>
           <ul>
@@ -3007,7 +3030,7 @@
           <div class="docs-callout">Notițele se păstrează doar în acest browser, pe acest dispozitiv — nu sunt trimise către server și nu apar dacă te conectezi de pe alt telefon sau calculator.</div>
         </section>
 
-        <section class="docs-section" id="docs-overview">
+        <section class="docs-section" id="docs-overview" data-docs-group="tickets">
           <h3>Sesizări — Prezentare generală</h3>
           <p>Arată, într-un singur tabel, toate sesizările — atât cele funcționale (defecte), cât și accidentele — cu numărul sesizării, data, tipul, reclamantul, adresa, starea și timpul de soluționare. Sub tabel ai un grafic cu numărul de sesizări pe an și unul cu timpul mediu de rezolvare.</p>
           <h4>Cartonașele de sus</h4>
@@ -3021,7 +3044,7 @@
           </ul>
         </section>
 
-        <section class="docs-section" id="docs-tickets">
+        <section class="docs-section" id="docs-tickets" data-docs-group="tickets">
           <h3>Sesizări — Funcționale și Accidente</h3>
           <p>Aceleași sesizări ca la Prezentare generală, dar despărțite pe cele două tipuri și afișate ca fișe individuale, pe care le poți edita. Comuți între ele cu butoanele „Sesizări funcționale” / „Sesizări accidente” de sus.</p>
           <h4>Iconițele din colțul dreapta sus</h4>
@@ -3042,7 +3065,7 @@
           </ul>
         </section>
 
-        <section class="docs-section" id="docs-report">
+        <section class="docs-section" id="docs-report" data-docs-group="tickets">
           <h3>Cum adaugi un raport (rezolvare) la o sesizare</h3>
           <p>Câmpul „Ce s-a făcut” nu se scrie direct pe fișa sesizării — este completat automat, prin încărcarea fișei Excel de remedieri pe care echipa din teren o folosește deja pe hârtie. Așa se face, pas cu pas:</p>
           <ol>
@@ -3057,7 +3080,7 @@
           <p>O sesizare „Soluționată” fără raport încă apare la filtrul <strong>„Așteaptă raport”</strong> (din Filtre, pe Prezentare generală) — acolo găsești mereu tot ce mai ai de completat.</p>
         </section>
 
-        <section class="docs-section" id="docs-projects">
+        <section class="docs-section" id="docs-projects" data-docs-group="docs-projects">
           <h3>Proiecte publice</h3>
           <p>Lucrările mai mari, vizibile și pe site-ul public, cu progres calculat automat între data de început și cea de finalizare estimată.</p>
           <h4>Cum adaugi un proiect</h4>
@@ -3075,7 +3098,7 @@
           <p>Fiecare proiect are butoanele <strong>Editează</strong> și <strong>Șterge</strong> (sau <strong>Dezarhivează</strong>, dacă e arhivat). Poți selecta mai multe și le poți arhiva deodată din bara care apare la selectare.</p>
         </section>
 
-        <section class="docs-section" id="docs-backlog">
+        <section class="docs-section" id="docs-backlog" data-docs-group="docs-backlog">
           <h3>Avarii rețele</h3>
           <p>Lucrările din teren, gen intervenții și reparații, separate de proiectele publice. Funcționează la fel de simplu:</p>
           <ol>
@@ -3086,7 +3109,7 @@
           <p>Restul iconițelor — <strong>Filtre</strong> (stare: Active / Soluționate / Toate), <strong>Căutare</strong> și <strong>Exportă Excel</strong> — funcționează la fel ca pe celelalte pagini.</p>
         </section>
 
-        <section class="docs-section" id="docs-lps">
+        <section class="docs-section" id="docs-lps" data-docs-group="docs-lps">
           <h3>Proiecte LPS</h3>
           <p><strong>Last Planner System (LPS)</strong> este o metodă de planificare pentru proiecte interne, gândită să transforme planurile mari în promisiuni săptămânale realiste, verificate înainte să fie promise. Ideea, pe scurt: fixezi reperele mari ale proiectului, planifici înapoi handoff-urile necesare, analizezi din timp următoarele 6 săptămâni ca să elimini blocajele, promiți doar lucru chiar pregătit pentru săptămâna care vine, iar la finalul săptămânii verifici ce s-a promis și ce nu, ca să înveți de ce.</p>
           <h4>Cum adaugi un proiect LPS</h4>
@@ -3119,7 +3142,44 @@
           </div>
         </section>
 
-        <section class="docs-section" id="docs-status">
+        <section class="docs-section" id="docs-workorders" data-docs-group="docs-workorders">
+          <h3>Programe lucrări</h3>
+          <p>Calendarul programărilor de lucru — lucrările planificate, pe zile, separat de lista plată din Avarii rețele sau Proiecte publice.</p>
+          <h4>Cum adaugi o programare</h4>
+          <ol>
+            <li>Apasă <strong>+</strong> pentru a adăuga o programare nouă.</li>
+            <li>Completează <strong>Titlu</strong>, <strong>Data programată</strong>, <strong>Data de final (opțional)</strong> și <strong>Descriere</strong>.</li>
+            <li>Apasă <strong>„Salvează programarea”</strong>. Programarea apare imediat în calendar, cu o etichetă colorată după stare (<strong>Planificat</strong> / <strong>În lucru</strong> / <strong>Finalizat</strong> / <strong>Anulat</strong>).</li>
+          </ol>
+          <h4>Calendarul lunar</h4>
+          <p>Săgețile <strong>‹</strong> / <strong>›</strong> schimbă luna, iar <strong>„Azi”</strong> te întoarce la luna curentă. Fiecare zi arată până la 3 programări colorate; dacă sunt mai multe, un „+N” arată câte mai sunt. Apasă pe o zi pentru a vedea toate programările ei.</p>
+          <h4>Descarcă / printează calendarul</h4>
+          <p>Butonul <strong>„Descarcă”</strong> deschide fereastra de printare a browserului cu exact calendarul de pe ecran — restul paginii (bară laterală, alte secțiuni) e ascuns automat pentru asta, iar la închiderea ferestrei de printare pagina revine la normal.</p>
+          <h4>Alocarea pe o persoană</h4>
+          <p>Dacă o programare are un responsabil care are cont pe platformă, acea programare apare automat și în „De făcut” pe pagina lui de start, în ziua respectivă.</p>
+        </section>
+
+        <section class="docs-section" id="docs-erp" data-docs-group="erp">
+          <h3>ERP — Echipamente, Mașini, Materiale</h3>
+          <p>Inventarul firmei, împărțit în trei pagini — <strong>Echipamente</strong> (scule, generatoare, compresoare), <strong>Mașini</strong> (utilaje grele, transport) și <strong>Materiale</strong> (consumabile: cabluri, țevi, beton) — plus o pagină de <strong>Home</strong> cu totalurile fiecăreia.</p>
+          <h4>Cum adaugi un articol</h4>
+          <ol>
+            <li>Apasă <strong>„+ Adaugă echipament / mașină / material”</strong> din pagina potrivită — formularul se deschide deja cu categoria corectă bifată.</li>
+            <li>Completează <strong>Denumire</strong>, <strong>Categorie ERP</strong> (dacă vrei s-o schimbi), <strong>Subcategorie</strong>, <strong>Nr. serie / inventar</strong>, <strong>Locație curentă</strong>, <strong>Alocat la</strong> și <strong>Notițe</strong>.</li>
+            <li>Pentru <strong>Materiale</strong>, completezi și <strong>Cantitate</strong> + <strong>Unitate</strong> (ex: 500 m). Pentru <strong>Mașini</strong>, completezi <strong>Kilometraj (km)</strong> — apare doar pentru această categorie.</li>
+            <li>Apasă <strong>„Salvează”</strong>.</li>
+          </ol>
+          <h4>Echipamente și mașini — rezervare pe perioadă</h4>
+          <p>Un echipament sau o mașină nu se scade din stoc — se <strong>rezervă pe o perioadă</strong> (de la/până la), din Planificarea LPS (vezi mai jos). Dacă aceeași mașină e deja rezervată pentru o perioadă care se suprapune, platforma te avertizează înainte să confirmi, dar nu te blochează — tu decizi dacă suprapunerea e reală sau nu.</p>
+          <h4>Materiale — scădere din stoc</h4>
+          <p>Un material se scade din <strong>Cantitate</strong> imediat ce e rezervat pe un proiect LPS, cu o notă că proiectul nu e încă terminat. Dacă ștergi o rezervare neconsumată încă, cantitatea se întoarce automat în stoc.</p>
+          <h4>Legătura cu Planificarea LPS</h4>
+          <p>Din tab-ul <strong>Look-ahead</strong> al unui proiect LPS, butonul <strong>„+ Resursă”</strong> deschide o fereastră cu tot inventarul ERP: alegi <strong>Echipament</strong> sau <strong>Material</strong>, articolul dorit, și completezi fie <strong>perioada</strong> (pentru echipament/mașină), fie <strong>cantitatea necesară</strong> (pentru material). Rezervarea apare apoi direct pe acel element din Look-ahead, cu un buton <strong>„Marchează consumat”</strong> (material) sau <strong>„Eliberează”</strong> (echipament/mașină) când lucrarea se termină.</p>
+          <h4>Schimbarea stării</h4>
+          <p>Fiecare articol are un buton de stare care trece prin <strong>Disponibil → În folosință → Service → Disponibil</strong>, și butoanele <strong>Editează</strong> / <strong>Șterge</strong>.</p>
+        </section>
+
+        <section class="docs-section" id="docs-status" data-docs-group="home">
           <h3>Stare sistem</h3>
           <p>Arată dacă platforma funcționează normal: conexiunea la baza de date, sesiunea ta de autentificare, funcțiile din server (Edge Functions), jobul programat de memento-uri de calendar, notificările push și un rezumat al câtor sesizări/proiecte/evenimente există în platformă.</p>
           <ul>
@@ -3130,13 +3190,13 @@
           </ul>
         </section>
 
-        <section class="docs-section" id="docs-push">
+        <section class="docs-section" id="docs-push" data-docs-group="home">
           <h3>Notificări push</h3>
           <p>Notificările push îți trimit o alertă reală pe telefon sau calculator — pentru sesizări noi și pentru mementourile din calendar — chiar dacă nu ai pagina deschisă în față.</p>
           <p>Dacă ai instalat aplicația (adăugată pe ecranul principal, nu doar deschisă într-un tab de browser), ți se cere o singură dată permisiunea, automat, la prima deschidere. Dacă folosești un tab obișnuit de browser, sau ai închis acea cerere fără să răspunzi, poți activa oricând manual din <strong>Stare sistem → Notificări push → „Activează notificările”</strong>.</p>
         </section>
 
-        <section class="docs-section" id="docs-faq">
+        <section class="docs-section" id="docs-faq" data-docs-group="home">
           <h3>Întrebări frecvente</h3>
           <p><strong>De ce nu pot scrie direct „Ce s-a făcut” pe o sesizare?</strong><br>Fiindcă raportul vine din fișa de teren, ca să nu existe două locuri diferite unde se scrie același lucru. Vezi secțiunea „Cum adaugi un raport” de mai sus.</p>
           <p><strong>De ce nu-mi mai apar notițele când mă conectez de pe alt telefon?</strong><br>Sunt salvate doar în browserul de pe acel dispozitiv, nu pe server — sunt gândite ca o agendă rapidă, personală, nu ca date operaționale.</p>
@@ -5384,6 +5444,61 @@
   const homeNavDocsBtn = document.getElementById('homeNavDocs');
   if (homeNavDocsBtn) homeNavDocsBtn.addEventListener('click', () => openAdminTab('docs'));
 
+  // Documentație's own sidebar — Home / Sesizări / Proiecte (dropdown
+  // of its four sub-areas) / ERP, the same category-panel pattern as
+  // the rest of the app. Each .docs-section carries data-docs-group
+  // saying which sidebar item shows it; Proiecte's four sub-areas use
+  // their own section id as the group key so each gets its own
+  // dedicated destination instead of being lumped under one page.
+  let docsActiveGroup = 'home';
+  function applyDocsSectionVisibility(){
+    document.querySelectorAll('.docs-section').forEach(sec => {
+      sec.style.display = sec.dataset.docsGroup === docsActiveGroup ? '' : 'none';
+    });
+    const searchWrap = document.getElementById('docsHomeSearchWrap');
+    if (searchWrap) searchWrap.style.display = docsActiveGroup === 'home' ? '' : 'none';
+    document.querySelectorAll('.docs-toc-link').forEach(link => {
+      const target = document.getElementById(link.dataset.docsTarget);
+      link.style.display = (target && target.dataset.docsGroup === docsActiveGroup) ? '' : 'none';
+    });
+    const emptyEl = document.getElementById('docsSearchEmpty');
+    if (emptyEl) emptyEl.style.display = 'none';
+    const tocEl = document.getElementById('docsToc');
+    if (tocEl) tocEl.style.display = '';
+  }
+  function setDocsGroup(group){
+    docsActiveGroup = group;
+    document.querySelectorAll('.docs-nav-group-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.docsGroup === group);
+    });
+    if (['docs-projects', 'docs-backlog', 'docs-lps', 'docs-workorders'].includes(group)) {
+      const projectsToggle = document.querySelector('.docs-nav-toggle[data-docs-toggle="projects"]');
+      const projectsSubgroup = document.querySelector('.docs-nav-subgroup[data-docs-subgroup="projects"]');
+      if (projectsToggle) projectsToggle.classList.add('open');
+      if (projectsSubgroup) projectsSubgroup.classList.add('open');
+    }
+    const docsSearchBoxEl = document.getElementById('docsSearchBox');
+    if (docsSearchBoxEl) docsSearchBoxEl.value = '';
+    applyDocsSectionVisibility();
+    const docsBodyEl = document.querySelector('#panel-docs .docs-body');
+    if (docsBodyEl) docsBodyEl.scrollTop = 0;
+  }
+  document.querySelectorAll('.docs-nav-group-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      openAdminTab('docs');
+      setDocsGroup(btn.dataset.docsGroup);
+    });
+  });
+  const docsProjectsToggleBtn = document.querySelector('.docs-nav-toggle[data-docs-toggle="projects"]');
+  if (docsProjectsToggleBtn) {
+    docsProjectsToggleBtn.addEventListener('click', () => {
+      docsProjectsToggleBtn.classList.toggle('open');
+      const subgroup = document.querySelector('.docs-nav-subgroup[data-docs-subgroup="projects"]');
+      if (subgroup) subgroup.classList.toggle('open');
+    });
+  }
+  applyDocsSectionVisibility(); // initial state — docsActiveGroup starts at 'home'
+
   // Documentație's table of contents — scrolls within the panel rather
   // than using real #anchors, which would collide with the tab-restore
   // system's own use of the URL hash (see initialHashTab above).
@@ -5400,26 +5515,29 @@
   // Documentație's search box — filters sections (and their matching
   // TOC entries) by plain text content, diacritic-insensitive via the
   // same normalizeRomanianText() the repair-sheet street-matching
-  // already uses, so "sesizari" finds "sesizări" too.
+  // already uses, so "sesizari" finds "sesizări" too. Searching looks
+  // across every section regardless of which sidebar group is active;
+  // clearing the query restores the normal group-scoped view.
   const docsSearchBox = document.getElementById('docsSearchBox');
   if (docsSearchBox) {
     docsSearchBox.addEventListener('input', () => {
       const query = normalizeRomanianText(docsSearchBox.value.trim());
+      if (!query) { applyDocsSectionVisibility(); return; }
       let anyVisible = false;
       document.querySelectorAll('.docs-section').forEach(sec => {
-        const matches = !query || normalizeRomanianText(sec.textContent).includes(query);
+        const matches = normalizeRomanianText(sec.textContent).includes(query);
         sec.style.display = matches ? '' : 'none';
         if (matches) anyVisible = true;
       });
       document.querySelectorAll('.docs-toc-link').forEach(link => {
         const target = document.getElementById(link.dataset.docsTarget);
         const targetVisible = !target || target.style.display !== 'none';
-        link.style.display = (query && !targetVisible) ? 'none' : '';
+        link.style.display = targetVisible ? '' : 'none';
       });
       const emptyEl = document.getElementById('docsSearchEmpty');
-      if (emptyEl) emptyEl.style.display = (query && !anyVisible) ? '' : 'none';
+      if (emptyEl) emptyEl.style.display = anyVisible ? 'none' : '';
       const tocEl = document.getElementById('docsToc');
-      if (tocEl) tocEl.style.display = (query && !anyVisible) ? 'none' : '';
+      if (tocEl) tocEl.style.display = anyVisible ? '' : 'none';
     });
   }
 
@@ -12395,9 +12513,9 @@
       text: 'Un spațiu personal, tip post-it, salvat doar în acest browser — nu e vizibil pentru alți utilizatori.',
     },
     {
-      selector: '[data-tab="docs"]',
+      selector: '.rail-item[data-category="docs"]',
       title: 'Documentație completă',
-      text: 'Dacă vrei detalii pas cu pas pentru orice pagină sau buton din platformă, ghidul complet e mereu aici.',
+      text: 'Dacă vrei detalii pas cu pas pentru orice pagină sau buton din platformă, ghidul complet e mereu aici — organizat pe aceleași secțiuni ca restul platformei (Sesizări, Proiecte, ERP), cu propria căutare.',
     },
   ];
   let onboardingStepIndex = 0;
