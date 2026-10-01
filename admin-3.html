@@ -560,9 +560,11 @@
   .home-smart-search-input-wrap input::placeholder{color:var(--ink-400);}
   .home-smart-search-result{
     margin-top:10px;padding:12px 16px;border:1px solid var(--line-strong);border-radius:8px;background:var(--paper-050);
-    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
   }
+  .home-smart-search-answer-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
   .home-smart-search-answer{margin:0;font-size:14px;color:var(--ink-900);}
+  .home-smart-search-suggestions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .home-smart-suggestion-chip{cursor:pointer;}
   .home-nav-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:22px;}
   .home-nav-btn{
     display:flex;flex-direction:column;align-items:flex-start;gap:10px;
@@ -694,6 +696,13 @@
      that ships to the browser; that's what Supabase's own dashboard
      is for. */
   .status-panel-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;}
+  /* Split into two views (health checks vs. self-improve signals) so
+     the tab doesn't read as one long, undifferentiated wall of cards. */
+  .status-view-tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:18px;padding-bottom:2px;}
+  .status-view-tab{flex:0 0 auto;padding:9px 12px;border:1px solid var(--line-strong);border-radius:4px;background:var(--paper-000);font:inherit;font-size:13px;color:var(--ink-700);cursor:pointer;}
+  .status-view-tab.active{border-color:var(--copper-500);background:var(--copper-050);color:var(--copper-600);font-weight:600;}
+  .status-view{display:none;}
+  .status-view.active{display:block;}
   .status-panel-head h2{margin:6px 0 0;}
   .status-info-btn{
     width:30px;height:30px;flex-shrink:0;border-radius:50%;
@@ -1533,16 +1542,24 @@
   @media(min-width:901px){
     .overview-quick-filters-count{display:none;}
   }
+  /* A pill, not quiet inline text — selecting a non-default filter
+     used to be easy to miss entirely (tiny 12px monospace text, far
+     in the corner of the page). Now it reads as a small colored badge
+     wherever it sits, so "you're not looking at everything" is
+     obvious at a glance rather than something you have to notice. */
   .filter-status-note{
-    display:inline-flex;align-items:center;gap:4px;
-    font-family:var(--mono);font-size:12px;color:var(--copper-600);white-space:nowrap;
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:var(--mono);font-size:12px;font-weight:700;color:var(--copper-600);white-space:nowrap;
+    background:var(--copper-050);border:1px solid var(--copper-300);border-radius:999px;
+    padding:4px 6px 4px 10px;
   }
-  .filter-status-note:empty{display:none;}
+  .filter-status-note:empty{display:none;padding:0;border:none;background:none;}
   .filter-status-note button{
-    background:none;border:none;color:var(--copper-600);cursor:pointer;
-    font-size:15px;line-height:1;padding:0;font-family:inherit;
+    background:var(--copper-500);border:none;color:#fff;cursor:pointer;border-radius:50%;
+    width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;
+    font-size:12px;line-height:1;padding:0;font-family:inherit;flex-shrink:0;
   }
-  .filter-status-note button:hover{color:var(--copper-500);}
+  .filter-status-note button:hover{background:var(--copper-600);}
   @media(min-width:901px){
     .overview-quick-filters .filter-status-note{display:none;}
   }
@@ -2222,31 +2239,25 @@
               <span class="home-nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="14" x2="14" y2="14"/></svg>
               </span>
-              <span class="home-nav-text"><span class="home-nav-label">Proiecte publice</span><span class="home-nav-sub">Lucrări în curs și programate</span></span>
+              <span class="home-nav-text"><span class="home-nav-label">Proiecte</span><span class="home-nav-sub">Publice, avarii rețele, LPS, programe</span></span>
             </button>
-            <button type="button" class="home-nav-btn" id="homeNavBacklog">
+            <button type="button" class="home-nav-btn" id="homeNavErp">
               <span class="home-nav-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
               </span>
-              <span class="home-nav-text"><span class="home-nav-label">Avarii rețele</span><span class="home-nav-sub">Lucrări din teren</span></span>
-            </button>
-            <button type="button" class="home-nav-btn" id="homeNavLps">
-              <span class="home-nav-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-              </span>
-              <span class="home-nav-text"><span class="home-nav-label">Proiecte LPS</span><span class="home-nav-sub">Planificare Last Planner</span></span>
-            </button>
-            <button type="button" class="home-nav-btn" id="homeNavStatus">
-              <span class="home-nav-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-              </span>
-              <span class="home-nav-text"><span class="home-nav-label">Stare sistem</span><span class="home-nav-sub">Conexiune, funcții, memento-uri</span></span>
+              <span class="home-nav-text"><span class="home-nav-label">ERP</span><span class="home-nav-sub">Echipamente, mașini, materiale</span></span>
             </button>
             <button type="button" class="home-nav-btn" id="homeNavDocs">
               <span class="home-nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
               </span>
               <span class="home-nav-text"><span class="home-nav-label">Documentație</span><span class="home-nav-sub">Ghid de utilizare a platformei</span></span>
+            </button>
+            <button type="button" class="home-nav-btn" id="homeNavStatus">
+              <span class="home-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              </span>
+              <span class="home-nav-text"><span class="home-nav-label">Stare sistem</span><span class="home-nav-sub">Conexiune, funcții, memento-uri</span></span>
             </button>
           </div>
         </div>
@@ -2773,6 +2784,11 @@
         <div><div class="home-eyebrow">Monitorizare</div><h2>Stare sistem</h2></div>
         <button type="button" class="status-info-btn" id="statusHistoryBtn" aria-label="Istoric verificări (ultimele 48h)" title="Istoric verificări (ultimele 48h)">i</button>
       </div>
+      <div class="status-view-tabs" role="tablist">
+        <button type="button" class="status-view-tab active" data-status-view-tab="monitor">Monitorizare</button>
+        <button type="button" class="status-view-tab" data-status-view-tab="improve">Auto-îmbunătățire</button>
+      </div>
+      <div class="status-view active" data-status-view="monitor">
       <div class="status-grid">
         <div class="status-card" id="statusCardDb">
           <div class="status-card-head">
@@ -2839,7 +2855,10 @@
           </div>
           <canvas class="status-chart status-chart-tall" id="statusCountsChart" height="140"></canvas>
         </div>
-
+      </div>
+      </div>
+      <div class="status-view" data-status-view="improve">
+      <div class="status-grid">
         <div class="status-card status-card-wide" id="statusCardErrors">
           <div class="status-card-head">
             <h4>Jurnal erori</h4>
@@ -2893,6 +2912,7 @@
           </div>
           <div class="status-history-list" id="statusChangelogList"></div>
         </div>
+      </div>
       </div>
       <div class="status-refresh-row">
         <span id="statusLastChecked"></span>
@@ -4669,7 +4689,7 @@
         // genuinely restricted view, not "show everything". The old
         // "Elimină filtrul" wording (screen-reader only; there's no
         // visible text beside the × glyph) claimed otherwise.
-        el.innerHTML = `· Filtru: ${escapeHtml(text)} <button type="button" aria-label="Revino la vizualizarea implicită">×</button>`;
+        el.innerHTML = `Filtru: ${escapeHtml(text)} <button type="button" aria-label="Revino la vizualizarea implicită">×</button>`;
         const dismissBtn = el.querySelector('button');
         if (dismissBtn) dismissBtn.onclick = resetFilter;
       });
@@ -5292,7 +5312,11 @@
     loadProjects();
     loadBacklogProjects();
     loadCalendarEvents();
-    loadEquipment(); // also keeps the home-page smart search answerable without visiting ERP first
+    // These three also keep the home-page smart search answerable
+    // across ERP/Programe lucrări/LPS without visiting those tabs first.
+    loadEquipment();
+    loadWorkOrders();
+    loadInternalProjects();
   }
 
   function setHomeTabFilter(tabKey){
@@ -5360,11 +5384,9 @@
     });
   }
   const homeNavProjectsBtn = document.getElementById('homeNavProjects');
-  if (homeNavProjectsBtn) homeNavProjectsBtn.addEventListener('click', () => setHomeTabFilter('projects'));
-  const homeNavBacklogBtn = document.getElementById('homeNavBacklog');
-  if (homeNavBacklogBtn) homeNavBacklogBtn.addEventListener('click', () => setHomeTabFilter('backlog'));
-  const homeNavLpsBtn = document.getElementById('homeNavLps');
-  if (homeNavLpsBtn) homeNavLpsBtn.addEventListener('click', () => setHomeTabFilter('lps'));
+  if (homeNavProjectsBtn) homeNavProjectsBtn.addEventListener('click', () => openAdminTab('projects-home'));
+  const homeNavErpBtn = document.getElementById('homeNavErp');
+  if (homeNavErpBtn) homeNavErpBtn.addEventListener('click', () => openAdminTab('erp-home'));
   const homeNavStatusBtn = document.getElementById('homeNavStatus');
   if (homeNavStatusBtn) homeNavStatusBtn.addEventListener('click', () => openAdminTab('status'));
   const homeNavDocsBtn = document.getElementById('homeNavDocs');
@@ -5852,6 +5874,14 @@
 
   const statusRefreshBtn = document.getElementById('statusRefreshBtn');
   if (statusRefreshBtn) statusRefreshBtn.addEventListener('click', loadSystemStatus);
+
+  document.querySelectorAll('.status-view-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const view = tab.dataset.statusViewTab;
+      document.querySelectorAll('.status-view-tab').forEach(t => t.classList.toggle('active', t === tab));
+      document.querySelectorAll('.status-view').forEach(v => v.classList.toggle('active', v.dataset.statusView === view));
+    });
+  });
 
   /* ============================================================
      SELF-ÎMBUNĂTĂȚIRE — jurnal de erori reale + semnale de
@@ -11353,15 +11383,24 @@
 
   /* ============================================================
      ACASĂ — CĂUTARE INTELIGENTĂ. Un motor pe reguli (nu AI — fără
-     cost, fără cheie API, răspunde instant) peste inventarul ERP
-     (allEquipment), pentru întrebări de genul "cât cablu X mai am",
-     "unde e excavatorul", "câte mașini sunt disponibile", "câți km
-     are mașina Y". Acoperă tiparele de mai jos; orice altceva
-     primește un mesaj clar că nu a fost găsit, mai degrabă decât un
-     răspuns ghicit greșit. Fiecare căutare e logată ca semnal
-     ('search_query') — inclusiv cele nereușite, care arată exact ce
-     lipsește din date — vizibil în Stare sistem, sub „Ce caută
-     oamenii”.
+     cost, fără cheie API, răspunde instant) peste ERP, Proiecte
+     publice, Avarii rețele, Proiecte LPS și Programe lucrări, pentru
+     întrebări de genul "cât cablu X mai am", "unde e excavatorul",
+     "cine lucrează la avaria de pe strada X", "când e programată
+     lucrarea Y". Acoperă tiparele de mai jos; orice altceva primește
+     fie câteva sugestii apropiate (dacă există ceva asemănător),
+     fie un mesaj clar că nu a fost găsit — niciodată un răspuns
+     ghicit greșit. Fiecare căutare e logată ca semnal ('search_query')
+     — inclusiv cele nereușite, care arată exact ce lipsește din date
+     — vizibil în Stare sistem, sub „Ce caută oamenii”.
+
+     "Se îmbunătățește singură" înseamnă aici ceva concret și
+     verificabil, nu magie: când cineva alege o sugestie pentru o
+     întrebare nepotrivită, acea pereche întrebare→rezultat se ține
+     minte în search_query_aliases (o tabelă simplă, nu AI) — data
+     viitoare când cineva scrie exact aceeași întrebare, răspunsul
+     vine direct, fără ghicit. Căutarea se îmbunătățește din
+     folosire reală, nu dintr-un algoritm care "învață" pe ascuns.
      ============================================================ */
   function normalizeSearchText(s){
     return (s || '').toString().toLowerCase()
@@ -11375,33 +11414,181 @@
     return normalizeSearchText(s).split(' ').filter(t => t.length >= 2 && !SEARCH_STOPWORDS.has(t));
   }
   function tabForErpCategory(cat){ return cat === 'echipament' ? 'equipment' : cat === 'masina' ? 'machines' : 'materials'; }
-  function findBestEquipmentMatch(queryNorm){
-    // Real item names carry a brand/model ("Excavator JCB 3CX") nobody
-    // actually types ("unde e excavatorul") — so this picks whichever
-    // item has the most of its name tokens present in the query at all
-    // (not a strict majority), tie-broken by how much of the name that
-    // covers, rather than requiring most of the name to be typed out.
-    let best = null, bestHits = 0, bestRatio = 0;
+  const SEARCH_COLLECTION_LABEL = { erp_echipament: 'Echipament', erp_masina: 'Mașină', erp_material: 'Material', projects: 'Proiect public', backlog: 'Avarie rețea', lps: 'Proiect LPS', workorders: 'Programare' };
+  // One flat index across every searchable collection — rebuilt on
+  // every search (cheap: a few hundred rows at most for a platform
+  // this size) so it always reflects whatever's currently loaded,
+  // without a separate cache-invalidation path to keep in sync.
+  function buildSearchIndex(){
+    const index = [];
     (typeof allEquipment !== 'undefined' ? allEquipment : []).forEach(eq => {
-      const nameTokens = searchTokens(eq.name);
-      if (!nameTokens.length) return;
+      const cat = eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material');
+      index.push({ collection: 'erp_' + cat, id: eq.id, title: eq.name, tab: tabForErpCategory(cat), item: eq });
+    });
+    (typeof allProjects !== 'undefined' ? allProjects : []).filter(p => !p.archived).forEach(p => {
+      index.push({ collection: 'projects', id: p.id, title: p.title, tab: 'projects', item: p });
+    });
+    (typeof allBacklogProjects !== 'undefined' ? allBacklogProjects : []).forEach(p => {
+      index.push({ collection: 'backlog', id: p.id, title: p.title, tab: 'backlog', item: p });
+    });
+    (typeof internalProjects !== 'undefined' ? internalProjects : []).forEach(p => {
+      index.push({ collection: 'lps', id: p.id, title: p.title, tab: 'lps', item: p });
+    });
+    (typeof allWorkOrders !== 'undefined' ? allWorkOrders : []).forEach(w => {
+      index.push({ collection: 'workorders', id: w.id, title: w.title, tab: 'workorders', item: w });
+    });
+    return index;
+  }
+  function findBestIndexMatch(queryNorm, index){
+    // Real names carry extra words nobody actually types ("Excavator
+    // JCB 3CX" for "unde e excavatorul") — so this picks whichever
+    // entry has the most of its title's tokens present in the query
+    // at all (not a strict majority), tie-broken by how much of the
+    // title that covers.
+    let best = null, bestHits = 0, bestRatio = 0;
+    index.forEach(entry => {
+      const titleTokens = searchTokens(entry.title);
+      if (!titleTokens.length) return;
       let hits = 0;
-      nameTokens.forEach(t => { if (queryNorm.indexOf(t) !== -1) hits++; });
+      titleTokens.forEach(t => { if (queryNorm.indexOf(t) !== -1) hits++; });
       if (hits === 0) return;
-      const ratio = hits / nameTokens.length;
+      const ratio = hits / titleTokens.length;
       if (hits > bestHits || (hits === bestHits && ratio > bestRatio)) {
-        best = eq; bestHits = hits; bestRatio = ratio;
+        best = entry; bestHits = hits; bestRatio = ratio;
       }
     });
     return best;
   }
+  // Used only when findBestIndexMatch found literally nothing — catches
+  // typos ("excavatr") via a shared-prefix match instead of requiring
+  // an exact substring, so there's something to suggest rather than
+  // just "not found" for an almost-right query.
+  function findSuggestedMatches(queryTokens, index){
+    const scored = [];
+    index.forEach(entry => {
+      const titleTokens = searchTokens(entry.title);
+      let score = 0;
+      titleTokens.forEach(tt => {
+        queryTokens.forEach(qt => {
+          if (tt === qt) { score += 2; return; }
+          const prefixLen = Math.min(tt.length, qt.length);
+          if (prefixLen >= 4 && tt.slice(0, 4) === qt.slice(0, 4)) score += 1;
+        });
+      });
+      if (score > 0) scored.push({ entry, score });
+    });
+    scored.sort((a, b) => b.score - a.score);
+    const seen = new Set();
+    const out = [];
+    for (const s of scored) {
+      const key = s.entry.collection + '|' + s.entry.id;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(s.entry);
+      if (out.length >= 3) break;
+    }
+    return out;
+  }
   const SEARCH_CATEGORY_WORDS = { echipament: ['echipament', 'echipamente'], masina: ['masina', 'masini'], material: ['material', 'materiale'] };
   const SEARCH_STATUS_WORDS = { 'Disponibil': ['disponibil', 'disponibile'], 'In folosinta': ['folosinta', 'folosita', 'folosite'], 'Service': ['service'], 'Indisponibil': ['indisponibil', 'indisponibile'] };
-  function answerSmartQuery(raw){
+  function describeErpMatch(item, q){
+    const cat = item.erp_category || (item.item_type === 'echipament' ? 'echipament' : 'material');
+    const isVehicle = cat === 'masina';
+    const isMaterial = cat === 'material';
+    const tab = tabForErpCategory(cat);
+    if (isVehicle && /\bkm\b|kilometr/.test(q)) {
+      if (item.odometer_km != null) {
+        const updated = item.odometer_updated_at ? ` (actualizat ${formatLogTimeRO(item.odometer_updated_at)})` : '';
+        return { text: `${item.name} are ${Number(item.odometer_km).toLocaleString('ro-RO')} km${updated}.`, tab, matched: true };
+      }
+      return { text: `Nu există încă un kilometraj înregistrat pentru ${item.name}.`, tab, matched: false };
+    }
+    if (/\bunde\b|cine are|la cine/.test(q)) {
+      const loc = item.location ? `se află la ${item.location}` : 'nu are o locație înregistrată';
+      const assigned = item.assigned_to ? `, alocat(ă) la ${item.assigned_to}` : '';
+      return { text: `${item.name} ${loc}${assigned}.`, tab, matched: true };
+    }
+    if (isMaterial && (/\bstoc\b|ramas|\bcat\b|\bcate\b/.test(q))) {
+      const reserved = (allResourceAssignments || []).filter(a => a.inventory_item_id === item.id && a.status === 'reserved' && a.item_type === 'material').reduce((s, a) => s + (Number(a.quantity) || 0), 0);
+      const reservedNote = reserved ? ` (din care ${reserved}${item.unit ? ' ' + item.unit : ''} rezervat pe proiecte neterminate)` : '';
+      return { text: `Mai sunt ${Number(item.quantity)}${item.unit ? ' ' + item.unit : ''} din ${item.name}${reservedNote}.`, tab, matched: true };
+    }
+    if (/status|stare|disponibil/.test(q)) {
+      return { text: `${item.name}: ${EQUIPMENT_STATUS_LABEL[item.status] || item.status}.`, tab, matched: true };
+    }
+    const parts = [`${item.name} — ${EQUIPMENT_STATUS_LABEL[item.status] || item.status}`];
+    if (isMaterial) parts.push(`stoc: ${Number(item.quantity)}${item.unit ? ' ' + item.unit : ''}`);
+    if (item.location) parts.push(`locație: ${item.location}`);
+    if (item.assigned_to) parts.push(`alocat: ${item.assigned_to}`);
+    if (isVehicle && item.odometer_km != null) parts.push(`${Number(item.odometer_km).toLocaleString('ro-RO')} km`);
+    return { text: parts.join(' · '), tab, matched: true };
+  }
+  function describeMatch(entry, q){
+    const it = entry.item;
+    if (entry.collection.indexOf('erp_') === 0) return describeErpMatch(it, q);
+    if (entry.collection === 'projects') {
+      const status = calcProjectStatus(it.start_date, it.due_date);
+      if (/\bunde\b/.test(q)) return { text: `${it.title} este la ${it.address || 'adresă neprecizată'}.`, tab: 'projects', matched: true };
+      if (/cand|termin|gata/.test(q)) return { text: `${it.title} — termen: ${fmtDate(it.due_date)}.`, tab: 'projects', matched: true };
+      if (/stare|status/.test(q)) return { text: `${it.title}: ${status.label}.`, tab: 'projects', matched: true };
+      return { text: `${it.title} — ${status.label}${it.address ? ' · ' + it.address : ''} · termen ${fmtDate(it.due_date)}`, tab: 'projects', matched: true };
+    }
+    if (entry.collection === 'backlog') {
+      const statusLabel = (it.status || 'Ongoing') === 'Terminat' ? 'Soluționată' : 'Activă';
+      if (/cine\b/.test(q)) return { text: `${it.title} — angajat: ${it.employee_name || 'neatribuit'}.`, tab: 'backlog', matched: true };
+      if (/\bunde\b/.test(q)) return { text: `${it.title} este la ${it.address || 'adresă neprecizată'}.`, tab: 'backlog', matched: true };
+      if (/stare|status/.test(q)) return { text: `${it.title}: ${statusLabel}.`, tab: 'backlog', matched: true };
+      return { text: `${it.title} — ${statusLabel}${it.address ? ' · ' + it.address : ''}${it.employee_name ? ' · ' + it.employee_name : ''}`, tab: 'backlog', matched: true };
+    }
+    if (entry.collection === 'lps') {
+      if (/cine\b|responsabil/.test(q)) return { text: `${it.title} — responsabil: ${it.owner || 'neatribuit'}.`, tab: 'lps', matched: true };
+      if (/urmeaza|urmatoar/.test(q)) return { text: `${it.title} — următoarea acțiune: ${it.next_action || 'nespecificată'}.`, tab: 'lps', matched: true };
+      return { text: `${it.title} — etapă: ${it.stage || 'neprecizată'}${it.owner ? ' · ' + it.owner : ''}`, tab: 'lps', matched: true };
+    }
+    if (entry.collection === 'workorders') {
+      if (/cand\b/.test(q)) return { text: `${it.title} este programat pe ${formatWoDateRO(it.scheduled_date)}.`, tab: 'workorders', matched: true };
+      if (/stare|status/.test(q)) return { text: `${it.title}: ${it.status}.`, tab: 'workorders', matched: true };
+      return { text: `${it.title} — ${it.status} · ${formatWoDateRO(it.scheduled_date)}`, tab: 'workorders', matched: true };
+    }
+    return { text: it.title, tab: entry.tab, matched: true };
+  }
+  async function lookupSearchAlias(queryNormalized){
+    try {
+      const { data, error } = await supabaseClient.from('search_query_aliases').select('*').eq('query_normalized', queryNormalized).order('hit_count', { ascending: false }).limit(1).maybeSingle();
+      if (error || !data) return null;
+      return data;
+    } catch (e) { return null; }
+  }
+  async function recordSearchAlias(queryNormalized, entry){
+    try {
+      const { data: existing } = await supabaseClient.from('search_query_aliases').select('*').eq('query_normalized', queryNormalized).maybeSingle();
+      if (existing) {
+        await supabaseClient.from('search_query_aliases').update({
+          collection: entry.collection, item_id: String(entry.id), item_title: entry.title,
+          hit_count: (Number(existing.hit_count) || 0) + 1, updated_at: new Date().toISOString(),
+        }).eq('id', existing.id);
+      } else {
+        await supabaseClient.from('search_query_aliases').insert({
+          query_normalized: queryNormalized, collection: entry.collection, item_id: String(entry.id), item_title: entry.title,
+        });
+      }
+    } catch (e) { /* best effort — learning is a bonus, never a blocker */ }
+  }
+  async function answerSmartQuery(raw){
     const q = normalizeSearchText(raw);
-    if (!q) return { text: 'Scrie o întrebare — de exemplu „cât cablu CYABY mai am” sau „unde e excavatorul”.', tab: null, matched: false };
+    if (!q) return { text: 'Scrie o întrebare — de exemplu „cât cablu CYABY mai am” sau „unde e excavatorul”.', tab: null, matched: false, suggestions: [] };
 
-    // 1) Aggregate/count questions: "câte <categorie> [stare]"
+    const index = buildSearchIndex();
+
+    // 0) A previously-learned alias for this exact question — someone
+    // already disambiguated it once via a suggestion chip.
+    const alias = await lookupSearchAlias(q);
+    if (alias) {
+      const aliasedEntry = index.find(e => e.collection === alias.collection && String(e.id) === String(alias.item_id));
+      if (aliasedEntry) return Object.assign(describeMatch(aliasedEntry, q), { suggestions: [] });
+    }
+
+    // 1) Aggregate/count questions over the ERP: "câte <categorie> [stare]"
     if (/\b(cat|cate|cati)\b/.test(q)) {
       let matchedCategory = null;
       for (const cat of Object.keys(SEARCH_CATEGORY_WORDS)) { if (SEARCH_CATEGORY_WORDS[cat].some(w => q.includes(w))) { matchedCategory = cat; break; } }
@@ -11415,64 +11602,60 @@
         const names = items.slice(0, 6).map(e => e.name).join(', ');
         return {
           text: `${items.length} ${catLabel}${statusLabel}${items.length ? ': ' + names + (items.length > 6 ? '…' : '') : '.'}`,
-          tab: tabForErpCategory(matchedCategory), matched: true,
+          tab: tabForErpCategory(matchedCategory), matched: true, suggestions: [],
         };
       }
     }
 
-    // 2) Item-specific questions — find the best-matching ERP item by name.
-    const item = findBestEquipmentMatch(q);
-    if (item) {
-      const isVehicle = item.erp_category === 'masina';
-      const isMaterial = item.erp_category === 'material';
-      const tab = tabForErpCategory(item.erp_category);
-      if (isVehicle && /\bkm\b|kilometr/.test(q)) {
-        if (item.odometer_km != null) {
-          const updated = item.odometer_updated_at ? ` (actualizat ${formatLogTimeRO(item.odometer_updated_at)})` : '';
-          return { text: `${item.name} are ${Number(item.odometer_km).toLocaleString('ro-RO')} km${updated}.`, tab, matched: true };
-        }
-        return { text: `Nu există încă un kilometraj înregistrat pentru ${item.name}.`, tab, matched: false };
-      }
-      if (/\bunde\b|cine are|la cine/.test(q)) {
-        const loc = item.location ? `se află la ${item.location}` : 'nu are o locație înregistrată';
-        const assigned = item.assigned_to ? `, alocat(ă) la ${item.assigned_to}` : '';
-        return { text: `${item.name} ${loc}${assigned}.`, tab, matched: true };
-      }
-      if (isMaterial && (/\bstoc\b|ramas|\bcat\b|\bcate\b/.test(q))) {
-        const reserved = (allResourceAssignments || []).filter(a => a.inventory_item_id === item.id && a.status === 'reserved' && a.item_type === 'material').reduce((s, a) => s + (Number(a.quantity) || 0), 0);
-        const reservedNote = reserved ? ` (din care ${reserved}${item.unit ? ' ' + item.unit : ''} rezervat pe proiecte neterminate)` : '';
-        return { text: `Mai sunt ${Number(item.quantity)}${item.unit ? ' ' + item.unit : ''} din ${item.name}${reservedNote}.`, tab, matched: true };
-      }
-      if (/status|stare|disponibil/.test(q)) {
-        return { text: `${item.name}: ${EQUIPMENT_STATUS_LABEL[item.status] || item.status}.`, tab, matched: true };
-      }
-      // Fallback — a general summary of the best-matching item.
-      const parts = [`${item.name} — ${EQUIPMENT_STATUS_LABEL[item.status] || item.status}`];
-      if (isMaterial) parts.push(`stoc: ${Number(item.quantity)}${item.unit ? ' ' + item.unit : ''}`);
-      if (item.location) parts.push(`locație: ${item.location}`);
-      if (item.assigned_to) parts.push(`alocat: ${item.assigned_to}`);
-      if (isVehicle && item.odometer_km != null) parts.push(`${Number(item.odometer_km).toLocaleString('ro-RO')} km`);
-      return { text: parts.join(' · '), tab, matched: true };
-    }
+    // 2) Item-specific questions across every collection.
+    const match = findBestIndexMatch(q, index);
+    if (match) return Object.assign(describeMatch(match, q), { suggestions: [] });
 
-    return { text: `Nu am găsit niciun rezultat pentru „${raw.trim()}”. Încearcă numele unui echipament/mașină/material, sau o întrebare ca „unde e X”, „cât X mai am”, „câte mașini sunt disponibile”.`, tab: null, matched: false };
+    // 3) Nothing matched at all — offer close-but-not-exact suggestions
+    // (typo tolerance via shared-prefix scoring) instead of a flat "no".
+    const suggestions = findSuggestedMatches(searchTokens(q), index);
+    if (suggestions.length) {
+      return {
+        text: `Nu am găsit exact „${raw.trim()}”, dar poate vrei una dintre acestea:`,
+        tab: null, matched: false, suggestions, suggestQuery: q,
+      };
+    }
+    return { text: `Nu am găsit niciun rezultat pentru „${raw.trim()}”. Încearcă numele unui echipament/mașină/material/proiect, sau o întrebare ca „unde e X”, „cine lucrează la X”, „când e X”.`, tab: null, matched: false, suggestions: [] };
   }
   const homeSmartSearchInput = document.getElementById('homeSmartSearchInput');
   const homeSmartSearchBtn = document.getElementById('homeSmartSearchBtn');
   const homeSmartSearchResult = document.getElementById('homeSmartSearchResult');
-  function runHomeSmartSearch(){
+  async function runHomeSmartSearch(){
     if (!homeSmartSearchInput || !homeSmartSearchResult) return;
     const raw = homeSmartSearchInput.value;
     if (!raw.trim()) { homeSmartSearchResult.hidden = true; return; }
-    const result = answerSmartQuery(raw);
+    const result = await answerSmartQuery(raw);
+    renderSmartSearchResult(result, raw);
+    if (typeof logFrictionSignal === 'function') logFrictionSignal('search_query', raw.trim().slice(0, 120), { matched: result.matched, tab: result.tab });
+  }
+  function renderSmartSearchResult(result, raw){
     homeSmartSearchResult.hidden = false;
+    const suggestionsHtml = (result.suggestions || []).length
+      ? `<div class="home-smart-search-suggestions">${result.suggestions.map((s, i) => `<button type="button" class="chip home-smart-suggestion-chip" data-suggest-index="${i}">${escapeHtml(SEARCH_COLLECTION_LABEL[s.collection] || '')}: ${escapeHtml(s.title)}</button>`).join('')}</div>`
+      : '';
     homeSmartSearchResult.innerHTML = `
-      <p class="home-smart-search-answer">${escapeHtml(result.text)}</p>
-      ${result.tab ? '<button type="button" class="btn" id="homeSmartSearchGoto">Vezi în ERP</button>' : ''}
+      <div class="home-smart-search-answer-row">
+        <p class="home-smart-search-answer">${escapeHtml(result.text)}</p>
+        ${result.tab ? '<button type="button" class="btn" id="homeSmartSearchGoto">Vezi</button>' : ''}
+      </div>
+      ${suggestionsHtml}
     `;
     const gotoBtn = document.getElementById('homeSmartSearchGoto');
     if (gotoBtn) gotoBtn.addEventListener('click', () => openAdminTab(result.tab));
-    if (typeof logFrictionSignal === 'function') logFrictionSignal('search_query', raw.trim().slice(0, 120), { matched: result.matched, tab: result.tab });
+    homeSmartSearchResult.querySelectorAll('.home-smart-suggestion-chip').forEach(chip => {
+      chip.addEventListener('click', async () => {
+        const entry = result.suggestions[Number(chip.dataset.suggestIndex)];
+        if (!entry) return;
+        const described = Object.assign(describeMatch(entry, result.suggestQuery || ''), { suggestions: [] });
+        renderSmartSearchResult(described, raw);
+        recordSearchAlias(result.suggestQuery || normalizeSearchText(raw), entry);
+      });
+    });
   }
   if (homeSmartSearchBtn) homeSmartSearchBtn.addEventListener('click', runHomeSmartSearch);
   if (homeSmartSearchInput) homeSmartSearchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); runHomeSmartSearch(); } });
