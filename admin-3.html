@@ -3789,6 +3789,10 @@
     <p class="status-note" style="margin-top:0;" id="vqaHint">Documentele cu dată de expirare (ITP, asigurare etc.) se completează separat, din „Editează date”.</p>
     <input type="hidden" id="vqa-id">
     <div class="pf-grid">
+      <div class="ctrl-field" style="grid-column:1/-1;">
+        <label>Titlu</label>
+        <input type="text" id="vqa-title" placeholder="ex: Dacia Logan — Șantier Nord">
+      </div>
       <div class="ctrl-field">
         <label>Nr. înmatriculare</label>
         <input type="text" id="vqa-plate" placeholder="ex: CJ 01 ABC">
@@ -11893,16 +11897,19 @@
   // Licență transport/Tahograf, celelalte 3 nu.
   const VEHICLE_SUBCAT_LABEL = { masina_mica: 'Mașină mică', autoutilitara: 'Autoutilitară', camion: 'Camion', utilaj: 'Utilaj' };
   let machinesSubcatFilter = 'Toate';
-  // sidebarKey controls which sidebar sub-item lights up: navigating via
-  // the sidebar itself (default) highlights the matching sub-item, but
-  // the quick-filter cards on "Prezentare generală" only narrow the
-  // table in place — they shouldn't make it look like you left the
-  // overview page for a different sidebar section.
+  // machinesSidebarKey tracks which sidebar sub-item is lit up, separate
+  // from machinesSubcatFilter: navigating via the sidebar itself (default)
+  // highlights the matching sub-item and leaves "Prezentare generală", but
+  // the quick-filter cards only narrow the table in place — they keep
+  // sidebarKey on 'Toate' so it doesn't look like you left the overview
+  // page for a different sidebar section. The cards themselves are only
+  // shown while sidebarKey is 'Toate' (see renderMachinesOverview).
+  let machinesSidebarKey = 'Toate';
   function setMachinesSubcatFilter(key, opts){
     machinesSubcatFilter = key;
-    const sidebarKey = (opts && opts.sidebarKey !== undefined) ? opts.sidebarKey : key;
+    machinesSidebarKey = (opts && opts.sidebarKey !== undefined) ? opts.sidebarKey : key;
     document.querySelectorAll('.erp-machines-subcat-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.subcat === sidebarKey);
+      btn.classList.toggle('active', btn.dataset.subcat === machinesSidebarKey);
     });
     renderEquipment();
   }
@@ -12014,24 +12021,41 @@
     const subcatCounts = { masina_mica: 0, autoutilitara: 0, camion: 0, utilaj: 0 };
     allVehicles.forEach(eq => { if (subcatCounts[eq.category] != null) subcatCounts[eq.category]++; });
 
-    cardsWrap.innerHTML = MACHINES_FILTER_CARD_DEFS.map(def => {
-      const count = def.key === 'notificari' ? urgentVehicles.length : subcatCounts[def.key];
-      const isActive = machinesSubcatFilter === def.key;
-      const isWarn = def.key === 'notificari' && count > 0;
-      return `
-        <button type="button" class="priority-card${isWarn ? ' warn' : ''}${isActive ? ' active' : ''}" data-subcat="${def.key}">
-          <span class="k">${escapeHtml(def.label)}</span>
-          <div class="num">${count}</div>
-        </button>
-      `;
-    }).join('');
-    cardsWrap.querySelectorAll('.priority-card').forEach(card => {
-      card.addEventListener('click', () => setMachinesSubcatFilter(card.dataset.subcat, { sidebarKey: 'Toate' }));
-    });
+    // The cards only make sense as a quick-filter on top of "Prezentare
+    // generală" — once you've navigated into a specific sidebar section
+    // (Mașină mică, Camion, ...) you're already looking at just that
+    // category, so re-showing the same cards there is redundant.
+    const showCards = machinesSidebarKey === 'Toate';
+    cardsWrap.style.display = showCards ? '' : 'none';
+    if (showCards) {
+      cardsWrap.innerHTML = MACHINES_FILTER_CARD_DEFS.map(def => {
+        const count = def.key === 'notificari' ? urgentVehicles.length : subcatCounts[def.key];
+        const isActive = machinesSubcatFilter === def.key;
+        const isWarn = def.key === 'notificari' && count > 0;
+        return `
+          <button type="button" class="priority-card${isWarn ? ' warn' : ''}${isActive ? ' active' : ''}" data-subcat="${def.key}">
+            <span class="k">${escapeHtml(def.label)}</span>
+            <div class="num">${count}</div>
+          </button>
+        `;
+      }).join('');
+      // Clicking an already-active card clears it back to "Toate" —
+      // a card is a toggle, not a one-way door.
+      cardsWrap.querySelectorAll('.priority-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const nextKey = machinesSubcatFilter === card.dataset.subcat ? 'Toate' : card.dataset.subcat;
+          setMachinesSubcatFilter(nextKey, { sidebarKey: 'Toate' });
+        });
+      });
+    } else {
+      cardsWrap.innerHTML = '';
+    }
 
-    const filtered = machinesSubcatFilter === 'Toate' ? allVehicles
+    const filtered = (machinesSubcatFilter === 'Toate' ? allVehicles
       : machinesSubcatFilter === 'notificari' ? urgentVehicles
-      : allVehicles.filter(eq => eq.category === machinesSubcatFilter);
+      : allVehicles.filter(eq => eq.category === machinesSubcatFilter))
+      .slice()
+      .sort((a, b) => (a.plate_number || '').localeCompare(b.plate_number || '', 'ro'));
 
     const countEl = document.getElementById('machinesCount');
     if (countEl) countEl.textContent = machinesSubcatFilter === 'Toate'
@@ -12250,6 +12274,7 @@
   const addMachineBtn = document.getElementById('addMachineBtn');
   if (addMachineBtn) addMachineBtn.addEventListener('click', () => {
     document.getElementById('vqa-id').value = '';
+    document.getElementById('vqa-title').value = '';
     document.getElementById('vqa-plate').value = '';
     document.getElementById('vqa-chassis').value = '';
     document.getElementById('vqa-subcat').value = 'masina_mica';
@@ -12265,6 +12290,7 @@
   });
   function openVehicleIdentityEdit(eq){
     document.getElementById('vqa-id').value = eq.id;
+    document.getElementById('vqa-title').value = eq.name || '';
     document.getElementById('vqa-plate').value = eq.plate_number || '';
     document.getElementById('vqa-chassis').value = eq.serial_number || '';
     document.getElementById('vqa-subcat').value = eq.category || 'masina_mica';
@@ -12281,15 +12307,19 @@
   const vqaSaveBtn = document.getElementById('vqaSaveBtn');
   if (vqaSaveBtn) vqaSaveBtn.addEventListener('click', async () => {
     const id = document.getElementById('vqa-id').value;
+    const title = document.getElementById('vqa-title').value.trim();
     const plate = document.getElementById('vqa-plate').value.trim();
     const chassis = document.getElementById('vqa-chassis').value.trim();
     const subcat = document.getElementById('vqa-subcat').value;
     const assigned = document.getElementById('vqa-assigned').value.trim();
     const notes = document.getElementById('vqa-notes').value.trim();
     if (!plate) { alert('Completați numărul de înmatriculare.'); return; }
+    // Titlul e opțional — fără el, numărul de înmatriculare rămâne
+    // afișat în tabel la coloana "Mașină", ca înainte.
+    const name = title || plate;
     if (id) {
       const payload = {
-        name: plate, category: subcat, plate_number: plate,
+        name, category: subcat, plate_number: plate,
         serial_number: chassis || null, assigned_to: assigned || null, notes: notes || null,
       };
       const { error } = await supabaseClient.from('equipment_inventory').update(payload).eq('id', id);
@@ -12300,7 +12330,7 @@
       loadEquipment();
     } else {
       const { data, error } = await supabaseClient.from('equipment_inventory').insert({
-        name: plate, item_type: 'echipament', erp_category: 'masina', category: subcat,
+        name, item_type: 'echipament', erp_category: 'masina', category: subcat,
         plate_number: plate, serial_number: chassis || null, status: 'Disponibil',
         assigned_to: assigned || null, notes: notes || null,
       }).select();
@@ -12360,7 +12390,6 @@
       <div class="backlog-title-line">
         <span class="backlog-title">${escapeHtml(eq.plate_number || eq.name)}</span>
         <span class="backlog-tag">${escapeHtml(VEHICLE_SUBCAT_LABEL[eq.category] || '')}</span>
-        <span class="backlog-tag">${escapeHtml(EQUIPMENT_STATUS_LABEL[eq.status] || eq.status)}</span>
       </div>
       ${metaParts.length ? `<div class="backlog-meta-line">${metaParts.join(' · ')}</div>` : ''}
       ${eq.notes ? `<div class="backlog-meta-line">Notițe: ${escapeHtml(eq.notes)}</div>` : ''}
