@@ -771,6 +771,35 @@
   .status-history-check{font-size:13px;font-weight:600;color:var(--ink-900);}
   .status-history-message{font-size:12.5px;color:var(--ink-600);margin-top:2px;}
   .status-history-empty{padding:30px 0;text-align:center;color:var(--ink-400);font-size:13px;}
+  /* Entity log (activity + notes) — reuses the status-history-item look
+     for the timeline, with notes tinted to stand out from system-
+     generated activity entries. */
+  .entity-log-list{max-height:280px;overflow-y:auto;margin-bottom:14px;}
+  .entity-log-item{display:grid;grid-template-columns:70px 1fr;gap:10px;padding:8px 0;border-top:1px solid var(--line);}
+  .entity-log-item:first-child{border-top:none;}
+  .entity-log-time{font-family:var(--mono);font-size:11px;color:var(--ink-400);white-space:nowrap;padding-top:2px;}
+  .entity-log-text{font-size:13px;color:var(--ink-900);}
+  .entity-log-item.note .entity-log-text{background:var(--paper-050);border-radius:6px;padding:6px 10px;}
+  .entity-log-author{font-size:11px;color:var(--ink-400);margin-top:2px;}
+  .entity-log-add{display:flex;flex-direction:column;gap:8px;}
+  .entity-log-add textarea{
+    width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line-strong);border-radius:6px;
+    font:inherit;font-size:13.5px;resize:vertical;
+  }
+  .entity-log-add .btn{align-self:flex-end;}
+  /* Checklist / sub-tasks */
+  .checklist-items{display:flex;flex-direction:column;gap:2px;margin-bottom:14px;max-height:320px;overflow-y:auto;}
+  .checklist-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line);}
+  .checklist-item:first-child{border-top:none;}
+  .checklist-item-text{flex:1;font-size:13.5px;color:var(--ink-900);}
+  .checklist-item.done .checklist-item-text{color:var(--ink-400);text-decoration:line-through;}
+  .checklist-item-remove{background:none;border:none;color:var(--ink-400);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px;}
+  .checklist-item-remove:hover{color:var(--copper-600);}
+  .checklist-add{display:flex;gap:8px;}
+  .checklist-add input{
+    flex:1;box-sizing:border-box;padding:9px 12px;border:1px solid var(--line-strong);border-radius:6px;font:inherit;font-size:13.5px;
+  }
+  .checklist-progress{font-family:var(--mono);font-size:11px;color:var(--ink-400);}
 
   /* ===== Documentație — a plain in-app help article, not fetched from
      anywhere external. TOC entries scroll within the panel via JS
@@ -3426,6 +3455,38 @@
     <div class="sheet-actions">
       <button class="btn" id="efCancelBtn" type="button" data-close-sheet="erpItemFormSheet">Anulează</button>
       <button class="btn btn-primary" id="efSaveBtn" type="button">Salvează</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="entityLogSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="entityLogSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="entityLogSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div><h3 id="entityLogSheetTitle">Istoric</h3></div>
+      <button type="button" class="sheet-close" data-close-sheet="entityLogSheet" aria-label="Închide">×</button>
+    </div>
+    <div class="entity-log-list" id="entityLogList"></div>
+    <div class="entity-log-add">
+      <textarea id="entityLogNoteInput" rows="2" placeholder="Adaugă o notiță…"></textarea>
+      <button type="button" class="btn btn-primary" id="entityLogAddBtn">Adaugă notiță</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="checklistSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="checklistSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="checklistSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div><h3 id="checklistSheetTitle">Listă de verificare</h3></div>
+      <button type="button" class="sheet-close" data-close-sheet="checklistSheet" aria-label="Închide">×</button>
+    </div>
+    <div class="checklist-items" id="checklistItems"></div>
+    <div class="checklist-add">
+      <input type="text" id="checklistNewItemInput" placeholder="Element nou…">
+      <button type="button" class="btn" id="checklistAddBtn">+ Adaugă</button>
     </div>
   </div>
 </div>
@@ -7434,7 +7495,7 @@
     }).join('');
     return `<article class="lps-item" data-lps-collection="lookahead" data-lps-id="${escapeHtml(item.id)}">
       <div>
-        <div class="lps-item-title">${escapeHtml(item.title)}</div>
+        <div class="lps-item-title">${escapeHtml(item.title)}${item.checklist && item.checklist.length ? ` <span class="checklist-progress">${item.checklist.filter(i => i.done).length}/${item.checklist.length}</span>` : ''}</div>
         <div class="lps-item-meta">${meta}</div>
         <span class="lps-status ${item.ready ? 'ready' : 'blocked'}">${item.ready ? 'Pregătit' : 'Blocată'}</span>
         <div class="lps-resources">
@@ -7442,7 +7503,7 @@
           <button type="button" class="btn lps-add-resource-btn" data-lookahead-id="${escapeHtml(item.id)}">+ Resursă (echipament/material)</button>
         </div>
       </div>
-      <div class="lps-item-actions">${action}<button type="button" class="btn lps-delete-btn">Șterge</button></div>
+      <div class="lps-item-actions">${action}<button type="button" class="btn lps-checklist-btn">Listă</button><button type="button" class="btn lps-history-btn">Istoric</button><button type="button" class="btn lps-delete-btn">Șterge</button></div>
     </article>`;
   }
   function lpsWeeklyItemHtml(item){
@@ -7566,8 +7627,16 @@
       } else if (event.target.closest('.lps-make-ready-btn')) {
         const { error } = await supabaseClient.from('lps_lookahead_items').update({ ready: true }).eq('id', lookaheadId);
         if (error) { console.error(error); alert('Eroare. Încercați din nou.'); return; }
+        logEntityActivity('lookahead', lookaheadId, 'Marcată pregătită.');
       } else if (event.target.closest('.lps-promote-btn')) {
         addLpsItem('weekly', { title: item.title, owner: item.owner || '', week_start: mondayIso(), planned_date: item.start_date || '', condition: item.location ? `Lucru realizat în ${item.location}` : '', status: 'Promis', variance: '' });
+        logEntityActivity('lookahead', lookaheadId, 'Promisă pentru săptămâna curentă.');
+      } else if (event.target.closest('.lps-checklist-btn')) {
+        openChecklistSheet('lps_lookahead_items', item.id, item.checklist, refreshLookaheadWorkspace);
+        return;
+      } else if (event.target.closest('.lps-history-btn')) {
+        openEntityLogSheet('lookahead', item.id, item.title);
+        return;
       } else return;
       await refreshLookaheadWorkspace();
       return;
@@ -10495,7 +10564,7 @@
           <div class="ticket-select">
             <input type="checkbox" class="pc-select" ${projectSelectedIds.has(p.id) ? 'checked' : ''}>
             <div>
-              <div class="pc-title">${escapeHtml(p.title)}</div>
+              <div class="pc-title">${escapeHtml(p.title)}${p.checklist && p.checklist.length ? ` <span class="checklist-progress">${p.checklist.filter(i => i.done).length}/${p.checklist.length}</span>` : ''}</div>
               <div class="pc-address">${escapeHtml(p.address)}</div>
               ${isArchived ? `<span class="archived-badge">Arhivat ${fmtDate(p.archived_at)}</span>` : ''}
             </div>
@@ -10509,6 +10578,8 @@
         </div>
         ${p.notes ? `<div class="pc-address" style="margin-bottom:12px;">📝 ${escapeHtml(p.notes)}</div>` : ''}
         <div class="pc-actions">
+          <button class="btn pc-checklist">Listă</button>
+          <button class="btn pc-history">Istoric</button>
           ${isArchived
             ? `<button class="btn pc-restore">Dezarhivează</button>`
             : `<button class="btn pc-edit">Editează</button><button class="btn pc-delete">Șterge</button>`
@@ -10533,12 +10604,16 @@
             .eq('id', p.id);
           restoreBtn.disabled = false;
           if (error) { console.error(error); alert('Eroare la dezarhivare. Încercați din nou.'); return; }
+          logEntityActivity('project', p.id, 'Proiectul a fost dezarhivat.');
           loadProjects();
         });
       }
 
       const editBtn = card.querySelector('.pc-edit');
       if (editBtn) editBtn.addEventListener('click', () => openProjectForm(p));
+
+      card.querySelector('.pc-checklist').addEventListener('click', () => openChecklistSheet('current_projects', p.id, p.checklist, loadProjects));
+      card.querySelector('.pc-history').addEventListener('click', () => openEntityLogSheet('project', p.id, p.title));
 
       const deleteBtn = card.querySelector('.pc-delete');
       if (deleteBtn) {
@@ -10594,6 +10669,7 @@
       alert('Eroare la arhivare. Încercați din nou.');
       return;
     }
+    Array.from(projectSelectedIds).forEach(id => logEntityActivity('project', id, 'Proiectul a fost arhivat.'));
     projectSelectedIds.clear();
     updateProjectsArchiveBar();
     loadProjects();
@@ -10969,16 +11045,21 @@
             <span class="backlog-title">${escapeHtml(p.title)}</span>
             ${isDone ? '<span class="backlog-tag">Soluționat</span>' : ''}
             <span class="backlog-days">${days} ${days === 1 ? 'zi' : 'zile'}</span>
+            ${p.checklist && p.checklist.length ? `<span class="checklist-progress">${p.checklist.filter(i => i.done).length}/${p.checklist.length}</span>` : ''}
           </div>
           <div class="backlog-meta-line">${escapeHtml(p.address)}${p.employee_name ? ' · ' + escapeHtml(p.employee_name) : ''}${p.description ? ' · ' + escapeHtml(p.description) : ''}</div>
         </div>
         <div class="backlog-actions">
+          <button class="btn bl-checklist">Listă</button>
+          <button class="btn bl-history">Istoric</button>
           <button class="btn bl-edit">Editează</button>
           <button class="btn ${isDone ? '' : 'btn-primary'} bl-status">${isDone ? 'Reactivează' : 'Soluționat'}</button>
         </div>
       `;
 
       row.querySelector('.bl-edit').addEventListener('click', () => openBacklogForm(p));
+      row.querySelector('.bl-checklist').addEventListener('click', () => openChecklistSheet('backlog_projects', p.id, p.checklist, loadBacklogProjects));
+      row.querySelector('.bl-history').addEventListener('click', () => openEntityLogSheet('backlog', p.id, p.title));
       row.querySelector('.bl-status').addEventListener('click', async () => {
         const nextStatus = isDone ? 'Ongoing' : 'Terminat';
         const question = isDone
@@ -10990,6 +11071,7 @@
           .update({ status: nextStatus, resolved_on: isDone ? null : new Date().toISOString() })
           .eq('id', p.id);
         if (error) { console.error(error); alert('Eroare la actualizarea lucrării. Încercați din nou.'); return; }
+        logEntityActivity('backlog', p.id, isDone ? 'Lucrarea a fost reactivată.' : 'Lucrarea a fost marcată ca soluționată.');
         loadBacklogProjects();
       });
 
@@ -11483,6 +11565,131 @@
     showToast(id ? 'Articolul a fost actualizat.' : 'Articolul a fost adăugat.');
     loadEquipment();
   });
+
+  /* ============================================================
+     ISTORIC & NOTIȚE (entity_log) — infrastructură comună pentru
+     Proiecte publice, Avarii rețele și elementele Look-ahead din
+     LPS. Un singur tabel ține atât evenimentele automate (schimbări
+     de stare) cât și notițele scrise de oameni, afișate împreună
+     într-un cronologic — un fir de activitate, ca pe un ticket
+     Plane/Linear, nu două liste separate.
+     ============================================================ */
+  let entityLogCurrent = { type: null, id: null, title: null };
+  async function logEntityActivity(entityType, entityId, text){
+    try {
+      await supabaseClient.from('entity_log').insert({ entity_type: entityType, entity_id: entityId, kind: 'activity', text, user_email: currentSessionEmail || null });
+    } catch (e) { /* best effort — never block the action it's describing */ }
+  }
+  async function renderEntityLog(){
+    const listEl = document.getElementById('entityLogList');
+    if (!listEl || !entityLogCurrent.id) return;
+    const { data, error } = await supabaseClient.from('entity_log').select('*')
+      .eq('entity_type', entityLogCurrent.type).eq('entity_id', entityLogCurrent.id)
+      .order('created_at', { ascending: false }).limit(100);
+    if (error) { listEl.innerHTML = '<p class="status-history-empty">Istoricul nu a putut fi încărcat.</p>'; return; }
+    if (!data || data.length === 0) { listEl.innerHTML = '<p class="status-history-empty">Niciun eveniment încă.</p>'; return; }
+    listEl.innerHTML = data.map(row => `
+      <div class="entity-log-item ${row.kind}">
+        <span class="entity-log-time">${formatLogTimeRO(row.created_at)}</span>
+        <div>
+          <div class="entity-log-text">${escapeHtml(row.text)}</div>
+          ${row.user_email ? `<div class="entity-log-author">${escapeHtml(row.user_email)}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+  async function openEntityLogSheet(entityType, entityId, title){
+    entityLogCurrent = { type: entityType, id: entityId, title };
+    const titleEl = document.getElementById('entityLogSheetTitle');
+    if (titleEl) titleEl.textContent = `Istoric — ${title}`;
+    const noteInput = document.getElementById('entityLogNoteInput');
+    if (noteInput) noteInput.value = '';
+    document.getElementById('entityLogList').innerHTML = '<p class="status-history-empty">Se încarcă…</p>';
+    setSheetOpen('entityLogSheet', true);
+    await renderEntityLog();
+  }
+  const entityLogAddBtn = document.getElementById('entityLogAddBtn');
+  if (entityLogAddBtn) entityLogAddBtn.addEventListener('click', async () => {
+    const input = document.getElementById('entityLogNoteInput');
+    const text = input.value.trim();
+    if (!text || !entityLogCurrent.id) return;
+    entityLogAddBtn.disabled = true;
+    const { error } = await supabaseClient.from('entity_log').insert({
+      entity_type: entityLogCurrent.type, entity_id: entityLogCurrent.id, kind: 'note', text, user_email: currentSessionEmail || null,
+    });
+    entityLogAddBtn.disabled = false;
+    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+    input.value = '';
+    renderEntityLog();
+  });
+
+  /* ============================================================
+     LISTE DE VERIFICARE (sub-tasks) — un array JSON simplu
+     ({text, done}) direct pe rândul proiectului/avariei/elementului
+     Look-ahead, salvat integral la fiecare schimbare — suficient de
+     simplu cât timp o singură persoană editează odată o listă.
+     ============================================================ */
+  let checklistCurrent = { table: null, id: null, items: [], onSaved: null };
+  function renderChecklistItems(){
+    const listEl = document.getElementById('checklistItems');
+    if (!listEl) return;
+    if (!checklistCurrent.items.length) {
+      listEl.innerHTML = '<p class="status-history-empty">Nicio verificare adăugată încă.</p>';
+    } else {
+      listEl.innerHTML = checklistCurrent.items.map((item, i) => `
+        <div class="checklist-item ${item.done ? 'done' : ''}">
+          <input type="checkbox" class="checklist-item-check" data-index="${i}" ${item.done ? 'checked' : ''}>
+          <span class="checklist-item-text">${escapeHtml(item.text)}</span>
+          <button type="button" class="checklist-item-remove" data-index="${i}" aria-label="Șterge">×</button>
+        </div>
+      `).join('');
+    }
+    const titleEl = document.getElementById('checklistSheetTitle');
+    if (titleEl) {
+      const done = checklistCurrent.items.filter(i => i.done).length;
+      titleEl.textContent = `Listă de verificare${checklistCurrent.items.length ? ` (${done}/${checklistCurrent.items.length})` : ''}`;
+    }
+  }
+  async function saveChecklist(){
+    if (!checklistCurrent.id) return;
+    await supabaseClient.from(checklistCurrent.table).update({ checklist: checklistCurrent.items }).eq('id', checklistCurrent.id);
+    if (checklistCurrent.onSaved) checklistCurrent.onSaved();
+  }
+  function openChecklistSheet(table, id, items, onSaved){
+    checklistCurrent = { table, id, items: Array.isArray(items) ? JSON.parse(JSON.stringify(items)) : [], onSaved };
+    renderChecklistItems();
+    setSheetOpen('checklistSheet', true);
+  }
+  const checklistItemsEl = document.getElementById('checklistItems');
+  if (checklistItemsEl) {
+    checklistItemsEl.addEventListener('click', async (e) => {
+      const removeBtn = e.target.closest('.checklist-item-remove');
+      if (!removeBtn) return;
+      checklistCurrent.items.splice(Number(removeBtn.dataset.index), 1);
+      renderChecklistItems();
+      await saveChecklist();
+    });
+    checklistItemsEl.addEventListener('change', async (e) => {
+      const checkbox = e.target.closest('.checklist-item-check');
+      if (!checkbox) return;
+      checklistCurrent.items[Number(checkbox.dataset.index)].done = checkbox.checked;
+      renderChecklistItems();
+      await saveChecklist();
+    });
+  }
+  const checklistAddBtn = document.getElementById('checklistAddBtn');
+  const checklistNewItemInput = document.getElementById('checklistNewItemInput');
+  if (checklistAddBtn && checklistNewItemInput) {
+    checklistAddBtn.addEventListener('click', async () => {
+      const text = checklistNewItemInput.value.trim();
+      if (!text) return;
+      checklistCurrent.items.push({ text, done: false });
+      checklistNewItemInput.value = '';
+      renderChecklistItems();
+      await saveChecklist();
+    });
+    checklistNewItemInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); checklistAddBtn.click(); } });
+  }
 
   /* ============================================================
      ACASĂ — CĂUTARE INTELIGENTĂ. Un motor pe reguli (nu AI — fără
