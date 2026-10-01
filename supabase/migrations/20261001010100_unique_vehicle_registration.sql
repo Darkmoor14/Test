@@ -1,1 +1,0 @@
-create unique index if not exists equipment_inventory_unique_vehicle_plate on public.equipment_inventory (upper(regexp_replace(trim(plate_number), '[[:space:]-]+', '', 'g'))) where erp_category = 'masina' and nullif(trim(plate_number), '') is not null;
