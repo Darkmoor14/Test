@@ -3613,6 +3613,18 @@
   </div>
 </div>
 
+<div class="mobile-sheet" id="stockLedgerSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="stockLedgerSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="stockLedgerSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div><h3 id="stockLedgerSheetTitle">Jurnal stoc</h3></div>
+      <button type="button" class="sheet-close" data-close-sheet="stockLedgerSheet" aria-label="Închide">×</button>
+    </div>
+    <div class="entity-log-list" id="stockLedgerList"></div>
+  </div>
+</div>
+
 <div class="mobile-sheet" id="recurrenceSheet" aria-hidden="true">
   <div class="mobile-sheet-backdrop" data-close-sheet="recurrenceSheet"></div>
   <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="recurrenceSheetTitle">
@@ -7791,7 +7803,11 @@
         // since the material was only ever spoken-for, never consumed.
         if (assignment.status === 'reserved' && assignment.item_type === 'material' && assignment.quantity) {
           const inv = allEquipment.find(e => e.id === assignment.inventory_item_id);
-          if (inv) await supabaseClient.from('equipment_inventory').update({ quantity: Number(inv.quantity) + Number(assignment.quantity) }).eq('id', inv.id);
+          if (inv) {
+            const resultingQty = Number(inv.quantity) + Number(assignment.quantity);
+            await supabaseClient.from('equipment_inventory').update({ quantity: resultingQty }).eq('id', inv.id);
+            logStockLedger(inv.id, inv.name, Number(assignment.quantity), resultingQty, 'Returnat — ștergere rezervare');
+          }
         }
         const { error } = await supabaseClient.from('lps_resource_assignments').delete().eq('id', assignmentId);
         if (error) { console.error(error); alert('Eroare. Încercați din nou.'); return; }
@@ -7816,7 +7832,11 @@
         for (const a of myAssignments) {
           if (a.status === 'reserved' && a.item_type === 'material' && a.quantity) {
             const inv = allEquipment.find(e => e.id === a.inventory_item_id);
-            if (inv) await supabaseClient.from('equipment_inventory').update({ quantity: Number(inv.quantity) + Number(a.quantity) }).eq('id', inv.id);
+            if (inv) {
+              const resultingQty = Number(inv.quantity) + Number(a.quantity);
+              await supabaseClient.from('equipment_inventory').update({ quantity: resultingQty }).eq('id', inv.id);
+              logStockLedger(inv.id, inv.name, Number(a.quantity), resultingQty, 'Returnat — ștergere lucrare LPS');
+            }
           }
         }
         const { error } = await supabaseClient.from('lps_lookahead_items').delete().eq('id', lookaheadId);
@@ -7947,8 +7967,13 @@
         lookahead_item_id: lookaheadId, inventory_item_id: inventoryId, item_type: 'material', quantity, status: 'reserved',
       });
       if (assignError) { console.error(assignError); alert('Eroare la salvare. Încercați din nou.'); return; }
-      const { error: qtyError } = await supabaseClient.from('equipment_inventory').update({ quantity: Number(inv.quantity) - quantity }).eq('id', inv.id);
+      const resultingQty = Number(inv.quantity) - quantity;
+      const { error: qtyError } = await supabaseClient.from('equipment_inventory').update({ quantity: resultingQty }).eq('id', inv.id);
       if (qtyError) console.error(qtyError);
+      else {
+        const lookaheadItem = lpsLookaheadItems.find(x => x.id === lookaheadId);
+        logStockLedger(inv.id, inv.name, -quantity, resultingQty, `Rezervat pentru „${lookaheadItem ? lookaheadItem.title : 'lucrare LPS'}”`);
+      }
     } else {
       const from = document.getElementById('ares-from').value;
       const to = document.getElementById('ares-to').value;
@@ -11601,6 +11626,51 @@
     masina: { list: 'machinesList', count: 'machinesCount', empty: 'Nicio mașină înregistrată.' },
     material: { list: 'materialsList', count: 'materialsCount', empty: 'Niciun material înregistrat.' },
   };
+
+  /* ============================================================
+     JURNAL STOC (stock_ledger) — un rând per schimbare de cantitate
+     pe un material (rezervare, returnare la ștergere, editare
+     manuală), în loc de a suprascrie tăcut quantity. Doar materialele
+     au o cantitate urmărită bucată-cu-bucată — echipamentele/mașinile
+     se rezervă pe perioadă, nu se "consumă".
+     ============================================================ */
+  async function logStockLedger(itemId, itemName, changeQty, resultingQty, reason){
+    try {
+      await supabaseClient.from('stock_ledger').insert({
+        item_id: itemId, item_name: itemName, change_qty: changeQty, resulting_qty: resultingQty, reason, user_email: currentSessionEmail || null,
+      });
+    } catch (e) { /* best effort — never block the stock change it's describing */ }
+  }
+  let stockLedgerCurrentItemId = null;
+  async function renderStockLedger(){
+    const listEl = document.getElementById('stockLedgerList');
+    if (!listEl || !stockLedgerCurrentItemId) return;
+    const { data, error } = await supabaseClient.from('stock_ledger').select('*')
+      .eq('item_id', stockLedgerCurrentItemId).order('created_at', { ascending: false }).limit(100);
+    if (error) { listEl.innerHTML = '<p class="status-history-empty">Jurnalul nu a putut fi încărcat.</p>'; return; }
+    if (!data || data.length === 0) { listEl.innerHTML = '<p class="status-history-empty">Nicio mișcare de stoc încă.</p>'; return; }
+    listEl.innerHTML = data.map(row => {
+      const sign = Number(row.change_qty) > 0 ? '+' : '';
+      return `
+        <div class="entity-log-item">
+          <span class="entity-log-time">${formatLogTimeRO(row.created_at)}</span>
+          <div>
+            <div class="entity-log-text">${sign}${row.change_qty} (rămas: ${row.resulting_qty}) — ${escapeHtml(row.reason)}</div>
+            ${row.user_email ? `<div class="entity-log-author">${escapeHtml(row.user_email)}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  async function openStockLedgerSheet(itemId, itemName){
+    stockLedgerCurrentItemId = itemId;
+    const titleEl = document.getElementById('stockLedgerSheetTitle');
+    if (titleEl) titleEl.textContent = `Jurnal stoc — ${itemName}`;
+    document.getElementById('stockLedgerList').innerHTML = '<p class="status-history-empty">Se încarcă…</p>';
+    setSheetOpen('stockLedgerSheet', true);
+    await renderStockLedger();
+  }
+
   function renderErpRow(eq){
     const isEquipment = eq.item_type === 'echipament';
     const erpCategory = eq.erp_category || (isEquipment ? 'echipament' : 'material');
@@ -11630,10 +11700,13 @@
       <div class="backlog-actions">
         <button class="btn eq-edit">Editează</button>
         <button class="btn btn-primary eq-status">${escapeHtml(EQUIPMENT_STATUS_LABEL[EQUIPMENT_STATUS_CYCLE[eq.status]] || 'Schimbă starea')}</button>
+        ${erpCategory === 'material' ? '<button class="btn eq-ledger">Jurnal stoc</button>' : ''}
         <button class="btn eq-delete">Șterge</button>
       </div>
     `;
     row.querySelector('.eq-edit').addEventListener('click', () => openEquipmentForm(eq));
+    const ledgerBtn = row.querySelector('.eq-ledger');
+    if (ledgerBtn) ledgerBtn.addEventListener('click', () => openStockLedgerSheet(eq.id, eq.name));
     row.querySelector('.eq-status').addEventListener('click', async () => {
       const nextStatus = EQUIPMENT_STATUS_CYCLE[eq.status] || 'Disponibil';
       const { error } = await supabaseClient.from('equipment_inventory').update({ status: nextStatus }).eq('id', eq.id);
@@ -11702,8 +11775,10 @@
   }
   if (efTypeSelect) efTypeSelect.addEventListener('change', syncEquipmentFormFields);
   let efEditingOriginalOdometer = null;
+  let efEditingOriginalQuantity = null;
   function openEquipmentForm(eq, presetCategory){
     efEditingOriginalOdometer = eq && eq.odometer_km != null ? Number(eq.odometer_km) : null;
+    efEditingOriginalQuantity = eq && eq.quantity != null ? Number(eq.quantity) : null;
     const erpCategory = eq ? (eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material')) : (presetCategory || 'echipament');
     document.getElementById('ef-id').value = eq ? eq.id : '';
     document.getElementById('ef-name').value = eq ? eq.name : '';
@@ -11758,10 +11833,22 @@
       notes: notes || null,
     };
     if (payload.odometer_updated_at === undefined) delete payload.odometer_updated_at;
-    const { error } = id
-      ? await supabaseClient.from('equipment_inventory').update(payload).eq('id', id)
-      : await supabaseClient.from('equipment_inventory').insert(payload);
-    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+    // Materialele au cantitatea urmărită în stock_ledger — o editare
+    // manuală aici e doar un alt tip de mișcare de stoc, nu o
+    // suprascriere tăcută, ca să rămână un istoric complet.
+    if (id) {
+      const { error } = await supabaseClient.from('equipment_inventory').update(payload).eq('id', id);
+      if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+      if (erp_category === 'material' && efEditingOriginalQuantity !== null && quantity !== efEditingOriginalQuantity) {
+        logStockLedger(id, name, quantity - efEditingOriginalQuantity, quantity, 'Editare manuală');
+      }
+    } else {
+      const { data, error } = await supabaseClient.from('equipment_inventory').insert(payload).select();
+      if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+      if (erp_category === 'material' && data && data[0]) {
+        logStockLedger(data[0].id, name, quantity, quantity, 'Articol adăugat');
+      }
+    }
     setSheetOpen('erpItemFormSheet', false);
     showToast(id ? 'Articolul a fost actualizat.' : 'Articolul a fost adăugat.');
     loadEquipment();
