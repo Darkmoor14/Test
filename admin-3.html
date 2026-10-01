@@ -695,6 +695,7 @@
   .status-card-wide{grid-column:1/-1;}
   .status-card-head{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
   .status-card-head h4{font-size:14px;margin:0;}
+  .status-card-head-btn{margin-left:auto;font-size:11.5px;padding:4px 10px;}
   .status-dot{
     width:9px;height:9px;border-radius:50%;background:var(--ink-300);flex-shrink:0;
   }
@@ -2773,6 +2774,29 @@
             <h4>Date în platformă</h4>
           </div>
           <canvas class="status-chart status-chart-tall" id="statusCountsChart" height="140"></canvas>
+        </div>
+
+        <div class="status-card status-card-wide" id="statusCardErrors">
+          <div class="status-card-head">
+            <h4>Jurnal erori</h4>
+            <button type="button" class="btn status-card-head-btn" id="statusClearErrorsBtn">Golește</button>
+          </div>
+          <div class="status-history-list" id="statusErrorList"></div>
+        </div>
+
+        <div class="status-card status-card-wide" id="statusCardFriction">
+          <div class="status-card-head">
+            <h4>Sugestii de îmbunătățire</h4>
+          </div>
+          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Detectate automat din clicuri repetate pe același buton (semn de frustrare) și câmpuri unde se scrie mult de mână (candidați pentru o listă/completare automată în loc de text liber).</p>
+          <div class="status-history-list" id="statusFrictionList"></div>
+        </div>
+
+        <div class="status-card status-card-wide" id="statusCardChangelog">
+          <div class="status-card-head">
+            <h4>Istoric actualizări</h4>
+          </div>
+          <div class="status-history-list" id="statusChangelogList"></div>
         </div>
       </div>
       <div class="status-refresh-row">
@@ -5686,7 +5710,10 @@
       checkStatusAuth(),
       checkStatusFunctions(),
       checkStatusSystem(),
+      loadErrorLog(),
+      loadFrictionSignals(),
     ]);
+    renderChangelog();
     if (lastCheckedEl) {
       const now = new Date();
       lastCheckedEl.textContent = 'Ultima verificare: ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
@@ -5695,6 +5722,203 @@
 
   const statusRefreshBtn = document.getElementById('statusRefreshBtn');
   if (statusRefreshBtn) statusRefreshBtn.addEventListener('click', loadSystemStatus);
+
+  /* ============================================================
+     SELF-ÎMBUNĂTĂȚIRE — jurnal de erori reale + semnale de
+     fricțiune din UI (clicuri repetate, scris manual excesiv),
+     afișate direct în Stare sistem. Nu e o buclă automată care își
+     rescrie singură codul (prea riscant pentru un sistem live,
+     folosit de personal municipal) — doar colectare + agregare a
+     unor semnale concrete, ca punct de plecare pentru ce ar trebui
+     îmbunătățit în continuare într-o sesiune viitoare. Golește
+     fiecare eroare/semnal logat pentru a evita inundarea tabelului
+     cât timp aceeași problemă se repetă rapid.
+     ============================================================ */
+  const recentErrorSignatures = new Map();
+  const ERROR_LOG_DEDUPE_WINDOW_MS = 30000;
+  async function logAppError(message, stack){
+    try {
+      const sig = String(message || 'Eroare necunoscută').slice(0, 300);
+      const now = Date.now();
+      const last = recentErrorSignatures.get(sig);
+      if (last && (now - last) < ERROR_LOG_DEDUPE_WINDOW_MS) return;
+      recentErrorSignatures.set(sig, now);
+      await supabaseClient.from('app_error_log').insert({
+        message: sig,
+        stack: stack ? String(stack).slice(0, 4000) : null,
+        tab: typeof currentAdminTab !== 'undefined' ? currentAdminTab : null,
+        user_email: currentSessionEmail || null,
+      });
+    } catch (e) { /* logging must never itself crash the app */ }
+  }
+  window.addEventListener('error', (e) => {
+    logAppError(e.message, e.error && e.error.stack);
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    const reason = e.reason;
+    logAppError(reason && reason.message ? reason.message : String(reason), reason && reason.stack);
+  });
+  const origConsoleError = console.error.bind(console);
+  console.error = function(...args){
+    origConsoleError(...args);
+    try {
+      const msg = args.map(a => (a && a.message) ? a.message : (typeof a === 'string' ? a : JSON.stringify(a))).join(' ').slice(0, 300);
+      const withStack = args.find(a => a && a.stack);
+      logAppError(msg, withStack ? withStack.stack : null);
+    } catch (e) { /* ignore — never block on logging */ }
+  };
+
+  async function logFrictionSignal(signalType, targetLabel, meta){
+    try {
+      await supabaseClient.from('app_interaction_signals').insert({
+        signal_type: signalType,
+        tab: typeof currentAdminTab !== 'undefined' ? currentAdminTab : null,
+        target_label: targetLabel,
+        user_email: currentSessionEmail || null,
+        meta: meta || {},
+      });
+    } catch (e) { /* ignore */ }
+  }
+  function frictionElementLabel(el){
+    if (!el) return 'necunoscut';
+    const label = (el.textContent || el.getAttribute('aria-label') || el.id || el.tagName).toString().trim().replace(/\s+/g, ' ');
+    return (label || el.tagName).slice(0, 60);
+  }
+  // Rage clicks: 3+ clicks on the same button/link within 700ms — the
+  // classic "it's not responding" or "I can't find the real button"
+  // frustration signal. Throttled per element so one bad streak logs
+  // one row, not a flood.
+  const rageClickTracker = new Map();
+  const rageClickLoggedAt = new Map();
+  const RAGE_CLICK_WINDOW_MS = 700;
+  const RAGE_CLICK_THRESHOLD = 3;
+  const RAGE_CLICK_THROTTLE_MS = 60000;
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('button, a, [role="button"]');
+    if (!target) return;
+    const sig = frictionElementLabel(target);
+    const now = Date.now();
+    const rec = rageClickTracker.get(sig);
+    if (rec && (now - rec.firstTs) < RAGE_CLICK_WINDOW_MS) {
+      rec.count++;
+      if (rec.count >= RAGE_CLICK_THRESHOLD) {
+        const lastLogged = rageClickLoggedAt.get(sig) || 0;
+        if (now - lastLogged > RAGE_CLICK_THROTTLE_MS) {
+          rageClickLoggedAt.set(sig, now);
+          logFrictionSignal('rage_click', sig, { click_count: rec.count });
+        }
+        rageClickTracker.delete(sig);
+      }
+    } else {
+      rageClickTracker.set(sig, { count: 1, firstTs: now });
+    }
+  }, true);
+  // Heavy typing: a text field that soaks up far more keystrokes than a
+  // short answer would — a candidate for a picker/autocomplete/shorter
+  // flow instead of free text.
+  const keystrokeCounts = new WeakMap();
+  document.addEventListener('keydown', (e) => {
+    const el = e.target;
+    if (!el || !(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return;
+    if (el.type && ['checkbox', 'radio', 'button', 'submit', 'file', 'date', 'number'].includes(el.type)) return;
+    keystrokeCounts.set(el, (keystrokeCounts.get(el) || 0) + 1);
+  });
+  document.addEventListener('blur', (e) => {
+    const el = e.target;
+    if (!el || !(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return;
+    const count = keystrokeCounts.get(el);
+    if (!count) return;
+    const threshold = el.tagName === 'TEXTAREA' ? 400 : 120;
+    if (count >= threshold) {
+      const fieldLabel = (el.closest('.ctrl-field') && el.closest('.ctrl-field').querySelector('label'))
+        ? el.closest('.ctrl-field').querySelector('label').textContent
+        : (el.placeholder || el.id || el.tagName);
+      logFrictionSignal('heavy_typing', fieldLabel.trim().slice(0, 60), { keystrokes: count });
+    }
+    keystrokeCounts.delete(el);
+  }, true);
+
+  function formatLogTimeRO(iso){
+    const d = new Date(iso);
+    return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+  async function loadErrorLog(){
+    const listEl = document.getElementById('statusErrorList');
+    if (!listEl) return;
+    const { data, error } = await supabaseClient.from('app_error_log').select('*').order('created_at', { ascending: false }).limit(50);
+    if (error) { listEl.innerHTML = '<p class="status-history-empty">Jurnalul nu a putut fi încărcat.</p>'; return; }
+    if (!data || data.length === 0) { listEl.innerHTML = '<p class="status-history-empty">Nicio eroare înregistrată.</p>'; return; }
+    listEl.innerHTML = data.map(row => `
+      <div class="status-history-item">
+        <span class="status-history-time">${formatLogTimeRO(row.created_at)}</span>
+        <span class="status-history-dot"></span>
+        <div>
+          <div class="status-history-check">${escapeHtml(row.message || 'Eroare')}</div>
+          <div class="status-history-message">${escapeHtml(row.tab || '')}${row.user_email ? ' · ' + escapeHtml(row.user_email) : ''}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+  const statusClearErrorsBtn = document.getElementById('statusClearErrorsBtn');
+  if (statusClearErrorsBtn) statusClearErrorsBtn.addEventListener('click', async () => {
+    if (!confirm('Ștergeți tot jurnalul de erori?')) return;
+    const { error } = await supabaseClient.from('app_error_log').delete().gte('created_at', '1900-01-01');
+    if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
+    loadErrorLog();
+  });
+
+  async function loadFrictionSignals(){
+    const listEl = document.getElementById('statusFrictionList');
+    if (!listEl) return;
+    const { data, error } = await supabaseClient.from('app_interaction_signals').select('*').order('created_at', { ascending: false }).limit(300);
+    if (error) { listEl.innerHTML = '<p class="status-history-empty">Semnalele nu au putut fi încărcate.</p>'; return; }
+    if (!data || data.length === 0) { listEl.innerHTML = '<p class="status-history-empty">Niciun semnal de fricțiune înregistrat încă.</p>'; return; }
+    const groups = new Map();
+    data.forEach(row => {
+      const key = row.signal_type + '|' + (row.tab || '') + '|' + (row.target_label || '');
+      const g = groups.get(key) || { signal_type: row.signal_type, tab: row.tab, target_label: row.target_label, count: 0, lastSeen: row.created_at, users: new Set() };
+      g.count++;
+      if (row.created_at > g.lastSeen) g.lastSeen = row.created_at;
+      if (row.user_email) g.users.add(row.user_email);
+      groups.set(key, g);
+    });
+    const sorted = Array.from(groups.values()).sort((a, b) => b.count - a.count).slice(0, 20);
+    listEl.innerHTML = sorted.map(g => {
+      const kindLabel = g.signal_type === 'rage_click' ? 'Clicuri repetate (frustrare)' : 'Scris manual excesiv';
+      const desc = g.signal_type === 'rage_click' ? `pe „${escapeHtml(g.target_label || '')}”` : `în câmpul „${escapeHtml(g.target_label || '')}”`;
+      return `
+        <div class="status-history-item">
+          <span class="status-history-time">${formatLogTimeRO(g.lastSeen)}</span>
+          <span class="status-history-dot"></span>
+          <div>
+            <div class="status-history-check">${kindLabel} ${desc} — ×${g.count}</div>
+            <div class="status-history-message">${escapeHtml(g.tab || '')}${g.users.size ? ' · ' + g.users.size + (g.users.size === 1 ? ' utilizator' : ' utilizatori') : ''}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Updated by hand each time a real change ships — a plain, visible
+  // record of what's been built, not an automated log.
+  const APP_CHANGELOG = [
+    { date: '01.10.2026', text: 'ERP împărțit în Echipamente / Mașini / Materiale, cu pagină proprie de Home.' },
+    { date: '01.10.2026', text: 'Stare sistem: jurnal de erori, sugestii de îmbunătățire (clicuri repetate, scris excesiv) și istoric actualizări.' },
+    { date: '30.09.2026', text: 'Programe lucrări: calendar lunar complet, cu descărcare/printare și alocare pe persoană.' },
+    { date: '30.09.2026', text: 'Planificare LPS legată de inventarul ERP — rezervare echipamente pe perioadă, scădere automată din stoc pentru materiale.' },
+    { date: '30.09.2026', text: 'A doua bară laterală rămâne fixă, fără opțiune de restrângere.' },
+  ];
+  function renderChangelog(){
+    const listEl = document.getElementById('statusChangelogList');
+    if (!listEl) return;
+    listEl.innerHTML = APP_CHANGELOG.map(entry => `
+      <div class="status-history-item ok">
+        <span class="status-history-time">${escapeHtml(entry.date)}</span>
+        <span class="status-history-dot"></span>
+        <div><div class="status-history-check">${escapeHtml(entry.text)}</div></div>
+      </div>
+    `).join('');
+  }
 
   const statusPushEnableBtn = document.getElementById('statusPushEnableBtn');
   if (statusPushEnableBtn) statusPushEnableBtn.addEventListener('click', async () => {
