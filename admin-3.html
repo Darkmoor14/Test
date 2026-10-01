@@ -1344,6 +1344,9 @@
   .erp-type-tag.echipament{background:color-mix(in srgb,var(--signal-purple) 15%,white);color:var(--signal-purple);}
   .erp-type-tag.masina{background:color-mix(in srgb,var(--signal-orange) 15%,white);color:var(--signal-orange);}
   .erp-type-tag.material{background:color-mix(in srgb,var(--signal-blue) 12%,white);color:var(--signal-blue-hover);}
+  .erp-warning-tag{background:var(--signal-orange-bg);color:var(--signal-orange);}
+  .erp-alerts-wrap .status-history-item{cursor:pointer;}
+  .erp-alerts-wrap .status-history-dot{background:var(--signal-orange);}
   .erp-reservation-note{color:var(--copper-600);}
   .backlog-days{
     font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
@@ -2855,6 +2858,10 @@
           <div class="sub">Stoc consumabile</div>
         </button>
       </div>
+      <div class="erp-alerts-wrap" id="erpAlertsWrap" style="display:none;margin-top:24px;">
+        <h3 class="status-subhead">Alerte stoc și revizii</h3>
+        <div class="status-history-list" id="erpAlertsList"></div>
+      </div>
       <div class="home-nav-grid" style="margin-top:28px;">
         <button type="button" class="home-nav-btn" id="erpHomeNavEquipment">
           <span class="home-nav-icon" aria-hidden="true">
@@ -3540,6 +3547,10 @@
       <div class="ctrl-field" id="ef-unit-field">
         <label>Unitate</label>
         <input type="text" id="ef-unit" placeholder="ex: buc, kg, m">
+      </div>
+      <div class="ctrl-field" id="ef-reorder-field">
+        <label>Prag reaprovizionare</label>
+        <input type="number" id="ef-reorder-threshold" min="0" step="1" placeholder="ex: 50 (opțional)">
       </div>
       <div class="ctrl-field" id="ef-odometer-field">
         <label>Kilometraj (km)</label>
@@ -11671,10 +11682,14 @@
     await renderStockLedger();
   }
 
+  function isLowStock(eq){
+    return eq.erp_category === 'material' && eq.reorder_threshold != null && Number(eq.quantity) <= Number(eq.reorder_threshold);
+  }
   function renderErpRow(eq){
     const isEquipment = eq.item_type === 'echipament';
     const erpCategory = eq.erp_category || (isEquipment ? 'echipament' : 'material');
     const qtyLabel = !isEquipment && eq.quantity != null ? (Number(eq.quantity) + (eq.unit ? ' ' + eq.unit : '')) : (erpCategory === 'masina' && eq.odometer_km != null ? Number(eq.odometer_km).toLocaleString('ro-RO') + ' km' : '');
+    const lowStock = isLowStock(eq);
     const myAssignments = allResourceAssignments.filter(a => a.inventory_item_id === eq.id && a.status === 'reserved');
     let reservationNote = '';
     if (isEquipment && myAssignments.length) {
@@ -11692,6 +11707,7 @@
           <span class="backlog-title">${escapeHtml(eq.name)}</span>
           <span class="backlog-tag erp-type-tag ${erpCategory}">${ERP_CATEGORY_LABEL[erpCategory]}</span>
           <span class="backlog-tag">${escapeHtml(EQUIPMENT_STATUS_LABEL[eq.status] || eq.status)}</span>
+          ${lowStock ? '<span class="backlog-tag erp-warning-tag">⚠ Stoc redus</span>' : ''}
           ${qtyLabel ? `<span class="backlog-days">${escapeHtml(qtyLabel)}</span>` : ''}
         </div>
         <div class="backlog-meta-line">${escapeHtml(eq.category || '')}${eq.location ? ' · ' + escapeHtml(eq.location) : ''}${eq.assigned_to ? ' · alocat: ' + escapeHtml(eq.assigned_to) : ''}${eq.serial_number ? ' · SN ' + escapeHtml(eq.serial_number) : ''}</div>
@@ -11750,6 +11766,26 @@
     if (maCountEl) maCountEl.textContent = counts.masina;
     const mtCountEl = document.getElementById('erpHomeMaterialsCount');
     if (mtCountEl) mtCountEl.textContent = counts.material;
+    renderErpAlerts();
+  }
+  function renderErpAlerts(){
+    const wrap = document.getElementById('erpAlertsWrap');
+    const list = document.getElementById('erpAlertsList');
+    if (!wrap || !list) return;
+    const lowStockItems = allEquipment.filter(isLowStock);
+    if (!lowStockItems.length) { wrap.style.display = 'none'; list.innerHTML = ''; return; }
+    wrap.style.display = '';
+    list.innerHTML = lowStockItems.map(eq => `
+      <div class="status-history-item">
+        <span class="status-history-time">MATERIAL</span>
+        <span class="status-history-dot"></span>
+        <div>
+          <div class="status-history-check">${escapeHtml(eq.name)}</div>
+          <div class="status-history-message">Stoc redus: ${eq.quantity}${eq.unit ? ' ' + escapeHtml(eq.unit) : ''} (prag ${eq.reorder_threshold}${eq.unit ? ' ' + escapeHtml(eq.unit) : ''})</div>
+        </div>
+      </div>
+    `).join('');
+    list.querySelectorAll('.status-history-item').forEach(row => row.addEventListener('click', () => openAdminTab('materials')));
   }
   const erpHomeEquipmentCard = document.getElementById('erpHomeEquipmentCard');
   if (erpHomeEquipmentCard) erpHomeEquipmentCard.addEventListener('click', () => openAdminTab('equipment'));
@@ -11771,6 +11807,7 @@
     const isVehicle = efTypeSelect.value === 'masina';
     document.getElementById('ef-quantity-field').style.display = isMaterial ? '' : 'none';
     document.getElementById('ef-unit-field').style.display = isMaterial ? '' : 'none';
+    document.getElementById('ef-reorder-field').style.display = isMaterial ? '' : 'none';
     document.getElementById('ef-odometer-field').style.display = isVehicle ? '' : 'none';
   }
   if (efTypeSelect) efTypeSelect.addEventListener('change', syncEquipmentFormFields);
@@ -11786,6 +11823,7 @@
     document.getElementById('ef-category').value = eq ? (eq.category || '') : '';
     document.getElementById('ef-quantity').value = eq ? eq.quantity : 1;
     document.getElementById('ef-unit').value = eq ? (eq.unit || '') : '';
+    document.getElementById('ef-reorder-threshold').value = eq && eq.reorder_threshold != null ? eq.reorder_threshold : '';
     document.getElementById('ef-odometer').value = eq && eq.odometer_km != null ? eq.odometer_km : '';
     document.getElementById('ef-serial').value = eq ? (eq.serial_number || '') : '';
     document.getElementById('ef-location').value = eq ? (eq.location || '') : '';
@@ -11811,6 +11849,8 @@
     const category = document.getElementById('ef-category').value.trim();
     const quantity = parseFloat(document.getElementById('ef-quantity').value) || 0;
     const unit = document.getElementById('ef-unit').value.trim();
+    const reorderRaw = document.getElementById('ef-reorder-threshold').value;
+    const reorder_threshold = erp_category === 'material' && reorderRaw !== '' ? parseFloat(reorderRaw) : null;
     const odometerRaw = document.getElementById('ef-odometer').value;
     const odometer_km = erp_category === 'masina' && odometerRaw !== '' ? parseFloat(odometerRaw) : null;
     const serial_number = document.getElementById('ef-serial').value.trim();
@@ -11825,6 +11865,7 @@
       name, quantity, item_type, erp_category,
       category: category || null,
       unit: unit || null,
+      reorder_threshold,
       odometer_km,
       odometer_updated_at: odometer_km != null && odometer_km !== efEditingOriginalOdometer ? new Date().toISOString() : undefined,
       serial_number: serial_number || null,
