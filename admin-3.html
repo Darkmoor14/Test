@@ -1621,6 +1621,32 @@
   .sheet-filter-status .chip{
     text-align:center;
   }
+  .popover-saved-views{
+    margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
+  }
+  .popover-saved-views label{
+    font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;
+    color:var(--ink-600);display:block;margin-bottom:10px;
+  }
+  .saved-views-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+  .saved-views-chips:empty{margin-bottom:0;}
+  .saved-view-chip{
+    display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11.5px;
+    padding:6px 6px 6px 12px;border-radius:16px;border:1px solid var(--line-strong);
+    color:var(--ink-600);cursor:pointer;background:var(--paper-000);white-space:nowrap;
+  }
+  .saved-view-chip:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .saved-view-chip-remove{
+    display:flex;align-items:center;justify-content:center;width:16px;height:16px;
+    border-radius:50%;color:var(--ink-400);font-size:13px;line-height:1;
+  }
+  .saved-view-chip-remove:hover{background:var(--line);color:var(--ink-900);}
+  .save-view-btn{
+    display:block;width:100%;font-family:var(--mono);font-size:11.5px;text-align:center;
+    padding:8px;border-radius:4px;border:1px dashed var(--line-strong);background:transparent;
+    color:var(--ink-600);cursor:pointer;
+  }
+  .save-view-btn:hover{border-color:var(--copper-500);color:var(--copper-600);}
   .mobile-sheet{
     position:fixed;inset:0;z-index:320;display:none;
   }
@@ -2098,6 +2124,11 @@
               <label>Stare listă</label>
               <div class="chips" id="overviewStatusChipsSheet"></div>
             </div>
+            <div class="popover-saved-views">
+              <label>Vizualizări salvate</label>
+              <div class="saved-views-chips" id="overviewSavedViewsWrap"></div>
+              <button type="button" class="save-view-btn" id="overviewSaveViewBtn">+ Salvează vizualizarea curentă</button>
+            </div>
           </div>
         </div>
         <button type="button" class="overview-icon-btn add-btn" id="addTicketBtnOverview" title="Adaugă sesizare" aria-label="Adaugă sesizare">
@@ -2147,6 +2178,11 @@
               <label>Stare listă</label>
               <div class="chips" id="ticketStatusChipsMobile"></div>
             </div>
+            <div class="popover-saved-views">
+              <label>Vizualizări salvate</label>
+              <div class="saved-views-chips" id="ticketsSavedViewsWrap"></div>
+              <button type="button" class="save-view-btn" id="ticketsSaveViewBtn">+ Salvează vizualizarea curentă</button>
+            </div>
           </div>
         </div>
         <button type="button" class="overview-icon-btn add-btn" id="addTicketBtn" title="Adaugă sesizare" aria-label="Adaugă sesizare">
@@ -2186,6 +2222,11 @@
               <label>Stare listă</label>
               <div class="chips" id="projectsChipsWrapSheet"></div>
             </div>
+            <div class="popover-saved-views">
+              <label>Vizualizări salvate</label>
+              <div class="saved-views-chips" id="projectsSavedViewsWrap"></div>
+              <button type="button" class="save-view-btn" id="projectsSaveViewBtn">+ Salvează vizualizarea curentă</button>
+            </div>
           </div>
         </div>
         <button type="button" class="overview-icon-btn add-btn" id="addProjectBtn" title="Adaugă proiect" aria-label="Adaugă proiect">
@@ -2213,6 +2254,11 @@
             <div class="sheet-filter-status">
               <label>Stare listă</label>
               <div class="chips" id="backlogChipsWrap"></div>
+            </div>
+            <div class="popover-saved-views">
+              <label>Vizualizări salvate</label>
+              <div class="saved-views-chips" id="backlogSavedViewsWrap"></div>
+              <button type="button" class="save-view-btn" id="backlogSaveViewBtn">+ Salvează vizualizarea curentă</button>
             </div>
           </div>
         </div>
@@ -4852,10 +4898,83 @@
       });
     }
 
+    // Saved custom filter views — optional (only configured where the
+    // popover HTML actually has the savedViewsChips/saveViewBtn markup).
+    // One row of named presets per tab (status + year/month/day,
+    // whichever of those this particular popover has), stored in
+    // saved_filter_views and scoped by config.savedViewsScope so
+    // Sesizări/Proiecte/Avarii each only see their own.
+    const savedViewsWrap = config.savedViewsWrapId ? document.getElementById(config.savedViewsWrapId) : null;
+    const saveViewBtn = config.saveViewBtnId ? document.getElementById(config.saveViewBtnId) : null;
+    let savedViews = [];
+
+    function applyFilterValues(f){
+      config.setStatus(f.status);
+      if (yearSelect && f.year !== undefined && f.year !== null) config.setYear(String(f.year));
+      if (monthSelect && f.month !== undefined && f.month !== null) config.setMonth(String(f.month));
+      if (config.setDayFilter) config.setDayFilter(f.day !== undefined ? f.day : null);
+      syncActiveState();
+    }
+
+    function renderSavedViews(){
+      if (!savedViewsWrap) return;
+      savedViewsWrap.innerHTML = savedViews.map(v => `
+        <span class="saved-view-chip" data-id="${v.id}">
+          <span>${escapeHtml(v.name)}</span>
+          <span class="saved-view-chip-remove" data-remove-id="${v.id}" aria-label="Șterge vizualizarea">×</span>
+        </span>
+      `).join('');
+    }
+
+    async function loadSavedViews(){
+      if (!config.savedViewsScope) return;
+      const { data, error } = await supabaseClient.from('saved_filter_views').select('*')
+        .eq('scope', config.savedViewsScope).order('created_at', { ascending: true });
+      if (error) return;
+      savedViews = data || [];
+      renderSavedViews();
+    }
+
+    if (savedViewsWrap) {
+      savedViewsWrap.addEventListener('click', async (e) => {
+        const removeBtn = e.target.closest('.saved-view-chip-remove');
+        if (removeBtn) {
+          const id = removeBtn.dataset.removeId;
+          savedViews = savedViews.filter(v => v.id !== id);
+          renderSavedViews();
+          await supabaseClient.from('saved_filter_views').delete().eq('id', id);
+          return;
+        }
+        const chip = e.target.closest('.saved-view-chip');
+        if (chip) {
+          const view = savedViews.find(v => v.id === chip.dataset.id);
+          if (view) applyFilterValues(view.filter_json || {});
+        }
+      });
+    }
+    if (saveViewBtn) {
+      saveViewBtn.addEventListener('click', async () => {
+        const name = (prompt('Nume pentru această vizualizare:') || '').trim();
+        if (!name) return;
+        const filterJson = {
+          status: config.getStatus(),
+          year: yearSelect ? config.getYear() : undefined,
+          month: monthSelect ? config.getMonth() : undefined,
+          day: config.getDayFilter ? config.getDayFilter() : undefined,
+        };
+        const { data, error } = await supabaseClient.from('saved_filter_views').insert({
+          scope: config.savedViewsScope, name, filter_json: filterJson, user_email: currentSessionEmail || null,
+        }).select();
+        if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+        if (data && data[0]) { savedViews.push(data[0]); renderSavedViews(); }
+      });
+    }
+
     toggleBtn.addEventListener('click', () => {
       const willOpen = !popover.classList.contains('open');
       popover.classList.toggle('open', willOpen);
       if (willOpen && config.onOpen) config.onOpen();
+      if (willOpen && config.savedViewsScope) loadSavedViews();
     });
     document.addEventListener('click', (e) => {
       if (!popover.classList.contains('open')) return;
@@ -5098,6 +5217,7 @@
     chipsWrapId: 'ticketStatusChipsMobile', chipDefs: chipDefs,
     getStatus: () => activeFilter, setStatus: setTicketFilter, defaultStatus: 'Ongoing',
     noteIds: ['ticketsFilterNoteDesktop', 'ticketsFilterNoteMobile'],
+    savedViewsScope: 'tickets', savedViewsWrapId: 'ticketsSavedViewsWrap', saveViewBtnId: 'ticketsSaveViewBtn',
   });
 
   const overviewStatusChipDefs = [
@@ -5162,6 +5282,7 @@
     chipsWrapId: 'overviewStatusChipsSheet', chipDefs: overviewStatusChipDefs,
     getStatus: () => overviewStatusFilter, setStatus: setOverviewStatusFilter, defaultStatus: 'active',
     noteIds: ['overviewFilterNote'],
+    savedViewsScope: 'overview', savedViewsWrapId: 'overviewSavedViewsWrap', saveViewBtnId: 'overviewSaveViewBtn',
   });
   createSearchToggleWidget({
     toggleBtnId: 'overviewSearchToggleBtn', wrapId: 'overviewSearchWrap', boxId: 'overviewSearchBox',
@@ -10550,6 +10671,7 @@
     chipsWrapId: 'projectsChipsWrapSheet', chipDefs: projectChipDefs,
     getStatus: () => projectsFilter, setStatus: setProjectsFilter, defaultStatus: 'Ongoing',
     noteIds: ['projectsFilterNoteDesktop', 'projectsFilterNoteMobile'],
+    savedViewsScope: 'projects', savedViewsWrapId: 'projectsSavedViewsWrap', saveViewBtnId: 'projectsSaveViewBtn',
   });
 
   async function loadProjects(){
@@ -11037,6 +11159,7 @@
     chipsWrapId: 'backlogChipsWrap', chipDefs: backlogChipDefs,
     getStatus: () => backlogFilter, setStatus: setBacklogFilter, defaultStatus: 'Ongoing',
     noteIds: ['backlogFilterNoteDesktop', 'backlogFilterNoteMobile'],
+    savedViewsScope: 'backlog', savedViewsWrapId: 'backlogSavedViewsWrap', saveViewBtnId: 'backlogSaveViewBtn',
   });
 
   function renderBacklogProjects(){
