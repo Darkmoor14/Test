@@ -1647,6 +1647,42 @@
     color:var(--ink-600);cursor:pointer;
   }
   .save-view-btn:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  /* ===== COMMAND PALETTE (Cmd/Ctrl+K) ===== */
+  .command-palette{position:fixed;inset:0;z-index:400;display:none;}
+  .command-palette.show{display:block;}
+  .command-palette-backdrop{position:absolute;inset:0;background:rgba(20,24,29,0.48);}
+  .command-palette-box{
+    position:absolute;top:14vh;left:50%;transform:translateX(-50%);
+    width:560px;max-width:calc(100vw - 32px);max-height:min(60vh, 520px);
+    background:var(--paper-000);border-radius:12px;box-shadow:0 20px 60px rgba(20,24,29,0.28);
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  .command-palette-input-wrap{
+    display:flex;align-items:center;gap:10px;padding:14px 16px;
+    border-bottom:1px solid var(--line);flex-shrink:0;color:var(--ink-400);
+  }
+  .command-palette-input-wrap input{
+    flex:1;border:none;outline:none;font:inherit;font-size:15px;color:var(--ink-900);background:transparent;
+  }
+  .command-palette-esc{
+    font-family:var(--mono);font-size:10.5px;color:var(--ink-400);
+    border:1px solid var(--line-strong);border-radius:4px;padding:2px 6px;
+  }
+  .command-palette-results{overflow-y:auto;padding:8px;}
+  .command-palette-empty{padding:20px 12px;text-align:center;color:var(--ink-400);font-size:13px;}
+  .command-palette-group-label{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+    color:var(--ink-400);padding:8px 10px 4px;
+  }
+  .command-palette-item{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    padding:10px 10px;border-radius:7px;border:none;background:transparent;
+    font:inherit;font-size:13.5px;color:var(--ink-900);cursor:pointer;
+  }
+  .command-palette-item .cp-icon{flex-shrink:0;color:var(--ink-400);display:flex;}
+  .command-palette-item .cp-meta{font-size:11px;color:var(--ink-400);margin-left:auto;}
+  .command-palette-item.active{background:var(--copper-050);}
+  .command-palette-item.active .cp-icon{color:var(--copper-600);}
   .mobile-sheet{
     position:fixed;inset:0;z-index:320;display:none;
   }
@@ -2012,6 +2048,9 @@
         </button>
       </div>
       <div class="rail-footer">
+        <button type="button" class="rail-help-btn" id="commandPaletteBtn" title="Comenzi rapide (Ctrl/Cmd+K)">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
         <button type="button" class="rail-help-btn" id="railHelpBtn" title="Tur rapid / Ajutor">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
         </button>
@@ -3559,6 +3598,18 @@
       <input type="text" id="checklistNewItemInput" placeholder="Element nou…">
       <button type="button" class="btn" id="checklistAddBtn">+ Adaugă</button>
     </div>
+  </div>
+</div>
+
+<div class="command-palette" id="commandPalette" aria-hidden="true">
+  <div class="command-palette-backdrop" data-close-palette></div>
+  <div class="command-palette-box" role="dialog" aria-modal="true" aria-label="Comenzi rapide">
+    <div class="command-palette-input-wrap">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="commandPaletteInput" placeholder="Mergi la o pagină sau întreabă ceva… (ex: „proiecte”, „cât cablu CYABY mai am”)" autocomplete="off" spellcheck="false">
+      <kbd class="command-palette-esc">Esc</kbd>
+    </div>
+    <div class="command-palette-results" id="commandPaletteResults"></div>
   </div>
 </div>
 
@@ -12173,6 +12224,120 @@
   }
   if (homeSmartSearchBtn) homeSmartSearchBtn.addEventListener('click', runHomeSmartSearch);
   if (homeSmartSearchInput) homeSmartSearchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); runHomeSmartSearch(); } });
+
+  /* ============================================================
+     COMMAND PALETTE (Cmd/Ctrl+K) — jump to any tab by name, or ask
+     the same question the Home smart search answers, from anywhere
+     in the app. Nav destinations come straight from BREADCRUMB_TABS
+     so the list can never drift from the real tab registry; a typed
+     question that doesn't match a destination falls through to the
+     Home smart search (answerSmartQuery/runHomeSmartSearch), reusing
+     its answer box instead of duplicating the matching logic here.
+     ============================================================ */
+  const NAV_DESTINATIONS = [
+    { tab: 'home', label: 'Acasă' },
+    ...Object.keys(BREADCRUMB_TABS).map(tab => ({ tab, label: BREADCRUMB_TABS[tab] })),
+  ];
+  const commandPalette = document.getElementById('commandPalette');
+  const commandPaletteInput = document.getElementById('commandPaletteInput');
+  const commandPaletteResults = document.getElementById('commandPaletteResults');
+  let paletteActiveIndex = -1;
+  let paletteCurrentItems = [];
+
+  function openCommandPalette(){
+    if (!commandPalette) return;
+    commandPalette.classList.add('show');
+    commandPalette.setAttribute('aria-hidden', 'false');
+    commandPaletteInput.value = '';
+    renderCommandPaletteResults('');
+    setTimeout(() => commandPaletteInput.focus(), 10);
+  }
+  function closeCommandPalette(){
+    if (!commandPalette) return;
+    commandPalette.classList.remove('show');
+    commandPalette.setAttribute('aria-hidden', 'true');
+  }
+  function renderCommandPaletteResults(rawQuery){
+    const q = normalizeRomanianText(rawQuery.trim());
+    const navMatches = q ? NAV_DESTINATIONS.filter(d => normalizeRomanianText(d.label).includes(q)) : NAV_DESTINATIONS;
+    paletteCurrentItems = navMatches.map(d => ({ type: 'nav', tab: d.tab, label: d.label }));
+    if (rawQuery.trim()) paletteCurrentItems.push({ type: 'search', raw: rawQuery.trim() });
+    paletteActiveIndex = paletteCurrentItems.length ? 0 : -1;
+    renderPaletteList();
+  }
+  function renderPaletteList(){
+    if (!commandPaletteResults) return;
+    if (!paletteCurrentItems.length) {
+      commandPaletteResults.innerHTML = '<p class="command-palette-empty">Niciun rezultat.</p>';
+      return;
+    }
+    let html = '';
+    const navItems = paletteCurrentItems.filter(i => i.type === 'nav');
+    const searchItem = paletteCurrentItems.find(i => i.type === 'search');
+    if (navItems.length) {
+      html += '<div class="command-palette-group-label">Pagini</div>';
+      html += navItems.map(item => {
+        const idx = paletteCurrentItems.indexOf(item);
+        return `<button type="button" class="command-palette-item${idx === paletteActiveIndex ? ' active' : ''}" data-index="${idx}">
+          <span class="cp-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          <span>${escapeHtml(item.label)}</span>
+        </button>`;
+      }).join('');
+    }
+    if (searchItem) {
+      const idx = paletteCurrentItems.indexOf(searchItem);
+      html += '<div class="command-palette-group-label">Căutare</div>';
+      html += `<button type="button" class="command-palette-item${idx === paletteActiveIndex ? ' active' : ''}" data-index="${idx}">
+        <span class="cp-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+        <span>Caută „${escapeHtml(searchItem.raw)}”</span>
+      </button>`;
+    }
+    commandPaletteResults.innerHTML = html;
+    commandPaletteResults.querySelectorAll('.command-palette-item').forEach(btn => {
+      btn.addEventListener('click', () => selectPaletteItem(Number(btn.dataset.index)));
+    });
+  }
+  async function selectPaletteItem(index){
+    const item = paletteCurrentItems[index];
+    if (!item) return;
+    closeCommandPalette();
+    if (item.type === 'nav') { openAdminTab(item.tab); return; }
+    openAdminTab('home');
+    if (homeSmartSearchInput) {
+      homeSmartSearchInput.value = item.raw;
+      await runHomeSmartSearch();
+    }
+  }
+  if (commandPaletteInput) {
+    commandPaletteInput.addEventListener('input', () => renderCommandPaletteResults(commandPaletteInput.value));
+    commandPaletteInput.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (paletteCurrentItems.length) { paletteActiveIndex = (paletteActiveIndex + 1) % paletteCurrentItems.length; renderPaletteList(); }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (paletteCurrentItems.length) { paletteActiveIndex = (paletteActiveIndex - 1 + paletteCurrentItems.length) % paletteCurrentItems.length; renderPaletteList(); }
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (paletteActiveIndex >= 0) selectPaletteItem(paletteActiveIndex);
+      } else if (e.key === 'Escape') {
+        closeCommandPalette();
+      }
+    });
+  }
+  document.querySelectorAll('[data-close-palette]').forEach(el => el.addEventListener('click', closeCommandPalette));
+  const commandPaletteBtn = document.getElementById('commandPaletteBtn');
+  if (commandPaletteBtn) commandPaletteBtn.addEventListener('click', openCommandPalette);
+  document.addEventListener('keydown', (e) => {
+    const isMod = e.metaKey || e.ctrlKey;
+    if (isMod && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      if (commandPalette && commandPalette.classList.contains('show')) closeCommandPalette();
+      else openCommandPalette();
+    } else if (e.key === 'Escape' && commandPalette && commandPalette.classList.contains('show')) {
+      closeCommandPalette();
+    }
+  });
 
   /* ============================================================
      PROIECTE → HOME — a small analytics summary across all four
