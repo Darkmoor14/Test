@@ -1126,6 +1126,26 @@
   @media(max-width:560px){
     .priority-grid{grid-template-columns:1fr;}
   }
+  .priority-card.active{border-color:var(--copper-500);background:var(--copper-050);}
+  .priority-card.active .k{color:var(--copper-600);}
+  .priority-card.active .num{color:var(--copper-600);}
+  .machines-table-wrap{overflow-x:auto;border:1px solid var(--line-strong);border-radius:6px;}
+  .machines-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .machines-table th{
+    text-align:left;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.04em;
+    color:var(--ink-600);padding:10px 14px;border-bottom:1px solid var(--line-strong);background:var(--paper-050);
+    white-space:nowrap;
+  }
+  .machines-table td{padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle;}
+  .machines-table tr:last-child td{border-bottom:none;}
+  .machines-table .mt-name{font-weight:600;color:var(--ink-900);}
+  .machines-table .mt-subcat{font-size:11.5px;color:var(--ink-600);margin-top:2px;}
+  .machines-table .mt-na{color:var(--ink-400);}
+  .machines-table .mt-date{color:var(--ink-700);}
+  .machines-table .mt-date.mt-warn{color:var(--signal-orange);font-weight:600;}
+  .machines-table .mt-date.mt-expired{color:var(--signal-red);font-weight:600;}
+  .machines-table .mt-actions{display:flex;gap:8px;}
+  .machines-table-empty{padding:40px 0;text-align:center;color:var(--ink-400);}
 
   .active-narrow-filter{
     display:none;align-items:center;gap:8px;
@@ -2124,7 +2144,7 @@
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
           <div class="docs-nav-subgroup" data-erp-subgroup="machines">
-            <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn active" data-subcat="Toate">Toate</button>
+            <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn active" data-subcat="Toate">Prezentare generală</button>
             <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="masina_mica">Mașină mică</button>
             <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="autoutilitara">Autoutilitară</button>
             <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="camion">Camion</button>
@@ -2944,7 +2964,25 @@
         </div>
         <button type="button" class="btn btn-primary" id="addMachineBtn">+ Adaugă mașină</button>
       </div>
-      <div class="backlog-list" id="machinesList"></div>
+      <div class="priority-grid" id="machinesFilterCards"></div>
+      <div class="machines-table-wrap">
+        <table class="machines-table" id="machinesTable">
+          <thead>
+            <tr>
+              <th>Mașină</th>
+              <th>Nr. înmatriculare</th>
+              <th>ITP</th>
+              <th>Asigurare</th>
+              <th>Licență transport</th>
+              <th>Tichete parcare</th>
+              <th>Rovinietă</th>
+              <th>Tahograf</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="machinesTableBody"></tbody>
+        </table>
+      </div>
     </div>
     <div class="admin-panel" id="panel-materials">
       <div class="toolbar">
@@ -11766,7 +11804,6 @@
   const ERP_CATEGORY_LABEL = { echipament: 'Echipament', masina: 'Mașină', material: 'Material' };
   const ERP_CATEGORY_LIST_IDS = {
     echipament: { list: 'equipmentList', count: 'equipmentCount', empty: 'Niciun echipament înregistrat.' },
-    masina: { list: 'machinesList', count: 'machinesCount', empty: 'Nicio mașină înregistrată.' },
     material: { list: 'materialsList', count: 'materialsCount', empty: 'Niciun material înregistrat.' },
   };
   // Mașini se împart în 4 subcategorii fixe, distribuite automat după
@@ -11851,13 +11888,119 @@
       return eq[f.key] && eq[f.key] < today;
     }).map(f => f.label);
   }
+  // Zile rămase până la o dată (negativ = deja expirată). Folosit atât
+  // pentru evidențierea portocalie din tabel (≤14 zile), cât și pentru
+  // cardul Notificări (≤7 zile) — praguri diferite, aceeași bază.
+  function daysUntilDate(dateStr){
+    if (!dateStr) return null;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const target = new Date(dateStr + 'T00:00:00');
+    return Math.round((target - today) / 86400000);
+  }
+  function docDateClass(dateStr){
+    if (!dateStr) return '';
+    const days = daysUntilDate(dateStr);
+    if (days < 0) return 'mt-expired';
+    if (days <= 14) return 'mt-warn';
+    return '';
+  }
+  function vehicleHasUrgentDocs(eq){
+    return VEHICLE_DOC_FIELDS.some(f => {
+      if (f.camionOnly && eq.category !== 'camion') return false;
+      return eq[f.key] && daysUntilDate(eq[f.key]) <= 7;
+    });
+  }
+  const MACHINES_FILTER_CARD_DEFS = [
+    { key: 'masina_mica', label: 'Mașină mică' },
+    { key: 'autoutilitara', label: 'Autoutilitară' },
+    { key: 'camion', label: 'Camion' },
+    { key: 'utilaj', label: 'Utilaj' },
+    { key: 'notificari', label: 'Notificări' },
+  ];
+  function renderMachinesOverview(){
+    const cardsWrap = document.getElementById('machinesFilterCards');
+    const tbody = document.getElementById('machinesTableBody');
+    if (!cardsWrap || !tbody) return;
+    const allVehicles = allEquipment.filter(eq => eq.erp_category === 'masina');
+    const urgentVehicles = allVehicles.filter(vehicleHasUrgentDocs);
+    const subcatCounts = { masina_mica: 0, autoutilitara: 0, camion: 0, utilaj: 0 };
+    allVehicles.forEach(eq => { if (subcatCounts[eq.category] != null) subcatCounts[eq.category]++; });
+
+    cardsWrap.innerHTML = MACHINES_FILTER_CARD_DEFS.map(def => {
+      const count = def.key === 'notificari' ? urgentVehicles.length : subcatCounts[def.key];
+      const isActive = machinesSubcatFilter === def.key;
+      const isWarn = def.key === 'notificari' && count > 0;
+      return `
+        <button type="button" class="priority-card${isWarn ? ' warn' : ''}${isActive ? ' active' : ''}" data-subcat="${def.key}">
+          <span class="k">${escapeHtml(def.label)}</span>
+          <div class="num">${count}</div>
+        </button>
+      `;
+    }).join('');
+    cardsWrap.querySelectorAll('.priority-card').forEach(card => {
+      card.addEventListener('click', () => setMachinesSubcatFilter(card.dataset.subcat));
+    });
+
+    const filtered = machinesSubcatFilter === 'Toate' ? allVehicles
+      : machinesSubcatFilter === 'notificari' ? urgentVehicles
+      : allVehicles.filter(eq => eq.category === machinesSubcatFilter);
+
+    const countEl = document.getElementById('machinesCount');
+    if (countEl) countEl.textContent = machinesSubcatFilter === 'Toate'
+      ? allVehicles.length + (allVehicles.length === 1 ? ' mașină' : ' mașini')
+      : `${filtered.length} din ${allVehicles.length} mașini`;
+
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="9"><div class="machines-table-empty">Nicio mașină ${machinesSubcatFilter === 'Toate' ? 'înregistrată' : 'în această categorie'}.</div></td></tr>`;
+      return;
+    }
+    function dateCell(dateStr, applicable){
+      if (!applicable) return '<td class="mt-na">—</td>';
+      if (!dateStr) return '<td class="mt-date mt-na">—</td>';
+      const cls = docDateClass(dateStr);
+      return `<td class="mt-date${cls ? ' ' + cls : ''}">${formatWoDateRO(dateStr)}${cls ? ' ⚠' : ''}</td>`;
+    }
+    tbody.innerHTML = filtered.map(eq => {
+      const isCamion = eq.category === 'camion';
+      return `
+        <tr>
+          <td><div class="mt-name">${escapeHtml(eq.name)}</div><div class="mt-subcat">${escapeHtml(VEHICLE_SUBCAT_LABEL[eq.category] || '')}</div></td>
+          <td>${escapeHtml(eq.plate_number || '—')}</td>
+          ${dateCell(eq.itp_expires_on, true)}
+          ${dateCell(eq.insurance_expires_on, true)}
+          ${dateCell(eq.transport_license_expires_on, isCamion)}
+          ${dateCell(eq.parking_ticket_expires_on, true)}
+          ${dateCell(eq.vignette_expires_on, true)}
+          ${dateCell(eq.tachograph_expires_on, isCamion)}
+          <td class="mt-actions">
+            <button type="button" class="btn mt-edit-btn" data-id="${escapeHtml(eq.id)}">Editează</button>
+            <button type="button" class="btn mt-delete-btn" data-id="${escapeHtml(eq.id)}">Șterge</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+    tbody.querySelectorAll('.mt-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const eq = allVehicles.find(v => v.id === btn.dataset.id);
+        if (eq) openVehicleDocsEdit(eq);
+      });
+    });
+    tbody.querySelectorAll('.mt-delete-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const eq = allVehicles.find(v => v.id === btn.dataset.id);
+        if (!eq) return;
+        if (!confirm(`Ștergeți definitiv „${eq.name}” din inventar?`)) return;
+        const { error } = await supabaseClient.from('equipment_inventory').delete().eq('id', eq.id);
+        if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
+        loadEquipment();
+      });
+    });
+  }
   function renderErpRow(eq){
     const isEquipment = eq.item_type === 'echipament';
     const erpCategory = eq.erp_category || (isEquipment ? 'echipament' : 'material');
     const qtyLabel = !isEquipment && eq.quantity != null ? (Number(eq.quantity) + (eq.unit ? ' ' + eq.unit : '')) : '';
     const lowStock = isLowStock(eq);
-    const expiredDocs = hasExpiredDocs(eq);
-    const isVehicleRow = eq.erp_category === 'masina';
     const myAssignments = allResourceAssignments.filter(a => a.inventory_item_id === eq.id && a.status === 'reserved');
     let reservationNote = '';
     if (isEquipment && myAssignments.length) {
@@ -11875,22 +12018,20 @@
           <span class="backlog-title">${escapeHtml(eq.name)}</span>
           <span class="backlog-tag erp-type-tag ${erpCategory}">${ERP_CATEGORY_LABEL[erpCategory]}</span>
           <span class="backlog-tag">${escapeHtml(EQUIPMENT_STATUS_LABEL[eq.status] || eq.status)}</span>
-          ${isVehicleRow && eq.category ? `<span class="backlog-tag">${escapeHtml(VEHICLE_SUBCAT_LABEL[eq.category] || eq.category)}</span>` : ''}
           ${lowStock ? '<span class="backlog-tag erp-warning-tag">⚠ Stoc redus</span>' : ''}
-          ${expiredDocs ? '<span class="backlog-tag erp-warning-tag">⚠ Acte expirate</span>' : ''}
           ${qtyLabel ? `<span class="backlog-days">${escapeHtml(qtyLabel)}</span>` : ''}
         </div>
-        <div class="backlog-meta-line">${isVehicleRow ? '' : escapeHtml(eq.category || '')}${isVehicleRow && eq.plate_number ? (eq.category ? ' · ' : '') + escapeHtml(eq.plate_number) : ''}${eq.location ? ' · ' + escapeHtml(eq.location) : ''}${eq.assigned_to ? ' · alocat: ' + escapeHtml(eq.assigned_to) : ''}${eq.serial_number ? (isVehicleRow ? ' · Șasiu ' : ' · SN ') + escapeHtml(eq.serial_number) : ''}</div>
+        <div class="backlog-meta-line">${escapeHtml(eq.category || '')}${eq.location ? ' · ' + escapeHtml(eq.location) : ''}${eq.assigned_to ? ' · alocat: ' + escapeHtml(eq.assigned_to) : ''}${eq.serial_number ? ' · SN ' + escapeHtml(eq.serial_number) : ''}</div>
         ${reservationNote ? `<div class="backlog-meta-line erp-reservation-note">ⓘ ${escapeHtml(reservationNote)}</div>` : ''}
       </div>
       <div class="backlog-actions">
         <button class="btn eq-edit">Editează</button>
-        ${erpCategory === 'masina' ? '' : `<button class="btn btn-primary eq-status">${escapeHtml(EQUIPMENT_STATUS_LABEL[EQUIPMENT_STATUS_CYCLE[eq.status]] || 'Schimbă starea')}</button>`}
+        <button class="btn btn-primary eq-status">${escapeHtml(EQUIPMENT_STATUS_LABEL[EQUIPMENT_STATUS_CYCLE[eq.status]] || 'Schimbă starea')}</button>
         ${erpCategory === 'material' ? '<button class="btn eq-ledger">Jurnal stoc</button>' : ''}
         <button class="btn eq-delete">Șterge</button>
       </div>
     `;
-    row.querySelector('.eq-edit').addEventListener('click', () => isVehicleRow ? openVehicleDocsEdit(eq) : openEquipmentForm(eq));
+    row.querySelector('.eq-edit').addEventListener('click', () => openEquipmentForm(eq));
     const ledgerBtn = row.querySelector('.eq-ledger');
     if (ledgerBtn) ledgerBtn.addEventListener('click', () => openStockLedgerSheet(eq.id, eq.name));
     const statusBtn = row.querySelector('.eq-status');
@@ -11913,15 +12054,9 @@
       const { list: listId, count: countId, empty: emptyMsg } = ERP_CATEGORY_LIST_IDS[erpCategory];
       const list = document.getElementById(listId);
       if (!list) return;
-      let items = allEquipment.filter(eq => (eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material')) === erpCategory);
-      const totalCount = items.length;
-      if (erpCategory === 'masina' && machinesSubcatFilter !== 'Toate') {
-        items = items.filter(eq => eq.category === machinesSubcatFilter);
-      }
+      const items = allEquipment.filter(eq => (eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material')) === erpCategory);
       const countEl = document.getElementById(countId);
-      if (countEl) countEl.textContent = erpCategory === 'masina' && machinesSubcatFilter !== 'Toate'
-        ? `${items.length} din ${totalCount} mașini`
-        : items.length + (items.length === 1 ? ' element' : ' elemente');
+      if (countEl) countEl.textContent = items.length + (items.length === 1 ? ' element' : ' elemente');
       if (items.length === 0) {
         list.innerHTML = `<div class="no-results" style="padding:40px 0;text-align:center;color:var(--ink-400);">${emptyMsg}</div>`;
         return;
@@ -11929,6 +12064,7 @@
       list.innerHTML = '';
       items.forEach(eq => list.appendChild(renderErpRow(eq)));
     });
+    renderMachinesOverview();
     renderErpHomeStats();
   }
   function renderErpHomeStats(){
