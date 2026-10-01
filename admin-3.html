@@ -898,10 +898,9 @@
     #calendarEventFormSheet .sheet-handle{display:none;}
   }
   /* Same reasoning as the calendar sheets above — vehicleFormSheet (one
-     merged form: identity + documents) and vehicleDetailSheet (the big
-     read-only card + Editează/Șterge) inherited the full-width
+     merged form: identity + documents) inherited the full-width
      bottom-sheet sizing built for the much larger generic
-     erpItemFormSheet, which left them looking mostly empty. */
+     erpItemFormSheet, which left it looking mostly empty. */
   #vehicleFormSheet .ctrl-field{min-width:0;margin-bottom:12px;}
   #vehicleFormSheet .ctrl-field label{font-size:10px;margin-bottom:4px;}
   #vehicleFormSheet .ctrl-field input,
@@ -909,21 +908,26 @@
     font-size:12.5px;padding:7px 9px;height:34px;
   }
   #vehicleFormSheet .pf-grid{gap:0 14px;}
-  #vehicleFormSheet .sheet-head h3,
-  #vehicleDetailSheet .sheet-head h3{font-size:16px;}
+  #vehicleFormSheet .sheet-head h3{font-size:16px;}
   #vehicleFormSheet .vf-docs-divider{font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-500);margin:4px 0 10px;}
-  .vehicle-detail-card{
-    border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:4px;
+  /* A subcategory's table (Mașină mică, Camion, ...) is a worklist of
+     full cards instead — like how a ticket, once opened from Sesizări
+     Overview, shows itself fully rather than behind another click. */
+  .vehicle-cards-list{display:flex;flex-direction:column;gap:12px;}
+  .vehicle-big-card{
+    position:relative;border:1px solid var(--line-strong);border-radius:10px;
+    padding:16px 18px;background:var(--paper-000);
   }
-  .vehicle-detail-card .backlog-title-line{margin-bottom:6px;}
-  .vehicle-detail-card .backlog-meta-line{white-space:normal;}
-  .vehicle-detail-card .vd-docs-grid{
+  .vehicle-big-card .backlog-title-line{margin-bottom:6px;padding-right:70px;}
+  .vehicle-big-card .backlog-meta-line{white-space:normal;}
+  .vehicle-big-card .vd-docs-grid{
     display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:10px;
     padding-top:10px;border-top:1px solid var(--line);
   }
-  .vehicle-detail-card .vd-doc-item .vd-doc-label{font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.04em;}
-  .vehicle-detail-card .vd-doc-item .vd-doc-value{font-size:13px;margin-top:2px;}
-  #vehicleDetailSheet .sheet-actions{flex-wrap:wrap;row-gap:8px;}
+  .vehicle-big-card .vd-doc-item .vd-doc-label{font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.04em;}
+  .vehicle-big-card .vd-doc-item .vd-doc-value{font-size:13px;margin-top:2px;}
+  .vehicle-big-card-actions{position:absolute;top:14px;right:14px;display:flex;gap:6px;}
+  .vehicle-big-card.jump-highlight{animation:ticket-jump-highlight 1.8s ease-out;}
   @media(min-width:901px){
     #vehicleFormSheet .mobile-sheet-panel{
       position:fixed;top:50%;left:50%;right:auto;bottom:auto;
@@ -932,15 +936,7 @@
       border-radius:14px;padding:18px 20px;max-height:86vh;
       box-shadow:0 20px 60px rgba(20,24,29,0.28);
     }
-    #vehicleDetailSheet .mobile-sheet-panel{
-      position:fixed;top:50%;left:50%;right:auto;bottom:auto;
-      transform:translate(-50%,-50%);
-      width:440px;max-width:calc(100vw - 40px);
-      border-radius:14px;padding:18px 20px;max-height:82vh;
-      box-shadow:0 20px 60px rgba(20,24,29,0.28);
-    }
-    #vehicleFormSheet .sheet-handle,
-    #vehicleDetailSheet .sheet-handle{display:none;}
+    #vehicleFormSheet .sheet-handle{display:none;}
   }
   .home-todo-card{
     background:var(--paper-000);border:1px solid var(--line-strong);border-radius:9px;
@@ -3012,12 +3008,12 @@
         <button type="button" class="btn btn-primary" id="addMachineBtn">+ Adaugă mașină</button>
       </div>
       <div class="priority-grid" id="machinesFilterCards"></div>
-      <div class="overview-table-wrap">
+      <div class="overview-table-wrap" id="machinesTableWrap">
         <table class="overview-table" id="machinesTable">
           <colgroup>
-            <col style="width:15%"><col style="width:13%"><col style="width:11%">
-            <col style="width:11%"><col style="width:13%"><col style="width:11%">
-            <col style="width:9%"><col style="width:9%"><col style="width:8%">
+            <col style="width:16%"><col style="width:14%"><col style="width:12%">
+            <col style="width:12%"><col style="width:14%"><col style="width:12%">
+            <col style="width:10%"><col style="width:10%">
           </colgroup>
           <thead>
             <tr>
@@ -3029,12 +3025,12 @@
               <th>Tichete parcare</th>
               <th>Rovinietă</th>
               <th>Tahograf</th>
-              <th></th>
             </tr>
           </thead>
           <tbody id="machinesTableBody"></tbody>
         </table>
       </div>
+      <div class="vehicle-cards-list" id="machinesCardsList" style="display:none;"></div>
     </div>
     <div class="admin-panel" id="panel-materials">
       <div class="toolbar">
@@ -3730,22 +3726,6 @@
     <div class="sheet-actions">
       <button class="btn" id="efCancelBtn" type="button" data-close-sheet="erpItemFormSheet">Anulează</button>
       <button class="btn btn-primary" id="efSaveBtn" type="button">Salvează</button>
-    </div>
-  </div>
-</div>
-
-<div class="mobile-sheet" id="vehicleDetailSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="vehicleDetailSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vehicleDetailSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div><h3 id="vehicleDetailSheetTitle">Mașină</h3></div>
-      <button type="button" class="sheet-close" data-close-sheet="vehicleDetailSheet" aria-label="Închide">×</button>
-    </div>
-    <div class="vehicle-detail-card" id="vehicleDetailCard"></div>
-    <div class="sheet-actions">
-      <button class="btn" type="button" id="vdDeleteBtn" style="margin-right:auto;">Șterge mașina</button>
-      <button class="btn btn-primary" type="button" id="vdEditBtn">Editează</button>
     </div>
   </div>
 </div>
@@ -12013,7 +11993,9 @@
   function renderMachinesOverview(){
     const cardsWrap = document.getElementById('machinesFilterCards');
     const tbody = document.getElementById('machinesTableBody');
-    if (!cardsWrap || !tbody) return;
+    const tableWrap = document.getElementById('machinesTableWrap');
+    const cardsList = document.getElementById('machinesCardsList');
+    if (!cardsWrap || !tbody || !tableWrap || !cardsList) return;
     const allVehicles = allEquipment.filter(eq => eq.erp_category === 'masina');
     const urgentVehicles = allVehicles.filter(vehicleHasUrgentDocs);
     const subcatCounts = { masina_mica: 0, autoutilitara: 0, camion: 0, utilaj: 0 };
@@ -12060,74 +12042,56 @@
       ? allVehicles.length + (allVehicles.length === 1 ? ' mașină' : ' mașini')
       : `${filtered.length} din ${allVehicles.length} mașini`;
 
-    if (!filtered.length) {
-      tbody.innerHTML = `<tr><td colspan="9"><div class="machines-table-empty">Nicio mașină ${machinesSubcatFilter === 'Toate' ? 'înregistrată' : 'în această categorie'}.</div></td></tr>`;
-      return;
-    }
-    function dateCell(dateStr, applicable){
-      if (!applicable) return '<td class="mt-na">—</td>';
-      if (!dateStr) return '<td class="mt-na">—</td>';
-      const cls = docDateClass(dateStr);
-      return `<td class="${cls}">${formatWoDateRO(dateStr)}${cls ? ' ⚠' : ''}</td>`;
-    }
-    // Prezentare generală is the browse-everything overview: the plate
-    // number is the single blue link into the full detail card there.
-    // A specific subcategory's table (Mașină mică, Camion, ...) is a
-    // quick worklist instead — no link, but Editează/Șterge icons at
-    // the end of each row for fast in-place actions.
+    // Prezentare generală is the browse-everything overview, kept as a
+    // table with the plate number as the one entry point — click it and
+    // you land straight on the car's own subcategory page, same as a
+    // ticket in Sesizări Overview. A specific subcategory page is itself
+    // that destination: a worklist of full cards (not a table), so every
+    // field is already visible with no extra click, plus Editează/Șterge
+    // icons on each card.
     const onOverview = machinesSidebarKey === 'Toate';
-    tbody.innerHTML = filtered.map(eq => {
-      const isCamion = eq.category === 'camion';
-      const plateText = escapeHtml(eq.plate_number || '—');
-      const plateCell = onOverview
-        ? `<a href="#" class="ticket-link" data-vehicle-id="${escapeHtml(eq.id)}">${plateText}</a>`
-        : plateText;
-      const actionsCell = onOverview ? '<td></td>' : `
-        <td>
-          <div class="mt-row-actions">
-            <button type="button" class="mt-row-icon-btn mt-edit-icon" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-            </button>
-            <button type="button" class="mt-row-icon-btn danger mt-delete-icon" data-vehicle-id="${escapeHtml(eq.id)}" title="Șterge" aria-label="Șterge ${escapeHtml(eq.name)}">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-            </button>
-          </div>
-        </td>
-      `;
-      return `
-        <tr>
-          <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div><div class="mt-subcat">${eq.notes ? escapeHtml(eq.notes) : ''}</div></td>
-          <td>${plateCell}</td>
-          ${dateCell(eq.itp_expires_on, true)}
-          ${dateCell(eq.insurance_expires_on, true)}
-          ${dateCell(eq.transport_license_expires_on, isCamion)}
-          ${dateCell(eq.parking_ticket_expires_on, true)}
-          ${dateCell(eq.vignette_expires_on, true)}
-          ${dateCell(eq.tachograph_expires_on, isCamion)}
-          ${actionsCell}
-        </tr>
-      `;
-    }).join('');
+    tableWrap.style.display = onOverview ? '' : 'none';
+    cardsList.style.display = onOverview ? 'none' : '';
+
+    if (onOverview) {
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="8"><div class="machines-table-empty">Nicio mașină înregistrată.</div></td></tr>`;
+        return;
+      }
+      function dateCell(dateStr, applicable){
+        if (!applicable) return '<td class="mt-na">—</td>';
+        if (!dateStr) return '<td class="mt-na">—</td>';
+        const cls = docDateClass(dateStr);
+        return `<td class="${cls}">${formatWoDateRO(dateStr)}${cls ? ' ⚠' : ''}</td>`;
+      }
+      tbody.innerHTML = filtered.map(eq => {
+        const isCamion = eq.category === 'camion';
+        return `
+          <tr>
+            <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div><div class="mt-subcat">${eq.notes ? escapeHtml(eq.notes) : ''}</div></td>
+            <td><a href="#" class="ticket-link" data-vehicle-id="${escapeHtml(eq.id)}">${escapeHtml(eq.plate_number || '—')}</a></td>
+            ${dateCell(eq.itp_expires_on, true)}
+            ${dateCell(eq.insurance_expires_on, true)}
+            ${dateCell(eq.transport_license_expires_on, isCamion)}
+            ${dateCell(eq.parking_ticket_expires_on, true)}
+            ${dateCell(eq.vignette_expires_on, true)}
+            ${dateCell(eq.tachograph_expires_on, isCamion)}
+          </tr>
+        `;
+      }).join('');
+    } else {
+      cardsList.innerHTML = filtered.length
+        ? filtered.map(vehicleBigCardHtml).join('')
+        : `<div class="machines-table-empty">Nicio mașină în această categorie.</div>`;
+    }
   }
   const machinesTableBody = document.getElementById('machinesTableBody');
   if (machinesTableBody) machinesTableBody.addEventListener('click', (e) => {
     const link = e.target.closest('.ticket-link');
-    if (link) {
-      e.preventDefault();
-      const eq = allEquipment.find(v => v.id === link.dataset.vehicleId);
-      if (eq) openVehicleDetail(eq);
-      return;
-    }
-    const editIcon = e.target.closest('.mt-edit-icon');
-    if (editIcon) {
-      const eq = allEquipment.find(v => v.id === editIcon.dataset.vehicleId);
-      if (eq) openVehicleEdit(eq);
-      return;
-    }
-    const deleteIcon = e.target.closest('.mt-delete-icon');
-    if (deleteIcon) {
-      deleteVehicle(deleteIcon.dataset.vehicleId);
-    }
+    if (!link) return;
+    e.preventDefault();
+    const eq = allEquipment.find(v => v.id === link.dataset.vehicleId);
+    if (eq) goToVehicle(eq);
   });
   function renderErpRow(eq){
     const isEquipment = eq.item_type === 'echipament';
@@ -12395,15 +12359,15 @@
     }
   });
   /* ============================================================
-     FIȘA MAȘINII (vehicleDetailSheet) — click pe numărul de
-     înmatriculare, DOAR din tabelul unei subcategorii specifice (nu
-     din Prezentare generală — acolo numărul e text simplu, fără
-     editare), deschide mașina ca un card mare, cu toate datele
-     (identitate + documente) și doar două acțiuni: Editează (deschide
-     vehicleFormSheet, cu totul editabil) și Șterge.
+     CARDUL UNEI MAȘINI — folosit pe pagina unei subcategorii
+     specifice (Mașină mică, Autoutilitară, Camion, Utilaj), unde
+     fiecare mașină e un card complet (identitate + toate documentele),
+     nu un rând de tabel. Un click pe numărul de înmatriculare din
+     Prezentare generală (goToVehicle) duce direct la cardul ei acolo,
+     la fel cum un click pe o sesizare din Overview duce la fișa ei
+     completă din Sesizări — nu un popup intermediar.
      ============================================================ */
-  let vehicleDetailCurrentId = null;
-  function vehicleDetailCardHtml(eq){
+  function vehicleCardContentHtml(eq){
     const metaParts = [];
     if (eq.serial_number) metaParts.push(`Serie șasiu: ${escapeHtml(eq.serial_number)}`);
     if (eq.assigned_to) metaParts.push(`Alocat la: ${escapeHtml(eq.assigned_to)}`);
@@ -12418,9 +12382,14 @@
         </div>
       `;
     }).join('');
+    // The title (set via "Titlu", falling back to the plate number) is
+    // the heading — same as the table's "Mașină" column — with the
+    // plate number itself shown as a tag alongside it, not duplicated
+    // as the heading when a real title has been given.
     return `
       <div class="backlog-title-line">
-        <span class="backlog-title">${escapeHtml(eq.plate_number || eq.name)}</span>
+        <span class="backlog-title">${escapeHtml(eq.name)}</span>
+        <span class="backlog-tag">${escapeHtml(eq.plate_number || '—')}</span>
         <span class="backlog-tag">${escapeHtml(VEHICLE_SUBCAT_LABEL[eq.category] || '')}</span>
       </div>
       ${metaParts.length ? `<div class="backlog-meta-line">${metaParts.join(' · ')}</div>` : ''}
@@ -12428,16 +12397,36 @@
       <div class="vd-docs-grid">${docsHtml}</div>
     `;
   }
-  function openVehicleDetail(eq){
-    vehicleDetailCurrentId = eq.id;
-    const titleEl = document.getElementById('vehicleDetailSheetTitle');
-    if (titleEl) titleEl.textContent = eq.name || eq.plate_number || 'Mașină';
-    const cardEl = document.getElementById('vehicleDetailCard');
-    if (cardEl) cardEl.innerHTML = vehicleDetailCardHtml(eq);
-    setSheetOpen('vehicleDetailSheet', true);
+  function vehicleBigCardHtml(eq){
+    return `
+      <div class="vehicle-big-card" id="vehicle-card-${escapeHtml(eq.id)}">
+        <div class="vehicle-big-card-actions">
+          <button type="button" class="mt-row-icon-btn mt-edit-icon" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+          </button>
+          <button type="button" class="mt-row-icon-btn danger mt-delete-icon" data-vehicle-id="${escapeHtml(eq.id)}" title="Șterge" aria-label="Șterge ${escapeHtml(eq.name)}">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          </button>
+        </div>
+        ${vehicleCardContentHtml(eq)}
+      </div>
+    `;
   }
-  // Shared by the detail card's Șterge button AND the row delete icon
-  // on a subcategory's table — one confirm/delete/refresh path either way.
+  // Mirrors goToTicket: switch to the vehicle's own subcategory page,
+  // then scroll to and highlight its card there — a click on Prezentare
+  // generală goes straight to the car, not through another popup.
+  function goToVehicle(eq){
+    setMachinesSubcatFilter(eq.category);
+    requestAnimationFrame(() => {
+      const card = document.getElementById('vehicle-card-' + eq.id);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('jump-highlight');
+        setTimeout(() => card.classList.remove('jump-highlight'), 1800);
+      }
+    });
+  }
+  // Shared by the row delete icon — one confirm/delete/refresh path.
   async function deleteVehicle(id){
     const eq = allEquipment.find(v => v.id === id);
     if (!confirm(`Ștergeți mașina${eq ? ' „' + eq.name + '"' : ''}? Această acțiune nu poate fi anulată.`)) return false;
@@ -12448,19 +12437,16 @@
     loadEquipment();
     return true;
   }
-  const vdEditBtn = document.getElementById('vdEditBtn');
-  if (vdEditBtn) vdEditBtn.addEventListener('click', () => {
-    const eq = allEquipment.find(v => v.id === vehicleDetailCurrentId);
-    if (!eq) return;
-    setSheetOpen('vehicleDetailSheet', false);
-    openVehicleEdit(eq);
-  });
-  const vdDeleteBtn = document.getElementById('vdDeleteBtn');
-  if (vdDeleteBtn) vdDeleteBtn.addEventListener('click', async () => {
-    const id = vehicleDetailCurrentId;
-    if (!id) return;
-    const ok = await deleteVehicle(id);
-    if (ok) setSheetOpen('vehicleDetailSheet', false);
+  const machinesCardsList = document.getElementById('machinesCardsList');
+  if (machinesCardsList) machinesCardsList.addEventListener('click', (e) => {
+    const editIcon = e.target.closest('.mt-edit-icon');
+    if (editIcon) {
+      const eq = allEquipment.find(v => v.id === editIcon.dataset.vehicleId);
+      if (eq) openVehicleEdit(eq);
+      return;
+    }
+    const deleteIcon = e.target.closest('.mt-delete-icon');
+    if (deleteIcon) deleteVehicle(deleteIcon.dataset.vehicleId);
   });
   const erpMachinesToggle = document.querySelector('[data-erp-toggle="machines"]');
   const erpMachinesSubgroup = document.querySelector('[data-erp-subgroup="machines"]');
