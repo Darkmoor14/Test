@@ -1183,6 +1183,15 @@
   #machinesTable .mt-warn{color:var(--signal-orange);font-weight:600;}
   #machinesTable .mt-expired{color:var(--signal-red);font-weight:600;}
   .machines-table-empty{padding:40px 0;text-align:center;color:var(--ink-400);}
+  .mt-row-actions{display:flex;gap:6px;justify-content:flex-end;}
+  .mt-row-icon-btn{
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:26px;height:26px;border-radius:6px;
+    border:1px solid var(--line-strong);background:var(--paper-000);
+    color:var(--ink-600);cursor:pointer;padding:0;
+  }
+  .mt-row-icon-btn:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .mt-row-icon-btn.danger:hover{border-color:var(--signal-red);color:var(--signal-red);}
 
   .active-narrow-filter{
     display:none;align-items:center;gap:8px;
@@ -3006,9 +3015,9 @@
       <div class="overview-table-wrap">
         <table class="overview-table" id="machinesTable">
           <colgroup>
-            <col style="width:16%"><col style="width:14%"><col style="width:12%">
-            <col style="width:12%"><col style="width:14%"><col style="width:12%">
-            <col style="width:10%"><col style="width:10%">
+            <col style="width:15%"><col style="width:13%"><col style="width:11%">
+            <col style="width:11%"><col style="width:13%"><col style="width:11%">
+            <col style="width:9%"><col style="width:9%"><col style="width:8%">
           </colgroup>
           <thead>
             <tr>
@@ -3020,6 +3029,7 @@
               <th>Tichete parcare</th>
               <th>Rovinietă</th>
               <th>Tahograf</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="machinesTableBody"></tbody>
@@ -12051,7 +12061,7 @@
       : `${filtered.length} din ${allVehicles.length} mașini`;
 
     if (!filtered.length) {
-      tbody.innerHTML = `<tr><td colspan="8"><div class="machines-table-empty">Nicio mașină ${machinesSubcatFilter === 'Toate' ? 'înregistrată' : 'în această categorie'}.</div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9"><div class="machines-table-empty">Nicio mașină ${machinesSubcatFilter === 'Toate' ? 'înregistrată' : 'în această categorie'}.</div></td></tr>`;
       return;
     }
     function dateCell(dateStr, applicable){
@@ -12060,17 +12070,30 @@
       const cls = docDateClass(dateStr);
       return `<td class="${cls}">${formatWoDateRO(dateStr)}${cls ? ' ⚠' : ''}</td>`;
     }
-    // Clicking into a car's full detail/edit flow is only available
-    // from a specific subcategory's table (Mașină mică, Camion, ...) —
-    // on "Prezentare generală" the plate number is plain text, since
-    // that page is meant as a read-only overview (see machinesSidebarKey).
-    const platesClickable = machinesSidebarKey !== 'Toate';
+    // Prezentare generală is the browse-everything overview: the plate
+    // number is the single blue link into the full detail card there.
+    // A specific subcategory's table (Mașină mică, Camion, ...) is a
+    // quick worklist instead — no link, but Editează/Șterge icons at
+    // the end of each row for fast in-place actions.
+    const onOverview = machinesSidebarKey === 'Toate';
     tbody.innerHTML = filtered.map(eq => {
       const isCamion = eq.category === 'camion';
       const plateText = escapeHtml(eq.plate_number || '—');
-      const plateCell = platesClickable
+      const plateCell = onOverview
         ? `<a href="#" class="ticket-link" data-vehicle-id="${escapeHtml(eq.id)}">${plateText}</a>`
         : plateText;
+      const actionsCell = onOverview ? '<td></td>' : `
+        <td>
+          <div class="mt-row-actions">
+            <button type="button" class="mt-row-icon-btn mt-edit-icon" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+            </button>
+            <button type="button" class="mt-row-icon-btn danger mt-delete-icon" data-vehicle-id="${escapeHtml(eq.id)}" title="Șterge" aria-label="Șterge ${escapeHtml(eq.name)}">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+            </button>
+          </div>
+        </td>
+      `;
       return `
         <tr>
           <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div><div class="mt-subcat">${eq.notes ? escapeHtml(eq.notes) : ''}</div></td>
@@ -12081,6 +12104,7 @@
           ${dateCell(eq.parking_ticket_expires_on, true)}
           ${dateCell(eq.vignette_expires_on, true)}
           ${dateCell(eq.tachograph_expires_on, isCamion)}
+          ${actionsCell}
         </tr>
       `;
     }).join('');
@@ -12088,10 +12112,22 @@
   const machinesTableBody = document.getElementById('machinesTableBody');
   if (machinesTableBody) machinesTableBody.addEventListener('click', (e) => {
     const link = e.target.closest('.ticket-link');
-    if (!link) return;
-    e.preventDefault();
-    const eq = allEquipment.find(v => v.id === link.dataset.vehicleId);
-    if (eq) openVehicleDetail(eq);
+    if (link) {
+      e.preventDefault();
+      const eq = allEquipment.find(v => v.id === link.dataset.vehicleId);
+      if (eq) openVehicleDetail(eq);
+      return;
+    }
+    const editIcon = e.target.closest('.mt-edit-icon');
+    if (editIcon) {
+      const eq = allEquipment.find(v => v.id === editIcon.dataset.vehicleId);
+      if (eq) openVehicleEdit(eq);
+      return;
+    }
+    const deleteIcon = e.target.closest('.mt-delete-icon');
+    if (deleteIcon) {
+      deleteVehicle(deleteIcon.dataset.vehicleId);
+    }
   });
   function renderErpRow(eq){
     const isEquipment = eq.item_type === 'echipament';
@@ -12400,6 +12436,18 @@
     if (cardEl) cardEl.innerHTML = vehicleDetailCardHtml(eq);
     setSheetOpen('vehicleDetailSheet', true);
   }
+  // Shared by the detail card's Șterge button AND the row delete icon
+  // on a subcategory's table — one confirm/delete/refresh path either way.
+  async function deleteVehicle(id){
+    const eq = allEquipment.find(v => v.id === id);
+    if (!confirm(`Ștergeți mașina${eq ? ' „' + eq.name + '"' : ''}? Această acțiune nu poate fi anulată.`)) return false;
+    const { error } = await supabaseClient.from('equipment_inventory').delete().eq('id', id);
+    if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return false; }
+    logEntityActivity('masina', id, 'Mașina a fost ștearsă.');
+    showToast('Mașina a fost ștearsă.');
+    loadEquipment();
+    return true;
+  }
   const vdEditBtn = document.getElementById('vdEditBtn');
   if (vdEditBtn) vdEditBtn.addEventListener('click', () => {
     const eq = allEquipment.find(v => v.id === vehicleDetailCurrentId);
@@ -12411,14 +12459,8 @@
   if (vdDeleteBtn) vdDeleteBtn.addEventListener('click', async () => {
     const id = vehicleDetailCurrentId;
     if (!id) return;
-    const eq = allEquipment.find(v => v.id === id);
-    if (!confirm(`Ștergeți mașina${eq ? ' „' + eq.name + '"' : ''}? Această acțiune nu poate fi anulată.`)) return;
-    const { error } = await supabaseClient.from('equipment_inventory').delete().eq('id', id);
-    if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
-    logEntityActivity('masina', id, 'Mașina a fost ștearsă.');
-    setSheetOpen('vehicleDetailSheet', false);
-    showToast('Mașina a fost ștearsă.');
-    loadEquipment();
+    const ok = await deleteVehicle(id);
+    if (ok) setSheetOpen('vehicleDetailSheet', false);
   });
   const erpMachinesToggle = document.querySelector('[data-erp-toggle="machines"]');
   const erpMachinesSubgroup = document.querySelector('[data-erp-subgroup="machines"]');
