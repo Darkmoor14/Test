@@ -2102,7 +2102,17 @@
         <div class="category-panel-section" data-category="erp">
           <button type="button" class="admin-tab category-panel-item" data-tab="erp-home">Home</button>
           <button type="button" class="admin-tab category-panel-item" data-tab="equipment">Echipamente</button>
-          <button type="button" class="admin-tab category-panel-item" data-tab="machines">Mașini</button>
+          <button type="button" class="category-panel-item docs-nav-toggle" data-erp-toggle="machines">
+            <span>Mașini</span>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <div class="docs-nav-subgroup" data-erp-subgroup="machines">
+            <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn active" data-subcat="Toate">Toate</button>
+            <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="masina_mica">Mașină mică</button>
+            <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="autoutilitara">Autoutilitară</button>
+            <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="camion">Camion</button>
+            <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="utilaj">Utilaj</button>
+          </div>
           <button type="button" class="admin-tab category-panel-item" data-tab="materials">Materiale</button>
         </div>
         <div class="category-panel-section" data-category="docs">
@@ -2917,7 +2927,6 @@
         </div>
         <button type="button" class="btn btn-primary" id="addMachineBtn">+ Adaugă mașină</button>
       </div>
-      <div class="chips" id="machinesSubcatChips" style="margin-bottom:16px;"></div>
       <div class="backlog-list" id="machinesList"></div>
     </div>
     <div class="admin-panel" id="panel-materials">
@@ -3639,6 +3648,41 @@
     <div class="sheet-actions">
       <button class="btn" id="efCancelBtn" type="button" data-close-sheet="erpItemFormSheet">Anulează</button>
       <button class="btn btn-primary" id="efSaveBtn" type="button">Salvează</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="vehicleQuickAddSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="vehicleQuickAddSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vehicleQuickAddSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div><h3 id="vehicleQuickAddSheetTitle">Adaugă mașină</h3></div>
+      <button type="button" class="sheet-close" data-close-sheet="vehicleQuickAddSheet" aria-label="Închide">×</button>
+    </div>
+    <p class="status-note" style="margin-top:0;">Restul detaliilor (kilometraj, documente etc.) se completează ulterior, din butonul „Editează”.</p>
+    <div class="pf-grid">
+      <div class="ctrl-field">
+        <label>Nr. înmatriculare</label>
+        <input type="text" id="vqa-plate" placeholder="ex: CJ 01 ABC">
+      </div>
+      <div class="ctrl-field">
+        <label>Serie șasiu</label>
+        <input type="text" id="vqa-chassis" placeholder="ex: SASIU-4471">
+      </div>
+      <div class="ctrl-field" style="grid-column:1/-1;">
+        <label>Subcategorie</label>
+        <select id="vqa-subcat">
+          <option value="masina_mica">Mașină mică</option>
+          <option value="autoutilitara">Autoutilitară</option>
+          <option value="camion">Camion</option>
+          <option value="utilaj">Utilaj</option>
+        </select>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn" type="button" data-close-sheet="vehicleQuickAddSheet">Anulează</button>
+      <button class="btn btn-primary" id="vqaSaveBtn" type="button">Adaugă</button>
     </div>
   </div>
 </div>
@@ -8245,6 +8289,12 @@
     else if (tabKey === 'projects-home') renderProjectsHomeStats();
     else if (tabKey === 'home') renderHomeDigest();
     else if (tabKey === 'lps' && isReportFocusedView()) refreshLookaheadWorkspace();
+    if (tabKey === 'machines') {
+      const sg = document.querySelector('[data-erp-subgroup="machines"]');
+      const tg = document.querySelector('[data-erp-toggle="machines"]');
+      if (sg) sg.classList.add('open');
+      if (tg) tg.classList.add('open');
+    }
     // Proiecte publice always opens on "Active" — otherwise whichever
     // status chip was last clicked earlier in the session (e.g. "Toate"
     // while triaging) silently stuck for every later visit to this tab,
@@ -11705,18 +11755,11 @@
   // câmpul "Subcategorie" ales la adăugare — Camion are în plus
   // Licență transport/Tahograf, celelalte 3 nu.
   const VEHICLE_SUBCAT_LABEL = { masina_mica: 'Mașină mică', autoutilitara: 'Autoutilitară', camion: 'Camion', utilaj: 'Utilaj' };
-  const MACHINES_SUBCAT_CHIP_DEFS = [
-    { key: 'Toate', label: 'Toate' },
-    { key: 'masina_mica', label: 'Mașină mică' },
-    { key: 'autoutilitara', label: 'Autoutilitară' },
-    { key: 'camion', label: 'Camion' },
-    { key: 'utilaj', label: 'Utilaj' },
-  ];
   let machinesSubcatFilter = 'Toate';
   function setMachinesSubcatFilter(key){
     machinesSubcatFilter = key;
-    document.querySelectorAll('#machinesSubcatChips .chip').forEach(chip => {
-      chip.classList.toggle('active', chip.dataset.key === key);
+    document.querySelectorAll('.erp-machines-subcat-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.subcat === key);
     });
     renderEquipment();
   }
@@ -11830,7 +11873,7 @@
       </div>
       <div class="backlog-actions">
         <button class="btn eq-edit">Editează</button>
-        <button class="btn btn-primary eq-status">${escapeHtml(EQUIPMENT_STATUS_LABEL[EQUIPMENT_STATUS_CYCLE[eq.status]] || 'Schimbă starea')}</button>
+        ${erpCategory === 'masina' ? '' : `<button class="btn btn-primary eq-status">${escapeHtml(EQUIPMENT_STATUS_LABEL[EQUIPMENT_STATUS_CYCLE[eq.status]] || 'Schimbă starea')}</button>`}
         ${erpCategory === 'material' ? '<button class="btn eq-ledger">Jurnal stoc</button>' : ''}
         ${eq.erp_category === 'masina' && eq.service_interval_km != null ? '<button class="btn eq-service-done">Revizie efectuată</button>' : ''}
         <button class="btn eq-delete">Șterge</button>
@@ -11847,7 +11890,8 @@
       showToast(`Următoarea revizie: ${nextServiceKm.toLocaleString('ro-RO')} km.`);
       loadEquipment();
     });
-    row.querySelector('.eq-status').addEventListener('click', async () => {
+    const statusBtn = row.querySelector('.eq-status');
+    if (statusBtn) statusBtn.addEventListener('click', async () => {
       const nextStatus = EQUIPMENT_STATUS_CYCLE[eq.status] || 'Disponibil';
       const { error } = await supabaseClient.from('equipment_inventory').update({ status: nextStatus }).eq('id', eq.id);
       if (error) { console.error(error); alert('Eroare la actualizare. Încercați din nou.'); return; }
@@ -12017,9 +12061,46 @@
   }
   const addEquipmentBtn = document.getElementById('addEquipmentBtn');
   if (addEquipmentBtn) addEquipmentBtn.addEventListener('click', () => openEquipmentForm(null, 'echipament'));
+  // Adăugarea unei mașini e un formular separat, minimal (doar Nr.
+  // înmatriculare / Serie șasiu / Subcategorie) — restul detaliilor
+  // (kilometraj, documente etc.) se completează ulterior din
+  // "Editează", care deschide formularul complet erpItemFormSheet.
   const addMachineBtn = document.getElementById('addMachineBtn');
-  if (addMachineBtn) addMachineBtn.addEventListener('click', () => openEquipmentForm(null, 'masina'));
-  renderChipRow('machinesSubcatChips', MACHINES_SUBCAT_CHIP_DEFS, () => machinesSubcatFilter, setMachinesSubcatFilter);
+  if (addMachineBtn) addMachineBtn.addEventListener('click', () => {
+    document.getElementById('vqa-plate').value = '';
+    document.getElementById('vqa-chassis').value = '';
+    document.getElementById('vqa-subcat').value = 'masina_mica';
+    setSheetOpen('vehicleQuickAddSheet', true);
+  });
+  const vqaSaveBtn = document.getElementById('vqaSaveBtn');
+  if (vqaSaveBtn) vqaSaveBtn.addEventListener('click', async () => {
+    const plate = document.getElementById('vqa-plate').value.trim();
+    const chassis = document.getElementById('vqa-chassis').value.trim();
+    const subcat = document.getElementById('vqa-subcat').value;
+    if (!plate) { alert('Completați numărul de înmatriculare.'); return; }
+    const { error } = await supabaseClient.from('equipment_inventory').insert({
+      name: plate, item_type: 'echipament', erp_category: 'masina', category: subcat,
+      plate_number: plate, serial_number: chassis || null, status: 'Disponibil',
+    });
+    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+    setSheetOpen('vehicleQuickAddSheet', false);
+    showToast('Mașina a fost adăugată.');
+    loadEquipment();
+  });
+  const erpMachinesToggle = document.querySelector('[data-erp-toggle="machines"]');
+  const erpMachinesSubgroup = document.querySelector('[data-erp-subgroup="machines"]');
+  if (erpMachinesToggle && erpMachinesSubgroup) {
+    erpMachinesToggle.addEventListener('click', () => {
+      const open = erpMachinesSubgroup.classList.toggle('open');
+      erpMachinesToggle.classList.toggle('open', open);
+    });
+    erpMachinesSubgroup.querySelectorAll('.erp-machines-subcat-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openAdminTab('machines');
+        setMachinesSubcatFilter(btn.dataset.subcat);
+      });
+    });
+  }
   const addMaterialBtn = document.getElementById('addMaterialBtn');
   if (addMaterialBtn) addMaterialBtn.addEventListener('click', () => openEquipmentForm(null, 'material'));
   const efSaveBtn = document.getElementById('efSaveBtn');
