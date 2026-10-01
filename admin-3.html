@@ -1169,7 +1169,7 @@
   .priority-card.active{border-color:var(--copper-500);background:var(--copper-050);}
   .priority-card.active .k{color:var(--copper-600);}
   .priority-card.active .num{color:var(--copper-600);}
-  /* Mașini's table reuses .overview-table (Sesizări) wholesale for a
+  /* Parc Auto's table reuses .overview-table (Sesizări) wholesale for a
      consistent look — only the vehicle-specific bits below are new. */
   #machinesTable .mt-name-cell{white-space:normal;}
   #machinesTable .mt-name{font-weight:600;color:var(--ink-900);}
@@ -2172,7 +2172,7 @@
           <button type="button" class="admin-tab category-panel-item" data-tab="erp-home">Home</button>
           <button type="button" class="admin-tab category-panel-item" data-tab="equipment">Echipamente</button>
           <button type="button" class="category-panel-item docs-nav-toggle" data-erp-toggle="machines">
-            <span>Mașini</span>
+            <span>Parc Auto</span>
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
           <div class="docs-nav-subgroup" data-erp-subgroup="machines">
@@ -2946,7 +2946,7 @@
           <div class="sub">Scule și utilaje mici</div>
         </button>
         <button type="button" class="priority-card" id="erpHomeMachinesCard">
-          <span class="k">◆ Mașini</span>
+          <span class="k">◆ Parc Auto</span>
           <div class="num" id="erpHomeMachinesCount">0</div>
           <div class="sub">Utilaje grele și transport</div>
         </button>
@@ -2971,7 +2971,7 @@
           <span class="home-nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8"/><path d="M14 17H9"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="17.5" cy="17.5" r="1.5"/></svg>
           </span>
-          <span class="home-nav-text"><span class="home-nav-label">Mașini</span><span class="home-nav-sub">Utilaje grele și autovehicule</span></span>
+          <span class="home-nav-text"><span class="home-nav-label">Parc Auto</span><span class="home-nav-sub">Utilaje grele și autovehicule</span></span>
         </button>
         <button type="button" class="home-nav-btn" id="erpHomeNavMaterials">
           <span class="home-nav-icon" aria-hidden="true">
@@ -3252,7 +3252,7 @@
 
         <section class="docs-section" id="docs-nav" data-docs-group="home">
           <h3>Cum navighezi</h3>
-          <p>Platforma este organizată pe cinci zone, fiecare cu propria bară laterală (a doua coloană, chiar lângă cea cu iconițe): <strong>Sesizări</strong> (Prezentare generală, Funcționale, Accidente), <strong>Proiecte</strong> (Home, Proiecte publice, Avarii rețele, Proiecte LPS, Programe lucrări), <strong>ERP</strong> (Home, Echipamente, Mașini, Materiale), <strong>Documentație</strong> (pagina de față) și <strong>Stare sistem</strong> (Stare sistem, Auto-îmbunătățire).</p>
+          <p>Platforma este organizată pe cinci zone, fiecare cu propria bară laterală (a doua coloană, chiar lângă cea cu iconițe): <strong>Sesizări</strong> (Prezentare generală, Funcționale, Accidente), <strong>Proiecte</strong> (Home, Proiecte publice, Avarii rețele, Proiecte LPS, Programe lucrări), <strong>ERP</strong> (Home, Echipamente, Parc Auto, Materiale), <strong>Documentație</strong> (pagina de față) și <strong>Stare sistem</strong> (Stare sistem, Auto-îmbunătățire).</p>
           <ul>
             <li><strong>⌂ Acasă</strong> (prima iconiță din bara principală) — te duce oricând înapoi la pagina de start, din orice altă pagină te-ai afla.</li>
             <li><strong>Bara principală</strong> (coloana îngustă, cu iconițe) — comută între cele cinci zone de mai sus. Rămâne mereu vizibilă.</li>
@@ -3275,7 +3275,7 @@
           <ul>
             <li><strong>Sesizări</strong> — Prezentare generală, cu sesizările funcționale și accidentele deja filtrate pe cele active.</li>
             <li><strong>Proiecte</strong> — pagina de start a Proiectelor, cu Proiecte publice, Avarii rețele, Proiecte LPS și Programe lucrări.</li>
-            <li><strong>ERP</strong> — pagina de start a ERP-ului, cu Echipamente, Mașini și Materiale.</li>
+            <li><strong>ERP</strong> — pagina de start a ERP-ului, cu Echipamente, Parc Auto și Materiale.</li>
             <li><strong>Documentație</strong> — pagina de față.</li>
             <li><strong>Stare sistem</strong> — verificări live ale conexiunii, funcțiilor și notificărilor.</li>
           </ul>
@@ -3448,23 +3448,25 @@
         </section>
 
         <section class="docs-section" id="docs-erp" data-docs-group="erp">
-          <h3>ERP — Echipamente, Mașini, Materiale</h3>
-          <p>Inventarul firmei, împărțit în trei pagini — <strong>Echipamente</strong> (scule, generatoare, compresoare), <strong>Mașini</strong> (utilaje grele, transport) și <strong>Materiale</strong> (consumabile: cabluri, țevi, beton) — plus o pagină de <strong>Home</strong> cu totalurile fiecăreia.</p>
-          <h4>Cum adaugi un articol</h4>
+          <h3>ERP — Echipamente, Parc Auto, Materiale</h3>
+          <p>Inventarul firmei, împărțit în trei pagini — <strong>Echipamente</strong> (scule, generatoare, compresoare), <strong>Parc Auto</strong> (utilaje grele, transport) și <strong>Materiale</strong> (consumabile: cabluri, țevi, beton) — plus o pagină de <strong>Home</strong> cu totalurile fiecăreia.</p>
+          <h4>Cum adaugi un echipament sau material</h4>
           <ol>
-            <li>Apasă <strong>„+ Adaugă echipament / mașină / material”</strong> din pagina potrivită — formularul se deschide deja cu categoria corectă bifată.</li>
+            <li>Apasă <strong>„+ Adaugă echipament / material”</strong> din pagina potrivită — formularul se deschide deja cu categoria corectă bifată.</li>
             <li>Completează <strong>Denumire</strong>, <strong>Categorie ERP</strong> (dacă vrei s-o schimbi), <strong>Subcategorie</strong>, <strong>Nr. serie / inventar</strong>, <strong>Locație curentă</strong>, <strong>Alocat la</strong> și <strong>Notițe</strong>.</li>
-            <li>Pentru <strong>Materiale</strong>, completezi și <strong>Cantitate</strong> + <strong>Unitate</strong> (ex: 500 m). Pentru <strong>Mașini</strong>, completezi <strong>Kilometraj (km)</strong> — apare doar pentru această categorie.</li>
+            <li>Pentru <strong>Materiale</strong>, completezi și <strong>Cantitate</strong> + <strong>Unitate</strong> (ex: 500 m).</li>
             <li>Apasă <strong>„Salvează”</strong>.</li>
           </ol>
-          <h4>Echipamente și mașini — rezervare pe perioadă</h4>
+          <h4>Parc Auto — adăugare, date și documente</h4>
+          <p>Parc Auto are propriul flux, separat de Echipamente/Materiale. <strong>„+ Adaugă mașină”</strong> deschide un formular scurt: <strong>Nr. înmatriculare</strong>, <strong>Serie șasiu</strong>, <strong>Subcategorie</strong> (Mașină mică, Autoutilitară, Camion, Utilaj), <strong>Alocat la</strong> și <strong>Notițe</strong>. Click pe numărul de înmatriculare din tabel deschide fișa mașinii, cu trei acțiuni: <strong>Date mașină</strong> (editează aceleași câmpuri de identitate), <strong>Editează date</strong> (datele de expirare — ITP, Asigurare, Licență transport, Tichete parcare, Rovinietă, Tahograf; Licență transport și Tahograf apar doar la Camion) și <strong>Șterge</strong>.</p>
+          <h4>Echipamente și Parc Auto — rezervare pe perioadă</h4>
           <p>Un echipament sau o mașină nu se scade din stoc — se <strong>rezervă pe o perioadă</strong> (de la/până la), din Planificarea LPS (vezi mai jos). Dacă aceeași mașină e deja rezervată pentru o perioadă care se suprapune, platforma te avertizează înainte să confirmi, dar nu te blochează — tu decizi dacă suprapunerea e reală sau nu.</p>
           <h4>Materiale — scădere din stoc</h4>
           <p>Un material se scade din <strong>Cantitate</strong> imediat ce e rezervat pe un proiect LPS, cu o notă că proiectul nu e încă terminat. Dacă ștergi o rezervare neconsumată încă, cantitatea se întoarce automat în stoc.</p>
           <h4>Legătura cu Planificarea LPS</h4>
           <p>Din tab-ul <strong>Look-ahead</strong> al unui proiect LPS, butonul <strong>„+ Resursă”</strong> deschide o fereastră cu tot inventarul ERP: alegi <strong>Echipament</strong> sau <strong>Material</strong>, articolul dorit, și completezi fie <strong>perioada</strong> (pentru echipament/mașină), fie <strong>cantitatea necesară</strong> (pentru material). Rezervarea apare apoi direct pe acel element din Look-ahead, cu un buton <strong>„Marchează consumat”</strong> (material) sau <strong>„Eliberează”</strong> (echipament/mașină) când lucrarea se termină.</p>
-          <h4>Schimbarea stării</h4>
-          <p>Fiecare articol are un buton de stare care trece prin <strong>Disponibil → În folosință → Service → Disponibil</strong>, și butoanele <strong>Editează</strong> / <strong>Șterge</strong>.</p>
+          <h4>Schimbarea stării (Echipamente/Materiale)</h4>
+          <p>Fiecare echipament sau material are un buton de stare care trece prin <strong>Disponibil → În folosință → Service → Disponibil</strong>, și butoanele <strong>Editează</strong> / <strong>Șterge</strong>.</p>
         </section>
 
         <section class="docs-section" id="docs-status" data-docs-group="home">
@@ -6847,6 +6849,7 @@
   // Updated by hand each time a real change ships — a plain, visible
   // record of what's been built, not an automated log.
   const APP_CHANGELOG = [
+    { date: '01.10.2026', text: 'Secțiunea Mașini din ERP a fost redenumită în Parc Auto.' },
     { date: '01.10.2026', text: 'ERP împărțit în Echipamente / Mașini / Materiale, cu pagină proprie de Home.' },
     { date: '01.10.2026', text: 'Stare sistem: jurnal de erori, sugestii de îmbunătățire (clicuri repetate, scris excesiv) și istoric actualizări.' },
     { date: '30.09.2026', text: 'Programe lucrări: calendar lunar complet, cu descărcare/printare și alocare pe persoană.' },
@@ -8304,7 +8307,7 @@
     workorders: 'Programe lucrări',
     'erp-home': 'ERP',
     equipment: 'Echipamente',
-    machines: 'Mașini',
+    machines: 'Parc Auto',
     materials: 'Materiale',
     'erp-audit': 'Jurnal de activitate',
     status: 'Stare sistem',
@@ -11885,7 +11888,7 @@
     echipament: { list: 'equipmentList', count: 'equipmentCount', empty: 'Niciun echipament înregistrat.' },
     material: { list: 'materialsList', count: 'materialsCount', empty: 'Niciun material înregistrat.' },
   };
-  // Mașini se împart în 4 subcategorii fixe, distribuite automat după
+  // Parc Auto se împarte în 4 subcategorii fixe, distribuite automat după
   // câmpul "Subcategorie" ales la adăugare — Camion are în plus
   // Licență transport/Tahograf, celelalte 3 nu.
   const VEHICLE_SUBCAT_LABEL = { masina_mica: 'Mașină mică', autoutilitara: 'Autoutilitară', camion: 'Camion', utilaj: 'Utilaj' };
