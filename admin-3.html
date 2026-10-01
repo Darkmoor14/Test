@@ -3556,6 +3556,10 @@
         <label>Kilometraj (km)</label>
         <input type="number" id="ef-odometer" min="0" step="1" placeholder="ex: 48200">
       </div>
+      <div class="ctrl-field" id="ef-service-interval-field">
+        <label>Interval revizie (km)</label>
+        <input type="number" id="ef-service-interval" min="0" step="100" placeholder="ex: 10000 (opțional)">
+      </div>
       <div class="ctrl-field">
         <label>Nr. serie / inventar</label>
         <input type="text" id="ef-serial" placeholder="ex: SN-4471">
@@ -11685,11 +11689,15 @@
   function isLowStock(eq){
     return eq.erp_category === 'material' && eq.reorder_threshold != null && Number(eq.quantity) <= Number(eq.reorder_threshold);
   }
+  function needsService(eq){
+    return eq.erp_category === 'masina' && eq.next_service_km != null && eq.odometer_km != null && Number(eq.odometer_km) >= Number(eq.next_service_km);
+  }
   function renderErpRow(eq){
     const isEquipment = eq.item_type === 'echipament';
     const erpCategory = eq.erp_category || (isEquipment ? 'echipament' : 'material');
     const qtyLabel = !isEquipment && eq.quantity != null ? (Number(eq.quantity) + (eq.unit ? ' ' + eq.unit : '')) : (erpCategory === 'masina' && eq.odometer_km != null ? Number(eq.odometer_km).toLocaleString('ro-RO') + ' km' : '');
     const lowStock = isLowStock(eq);
+    const dueService = needsService(eq);
     const myAssignments = allResourceAssignments.filter(a => a.inventory_item_id === eq.id && a.status === 'reserved');
     let reservationNote = '';
     if (isEquipment && myAssignments.length) {
@@ -11708,21 +11716,32 @@
           <span class="backlog-tag erp-type-tag ${erpCategory}">${ERP_CATEGORY_LABEL[erpCategory]}</span>
           <span class="backlog-tag">${escapeHtml(EQUIPMENT_STATUS_LABEL[eq.status] || eq.status)}</span>
           ${lowStock ? '<span class="backlog-tag erp-warning-tag">⚠ Stoc redus</span>' : ''}
+          ${dueService ? '<span class="backlog-tag erp-warning-tag">⚠ Revizie necesară</span>' : ''}
           ${qtyLabel ? `<span class="backlog-days">${escapeHtml(qtyLabel)}</span>` : ''}
         </div>
         <div class="backlog-meta-line">${escapeHtml(eq.category || '')}${eq.location ? ' · ' + escapeHtml(eq.location) : ''}${eq.assigned_to ? ' · alocat: ' + escapeHtml(eq.assigned_to) : ''}${eq.serial_number ? ' · SN ' + escapeHtml(eq.serial_number) : ''}</div>
         ${reservationNote ? `<div class="backlog-meta-line erp-reservation-note">ⓘ ${escapeHtml(reservationNote)}</div>` : ''}
+        ${eq.erp_category === 'masina' && eq.next_service_km != null ? `<div class="backlog-meta-line">ⓘ Revizie la ${Number(eq.next_service_km).toLocaleString('ro-RO')} km</div>` : ''}
       </div>
       <div class="backlog-actions">
         <button class="btn eq-edit">Editează</button>
         <button class="btn btn-primary eq-status">${escapeHtml(EQUIPMENT_STATUS_LABEL[EQUIPMENT_STATUS_CYCLE[eq.status]] || 'Schimbă starea')}</button>
         ${erpCategory === 'material' ? '<button class="btn eq-ledger">Jurnal stoc</button>' : ''}
+        ${eq.erp_category === 'masina' && eq.service_interval_km != null ? '<button class="btn eq-service-done">Revizie efectuată</button>' : ''}
         <button class="btn eq-delete">Șterge</button>
       </div>
     `;
     row.querySelector('.eq-edit').addEventListener('click', () => openEquipmentForm(eq));
     const ledgerBtn = row.querySelector('.eq-ledger');
     if (ledgerBtn) ledgerBtn.addEventListener('click', () => openStockLedgerSheet(eq.id, eq.name));
+    const serviceDoneBtn = row.querySelector('.eq-service-done');
+    if (serviceDoneBtn) serviceDoneBtn.addEventListener('click', async () => {
+      const nextServiceKm = (Number(eq.odometer_km) || 0) + Number(eq.service_interval_km);
+      const { error } = await supabaseClient.from('equipment_inventory').update({ next_service_km: nextServiceKm }).eq('id', eq.id);
+      if (error) { console.error(error); alert('Eroare la actualizare. Încercați din nou.'); return; }
+      showToast(`Următoarea revizie: ${nextServiceKm.toLocaleString('ro-RO')} km.`);
+      loadEquipment();
+    });
     row.querySelector('.eq-status').addEventListener('click', async () => {
       const nextStatus = EQUIPMENT_STATUS_CYCLE[eq.status] || 'Disponibil';
       const { error } = await supabaseClient.from('equipment_inventory').update({ status: nextStatus }).eq('id', eq.id);
@@ -11773,10 +11792,11 @@
     const list = document.getElementById('erpAlertsList');
     if (!wrap || !list) return;
     const lowStockItems = allEquipment.filter(isLowStock);
-    if (!lowStockItems.length) { wrap.style.display = 'none'; list.innerHTML = ''; return; }
+    const dueServiceItems = allEquipment.filter(needsService);
+    if (!lowStockItems.length && !dueServiceItems.length) { wrap.style.display = 'none'; list.innerHTML = ''; return; }
     wrap.style.display = '';
-    list.innerHTML = lowStockItems.map(eq => `
-      <div class="status-history-item">
+    const lowStockHtml = lowStockItems.map(eq => `
+      <div class="status-history-item" data-goto-tab="materials">
         <span class="status-history-time">MATERIAL</span>
         <span class="status-history-dot"></span>
         <div>
@@ -11785,7 +11805,18 @@
         </div>
       </div>
     `).join('');
-    list.querySelectorAll('.status-history-item').forEach(row => row.addEventListener('click', () => openAdminTab('materials')));
+    const dueServiceHtml = dueServiceItems.map(eq => `
+      <div class="status-history-item" data-goto-tab="machines">
+        <span class="status-history-time">MAȘINĂ</span>
+        <span class="status-history-dot"></span>
+        <div>
+          <div class="status-history-check">${escapeHtml(eq.name)}</div>
+          <div class="status-history-message">Revizie necesară: ${Number(eq.odometer_km).toLocaleString('ro-RO')} km (prag ${Number(eq.next_service_km).toLocaleString('ro-RO')} km)</div>
+        </div>
+      </div>
+    `).join('');
+    list.innerHTML = lowStockHtml + dueServiceHtml;
+    list.querySelectorAll('.status-history-item').forEach(row => row.addEventListener('click', () => openAdminTab(row.dataset.gotoTab)));
   }
   const erpHomeEquipmentCard = document.getElementById('erpHomeEquipmentCard');
   if (erpHomeEquipmentCard) erpHomeEquipmentCard.addEventListener('click', () => openAdminTab('equipment'));
@@ -11809,13 +11840,18 @@
     document.getElementById('ef-unit-field').style.display = isMaterial ? '' : 'none';
     document.getElementById('ef-reorder-field').style.display = isMaterial ? '' : 'none';
     document.getElementById('ef-odometer-field').style.display = isVehicle ? '' : 'none';
+    document.getElementById('ef-service-interval-field').style.display = isVehicle ? '' : 'none';
   }
   if (efTypeSelect) efTypeSelect.addEventListener('change', syncEquipmentFormFields);
   let efEditingOriginalOdometer = null;
   let efEditingOriginalQuantity = null;
+  let efEditingOriginalServiceInterval = null;
+  let efEditingOriginalNextService = null;
   function openEquipmentForm(eq, presetCategory){
     efEditingOriginalOdometer = eq && eq.odometer_km != null ? Number(eq.odometer_km) : null;
     efEditingOriginalQuantity = eq && eq.quantity != null ? Number(eq.quantity) : null;
+    efEditingOriginalServiceInterval = eq && eq.service_interval_km != null ? Number(eq.service_interval_km) : null;
+    efEditingOriginalNextService = eq && eq.next_service_km != null ? Number(eq.next_service_km) : null;
     const erpCategory = eq ? (eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material')) : (presetCategory || 'echipament');
     document.getElementById('ef-id').value = eq ? eq.id : '';
     document.getElementById('ef-name').value = eq ? eq.name : '';
@@ -11825,6 +11861,7 @@
     document.getElementById('ef-unit').value = eq ? (eq.unit || '') : '';
     document.getElementById('ef-reorder-threshold').value = eq && eq.reorder_threshold != null ? eq.reorder_threshold : '';
     document.getElementById('ef-odometer').value = eq && eq.odometer_km != null ? eq.odometer_km : '';
+    document.getElementById('ef-service-interval').value = eq && eq.service_interval_km != null ? eq.service_interval_km : '';
     document.getElementById('ef-serial').value = eq ? (eq.serial_number || '') : '';
     document.getElementById('ef-location').value = eq ? (eq.location || '') : '';
     document.getElementById('ef-assigned').value = eq ? (eq.assigned_to || '') : '';
@@ -11853,6 +11890,18 @@
     const reorder_threshold = erp_category === 'material' && reorderRaw !== '' ? parseFloat(reorderRaw) : null;
     const odometerRaw = document.getElementById('ef-odometer').value;
     const odometer_km = erp_category === 'masina' && odometerRaw !== '' ? parseFloat(odometerRaw) : null;
+    const serviceIntervalRaw = document.getElementById('ef-service-interval').value;
+    const service_interval_km = erp_category === 'masina' && serviceIntervalRaw !== '' ? parseFloat(serviceIntervalRaw) : null;
+    // next_service_km e un prag fix, nu recalculat la fiecare schimbare
+    // de kilometraj — altfel revizia n-ar fi niciodată "ajunsă din urmă".
+    // Se recalculează doar la un interval nou/prim-setat, sau explicit
+    // prin butonul "Revizie efectuată" de pe rândul mașinii.
+    let next_service_km = efEditingOriginalNextService;
+    if (service_interval_km == null) {
+      next_service_km = null;
+    } else if (service_interval_km !== efEditingOriginalServiceInterval || next_service_km == null) {
+      next_service_km = (odometer_km || 0) + service_interval_km;
+    }
     const serial_number = document.getElementById('ef-serial').value.trim();
     const location = document.getElementById('ef-location').value.trim();
     const assigned_to = document.getElementById('ef-assigned').value.trim();
@@ -11867,6 +11916,8 @@
       unit: unit || null,
       reorder_threshold,
       odometer_km,
+      service_interval_km,
+      next_service_km,
       odometer_updated_at: odometer_km != null && odometer_km !== efEditingOriginalOdometer ? new Date().toISOString() : undefined,
       serial_number: serial_number || null,
       location: location || null,
