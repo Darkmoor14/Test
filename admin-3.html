@@ -1281,6 +1281,7 @@
     padding:2px 8px;border-radius:3px;background:var(--paper-100);color:var(--ink-600);white-space:nowrap;
   }
   .erp-type-tag.echipament{background:color-mix(in srgb,var(--signal-purple) 15%,white);color:var(--signal-purple);}
+  .erp-type-tag.masina{background:color-mix(in srgb,var(--signal-orange) 15%,white);color:var(--signal-orange);}
   .erp-type-tag.material{background:color-mix(in srgb,var(--signal-blue) 12%,white);color:var(--signal-blue-hover);}
   .erp-reservation-note{color:var(--copper-600);}
   .backlog-days{
@@ -1920,7 +1921,10 @@
           <button type="button" class="admin-tab category-panel-item" data-tab="workorders">Programe lucrări</button>
         </div>
         <div class="category-panel-section" data-category="erp">
-          <button type="button" class="admin-tab category-panel-item" data-tab="equipment">Echipamente și materiale</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="erp-home">Home</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="equipment">Echipamente</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="machines">Mașini</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="materials">Materiale</button>
         </div>
         <div class="category-panel-section" data-category="docs">
           <button type="button" class="admin-tab category-panel-item" data-tab="docs">Documentație</button>
@@ -2632,6 +2636,45 @@
       <div class="backlog-list" id="backlogList"></div>
     </div>
 
+    <div class="admin-panel" id="panel-erp-home">
+      <div class="priority-grid">
+        <button type="button" class="priority-card" id="erpHomeEquipmentCard">
+          <span class="k">● Echipamente</span>
+          <div class="num" id="erpHomeEquipmentCount">0</div>
+          <div class="sub">Scule și utilaje mici</div>
+        </button>
+        <button type="button" class="priority-card" id="erpHomeMachinesCard">
+          <span class="k">◆ Mașini</span>
+          <div class="num" id="erpHomeMachinesCount">0</div>
+          <div class="sub">Utilaje grele și transport</div>
+        </button>
+        <button type="button" class="priority-card" id="erpHomeMaterialsCard">
+          <span class="k">■ Materiale</span>
+          <div class="num" id="erpHomeMaterialsCount">0</div>
+          <div class="sub">Stoc consumabile</div>
+        </button>
+      </div>
+      <div class="home-nav-grid" style="margin-top:28px;">
+        <button type="button" class="home-nav-btn" id="erpHomeNavEquipment">
+          <span class="home-nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></svg>
+          </span>
+          <span class="home-nav-text"><span class="home-nav-label">Echipamente</span><span class="home-nav-sub">Scule, generatoare, compresoare</span></span>
+        </button>
+        <button type="button" class="home-nav-btn" id="erpHomeNavMachines">
+          <span class="home-nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8"/><path d="M14 17H9"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="17.5" cy="17.5" r="1.5"/></svg>
+          </span>
+          <span class="home-nav-text"><span class="home-nav-label">Mașini</span><span class="home-nav-sub">Utilaje grele și autovehicule</span></span>
+        </button>
+        <button type="button" class="home-nav-btn" id="erpHomeNavMaterials">
+          <span class="home-nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+          </span>
+          <span class="home-nav-text"><span class="home-nav-label">Materiale</span><span class="home-nav-sub">Stoc consumabile de șantier</span></span>
+        </button>
+      </div>
+    </div>
     <div class="admin-panel" id="panel-equipment">
       <div class="toolbar">
         <div style="display:flex; align-items:center; gap:14px;">
@@ -2639,57 +2682,25 @@
         </div>
         <button type="button" class="btn btn-primary" id="addEquipmentBtn">+ Adaugă echipament</button>
       </div>
-
-      <div class="project-form" id="equipmentForm" style="display:none;">
-        <input type="hidden" id="ef-id">
-        <div class="pf-grid">
-          <div class="ctrl-field">
-            <label>Denumire</label>
-            <input type="text" id="ef-name" placeholder="ex: Buldoexcavator JCB 3CX">
-          </div>
-          <div class="ctrl-field">
-            <label>Tip</label>
-            <select id="ef-type">
-              <option value="material">Material (consumabil — se scade din stoc)</option>
-              <option value="echipament">Echipament (se rezervă pe perioadă)</option>
-            </select>
-          </div>
-          <div class="ctrl-field">
-            <label>Categorie</label>
-            <input type="text" id="ef-category" placeholder="ex: Utilaj / Material / Sculă">
-          </div>
-          <div class="ctrl-field" id="ef-quantity-field">
-            <label>Cantitate</label>
-            <input type="number" id="ef-quantity" min="0" step="1" value="1">
-          </div>
-          <div class="ctrl-field" id="ef-unit-field">
-            <label>Unitate</label>
-            <input type="text" id="ef-unit" placeholder="ex: buc, kg, m">
-          </div>
-          <div class="ctrl-field">
-            <label>Nr. serie / inventar</label>
-            <input type="text" id="ef-serial" placeholder="ex: SN-4471">
-          </div>
-          <div class="ctrl-field">
-            <label>Locație curentă</label>
-            <input type="text" id="ef-location" placeholder="ex: Depozit central / Șantier Str. X">
-          </div>
-          <div class="ctrl-field">
-            <label>Alocat la</label>
-            <input type="text" id="ef-assigned" placeholder="ex: Echipa 2 / Ionel Ghiurchi">
-          </div>
-          <div class="ctrl-field" style="grid-column:1/-1;">
-            <label>Notițe</label>
-            <input type="text" id="ef-notes" placeholder="Detalii suplimentare">
-          </div>
-        </div>
-        <div class="pf-actions">
-          <button class="btn" id="efCancelBtn" type="button">Anulează</button>
-          <button class="btn btn-primary" id="efSaveBtn" type="button">Salvează</button>
-        </div>
-      </div>
-
       <div class="backlog-list" id="equipmentList"></div>
+    </div>
+    <div class="admin-panel" id="panel-machines">
+      <div class="toolbar">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="result-count" id="machinesCount"></div>
+        </div>
+        <button type="button" class="btn btn-primary" id="addMachineBtn">+ Adaugă mașină</button>
+      </div>
+      <div class="backlog-list" id="machinesList"></div>
+    </div>
+    <div class="admin-panel" id="panel-materials">
+      <div class="toolbar">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="result-count" id="materialsCount"></div>
+        </div>
+        <button type="button" class="btn btn-primary" id="addMaterialBtn">+ Adaugă material</button>
+      </div>
+      <div class="backlog-list" id="materialsList"></div>
     </div>
 
     <div class="admin-panel" id="panel-status">
@@ -3161,6 +3172,64 @@
     <div class="sheet-actions">
       <button type="button" class="btn" data-close-sheet="addResourceSheet">Anulează</button>
       <button type="button" class="btn btn-primary" id="aresSaveBtn">Adaugă</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="erpItemFormSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="erpItemFormSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="erpItemFormSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div><h3 id="erpItemFormSheetTitle">Articol ERP</h3></div>
+      <button type="button" class="sheet-close" data-close-sheet="erpItemFormSheet" aria-label="Închide">×</button>
+    </div>
+    <input type="hidden" id="ef-id">
+    <div class="pf-grid">
+      <div class="ctrl-field">
+        <label>Denumire</label>
+        <input type="text" id="ef-name" placeholder="ex: Buldoexcavator JCB 3CX">
+      </div>
+      <div class="ctrl-field">
+        <label>Categorie ERP</label>
+        <select id="ef-type">
+          <option value="echipament">Echipament (se rezervă pe perioadă)</option>
+          <option value="masina">Mașină (se rezervă pe perioadă)</option>
+          <option value="material">Material (consumabil — se scade din stoc)</option>
+        </select>
+      </div>
+      <div class="ctrl-field">
+        <label>Subcategorie</label>
+        <input type="text" id="ef-category" placeholder="ex: Utilaj greu / Material electric">
+      </div>
+      <div class="ctrl-field" id="ef-quantity-field">
+        <label>Cantitate</label>
+        <input type="number" id="ef-quantity" min="0" step="1" value="1">
+      </div>
+      <div class="ctrl-field" id="ef-unit-field">
+        <label>Unitate</label>
+        <input type="text" id="ef-unit" placeholder="ex: buc, kg, m">
+      </div>
+      <div class="ctrl-field">
+        <label>Nr. serie / inventar</label>
+        <input type="text" id="ef-serial" placeholder="ex: SN-4471">
+      </div>
+      <div class="ctrl-field">
+        <label>Locație curentă</label>
+        <input type="text" id="ef-location" placeholder="ex: Depozit central / Șantier Str. X">
+      </div>
+      <div class="ctrl-field">
+        <label>Alocat la</label>
+        <input type="text" id="ef-assigned" placeholder="ex: Echipa 2 / Ionel Ghiurchi">
+      </div>
+      <div class="ctrl-field" style="grid-column:1/-1;">
+        <label>Notițe</label>
+        <input type="text" id="ef-notes" placeholder="Detalii suplimentare">
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn" id="efCancelBtn" type="button" data-close-sheet="erpItemFormSheet">Anulează</button>
+      <button class="btn btn-primary" id="efSaveBtn" type="button">Salvează</button>
     </div>
   </div>
 </div>
@@ -4186,7 +4255,7 @@
     if (isReportAccount) {
       // Land back on whatever tab was open before a refresh instead of
       // always restarting at the home page — see initialHashTab above.
-      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects-home', 'projects', 'backlog', 'lps', 'workorders', 'equipment', 'status', 'docs'];
+      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects-home', 'projects', 'backlog', 'lps', 'workorders', 'erp-home', 'equipment', 'machines', 'materials', 'status', 'docs'];
       const restoredTab = validReportTabs.includes(initialHashTab) ? initialHashTab : 'home';
       openAdminTab(restoredTab, true);
       history.replaceState({ adminTab: restoredTab }, '', window.location.pathname + window.location.search + '#' + restoredTab);
@@ -7043,7 +7112,10 @@
     backlog: 'Avarii rețele',
     lps: 'Proiecte LPS',
     workorders: 'Programe lucrări',
-    equipment: 'Echipamente și materiale',
+    'erp-home': 'ERP',
+    equipment: 'Echipamente',
+    machines: 'Mașini',
+    materials: 'Materiale',
     status: 'Stare sistem',
     docs: 'Documentație',
   };
@@ -7053,12 +7125,12 @@
   const TAB_CATEGORY = {
     overview: 'tickets', 'tickets-functional': 'tickets', 'tickets-accident': 'tickets',
     'projects-home': 'projects', projects: 'projects', backlog: 'projects', lps: 'projects', workorders: 'projects',
-    equipment: 'erp',
+    'erp-home': 'erp', equipment: 'erp', machines: 'erp', materials: 'erp',
     docs: 'docs',
     status: 'status',
   };
   const CATEGORY_DEFAULT_TAB = {
-    tickets: 'overview', projects: 'projects-home', erp: 'equipment', docs: 'docs', status: 'status',
+    tickets: 'overview', projects: 'projects-home', erp: 'erp-home', docs: 'docs', status: 'status',
   };
   const CATEGORY_TITLES = {
     tickets: 'Sesizări', projects: 'Proiecte', erp: 'ERP', docs: 'Documentație', status: 'Stare sistem',
@@ -7153,7 +7225,7 @@
     else if (tabKey === 'tickets-accident') setTicketTypeFilter('accident', { skipRender: true });
     else if (tabKey === 'status') loadSystemStatus();
     else if (tabKey === 'workorders') loadWorkOrders();
-    else if (tabKey === 'equipment') loadEquipment();
+    else if (tabKey === 'equipment' || tabKey === 'machines' || tabKey === 'materials' || tabKey === 'erp-home') loadEquipment();
     else if (tabKey === 'projects-home') renderProjectsHomeStats();
     else if (tabKey === 'lps' && isReportFocusedView()) refreshLookaheadWorkspace();
     // Proiecte publice always opens on "Active" — otherwise whichever
@@ -10544,8 +10616,16 @@
   });
 
   /* ============================================================
-     ERP — ECHIPAMENTE ȘI MATERIALE (equipment_inventory). Same shape
-     again: what exists, where it is, and who's using it right now.
+     ERP — ECHIPAMENTE / MAȘINI / MATERIALE (equipment_inventory).
+     One shared table and one shared add/edit sheet, split into three
+     list panels (plus a Home overview) by erp_category. item_type
+     stays the older echipament/material split that actually drives
+     LPS reservation behaviour (date-range reservation vs quantity
+     draw-down) — a "mașină" is just an echipament for that purpose
+     (reserved by date range like any other piece of equipment), so
+     erp_category is purely which of the three ERP tabs a row lives
+     under, derived 1:1 from item_type except for the echipament/
+     mașină split which has no behavioural difference.
      ============================================================ */
   let allEquipment = [];
   // ALL LPS resource assignments (every status) — loaded alongside the
@@ -10579,75 +10659,115 @@
   }
   const EQUIPMENT_STATUS_CYCLE = { 'Disponibil': 'In folosinta', 'In folosinta': 'Service', 'Service': 'Disponibil', 'Indisponibil': 'Disponibil' };
   const EQUIPMENT_STATUS_LABEL = { 'Disponibil': 'Disponibil', 'In folosinta': 'În folosință', 'Service': 'Service', 'Indisponibil': 'Indisponibil' };
-  function renderEquipment(){
-    const list = document.getElementById('equipmentList');
-    if (!list) return;
-    const countEl = document.getElementById('equipmentCount');
-    if (countEl) countEl.textContent = allEquipment.length + (allEquipment.length === 1 ? ' element' : ' elemente');
-    if (allEquipment.length === 0) {
-      list.innerHTML = '<div class="no-results" style="padding:40px 0;text-align:center;color:var(--ink-400);">Niciun echipament sau material înregistrat.</div>';
-      return;
+  const ERP_CATEGORY_LABEL = { echipament: 'Echipament', masina: 'Mașină', material: 'Material' };
+  const ERP_CATEGORY_LIST_IDS = {
+    echipament: { list: 'equipmentList', count: 'equipmentCount', empty: 'Niciun echipament înregistrat.' },
+    masina: { list: 'machinesList', count: 'machinesCount', empty: 'Nicio mașină înregistrată.' },
+    material: { list: 'materialsList', count: 'materialsCount', empty: 'Niciun material înregistrat.' },
+  };
+  function renderErpRow(eq){
+    const isEquipment = eq.item_type === 'echipament';
+    const erpCategory = eq.erp_category || (isEquipment ? 'echipament' : 'material');
+    const qtyLabel = !isEquipment && eq.quantity != null ? (Number(eq.quantity) + (eq.unit ? ' ' + eq.unit : '')) : '';
+    const myAssignments = allResourceAssignments.filter(a => a.inventory_item_id === eq.id && a.status === 'reserved');
+    let reservationNote = '';
+    if (isEquipment && myAssignments.length) {
+      const ranges = myAssignments.map(a => `${formatWoDateRO(a.reserved_from)}–${formatWoDateRO(a.reserved_to)}`).join(', ');
+      reservationNote = `Rezervat: ${ranges}`;
+    } else if (!isEquipment && myAssignments.length) {
+      const reservedTotal = myAssignments.reduce((sum, a) => sum + (Number(a.quantity) || 0), 0);
+      reservationNote = `${reservedTotal}${eq.unit ? ' ' + eq.unit : ''} rezervat pe proiecte neterminate`;
     }
-    list.innerHTML = '';
-    allEquipment.forEach(eq => {
-      const isEquipment = eq.item_type === 'echipament';
-      const qtyLabel = !isEquipment && eq.quantity != null ? (Number(eq.quantity) + (eq.unit ? ' ' + eq.unit : '')) : '';
-      const myAssignments = allResourceAssignments.filter(a => a.inventory_item_id === eq.id && a.status === 'reserved');
-      let reservationNote = '';
-      if (isEquipment && myAssignments.length) {
-        const ranges = myAssignments.map(a => `${formatWoDateRO(a.reserved_from)}–${formatWoDateRO(a.reserved_to)}`).join(', ');
-        reservationNote = `Rezervat: ${ranges}`;
-      } else if (!isEquipment && myAssignments.length) {
-        const reservedTotal = myAssignments.reduce((sum, a) => sum + (Number(a.quantity) || 0), 0);
-        reservationNote = `${reservedTotal}${eq.unit ? ' ' + eq.unit : ''} rezervat pe proiecte neterminate`;
-      }
-      const row = document.createElement('div');
-      row.className = 'backlog-row' + (eq.status === 'Indisponibil' ? ' done' : '');
-      row.innerHTML = `
-        <div class="backlog-main">
-          <div class="backlog-title-line">
-            <span class="backlog-title">${escapeHtml(eq.name)}</span>
-            <span class="backlog-tag erp-type-tag ${isEquipment ? 'echipament' : 'material'}">${isEquipment ? 'Echipament' : 'Material'}</span>
-            <span class="backlog-tag">${escapeHtml(EQUIPMENT_STATUS_LABEL[eq.status] || eq.status)}</span>
-            ${qtyLabel ? `<span class="backlog-days">${escapeHtml(qtyLabel)}</span>` : ''}
-          </div>
-          <div class="backlog-meta-line">${escapeHtml(eq.category || '')}${eq.location ? ' · ' + escapeHtml(eq.location) : ''}${eq.assigned_to ? ' · alocat: ' + escapeHtml(eq.assigned_to) : ''}${eq.serial_number ? ' · SN ' + escapeHtml(eq.serial_number) : ''}</div>
-          ${reservationNote ? `<div class="backlog-meta-line erp-reservation-note">ⓘ ${escapeHtml(reservationNote)}</div>` : ''}
+    const row = document.createElement('div');
+    row.className = 'backlog-row' + (eq.status === 'Indisponibil' ? ' done' : '');
+    row.innerHTML = `
+      <div class="backlog-main">
+        <div class="backlog-title-line">
+          <span class="backlog-title">${escapeHtml(eq.name)}</span>
+          <span class="backlog-tag erp-type-tag ${erpCategory}">${ERP_CATEGORY_LABEL[erpCategory]}</span>
+          <span class="backlog-tag">${escapeHtml(EQUIPMENT_STATUS_LABEL[eq.status] || eq.status)}</span>
+          ${qtyLabel ? `<span class="backlog-days">${escapeHtml(qtyLabel)}</span>` : ''}
         </div>
-        <div class="backlog-actions">
-          <button class="btn eq-edit">Editează</button>
-          <button class="btn btn-primary eq-status">${escapeHtml(EQUIPMENT_STATUS_LABEL[EQUIPMENT_STATUS_CYCLE[eq.status]] || 'Schimbă starea')}</button>
-          <button class="btn eq-delete">Șterge</button>
-        </div>
-      `;
-      row.querySelector('.eq-edit').addEventListener('click', () => openEquipmentForm(eq));
-      row.querySelector('.eq-status').addEventListener('click', async () => {
-        const nextStatus = EQUIPMENT_STATUS_CYCLE[eq.status] || 'Disponibil';
-        const { error } = await supabaseClient.from('equipment_inventory').update({ status: nextStatus }).eq('id', eq.id);
-        if (error) { console.error(error); alert('Eroare la actualizare. Încercați din nou.'); return; }
-        loadEquipment();
-      });
-      row.querySelector('.eq-delete').addEventListener('click', async () => {
-        if (!confirm(`Ștergeți definitiv „${eq.name}” din inventar?`)) return;
-        const { error } = await supabaseClient.from('equipment_inventory').delete().eq('id', eq.id);
-        if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
-        loadEquipment();
-      });
-      list.appendChild(row);
+        <div class="backlog-meta-line">${escapeHtml(eq.category || '')}${eq.location ? ' · ' + escapeHtml(eq.location) : ''}${eq.assigned_to ? ' · alocat: ' + escapeHtml(eq.assigned_to) : ''}${eq.serial_number ? ' · SN ' + escapeHtml(eq.serial_number) : ''}</div>
+        ${reservationNote ? `<div class="backlog-meta-line erp-reservation-note">ⓘ ${escapeHtml(reservationNote)}</div>` : ''}
+      </div>
+      <div class="backlog-actions">
+        <button class="btn eq-edit">Editează</button>
+        <button class="btn btn-primary eq-status">${escapeHtml(EQUIPMENT_STATUS_LABEL[EQUIPMENT_STATUS_CYCLE[eq.status]] || 'Schimbă starea')}</button>
+        <button class="btn eq-delete">Șterge</button>
+      </div>
+    `;
+    row.querySelector('.eq-edit').addEventListener('click', () => openEquipmentForm(eq));
+    row.querySelector('.eq-status').addEventListener('click', async () => {
+      const nextStatus = EQUIPMENT_STATUS_CYCLE[eq.status] || 'Disponibil';
+      const { error } = await supabaseClient.from('equipment_inventory').update({ status: nextStatus }).eq('id', eq.id);
+      if (error) { console.error(error); alert('Eroare la actualizare. Încercați din nou.'); return; }
+      loadEquipment();
     });
+    row.querySelector('.eq-delete').addEventListener('click', async () => {
+      if (!confirm(`Ștergeți definitiv „${eq.name}” din inventar?`)) return;
+      const { error } = await supabaseClient.from('equipment_inventory').delete().eq('id', eq.id);
+      if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
+      loadEquipment();
+    });
+    return row;
   }
-  const equipmentForm = document.getElementById('equipmentForm');
+  function renderEquipment(){
+    Object.keys(ERP_CATEGORY_LIST_IDS).forEach(erpCategory => {
+      const { list: listId, count: countId, empty: emptyMsg } = ERP_CATEGORY_LIST_IDS[erpCategory];
+      const list = document.getElementById(listId);
+      if (!list) return;
+      const items = allEquipment.filter(eq => (eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material')) === erpCategory);
+      const countEl = document.getElementById(countId);
+      if (countEl) countEl.textContent = items.length + (items.length === 1 ? ' element' : ' elemente');
+      if (items.length === 0) {
+        list.innerHTML = `<div class="no-results" style="padding:40px 0;text-align:center;color:var(--ink-400);">${emptyMsg}</div>`;
+        return;
+      }
+      list.innerHTML = '';
+      items.forEach(eq => list.appendChild(renderErpRow(eq)));
+    });
+    renderErpHomeStats();
+  }
+  function renderErpHomeStats(){
+    const counts = { echipament: 0, masina: 0, material: 0 };
+    allEquipment.forEach(eq => {
+      const erpCategory = eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material');
+      if (counts[erpCategory] != null) counts[erpCategory]++;
+    });
+    const eqCountEl = document.getElementById('erpHomeEquipmentCount');
+    if (eqCountEl) eqCountEl.textContent = counts.echipament;
+    const maCountEl = document.getElementById('erpHomeMachinesCount');
+    if (maCountEl) maCountEl.textContent = counts.masina;
+    const mtCountEl = document.getElementById('erpHomeMaterialsCount');
+    if (mtCountEl) mtCountEl.textContent = counts.material;
+  }
+  const erpHomeEquipmentCard = document.getElementById('erpHomeEquipmentCard');
+  if (erpHomeEquipmentCard) erpHomeEquipmentCard.addEventListener('click', () => openAdminTab('equipment'));
+  const erpHomeMachinesCard = document.getElementById('erpHomeMachinesCard');
+  if (erpHomeMachinesCard) erpHomeMachinesCard.addEventListener('click', () => openAdminTab('machines'));
+  const erpHomeMaterialsCard = document.getElementById('erpHomeMaterialsCard');
+  if (erpHomeMaterialsCard) erpHomeMaterialsCard.addEventListener('click', () => openAdminTab('materials'));
+  const erpHomeNavEquipment = document.getElementById('erpHomeNavEquipment');
+  if (erpHomeNavEquipment) erpHomeNavEquipment.addEventListener('click', () => openAdminTab('equipment'));
+  const erpHomeNavMachines = document.getElementById('erpHomeNavMachines');
+  if (erpHomeNavMachines) erpHomeNavMachines.addEventListener('click', () => openAdminTab('machines'));
+  const erpHomeNavMaterials = document.getElementById('erpHomeNavMaterials');
+  if (erpHomeNavMaterials) erpHomeNavMaterials.addEventListener('click', () => openAdminTab('materials'));
+
   const efTypeSelect = document.getElementById('ef-type');
+  const ERP_ITEM_FORM_TITLE = { echipament: 'echipament', masina: 'mașină', material: 'material' };
   function syncEquipmentFormFields(){
-    const isEquipment = efTypeSelect.value === 'echipament';
-    document.getElementById('ef-quantity-field').style.display = isEquipment ? 'none' : '';
-    document.getElementById('ef-unit-field').style.display = isEquipment ? 'none' : '';
+    const isMaterial = efTypeSelect.value === 'material';
+    document.getElementById('ef-quantity-field').style.display = isMaterial ? '' : 'none';
+    document.getElementById('ef-unit-field').style.display = isMaterial ? '' : 'none';
   }
   if (efTypeSelect) efTypeSelect.addEventListener('change', syncEquipmentFormFields);
-  function openEquipmentForm(eq){
+  function openEquipmentForm(eq, presetCategory){
+    const erpCategory = eq ? (eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material')) : (presetCategory || 'echipament');
     document.getElementById('ef-id').value = eq ? eq.id : '';
     document.getElementById('ef-name').value = eq ? eq.name : '';
-    document.getElementById('ef-type').value = eq ? (eq.item_type || 'material') : 'material';
+    document.getElementById('ef-type').value = erpCategory;
     document.getElementById('ef-category').value = eq ? (eq.category || '') : '';
     document.getElementById('ef-quantity').value = eq ? eq.quantity : 1;
     document.getElementById('ef-unit').value = eq ? (eq.unit || '') : '';
@@ -10656,18 +10776,22 @@
     document.getElementById('ef-assigned').value = eq ? (eq.assigned_to || '') : '';
     document.getElementById('ef-notes').value = eq ? (eq.notes || '') : '';
     syncEquipmentFormFields();
-    equipmentForm.style.display = 'block';
-    equipmentForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const titleEl = document.getElementById('erpItemFormSheetTitle');
+    if (titleEl) titleEl.textContent = (eq ? 'Editează ' : 'Adaugă ') + ERP_ITEM_FORM_TITLE[erpCategory];
+    setSheetOpen('erpItemFormSheet', true);
   }
   const addEquipmentBtn = document.getElementById('addEquipmentBtn');
-  if (addEquipmentBtn) addEquipmentBtn.addEventListener('click', () => openEquipmentForm(null));
-  const efCancelBtn = document.getElementById('efCancelBtn');
-  if (efCancelBtn) efCancelBtn.addEventListener('click', () => { equipmentForm.style.display = 'none'; });
+  if (addEquipmentBtn) addEquipmentBtn.addEventListener('click', () => openEquipmentForm(null, 'echipament'));
+  const addMachineBtn = document.getElementById('addMachineBtn');
+  if (addMachineBtn) addMachineBtn.addEventListener('click', () => openEquipmentForm(null, 'masina'));
+  const addMaterialBtn = document.getElementById('addMaterialBtn');
+  if (addMaterialBtn) addMaterialBtn.addEventListener('click', () => openEquipmentForm(null, 'material'));
   const efSaveBtn = document.getElementById('efSaveBtn');
   if (efSaveBtn) efSaveBtn.addEventListener('click', async () => {
     const id = document.getElementById('ef-id').value;
     const name = document.getElementById('ef-name').value.trim();
-    const item_type = document.getElementById('ef-type').value;
+    const erp_category = document.getElementById('ef-type').value;
+    const item_type = erp_category === 'material' ? 'material' : 'echipament';
     const category = document.getElementById('ef-category').value.trim();
     const quantity = parseFloat(document.getElementById('ef-quantity').value) || 0;
     const unit = document.getElementById('ef-unit').value.trim();
@@ -10680,7 +10804,7 @@
       return;
     }
     const payload = {
-      name, quantity, item_type,
+      name, quantity, item_type, erp_category,
       category: category || null,
       unit: unit || null,
       serial_number: serial_number || null,
@@ -10692,8 +10816,8 @@
       ? await supabaseClient.from('equipment_inventory').update(payload).eq('id', id)
       : await supabaseClient.from('equipment_inventory').insert(payload);
     if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
-    equipmentForm.style.display = 'none';
-    showToast(id ? 'Echipamentul a fost actualizat.' : 'Echipamentul a fost adăugat.');
+    setSheetOpen('erpItemFormSheet', false);
+    showToast(id ? 'Articolul a fost actualizat.' : 'Articolul a fost adăugat.');
     loadEquipment();
   });
 
