@@ -696,13 +696,6 @@
      that ships to the browser; that's what Supabase's own dashboard
      is for. */
   .status-panel-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;}
-  /* Split into two views (health checks vs. self-improve signals) so
-     the tab doesn't read as one long, undifferentiated wall of cards. */
-  .status-view-tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:18px;padding-bottom:2px;}
-  .status-view-tab{flex:0 0 auto;padding:9px 12px;border:1px solid var(--line-strong);border-radius:4px;background:var(--paper-000);font:inherit;font-size:13px;color:var(--ink-700);cursor:pointer;}
-  .status-view-tab.active{border-color:var(--copper-500);background:var(--copper-050);color:var(--copper-600);font-weight:600;}
-  .status-view{display:none;}
-  .status-view.active{display:block;}
   .status-panel-head h2{margin:6px 0 0;}
   .status-info-btn{
     width:30px;height:30px;flex-shrink:0;border-radius:50%;
@@ -2005,6 +1998,7 @@
         </div>
         <div class="category-panel-section" data-category="status">
           <button type="button" class="admin-tab category-panel-item" data-tab="status">Stare sistem</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="status-improve">Auto-îmbunătățire</button>
         </div>
       </nav>
     </aside>
@@ -2784,11 +2778,6 @@
         <div><div class="home-eyebrow">Monitorizare</div><h2>Stare sistem</h2></div>
         <button type="button" class="status-info-btn" id="statusHistoryBtn" aria-label="Istoric verificări (ultimele 48h)" title="Istoric verificări (ultimele 48h)">i</button>
       </div>
-      <div class="status-view-tabs" role="tablist">
-        <button type="button" class="status-view-tab active" data-status-view-tab="monitor">Monitorizare</button>
-        <button type="button" class="status-view-tab" data-status-view-tab="improve">Auto-îmbunătățire</button>
-      </div>
-      <div class="status-view active" data-status-view="monitor">
       <div class="status-grid">
         <div class="status-card" id="statusCardDb">
           <div class="status-card-head">
@@ -2856,8 +2845,17 @@
           <canvas class="status-chart status-chart-tall" id="statusCountsChart" height="140"></canvas>
         </div>
       </div>
+      <div class="status-refresh-row">
+        <span id="statusLastChecked"></span>
+        <button type="button" class="btn" id="statusRefreshBtn">Reîmprospătează</button>
       </div>
-      <div class="status-view" data-status-view="improve">
+      <p class="status-note">Memoria/CPU-ul serverului nu pot fi verificate în siguranță din browser (necesită un token de administrare Supabase care nu ar trebui expus aici) — pentru acele metrici, vezi dashboard-ul Supabase direct.</p>
+    </div>
+
+    <div class="admin-panel" id="panel-status-improve">
+      <div class="status-panel-head">
+        <div><div class="home-eyebrow">Auto-îmbunătățire</div><h2>Auto-îmbunătățire</h2></div>
+      </div>
       <div class="status-grid">
         <div class="status-card status-card-wide" id="statusCardErrors">
           <div class="status-card-head">
@@ -2913,12 +2911,6 @@
           <div class="status-history-list" id="statusChangelogList"></div>
         </div>
       </div>
-      </div>
-      <div class="status-refresh-row">
-        <span id="statusLastChecked"></span>
-        <button type="button" class="btn" id="statusRefreshBtn">Reîmprospătează</button>
-      </div>
-      <p class="status-note">Memoria/CPU-ul serverului nu pot fi verificate în siguranță din browser (necesită un token de administrare Supabase care nu ar trebui expus aici) — pentru acele metrici, vezi dashboard-ul Supabase direct.</p>
     </div>
 
     <div class="admin-panel" id="panel-docs">
@@ -4415,7 +4407,7 @@
     if (isReportAccount) {
       // Land back on whatever tab was open before a refresh instead of
       // always restarting at the home page — see initialHashTab above.
-      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects-home', 'projects', 'backlog', 'lps', 'workorders', 'erp-home', 'equipment', 'machines', 'materials', 'status', 'docs'];
+      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects-home', 'projects', 'backlog', 'lps', 'workorders', 'erp-home', 'equipment', 'machines', 'materials', 'status', 'status-improve', 'docs'];
       const restoredTab = validReportTabs.includes(initialHashTab) ? initialHashTab : 'home';
       openAdminTab(restoredTab, true);
       history.replaceState({ adminTab: restoredTab }, '', window.location.pathname + window.location.search + '#' + restoredTab);
@@ -5874,14 +5866,6 @@
 
   const statusRefreshBtn = document.getElementById('statusRefreshBtn');
   if (statusRefreshBtn) statusRefreshBtn.addEventListener('click', loadSystemStatus);
-
-  document.querySelectorAll('.status-view-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const view = tab.dataset.statusViewTab;
-      document.querySelectorAll('.status-view-tab').forEach(t => t.classList.toggle('active', t === tab));
-      document.querySelectorAll('.status-view').forEach(v => v.classList.toggle('active', v.dataset.statusView === view));
-    });
-  });
 
   /* ============================================================
      SELF-ÎMBUNĂTĂȚIRE — jurnal de erori reale + semnale de
@@ -7663,6 +7647,7 @@
     machines: 'Mașini',
     materials: 'Materiale',
     status: 'Stare sistem',
+    'status-improve': 'Auto-îmbunătățire',
     docs: 'Documentație',
   };
   // Which rail category each tab belongs to, and each category's
@@ -7673,7 +7658,7 @@
     'projects-home': 'projects', projects: 'projects', backlog: 'projects', lps: 'projects', workorders: 'projects',
     'erp-home': 'erp', equipment: 'erp', machines: 'erp', materials: 'erp',
     docs: 'docs',
-    status: 'status',
+    status: 'status', 'status-improve': 'status',
   };
   const CATEGORY_DEFAULT_TAB = {
     tickets: 'overview', projects: 'projects-home', erp: 'erp-home', docs: 'docs', status: 'status',
@@ -7769,7 +7754,7 @@
     // explicit renderTickets()).
     if (tabKey === 'tickets-functional') setTicketTypeFilter('functional', { skipRender: true });
     else if (tabKey === 'tickets-accident') setTicketTypeFilter('accident', { skipRender: true });
-    else if (tabKey === 'status') loadSystemStatus();
+    else if (tabKey === 'status' || tabKey === 'status-improve') loadSystemStatus();
     else if (tabKey === 'workorders') loadWorkOrders();
     else if (tabKey === 'equipment' || tabKey === 'machines' || tabKey === 'materials' || tabKey === 'erp-home') loadEquipment();
     else if (tabKey === 'projects-home') renderProjectsHomeStats();
