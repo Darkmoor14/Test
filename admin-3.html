@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/admin.css?v=20261002b">
+<link rel="stylesheet" href="assets/css/admin.css?v=20261002c">
 </head>
 <body>
 
@@ -375,14 +375,6 @@
         <div class="home-start-main">
           <div class="home-intro">
             <div><div class="home-eyebrow">Acasă</div><h2 id="homeGreeting">Bine ai revenit.</h2></div>
-          </div>
-          <div class="home-smart-search">
-            <div class="home-smart-search-input-wrap">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="search" id="homeSmartSearchInput" placeholder="Întreabă ceva: ex. „cât cablu CYABY mai am”, „unde e excavatorul”, „câte mașini sunt disponibile”">
-              <button type="button" class="btn btn-primary" id="homeSmartSearchBtn">Caută</button>
-            </div>
-            <div class="home-smart-search-result" id="homeSmartSearchResult" hidden></div>
           </div>
           <div class="home-nav-grid">
             <button type="button" class="home-nav-btn" id="homeNavTickets">
@@ -1194,6 +1186,7 @@
           <ul>
             <li><strong>⌂ Acasă</strong> (prima iconiță din bara principală) — te duce oricând înapoi la pagina de start, din orice altă pagină te-ai afla.</li>
             <li><strong>Bara principală</strong> (coloana îngustă, cu iconițe) — comută între cele cinci zone de mai sus. Rămâne mereu vizibilă.</li>
+            <li><strong>🔍 Căutare / comenzi rapide</strong> (iconița jos, în bara principală, sau Ctrl/Cmd+K de oriunde) — scrie numele unei pagini ca să sari direct la ea, sau o întrebare ca „cât cablu CYABY mai am”, „unde e excavatorul” sau „cine lucrează la avaria de pe strada X” ca să primești răspunsul direct, din datele reale din ERP, Proiecte publice, Avarii rețele, Proiecte LPS și Programe lucrări. Dacă nu găsește exact ce ai scris, îți arată sugestii apropiate — iar alegerea unei sugestii „învață” acea întrebare pentru data viitoare.</li>
             <li><strong>A doua bară laterală</strong> — arată paginile zonei alese. Pentru Acasă nu există o a doua bară (nu are sub-pagini).</li>
             <li><strong>☰ Meniu</strong> (pe telefon) — o listă rapidă cu Acasă, Sesizări active, Proiecte în lucru, Planificare LPS și Avarii deschise, disponibilă din orice pagină, fără să te întorci mai întâi la Acasă.</li>
             <li><strong>Traseul din capul paginii</strong> (ex: „Acasă / Sesizări funcționale”) — arată mereu unde te afli. Poți apăsa pe „Acasă” din el ca să te întorci direct.</li>
@@ -1207,9 +1200,8 @@
           <p>Este prima pagină pe care o vezi după autentificare și cea la care te întorci mereu cu butonul „⌂ Acasă”. Este împărțită în trei zone.</p>
           <h4>Ceasul și calendarul (stânga)</h4>
           <p>Ora și data curentă, plus un calendar lunar cu programările tale. Explicat pe larg mai jos, în secțiunea „Calendarul”.</p>
-          <h4>Căutarea rapidă și butoanele de navigare (mijloc)</h4>
-          <p>Chiar sub titlu e o <strong>căutare rapidă</strong> — scrie o întrebare ca „cât cablu CYABY mai am”, „unde e excavatorul” sau „cine lucrează la avaria de pe strada X” și primești direct răspunsul, din datele reale din ERP, Proiecte publice, Avarii rețele, Proiecte LPS și Programe lucrări. Dacă nu găsește exact ce ai scris, îți arată sugestii apropiate — iar alegerea unei sugestii „învață” acea întrebare pentru data viitoare.</p>
-          <p>Sub căutare, fiecare buton te duce direct la pagina corespunzătoare, deja pregătită pe ce contează de obicei:</p>
+          <h4>Butoanele de navigare (mijloc)</h4>
+          <p>Fiecare buton te duce direct la pagina corespunzătoare, deja pregătită pe ce contează de obicei:</p>
           <ul>
             <li><strong>Sesizări</strong> — Prezentare generală, cu sesizările funcționale și accidentele deja filtrate pe cele active.</li>
             <li><strong>Proiecte</strong> — pagina de start a Proiectelor, cu Proiecte publice, Avarii rețele, Proiecte LPS și Programe lucrări.</li>
@@ -1772,6 +1764,7 @@
       <kbd class="command-palette-esc">Esc</kbd>
     </div>
     <div class="command-palette-results" id="commandPaletteResults"></div>
+    <div class="command-palette-answer" id="commandPaletteAnswer" hidden></div>
   </div>
 </div>
 
@@ -1979,16 +1972,16 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="assets/js/data-services.js?v=20261002b"></script>
-<script src="assets/js/admin-core.js?v=20261002b"></script>
-<script src="assets/js/features/system-status.js?v=20261002b"></script>
-<script src="assets/js/features/lps.js?v=20261002b"></script>
-<script src="assets/js/features/tickets.js?v=20261002b"></script>
-<script src="assets/js/features/projects.js?v=20261002b"></script>
-<script src="assets/js/features/work-orders.js?v=20261002b"></script>
-<script src="assets/js/features/erp.js?v=20261002b"></script>
-<script src="assets/js/features/excel.js?v=20261002b"></script>
-<script src="assets/js/features/search.js?v=20261002b"></script>
+<script src="assets/js/data-services.js?v=20261002c"></script>
+<script src="assets/js/admin-core.js?v=20261002c"></script>
+<script src="assets/js/features/system-status.js?v=20261002c"></script>
+<script src="assets/js/features/lps.js?v=20261002c"></script>
+<script src="assets/js/features/tickets.js?v=20261002c"></script>
+<script src="assets/js/features/projects.js?v=20261002c"></script>
+<script src="assets/js/features/work-orders.js?v=20261002c"></script>
+<script src="assets/js/features/erp.js?v=20261002c"></script>
+<script src="assets/js/features/excel.js?v=20261002c"></script>
+<script src="assets/js/features/search.js?v=20261002c"></script>
 
 <button type="button" class="back-to-top" id="backToTopBtn" aria-label="Înapoi sus">
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
@@ -2040,8 +2033,8 @@
   </div>
 </div>
 
-<script src="assets/js/ui-shell.js?v=20261002b"></script>
-<script src="assets/js/launch.js?v=20261002b"></script>
+<script src="assets/js/ui-shell.js?v=20261002c"></script>
+<script src="assets/js/launch.js?v=20261002c"></script>
 
 </body>
 </html>

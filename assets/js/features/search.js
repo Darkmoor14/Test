@@ -259,56 +259,17 @@
     }
     return { text: `Nu am găsit niciun rezultat pentru „${raw.trim()}”. Încearcă numele unui echipament/mașină/material/proiect, sau o întrebare ca „unde e X”, „cine lucrează la X”, „când e X”.`, tab: null, matched: false, suggestions: [] };
   }
-  const homeSmartSearchInput = document.getElementById('homeSmartSearchInput');
-  const homeSmartSearchBtn = document.getElementById('homeSmartSearchBtn');
-  const homeSmartSearchResult = document.getElementById('homeSmartSearchResult');
-  async function runHomeSmartSearch(){
-    if (!homeSmartSearchInput || !homeSmartSearchResult) return;
-    const raw = homeSmartSearchInput.value;
-    if (!raw.trim()) { homeSmartSearchResult.hidden = true; return; }
-    const result = await answerSmartQuery(raw);
-    renderSmartSearchResult(result, raw);
-    if (typeof logFrictionSignal === 'function') logFrictionSignal('search_query', raw.trim().slice(0, 120), { matched: result.matched, tab: result.tab });
-  }
-  function renderSmartSearchResult(result, raw){
-    homeSmartSearchResult.hidden = false;
-    const suggestionsHtml = (result.suggestions || []).length
-      ? `<div class="home-smart-search-suggestions">${result.suggestions.map((s, i) => `<button type="button" class="chip home-smart-suggestion-chip" data-suggest-index="${i}">${escapeHtml(SEARCH_COLLECTION_LABEL[s.collection] || '')}: ${escapeHtml(s.title)}</button>`).join('')}</div>`
-      : '';
-    homeSmartSearchResult.innerHTML = `
-      <div class="home-smart-search-answer-row">
-        <p class="home-smart-search-answer">${escapeHtml(result.text)}</p>
-        ${result.tab ? '<button type="button" class="btn" id="homeSmartSearchGoto">Vezi</button>' : ''}
-      </div>
-      ${suggestionsHtml}
-    `;
-    const gotoBtn = document.getElementById('homeSmartSearchGoto');
-    if (gotoBtn) gotoBtn.addEventListener('click', () => {
-      if (result.targetType === 'ticket') goToTicket(result.targetId);
-      else if (result.targetType === 'vehicle') { const vehicle = allEquipment.find(eq => eq.id === result.targetId); if (vehicle) goToVehicle(vehicle); else openAdminTab(result.tab); }
-      else openAdminTab(result.tab);
-    });
-    homeSmartSearchResult.querySelectorAll('.home-smart-suggestion-chip').forEach(chip => {
-      chip.addEventListener('click', async () => {
-        const entry = result.suggestions[Number(chip.dataset.suggestIndex)];
-        if (!entry) return;
-        const described = Object.assign(describeMatch(entry, result.suggestQuery || ''), { suggestions: [], targetType: entry.collection === 'tickets' ? 'ticket' : entry.collection === 'erp_masina' ? 'vehicle' : null, targetId: entry.id });
-        renderSmartSearchResult(described, raw);
-        recordSearchAlias(result.suggestQuery || normalizeSearchText(raw), entry);
-      });
-    });
-  }
-  if (homeSmartSearchBtn) homeSmartSearchBtn.addEventListener('click', runHomeSmartSearch);
-  if (homeSmartSearchInput) homeSmartSearchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); runHomeSmartSearch(); } });
-
   /* ============================================================
      COMMAND PALETTE (Cmd/Ctrl+K) — jump to any tab by name, or ask
-     the same question the Home smart search answers, from anywhere
-     in the app. Nav destinations come straight from BREADCRUMB_TABS
-     so the list can never drift from the real tab registry; a typed
-     question that doesn't match a destination falls through to the
-     Home smart search (answerSmartQuery/runHomeSmartSearch), reusing
-     its answer box instead of duplicating the matching logic here.
+     a question answered straight from ERP, Proiecte publice, Avarii
+     rețele, Proiecte LPS and Programe lucrări (answerSmartQuery).
+     This used to be duplicated as its own box on the Home page, which
+     only answered the same questions this already does from anywhere
+     in the app — removed in favor of just this one, with its answer
+     (text, a "Vezi" button, disambiguation suggestions) rendered
+     inline in commandPaletteAnswer instead of navigating to Home.
+     Nav destinations come straight from BREADCRUMB_TABS so the list
+     can never drift from the real tab registry.
      ============================================================ */
   const NAV_DESTINATIONS = [
     { tab: 'home', label: 'Acasă' },
@@ -317,6 +278,7 @@
   const commandPalette = document.getElementById('commandPalette');
   const commandPaletteInput = document.getElementById('commandPaletteInput');
   const commandPaletteResults = document.getElementById('commandPaletteResults');
+  const commandPaletteAnswer = document.getElementById('commandPaletteAnswer');
   let paletteActiveIndex = -1;
   let paletteCurrentItems = [];
 
@@ -333,7 +295,12 @@
     commandPalette.classList.remove('show');
     commandPalette.setAttribute('aria-hidden', 'true');
   }
+  // Typing a new query always goes back to the nav/search list — the
+  // answer from a previous "Caută „X”" selection is stale the moment
+  // the query changes underneath it.
   function renderCommandPaletteResults(rawQuery){
+    if (commandPaletteAnswer) { commandPaletteAnswer.hidden = true; commandPaletteAnswer.innerHTML = ''; }
+    if (commandPaletteResults) commandPaletteResults.hidden = false;
     const q = normalizeRomanianText(rawQuery.trim());
     const navMatches = q ? NAV_DESTINATIONS.filter(d => normalizeRomanianText(d.label).includes(q)) : NAV_DESTINATIONS;
     paletteCurrentItems = navMatches.map(d => ({ type: 'nav', tab: d.tab, label: d.label }));
@@ -376,13 +343,45 @@
   async function selectPaletteItem(index){
     const item = paletteCurrentItems[index];
     if (!item) return;
-    closeCommandPalette();
-    if (item.type === 'nav') { openAdminTab(item.tab); return; }
-    openAdminTab('home');
-    if (homeSmartSearchInput) {
-      homeSmartSearchInput.value = item.raw;
-      await runHomeSmartSearch();
-    }
+    if (item.type === 'nav') { closeCommandPalette(); openAdminTab(item.tab); return; }
+    // A search answer renders in place (text, a "Vezi" button,
+    // disambiguation suggestions) instead of closing the palette —
+    // closing happens only once the person picks where to go (Vezi,
+    // or a nav item), same as the Home smart search used to work.
+    const result = await answerSmartQuery(item.raw);
+    renderPaletteAnswer(result, item.raw);
+    if (typeof logFrictionSignal === 'function') logFrictionSignal('search_query', item.raw.trim().slice(0, 120), { matched: result.matched, tab: result.tab });
+  }
+  function renderPaletteAnswer(result, raw){
+    if (!commandPaletteAnswer) return;
+    if (commandPaletteResults) commandPaletteResults.hidden = true;
+    commandPaletteAnswer.hidden = false;
+    const suggestionsHtml = (result.suggestions || []).length
+      ? `<div class="command-palette-suggestions">${result.suggestions.map((s, i) => `<button type="button" class="chip command-palette-suggestion-chip" data-suggest-index="${i}">${escapeHtml(SEARCH_COLLECTION_LABEL[s.collection] || '')}: ${escapeHtml(s.title)}</button>`).join('')}</div>`
+      : '';
+    commandPaletteAnswer.innerHTML = `
+      <div class="command-palette-answer-row">
+        <p class="command-palette-answer-text">${escapeHtml(result.text)}</p>
+        ${result.tab ? '<button type="button" class="btn" id="commandPaletteGoto">Vezi</button>' : ''}
+      </div>
+      ${suggestionsHtml}
+    `;
+    const gotoBtn = document.getElementById('commandPaletteGoto');
+    if (gotoBtn) gotoBtn.addEventListener('click', () => {
+      closeCommandPalette();
+      if (result.targetType === 'ticket') goToTicket(result.targetId);
+      else if (result.targetType === 'vehicle') { const vehicle = allEquipment.find(eq => eq.id === result.targetId); if (vehicle) goToVehicle(vehicle); else openAdminTab(result.tab); }
+      else openAdminTab(result.tab);
+    });
+    commandPaletteAnswer.querySelectorAll('.command-palette-suggestion-chip').forEach(chip => {
+      chip.addEventListener('click', async () => {
+        const entry = result.suggestions[Number(chip.dataset.suggestIndex)];
+        if (!entry) return;
+        const described = Object.assign(describeMatch(entry, result.suggestQuery || ''), { suggestions: [], targetType: entry.collection === 'tickets' ? 'ticket' : entry.collection === 'erp_masina' ? 'vehicle' : null, targetId: entry.id });
+        renderPaletteAnswer(described, raw);
+        recordSearchAlias(result.suggestQuery || normalizeSearchText(raw), entry);
+      });
+    });
   }
   if (commandPaletteInput) {
     commandPaletteInput.addEventListener('input', () => renderCommandPaletteResults(commandPaletteInput.value));

@@ -2343,9 +2343,9 @@
       afterHide(){ setActiveCategory(onboardingSavedCategory); },
     },
     {
-      selector: '.home-smart-search',
+      selector: '#commandPaletteBtn',
       title: 'Căutare rapidă',
-      text: 'Scrie o întrebare simplă — „cât cablu X mai am”, „unde e excavatorul”, „câte mașini sunt disponibile” — și primești direct răspunsul, fără să cauți manual prin ERP.',
+      text: 'Scrie o întrebare simplă — „cât cablu X mai am”, „unde e excavatorul”, „câte mașini sunt disponibile” — și primești direct răspunsul, fără să cauți manual prin ERP. Disponibilă din orice pagină, sau cu Ctrl/Cmd+K.',
     },
     {
       selector: '.home-nav-grid',
