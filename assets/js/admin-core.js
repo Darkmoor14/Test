@@ -68,48 +68,204 @@
   let currentSessionEmail = null;
 
   /* ============================================================
-     STAFF ROLES — 'full' (default, unrestricted) or 'limited'
-     (sesizari@insta-grup.ro specifically — can close a ticket but
-     can never write resolution_note, "Ce s-a făcut"). The real
-     enforcement lives in a Postgres trigger (see
-     staff-roles-setup.sql) that rejects the write outright at the
-     database level, regardless of what this page does — everything
-     here is just about giving a 'limited' account a clean UI that
-     doesn't even show a field they can't use, rather than letting
-     them fill it in and then discovering a save error.
+     STAFF ROLES — a person can hold more than one of three named
+     roles at once (see staff_permission()/is_god() in the
+     20261002060000/20261002063000 migrations, the actual
+     enforcement — this mirrors that logic client-side purely to
+     show/hide UI, never as the real security boundary):
+
+       god            — full access everywhere, including Stare sistem.
+       inginer        — tickets: write, proiecte: write, erp: view only.
+       contabilitate  — tickets: view only, proiecte: view only, erp: write.
+
+     Combining inginer + contabilitate (without god) gives write
+     access to all three modules without exposing Stare sistem —
+     that's the point of allowing more than one role per person.
+     Effective permission per module is the highest across all of a
+     person's roles ('write' > 'view' > 'none').
      ============================================================ */
-  let currentUserRole = 'limited';
-  // Full staff roster (email list only) — used to populate the
-  // calendar event "assign to" picker, so an event can be aimed at a
-  // real platform account rather than free text.
+  let currentUserRoles = [];
+  const ROLE_MODULE_LEVEL = {
+    god: () => 2,
+    inginer: (mod) => mod === 'erp' ? 1 : 2,
+    contabilitate: (mod) => mod === 'erp' ? 2 : 1,
+  };
+  function modulePermission(mod){
+    let best = 0;
+    currentUserRoles.forEach(role => {
+      const fn = ROLE_MODULE_LEVEL[role];
+      if (fn) best = Math.max(best, fn(mod));
+    });
+    return best === 2 ? 'write' : best === 1 ? 'view' : 'none';
+  }
+  function isGod(){ return currentUserRoles.includes('god'); }
+  // Full staff roster (email list only, deduped — one row per role
+  // now, not per person) — used to populate the calendar event
+  // "assign to" picker, so an event can be aimed at a real platform
+  // account rather than free text.
   let allStaffEmails = [];
   async function loadStaffRoster(){
     const { data, error } = await supabaseClient.from('staff_roles').select('email').order('email', { ascending: true });
     if (error) { console.error(error); return; }
-    allStaffEmails = (data || []).map(r => r.email);
+    allStaffEmails = [...new Set((data || []).map(r => r.email))];
   }
-  async function fetchCurrentUserRole(email){
+  async function fetchCurrentUserRoles(email){
     try {
       const { data, error } = await supabaseClient
         .from('staff_roles')
         .select('role')
-        .eq('email', email)
-        .maybeSingle();
+        .eq('email', email);
       if (error || !data) {
-        // Restricted by default now, not full — matches the DB's own
-        // policy (is_staff()/enforce_resolution_note_permission()):
-        // only an explicit role='full' row (vlasbogdan@) is
-        // unrestricted; every other account, including one not yet in
-        // staff_roles at all, is treated as limited.
-        currentUserRole = 'limited';
+        // No roles at all (including an error reading them) means no
+        // access to anything gated — matches the DB's own is_staff()/
+        // staff_permission() behavior for an account not in
+        // staff_roles.
+        currentUserRoles = [];
         return;
       }
-      currentUserRole = data.role;
+      currentUserRoles = data.map(r => r.role);
     } catch (err) {
-      console.error('Could not fetch staff role (defaulting to limited):', err);
-      currentUserRole = 'limited';
+      console.error('Could not fetch staff roles (defaulting to none):', err);
+      currentUserRoles = [];
     }
   }
+  // Hides Stare sistem entirely for anyone without 'god', and any
+  // add/edit/delete control tagged data-requires-write="<module>" for
+  // a module this person only has 'view' on. Called once role is
+  // known (right after login) — DB-level RLS is the real boundary;
+  // this only keeps the UI from showing controls that would just
+  // fail at save time.
+  function applyRolePermissionsToUI(){
+    const statusRailItem = document.querySelector('.rail-item[data-category="status"]');
+    const statusPanelSection = document.querySelector('.category-panel-section[data-category="status"]');
+    const god = isGod();
+    if (statusRailItem) statusRailItem.style.display = god ? '' : 'none';
+    if (statusPanelSection) statusPanelSection.style.display = god ? '' : 'none';
+    // CSS attributes, not a one-time querySelectorAll sweep: ERP/
+    // Proiecte/Sesizări rows re-render constantly (every load, every
+    // tab switch), so a [data-requires-write="<module>"] control added
+    // to the DOM long after login still needs to come in hidden. The
+    // matching CSS rule (admin.css) reacts to these attributes live,
+    // for any element however it was inserted.
+    document.documentElement.dataset.permTickets = modulePermission('tickets');
+    document.documentElement.dataset.permProiecte = modulePermission('proiecte');
+    document.documentElement.dataset.permErp = modulePermission('erp');
+  }
+
+  /* ============================================================
+     ROLURI — Stare sistem's role-management tab (god only; the tab
+     itself is hidden from everyone else by applyRolePermissionsToUI,
+     and every write here is additionally enforced server-side by the
+     "God can …" RLS policies on staff_roles). One row per person,
+     grouped client-side from staff_roles' one-row-per-(email,role)
+     shape; each role is an independent checkbox — a person can hold
+     any combination. Notifications on/off comes from whether
+     push_subscriptions has at least one row for that email.
+     ============================================================ */
+  const STAFF_ROLE_KEYS = ['inginer', 'contabilitate', 'god'];
+  let staffRolesByEmail = new Map(); // email -> Set(roles)
+  let notifiedEmails = new Set();
+  async function loadStaffRolesTab(){
+    const tbody = document.getElementById('staffRolesTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" class="no-results">Se încarcă…</td></tr>';
+    const [{ data: roleRows, error: roleError }, { data: subRows }] = await Promise.all([
+      supabaseClient.from('staff_roles').select('email,role').order('email', { ascending: true }),
+      supabaseClient.from('push_subscriptions').select('user_email'),
+    ]);
+    if (roleError) { tbody.innerHTML = '<tr><td colspan="6" class="no-results">Lista nu a putut fi încărcată.</td></tr>'; return; }
+    staffRolesByEmail = new Map();
+    (roleRows || []).forEach(r => {
+      if (!staffRolesByEmail.has(r.email)) staffRolesByEmail.set(r.email, new Set());
+      staffRolesByEmail.get(r.email).add(r.role);
+    });
+    notifiedEmails = new Set((subRows || []).filter(r => r.user_email).map(r => r.user_email));
+    renderStaffRolesTable();
+  }
+  function renderStaffRolesTable(){
+    const tbody = document.getElementById('staffRolesTableBody');
+    if (!tbody) return;
+    const emails = [...staffRolesByEmail.keys()].sort((a, b) => a.localeCompare(b));
+    if (!emails.length) { tbody.innerHTML = '<tr><td colspan="6" class="no-results">Nimeni încă — adaugă prima persoană.</td></tr>'; return; }
+    tbody.innerHTML = emails.map(email => {
+      const roles = staffRolesByEmail.get(email);
+      const isSelf = email === currentSessionEmail;
+      const notified = notifiedEmails.has(email);
+      const roleCell = (role) => {
+        // Never let the signed-in god account strip its own 'god' role
+        // from this table — the only way back in would be the SQL
+        // editor again, exactly what this tab exists to avoid.
+        const lockedSelf = isSelf && role === 'god';
+        return `<td><input type="checkbox" class="staff-role-check" data-email="${escapeHtml(email)}" data-role="${role}" ${roles.has(role) ? 'checked' : ''} ${lockedSelf ? 'disabled title="Nu îți poți elimina propriul rol God"' : ''}></td>`;
+      };
+      return `
+        <tr>
+          <td>${escapeHtml(email)}${isSelf ? ' <span class="backlog-tag">tu</span>' : ''}</td>
+          ${roleCell('inginer')}
+          ${roleCell('contabilitate')}
+          ${roleCell('god')}
+          <td><span class="status-pill ${notified ? 'status-pill-done' : 'status-pill-active'}">${notified ? 'Pornite' : 'Oprite'}</span></td>
+          <td>${isSelf ? '' : `<button type="button" class="btn staff-role-remove-btn" data-email="${escapeHtml(email)}">Șterge</button>`}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+  async function setStaffRole(email, role, enabled){
+    if (enabled) {
+      const { error } = await supabaseClient.from('staff_roles').insert({ email, role });
+      if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return false; }
+    } else {
+      const { error } = await supabaseClient.from('staff_roles').delete().eq('email', email).eq('role', role);
+      if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return false; }
+    }
+    return true;
+  }
+  const staffRolesTableBody = document.getElementById('staffRolesTableBody');
+  if (staffRolesTableBody) {
+    staffRolesTableBody.addEventListener('change', async (e) => {
+      const check = e.target.closest('.staff-role-check');
+      if (!check) return;
+      const { email, role } = check.dataset;
+      check.disabled = true;
+      const ok = await setStaffRole(email, role, check.checked);
+      if (!ok) { check.checked = !check.checked; check.disabled = false; return; }
+      const roles = staffRolesByEmail.get(email) || new Set();
+      if (check.checked) roles.add(role); else roles.delete(role);
+      staffRolesByEmail.set(email, roles);
+      if (!roles.size) staffRolesByEmail.delete(email);
+      renderStaffRolesTable();
+    });
+    staffRolesTableBody.addEventListener('click', async (e) => {
+      const removeBtn = e.target.closest('.staff-role-remove-btn');
+      if (!removeBtn) return;
+      const email = removeBtn.dataset.email;
+      if (!confirm(`Elimini complet accesul pentru „${email}”?`)) return;
+      const { error } = await supabaseClient.from('staff_roles').delete().eq('email', email);
+      if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
+      staffRolesByEmail.delete(email);
+      renderStaffRolesTable();
+    });
+  }
+  const addStaffRoleBtn = document.getElementById('addStaffRoleBtn');
+  if (addStaffRoleBtn) addStaffRoleBtn.addEventListener('click', () => {
+    document.getElementById('srf-email').value = '';
+    document.getElementById('srf-role-inginer').checked = false;
+    document.getElementById('srf-role-contabilitate').checked = false;
+    document.getElementById('srf-role-god').checked = false;
+    setSheetOpen('staffRoleFormSheet', true);
+  });
+  const srfSaveBtn = document.getElementById('srfSaveBtn');
+  if (srfSaveBtn) srfSaveBtn.addEventListener('click', async () => {
+    const email = document.getElementById('srf-email').value.trim().toLowerCase();
+    if (!email || !email.includes('@')) { alert('Introduceți un email valid.'); return; }
+    const selectedRoles = STAFF_ROLE_KEYS.filter(r => document.getElementById(`srf-role-${r}`).checked);
+    if (!selectedRoles.length) { alert('Selectați cel puțin un rol.'); return; }
+    if (staffRolesByEmail.has(email)) { alert('Această persoană are deja un rol — editează-i rolurile direct din tabel.'); return; }
+    const { error } = await supabaseClient.from('staff_roles').insert(selectedRoles.map(role => ({ email, role })));
+    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+    setSheetOpen('staffRoleFormSheet', false);
+    await loadStaffRolesTab();
+  });
 
   // Every account gets the same view/features now — this used to be
   // keyed to one specific account's email. Kept as a function (rather
@@ -1127,11 +1283,12 @@
     filtered.forEach(t => {
       const isUrgent = t.type === 'Anunt accident';
       const isDone = t.status === 'Terminat';
-      // Report-completion status isn't relevant to a limited-role
-      // account (they can't act on it either way), so every Terminat
-      // ticket fades uniformly for them — only 'full' accounts see
-      // the awaiting-report distinction called out visually.
-      const isFullyComplete = currentUserRole === 'limited' ? isDone : (isDone && !isAwaitingReport(t));
+      // Report-completion status isn't relevant to a view-only-on-
+      // tickets account (they can't act on it either way), so every
+      // Terminat ticket fades uniformly for them — only an account
+      // that can actually write tickets sees the awaiting-report
+      // distinction called out visually.
+      const isFullyComplete = modulePermission('tickets') !== 'write' ? isDone : (isDone && !isAwaitingReport(t));
       const isArchived = !!t.archived;
       const isDuplicate = isDuplicateTicket(t);
       const canonicalTicket = getCanonicalTicket(t);

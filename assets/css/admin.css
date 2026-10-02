@@ -187,6 +187,22 @@
      its icon down to a sliver inside the 42px box. Two classes here
      beat .admin-tab's one regardless of stylesheet order. */
   .rail-item.admin-tab{padding:0;border-bottom:none;margin-bottom:0;font:inherit;}
+  /* Role-based write gating — applyRolePermissionsToUI() (admin-core.js)
+     sets these three attributes on <html> right after login, from
+     modulePermission(). Any element tagged data-requires-write="<module>"
+     (add/edit/delete buttons, however it was rendered — static markup
+     or a template string re-created on every refresh) is hidden for a
+     view-only role on that module, reactively: these rules apply to
+     elements added to the DOM at any time, not just ones that existed
+     when the attributes were set. */
+  html[data-perm-tickets="view"] [data-requires-write="tickets"],
+  html[data-perm-tickets="none"] [data-requires-write="tickets"],
+  html[data-perm-proiecte="view"] [data-requires-write="proiecte"],
+  html[data-perm-proiecte="none"] [data-requires-write="proiecte"],
+  html[data-perm-erp="view"] [data-requires-write="erp"],
+  html[data-perm-erp="none"] [data-requires-write="erp"]{
+    display:none!important;
+  }
   .rail-footer{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;position:relative;}
   .rail-help-btn{
     width:32px;height:32px;border-radius:50%;border:none;background:none;color:var(--ink-400);

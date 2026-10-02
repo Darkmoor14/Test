@@ -744,6 +744,7 @@
     status: 'Stare sistem',
     'status-improve': 'Auto-îmbunătățire',
     'status-audit': 'Jurnal de activitate',
+    'status-roles': 'Roluri',
     docs: 'Documentație',
   };
   // Which rail category each tab belongs to, and each category's
@@ -754,7 +755,7 @@
     'projects-home': 'projects', projects: 'projects', backlog: 'projects', lps: 'projects', workorders: 'projects',
     'erp-home': 'erp', equipment: 'erp', machines: 'erp', materials: 'erp',
     docs: 'docs',
-    status: 'status', 'status-improve': 'status', 'status-audit': 'status',
+    status: 'status', 'status-improve': 'status', 'status-audit': 'status', 'status-roles': 'status',
   };
   const CATEGORY_DEFAULT_TAB = {
     tickets: 'overview', projects: 'projects-home', erp: 'erp-home', docs: 'docs', status: 'status',
@@ -810,7 +811,16 @@
     });
   }
 
+  const STATUS_TABS = ['status', 'status-improve', 'status-audit', 'status-roles'];
   function openAdminTab(tabKey, fromPopState){
+    // Stare sistem's nav is hidden for anyone but 'god' (see
+    // applyRolePermissionsToUI), but the tab itself is still reachable
+    // by a stale browser back/forward entry or hash from before a role
+    // change — redirect rather than silently rendering a panel nobody
+    // meant to let them see.
+    if (STATUS_TABS.includes(tabKey) && typeof isGod === 'function' && !isGod()) {
+      tabKey = 'home';
+    }
     const panelId = panelIdForTab(tabKey);
     const isHome = tabKey === 'home' && isReportFocusedView();
     dash.classList.toggle('home-active', isHome);
@@ -852,6 +862,7 @@
     else if (tabKey === 'tickets-accident') setTicketTypeFilter('accident', { skipRender: true });
     else if (tabKey === 'status' || tabKey === 'status-improve') loadSystemStatus();
     else if (tabKey === 'status-audit') loadAuditLog();
+    else if (tabKey === 'status-roles') loadStaffRolesTab();
     else if (tabKey === 'workorders') loadWorkOrders();
     else if (tabKey === 'equipment' || tabKey === 'machines' || tabKey === 'materials' || tabKey === 'erp-home') loadEquipment();
     else if (tabKey === 'projects-home') renderProjectsHomeStats();

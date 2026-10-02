@@ -605,7 +605,7 @@
     if (isReportAccount) {
       // Land back on whatever tab was open before a refresh instead of
       // always restarting at the home page — see initialHashTab above.
-      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects-home', 'projects', 'backlog', 'lps', 'workorders', 'erp-home', 'equipment', 'machines', 'materials', 'status', 'status-improve', 'status-audit', 'docs'];
+      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects-home', 'projects', 'backlog', 'lps', 'workorders', 'erp-home', 'equipment', 'machines', 'materials', 'status', 'status-improve', 'status-audit', 'status-roles', 'docs'];
       const restoredTab = validReportTabs.includes(initialHashTab) ? initialHashTab : 'home';
       openAdminTab(restoredTab, true);
       history.replaceState({ adminTab: restoredTab }, '', window.location.pathname + window.location.search + '#' + restoredTab);
@@ -620,10 +620,11 @@
     // Role must be known before the first render, so tickets don't
     // briefly flash the "Ce s-a făcut" field for a limited-access
     // account before it gets hidden a moment later.
-    fetchCurrentUserRole(normalizedEmail).then(() => {
+    fetchCurrentUserRoles(normalizedEmail).then(() => {
       // A sign-out or account switch may happen before the request
       // resolves. Never let that stale response change the new view.
       if (currentSessionEmail !== normalizedEmail) return;
+      applyRolePermissionsToUI();
       document.documentElement.classList.toggle('report-focused-view', isReportFocusedView());
       // The sheet's status chips render with the standard 3-option
       // set at script-load time (role isn't known yet then) — this
@@ -647,7 +648,7 @@
       // script-load time before login (and therefore before the role
       // is known), so this hides the one in question after the fact
       // rather than restructuring that earlier initialization.
-      if (currentUserRole === 'limited') {
+      if (modulePermission('tickets') !== 'write') {
         document.querySelectorAll('[data-key="AwaitingReport"]').forEach(el => {
           el.style.display = 'none';
         });
@@ -1252,7 +1253,7 @@
   // popover is the year/month/status filter for every admin, not just
   // the report-focused role, and "Așteaptă raport" only makes sense
   // for that one account. Added separately, after login, for that
-  // role specifically — see fetchCurrentUserRole's .then() below.
+  // role specifically — see fetchCurrentUserRoles's .then() below.
   // Populated by createFilterPopoverWidget's own renderChipRow call
   // below (chipsWrapId/chipDefs), not manually here.
   const overviewStatusChipsSheet = document.getElementById('overviewStatusChipsSheet');
@@ -1453,7 +1454,7 @@
       // isn't that yet, so it stays visually normal here even though
       // isDone itself (used below for the status pill, resolved date,
       // etc.) correctly still reflects the real stored status.
-      const isFullyComplete = (currentUserRole === 'limited' || isReportFocusedView())
+      const isFullyComplete = (modulePermission('tickets') !== 'write' || isReportFocusedView())
         ? isDone
         : (isDone && !!t.resolution_note);
       const isUrgent = t.type === 'Anunt accident';
@@ -1491,7 +1492,7 @@
     if (cardsWrap) {
       cardsWrap.innerHTML = ordered.map(t => {
         const isDone = t.status === 'Terminat';
-        const isFullyComplete = (currentUserRole === 'limited' || isReportFocusedView())
+        const isFullyComplete = (modulePermission('tickets') !== 'write' || isReportFocusedView())
           ? isDone
           : (isDone && !!t.resolution_note);
         const isUrgent = t.type === 'Anunt accident';
