@@ -819,8 +819,6 @@
   }
 
   const STATUS_TABS = ['status', 'status-improve', 'status-audit', 'status-roles'];
-  // HR_DATA_TABS is declared once in admin-core.js (also used by
-  // applyRolePermissionsToUI there) — reused here, not redeclared.
   function openAdminTab(tabKey, fromPopState){
     // Stare sistem's nav is hidden for anyone but 'god' (see
     // applyRolePermissionsToUI), but the tab itself is still reachable
@@ -828,9 +826,6 @@
     // change — redirect rather than silently rendering a panel nobody
     // meant to let them see.
     if (STATUS_TABS.includes(tabKey) && typeof isGod === 'function' && !isGod()) {
-      tabKey = 'home';
-    }
-    if (HR_DATA_TABS.includes(tabKey) && typeof isGod === 'function' && !isGod()) {
       tabKey = 'home';
     }
     const panelId = panelIdForTab(tabKey);

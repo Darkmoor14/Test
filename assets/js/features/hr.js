@@ -1,8 +1,8 @@
 /* ============================================================
-     HR — ANGAJAȚI / PONTAJ / CONCEDIU. God-only (see
-     applyRolePermissionsToUI / HR_DATA_TABS in lps.js) — personal
-     data and salary, enforced server-side by the "God can …" RLS
-     policies on hr_employees/hr_worktime_entries/hr_vacation_entries.
+     HR — ANGAJAȚI / PONTAJ / CONCEDIU. Open to every signed-in staff
+     account, view and write both — no per-role split here, unlike
+     tickets/proiecte/erp (see "Authenticated staff can …" RLS
+     policies on hr_employees/hr_worktime_entries/hr_vacation_entries).
      Three tables, loaded together since Pontaj/Concediu both need
      employee names and Angajați needs vacation totals.
      ============================================================ */

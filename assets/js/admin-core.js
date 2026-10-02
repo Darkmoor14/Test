@@ -134,27 +134,15 @@
   // a module this person only has 'view' on. Called once role is
   // known (right after login) — DB-level RLS is the real boundary;
   // this only keeps the UI from showing controls that would just
-  // fail at save time.
-  // Data tabs inside the HR category that hold real employee data
-  // (salary, personal address, hours, vacation) — god-only, same as
-  // Stare sistem. Documentație also lives under the HR rail icon now
-  // (moved there from its own top-level icon — see the sidebar markup),
-  // but it stays open to everyone: it's just the user guide, and
-  // hiding the whole HR icon would have taken away every staff
-  // member's only way to reach it.
-  const HR_DATA_TABS = ['hr-home', 'hr-employees', 'hr-worktime', 'hr-vacation'];
+  // fail at save time. HR is open to every staff account (view and
+  // write both) — unlike tickets/proiecte/erp, it has no per-role
+  // split, so nothing needs hiding here for it.
   function applyRolePermissionsToUI(){
     const statusRailItem = document.querySelector('.rail-item[data-category="status"]');
     const statusPanelSection = document.querySelector('.category-panel-section[data-category="status"]');
     const god = isGod();
     if (statusRailItem) statusRailItem.style.display = god ? '' : 'none';
     if (statusPanelSection) statusPanelSection.style.display = god ? '' : 'none';
-    HR_DATA_TABS.forEach(tabKey => {
-      const navBtn = document.querySelector(`.category-panel-item[data-tab="${tabKey}"]`);
-      if (navBtn) navBtn.style.display = god ? '' : 'none';
-    });
-    const homeNavHrBtn = document.getElementById('homeNavHr');
-    if (homeNavHrBtn) homeNavHrBtn.style.display = god ? '' : 'none';
     // CSS attributes, not a one-time querySelectorAll sweep: ERP/
     // Proiecte/Sesizări rows re-render constantly (every load, every
     // tab switch), so a [data-requires-write="<module>"] control added
@@ -1851,12 +1839,7 @@
       // "Sesizări" while already on Defecte shouldn't bounce back to
       // Prezentare generală.
       if (TAB_CATEGORY[currentTabKey] !== category) {
-        // HR's own default landing tab (hr-home) is god-only — anyone
-        // else clicking the HR icon lands on Documentație instead,
-        // the one thing under it they can actually see.
-        const defaultTab = (category === 'hr' && typeof isGod === 'function' && !isGod())
-          ? 'docs' : CATEGORY_DEFAULT_TAB[category];
-        openAdminTab(defaultTab);
+        openAdminTab(CATEGORY_DEFAULT_TAB[category]);
       }
     });
   });
