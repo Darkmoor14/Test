@@ -134,11 +134,15 @@
       const reservedNote = reserved ? ` (din care ${reserved}${item.unit ? ' ' + item.unit : ''} rezervat pe proiecte neterminate)` : '';
       return { text: `Mai sunt ${Number(item.quantity)}${item.unit ? ' ' + item.unit : ''} din ${item.name}${reservedNote}.`, tab, matched: true };
     }
-    if (/status|stare|disponibil/.test(q)) {
+    // Vehicles don't surface a Disponibil/În folosință/Service status
+    // anywhere in Parc Auto anymore, so search shouldn't either —
+    // echipament/material still cycle through that status, so they keep it.
+    if (!isVehicle && /status|stare|disponibil/.test(q)) {
       return { text: `${item.name}: ${EQUIPMENT_STATUS_LABEL[item.status] || item.status}.`, tab, matched: true };
     }
-    const parts = [`${item.name} — ${EQUIPMENT_STATUS_LABEL[item.status] || item.status}`];
+    const parts = isVehicle ? [item.name] : [`${item.name} — ${EQUIPMENT_STATUS_LABEL[item.status] || item.status}`];
     if (isMaterial) parts.push(`stoc: ${Number(item.quantity)}${item.unit ? ' ' + item.unit : ''}`);
+    if (isVehicle && item.plate_number) parts.push(`nr. ${item.plate_number}`);
     if (item.location) parts.push(`locație: ${item.location}`);
     if (item.assigned_to) parts.push(`alocat: ${item.assigned_to}`);
     if (isVehicle && item.odometer_km != null) parts.push(`${Number(item.odometer_km).toLocaleString('ro-RO')} km`);
@@ -215,8 +219,13 @@
       let matchedCategory = null;
       for (const cat of Object.keys(SEARCH_CATEGORY_WORDS)) { if (SEARCH_CATEGORY_WORDS[cat].some(w => q.includes(w))) { matchedCategory = cat; break; } }
       if (matchedCategory) {
+        // Vehicles don't track a Disponibil/În folosință/Service status
+        // in Parc Auto, so "câte mașini disponibile" ignores the status
+        // word entirely instead of filtering/labeling by it.
         let matchedStatus = null;
-        for (const status of Object.keys(SEARCH_STATUS_WORDS)) { if (SEARCH_STATUS_WORDS[status].some(w => q.includes(w))) { matchedStatus = status; break; } }
+        if (matchedCategory !== 'masina') {
+          for (const status of Object.keys(SEARCH_STATUS_WORDS)) { if (SEARCH_STATUS_WORDS[status].some(w => q.includes(w))) { matchedStatus = status; break; } }
+        }
         let items = (allEquipment || []).filter(e => (e.erp_category || '') === matchedCategory);
         if (matchedStatus) items = items.filter(e => e.status === matchedStatus);
         const catLabel = { echipament: 'echipamente', masina: 'mașini', material: 'materiale' }[matchedCategory];

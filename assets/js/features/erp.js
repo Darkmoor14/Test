@@ -604,6 +604,10 @@
   // then scroll to and highlight its card there — a click on Prezentare
   // generală goes straight to the car, not through another popup.
   function goToVehicle(eq){
+    // Unlike the in-table ticket-link (already on panel-machines), this
+    // is also reached from the Home smart search and command palette —
+    // it must switch to Parc Auto itself, not just update its filter.
+    openAdminTab('machines');
     setMachinesSubcatFilter(eq.category);
     requestAnimationFrame(() => {
       const card = document.getElementById('vehicle-card-' + eq.id);
