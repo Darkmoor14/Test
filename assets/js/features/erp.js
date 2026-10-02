@@ -559,6 +559,7 @@
     const metaParts = [];
     if (eq.serial_number) metaParts.push(`Serie șasiu: ${escapeHtml(eq.serial_number)}`);
     if (eq.assigned_to) metaParts.push(`Alocat la: ${escapeHtml(eq.assigned_to)}`);
+    if (eq.notes) metaParts.push(`Notițe: ${escapeHtml(eq.notes)}`);
     const isCamion = eq.category === 'camion';
     const docsHtml = VEHICLE_DOC_FIELDS.filter(f => !f.camionOnly || isCamion).map(f => {
       const val = eq[f.key];
@@ -581,7 +582,6 @@
         <span class="backlog-tag">${escapeHtml(VEHICLE_SUBCAT_LABEL[eq.category] || '')}</span>
       </div>
       ${metaParts.length ? `<div class="backlog-meta-line">${metaParts.join(' · ')}</div>` : ''}
-      ${eq.notes ? `<div class="backlog-meta-line">Notițe: ${escapeHtml(eq.notes)}</div>` : ''}
       <div class="vd-docs-grid">${docsHtml}</div>
     `;
   }

@@ -886,7 +886,11 @@
      bottom-sheet sizing built for the much larger generic
      erpItemFormSheet, which left it looking mostly empty. */
   #vehicleFormSheet .ctrl-field{min-width:0;margin-bottom:12px;}
-  #vehicleFormSheet .ctrl-field label{font-size:10px;margin-bottom:4px;}
+  /* Labels like "Tichete parcare — data expirării" wrap to 2 lines while
+     their row-mate ("Rovinietă — data expirării") fits on 1 — without a
+     reserved height, that makes the shorter label's input sit higher
+     than its neighbor. Reserving 2 lines always keeps inputs aligned. */
+  #vehicleFormSheet .ctrl-field label{font-size:10px;margin-bottom:4px;line-height:1.3;min-height:26px;display:block;}
   #vehicleFormSheet .ctrl-field input,
   #vehicleFormSheet .ctrl-field select{
     font-size:12.5px;padding:7px 9px;height:34px;
@@ -905,11 +909,12 @@
   .vehicle-big-card .backlog-title-line{margin-bottom:6px;padding-right:70px;}
   .vehicle-big-card .backlog-meta-line{white-space:normal;}
   .vehicle-big-card .vd-docs-grid{
-    display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:10px;
+    display:flex;gap:8px 16px;margin-top:10px;
     padding-top:10px;border-top:1px solid var(--line);
   }
-  .vehicle-big-card .vd-doc-item .vd-doc-label{font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.04em;}
-  .vehicle-big-card .vd-doc-item .vd-doc-value{font-size:13px;margin-top:2px;}
+  .vehicle-big-card .vd-doc-item{flex:1;min-width:0;}
+  .vehicle-big-card .vd-doc-item .vd-doc-label{font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;}
+  .vehicle-big-card .vd-doc-item .vd-doc-value{font-size:13px;margin-top:2px;white-space:nowrap;}
   .vehicle-big-card-actions{position:absolute;top:14px;right:14px;display:flex;gap:6px;}
   .vehicle-big-card.jump-highlight{animation:ticket-jump-highlight 1.8s ease-out;}
   @media(min-width:901px){
