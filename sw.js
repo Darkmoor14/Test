@@ -3,8 +3,8 @@
 // Two jobs only, deliberately kept minimal:
 //   1. Satisfy the browser's requirement that an installable PWA have a
 //      registered service worker (no meaningful offline caching here —
-//      admin.html needs a live connection to Supabase to be useful at
-//      all, so there's nothing worth caching for offline use).
+//      the admin panel needs a live connection to Supabase to be useful
+//      at all, so there's nothing worth caching for offline use).
 //   2. Receive Web Push messages sent by the "send-push" Supabase Edge
 //      Function and show them as real OS-level notifications, even
 //      when the admin panel isn't open in a tab.
@@ -32,7 +32,7 @@ self.addEventListener('push', (event) => {
     body: data.body || 'A fost înregistrată o sesizare nouă pe site.',
     icon: 'icons/icon-192.png',
     badge: 'icons/icon-192.png',
-    data: { url: data.url || 'admin.html' },
+    data: { url: data.url || 'admin-3.html' },
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
@@ -53,20 +53,20 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = event.notification.data && event.notification.data.url
     ? event.notification.data.url
-    : 'admin.html';
+    : 'admin-3.html';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Match either admin.html (full dashboard) or admin-2.html (the
-      // report-focused account's simplified mobile UI) — both share
-      // this one service worker. This used to only check for
-      // 'admin.html', which is NOT a substring of 'admin-2.html', so
-      // admin-2.html users' already-open tab was never found here —
-      // every notification tap fell through to openWindow() below and
+      // Match admin.html, admin-2.html or admin-3.html — all three have
+      // shared this one service worker across the app's successive
+      // rewrites. This used to only check for 'admin.html', which is
+      // NOT a substring of 'admin-2.html' or 'admin-3.html', so those
+      // users' already-open tab was never found here — every
+      // notification tap fell through to openWindow() below and
       // spawned a brand new tab instead of updating the existing one,
       // which is why tapping a notification often looked like it did
       // nothing until manually switching tabs.
-      const adminClient = clientList.find(client => /\/admin(-2)?\.html(\?|#|$)/.test(client.url));
+      const adminClient = clientList.find(client => /\/admin(-2|-3)?\.html(\?|#|$)/.test(client.url));
       if (adminClient && 'focus' in adminClient) {
         adminClient.postMessage({ type: 'go-to-ticket-url', url: targetUrl });
         return adminClient.focus();

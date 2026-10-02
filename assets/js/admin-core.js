@@ -365,8 +365,8 @@
         auth: subJson.keys.auth,
         // So send-push can point a cold-start notification (no admin
         // tab already open) at this specific page instead of always
-        // opening admin.html for every device.
-        landing_page: 'admin-2.html',
+        // opening the same default for every device.
+        landing_page: 'admin-3.html',
         // Who this device belongs to — shown as a notifications
         // on/off badge per person in the Roluri tab.
         user_email: currentSessionEmail || null,

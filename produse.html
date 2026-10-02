@@ -644,7 +644,7 @@
         body: {
           title: 'Sesizare nouă',
           body: `${payload.ticket_number} — ${payload.address}`,
-          url: 'admin.html?ticket=' + encodeURIComponent(payload.ticket_number),
+          url: 'admin-3.html?ticket=' + encodeURIComponent(payload.ticket_number),
         },
       });
       if (error) console.error('send-push failed:', error);
