@@ -135,12 +135,26 @@
   // known (right after login) — DB-level RLS is the real boundary;
   // this only keeps the UI from showing controls that would just
   // fail at save time.
+  // Data tabs inside the HR category that hold real employee data
+  // (salary, personal address, hours, vacation) — god-only, same as
+  // Stare sistem. Documentație also lives under the HR rail icon now
+  // (moved there from its own top-level icon — see the sidebar markup),
+  // but it stays open to everyone: it's just the user guide, and
+  // hiding the whole HR icon would have taken away every staff
+  // member's only way to reach it.
+  const HR_DATA_TABS = ['hr-home', 'hr-employees', 'hr-worktime', 'hr-vacation'];
   function applyRolePermissionsToUI(){
     const statusRailItem = document.querySelector('.rail-item[data-category="status"]');
     const statusPanelSection = document.querySelector('.category-panel-section[data-category="status"]');
     const god = isGod();
     if (statusRailItem) statusRailItem.style.display = god ? '' : 'none';
     if (statusPanelSection) statusPanelSection.style.display = god ? '' : 'none';
+    HR_DATA_TABS.forEach(tabKey => {
+      const navBtn = document.querySelector(`.category-panel-item[data-tab="${tabKey}"]`);
+      if (navBtn) navBtn.style.display = god ? '' : 'none';
+    });
+    const homeNavHrBtn = document.getElementById('homeNavHr');
+    if (homeNavHrBtn) homeNavHrBtn.style.display = god ? '' : 'none';
     // CSS attributes, not a one-time querySelectorAll sweep: ERP/
     // Proiecte/Sesizări rows re-render constantly (every load, every
     // tab switch), so a [data-requires-write="<module>"] control added
@@ -549,6 +563,18 @@
     docsProjectsToggleBtn.addEventListener('click', () => {
       docsProjectsToggleBtn.classList.toggle('open');
       const subgroup = document.querySelector('.docs-nav-subgroup[data-docs-subgroup="projects"]');
+      if (subgroup) subgroup.classList.toggle('open');
+    });
+  }
+  // HR's "Documentație" dropdown — moved here from its own top-level
+  // rail icon (see the sidebar markup). One level above the Proiecte
+  // toggle just above, which nests fine (.docs-nav-subgroup's indent
+  // just stacks for each level deep).
+  const hrDocsToggleBtn = document.querySelector('.docs-nav-toggle[data-hr-toggle="docs"]');
+  if (hrDocsToggleBtn) {
+    hrDocsToggleBtn.addEventListener('click', () => {
+      hrDocsToggleBtn.classList.toggle('open');
+      const subgroup = document.querySelector('.docs-nav-subgroup[data-hr-subgroup="docs"]');
       if (subgroup) subgroup.classList.toggle('open');
     });
   }
@@ -1825,7 +1851,12 @@
       // "Sesizări" while already on Defecte shouldn't bounce back to
       // Prezentare generală.
       if (TAB_CATEGORY[currentTabKey] !== category) {
-        openAdminTab(CATEGORY_DEFAULT_TAB[category]);
+        // HR's own default landing tab (hr-home) is god-only — anyone
+        // else clicking the HR icon lands on Documentație instead,
+        // the one thing under it they can actually see.
+        const defaultTab = (category === 'hr' && typeof isGod === 'function' && !isGod())
+          ? 'docs' : CATEGORY_DEFAULT_TAB[category];
+        openAdminTab(defaultTab);
       }
     });
   });
@@ -2253,10 +2284,10 @@
      un singur jurnal, sub Stare sistem, e suficient.
      ============================================================ */
   const PROJECT_ENTITY_TYPES = ['project', 'backlog', 'lookahead'];
-  const ERP_ENTITY_TYPES = ['echipament', 'masina', 'material'];
+  const ERP_ENTITY_TYPES = ['echipament', 'masina', 'material', 'produs'];
   const ENTITY_TYPE_LABEL = {
     project: 'Proiect public', backlog: 'Avarie rețea', lookahead: 'LPS Look-ahead',
-    echipament: 'Echipament', masina: 'Mașină', material: 'Material',
+    echipament: 'Echipament', masina: 'Mașină', material: 'Material', produs: 'Produs',
   };
   let auditLogEntries = [];
   let auditLogLookaheadTitles = {};
@@ -2471,7 +2502,7 @@
     {
       selector: '.rail',
       title: 'Bara principală',
-      text: 'De aici treci între zonele mari ale platformei — Sesizări, Proiecte, ERP, Documentație și Stare sistem. Rămâne mereu vizibilă, pe orice pagină.',
+      text: 'De aici treci între zonele mari ale platformei — Sesizări, Proiecte, Resurse și inventar, HR și Stare sistem. Rămâne mereu vizibilă, pe orice pagină.',
     },
     {
       selector: '.category-panel',
@@ -2483,7 +2514,7 @@
     {
       selector: '#commandPaletteBtn',
       title: 'Căutare rapidă',
-      text: 'Scrie o întrebare simplă — „cât cablu X mai am”, „unde e excavatorul”, „câte mașini sunt disponibile” — și primești direct răspunsul, fără să cauți manual prin ERP. Disponibilă din orice pagină, sau cu Ctrl/Cmd+K.',
+      text: 'Scrie o întrebare simplă — „cât cablu X mai am”, „unde e excavatorul”, „câte mașini sunt disponibile” — și primești direct răspunsul, fără să cauți manual prin Resurse și inventar. Disponibilă din orice pagină, sau cu Ctrl/Cmd+K.',
     },
     {
       selector: '.home-nav-grid',
@@ -2496,9 +2527,9 @@
       text: 'Un spațiu personal, tip post-it, salvat doar în acest browser — nu e vizibil pentru alți utilizatori.',
     },
     {
-      selector: '.rail-item[data-category="docs"]',
+      selector: '.rail-item[data-category="hr"]',
       title: 'Documentație completă',
-      text: 'Dacă vrei detalii pas cu pas pentru orice pagină sau buton din platformă, ghidul complet e mereu aici — organizat pe aceleași secțiuni ca restul platformei (Sesizări, Proiecte, ERP), cu propria căutare.',
+      text: 'Dacă vrei detalii pas cu pas pentru orice pagină sau buton din platformă, ghidul complet e mereu aici — sub „HR”, ca un meniu derulant — organizat pe aceleași secțiuni ca restul platformei (Sesizări, Proiecte, Resurse și inventar), cu propria căutare.',
     },
   ];
   let onboardingStepIndex = 0;

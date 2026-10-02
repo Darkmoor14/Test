@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/admin.css?v=20261002e">
+<link rel="stylesheet" href="assets/css/admin.css?v=20261002g">
 </head>
 <body>
 
@@ -54,13 +54,13 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M9 4v5"/></svg>
           <span class="rail-item-label">Proiecte</span>
         </button>
-        <button type="button" class="rail-item" data-category="erp" title="ERP">
+        <button type="button" class="rail-item" data-category="erp" title="Resurse și inventar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-          <span class="rail-item-label">ERP</span>
+          <span class="rail-item-label">Resurse și inventar</span>
         </button>
-        <button type="button" class="rail-item" data-category="docs" title="Documentație">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-          <span class="rail-item-label">Documentație</span>
+        <button type="button" class="rail-item" data-category="hr" title="HR">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M17 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span class="rail-item-label">HR</span>
         </button>
         <button type="button" class="rail-item" data-category="status" title="Stare sistem">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
@@ -120,21 +120,32 @@
             <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="utilaj">Utilaj</button>
           </div>
           <button type="button" class="admin-tab category-panel-item" data-tab="materials">Materiale</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="products">Produse</button>
         </div>
-        <div class="category-panel-section" data-category="docs">
-          <button type="button" class="category-panel-item docs-nav-group-btn active" data-docs-group="home">Home</button>
-          <button type="button" class="category-panel-item docs-nav-group-btn" data-docs-group="tickets">Sesizări</button>
-          <button type="button" class="category-panel-item docs-nav-toggle" data-docs-toggle="projects">
-            <span>Proiecte</span>
+        <div class="category-panel-section" data-category="hr">
+          <button type="button" class="admin-tab category-panel-item" data-tab="hr-home">Home</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="hr-employees">Angajați</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="hr-worktime">Pontaj</button>
+          <button type="button" class="admin-tab category-panel-item" data-tab="hr-vacation">Concediu</button>
+          <button type="button" class="category-panel-item docs-nav-toggle" data-hr-toggle="docs">
+            <span>Documentație</span>
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
-          <div class="docs-nav-subgroup" data-docs-subgroup="projects">
-            <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-projects">Proiecte publice</button>
-            <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-backlog">Avarii rețele</button>
-            <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-lps">Proiecte LPS</button>
-            <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-workorders">Programe lucrări</button>
+          <div class="docs-nav-subgroup" data-hr-subgroup="docs">
+            <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem active" data-docs-group="home">Home</button>
+            <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="tickets">Sesizări</button>
+            <button type="button" class="category-panel-item docs-nav-toggle docs-nav-subitem" data-docs-toggle="projects">
+              <span>Proiecte</span>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <div class="docs-nav-subgroup" data-docs-subgroup="projects">
+              <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-projects">Proiecte publice</button>
+              <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-backlog">Avarii rețele</button>
+              <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-lps">Proiecte LPS</button>
+              <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-workorders">Programe lucrări</button>
+            </div>
+            <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="erp">Resurse și inventar</button>
           </div>
-          <button type="button" class="category-panel-item docs-nav-group-btn" data-docs-group="erp">ERP</button>
         </div>
         <div class="category-panel-section" data-category="status">
           <button type="button" class="admin-tab category-panel-item" data-tab="status">Stare sistem</button>
@@ -393,7 +404,13 @@
               <span class="home-nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
               </span>
-              <span class="home-nav-text"><span class="home-nav-label">ERP</span><span class="home-nav-sub">Echipamente, mașini, materiale</span></span>
+              <span class="home-nav-text"><span class="home-nav-label">Resurse și inventar</span><span class="home-nav-sub">Echipamente, mașini, materiale, produse</span></span>
+            </button>
+            <button type="button" class="home-nav-btn" id="homeNavHr">
+              <span class="home-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M17 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </span>
+              <span class="home-nav-text"><span class="home-nav-label">HR</span><span class="home-nav-sub">Angajați, pontaj, concediu</span></span>
             </button>
             <button type="button" class="home-nav-btn" id="homeNavDocs">
               <span class="home-nav-icon" aria-hidden="true">
@@ -884,6 +901,11 @@
           <div class="num" id="erpHomeMaterialsCount">0</div>
           <div class="sub">Stoc consumabile</div>
         </button>
+        <button type="button" class="priority-card" id="erpHomeProductsCard">
+          <span class="k">▲ Produse</span>
+          <div class="num" id="erpHomeProductsCount">0</div>
+          <div class="sub">Produse finite</div>
+        </button>
       </div>
       <div class="erp-alerts-wrap" id="erpAlertsWrap" style="display:none;margin-top:24px;">
         <h3 class="status-subhead">Alerte stoc și revizii</h3>
@@ -907,6 +929,12 @@
             <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
           </span>
           <span class="home-nav-text"><span class="home-nav-label">Materiale</span><span class="home-nav-sub">Stoc consumabile de șantier</span></span>
+        </button>
+        <button type="button" class="home-nav-btn" id="erpHomeNavProducts">
+          <span class="home-nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 7.3 12 12l-8.5-4.7"/><path d="M12 22V12"/><path d="m3.3 7 8.2-4.6a1 1 0 0 1 1 0L20.7 7a1 1 0 0 1 .5.87v8.26a1 1 0 0 1-.5.87l-8.2 4.6a1 1 0 0 1-1 0l-8.2-4.6a1 1 0 0 1-.5-.87V7.87a1 1 0 0 1 .5-.87z"/></svg>
+          </span>
+          <span class="home-nav-text"><span class="home-nav-label">Produse</span><span class="home-nav-sub">Produse finite, stoc</span></span>
         </button>
       </div>
     </div>
@@ -959,6 +987,137 @@
         <button type="button" class="btn btn-primary" id="addMaterialBtn" data-requires-write="erp">+ Adaugă material</button>
       </div>
       <div class="backlog-list" id="materialsList"></div>
+    </div>
+    <div class="admin-panel" id="panel-products">
+      <div class="toolbar">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="result-count" id="productsCount"></div>
+        </div>
+        <button type="button" class="btn btn-primary" id="addProductBtn" data-requires-write="erp">+ Adaugă produs</button>
+      </div>
+      <div class="backlog-list" id="productsList"></div>
+    </div>
+
+    <div class="admin-panel" id="panel-hr-home">
+      <div class="priority-grid">
+        <button type="button" class="priority-card" id="hrHomeEmployeesCard">
+          <span class="k">● Angajați</span>
+          <div class="num" id="hrHomeEmployeesCount">0</div>
+          <div class="sub">Persoane active</div>
+        </button>
+        <button type="button" class="priority-card" id="hrHomeWorktimeCard">
+          <span class="k">◆ Pontaj</span>
+          <div class="num" id="hrHomeWorktimeCount">0</div>
+          <div class="sub">Înregistrări luna aceasta</div>
+        </button>
+        <button type="button" class="priority-card" id="hrHomeVacationCard">
+          <span class="k">■ Concediu</span>
+          <div class="num" id="hrHomeVacationCount">0</div>
+          <div class="sub">Zile folosite anul acesta</div>
+        </button>
+      </div>
+      <div class="home-nav-grid" style="margin-top:28px;">
+        <button type="button" class="home-nav-btn" id="hrHomeNavEmployees">
+          <span class="home-nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M17 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
+          <span class="home-nav-text"><span class="home-nav-label">Angajați</span><span class="home-nav-sub">Date personale, salariu, concediu alocat</span></span>
+        </button>
+        <button type="button" class="home-nav-btn" id="hrHomeNavWorktime">
+          <span class="home-nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </span>
+          <span class="home-nav-text"><span class="home-nav-label">Pontaj</span><span class="home-nav-sub">Ore lucrate și ore suplimentare</span></span>
+        </button>
+        <button type="button" class="home-nav-btn" id="hrHomeNavVacation">
+          <span class="home-nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </span>
+          <span class="home-nav-text"><span class="home-nav-label">Concediu</span><span class="home-nav-sub">Zile de concediu folosite</span></span>
+        </button>
+      </div>
+    </div>
+    <div class="admin-panel" id="panel-hr-employees">
+      <div class="toolbar">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="result-count" id="hrEmployeesCount"></div>
+        </div>
+        <button type="button" class="btn btn-primary" id="addHrEmployeeBtn">+ Adaugă angajat</button>
+      </div>
+      <div class="overview-table-wrap">
+        <table class="overview-table" id="hrEmployeesTable">
+          <colgroup>
+            <col style="width:19%"><col style="width:11%"><col style="width:18%">
+            <col style="width:10%"><col style="width:9%"><col style="width:9%"><col style="width:24%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Nume</th>
+              <th>Data nașterii</th>
+              <th>Adresă</th>
+              <th>Salariu</th>
+              <th>Zile alocate</th>
+              <th>Zile folosite</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="hrEmployeesTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="admin-panel" id="panel-hr-worktime">
+      <div class="toolbar">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="result-count" id="hrWorktimeCount"></div>
+        </div>
+        <button type="button" class="btn btn-primary" id="addHrWorktimeBtn">+ Adaugă pontaj</button>
+      </div>
+      <div class="overview-table-wrap">
+        <table class="overview-table" id="hrWorktimeTable">
+          <colgroup>
+            <col style="width:22%"><col style="width:13%"><col style="width:13%">
+            <col style="width:14%"><col style="width:14%"><col style="width:24%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Angajat</th>
+              <th>Data</th>
+              <th>Ore lucrate</th>
+              <th>Ore suplimentare</th>
+              <th>Notițe</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="hrWorktimeTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="admin-panel" id="panel-hr-vacation">
+      <div class="toolbar">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="result-count" id="hrVacationCount"></div>
+        </div>
+        <button type="button" class="btn btn-primary" id="addHrVacationBtn">+ Adaugă concediu</button>
+      </div>
+      <div class="overview-table-wrap">
+        <table class="overview-table" id="hrVacationTable">
+          <colgroup>
+            <col style="width:20%"><col style="width:13%"><col style="width:13%">
+            <col style="width:9%"><col style="width:21%"><col style="width:24%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Angajat</th>
+              <th>De la</th>
+              <th>Până la</th>
+              <th>Zile</th>
+              <th>Notițe</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="hrVacationTableBody"></tbody>
+        </table>
+      </div>
     </div>
 
     <div class="admin-panel" id="panel-status">
@@ -1118,10 +1277,11 @@
                 <option value="echipament">Echipamente</option>
                 <option value="masina">Parc Auto</option>
                 <option value="material">Materiale</option>
+                <option value="produs">Produse</option>
               </select>
             </div>
           </div>
-          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Schimbările de stare și notițele adăugate pe proiecte publice, avarii de rețea, elemente Look-ahead din LPS și inventarul ERP (echipamente, mașini, materiale) — toate, într-un singur fir cronologic ("stare schimbată din Activ în Soluționat de X, pe data de…").</p>
+          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Schimbările de stare și notițele adăugate pe proiecte publice, avarii de rețea, elemente Look-ahead din LPS și inventarul Resurse și inventar (echipamente, mașini, materiale, produse) — toate, într-un singur fir cronologic ("stare schimbată din Activ în Soluționat de X, pe data de…").</p>
           <div class="entity-log-list" id="auditLogList" style="max-height:560px;"></div>
         </div>
       </div>
@@ -1187,18 +1347,18 @@
         <button type="button" class="docs-toc-link" data-docs-target="docs-backlog">Avarii rețele</button>
         <button type="button" class="docs-toc-link" data-docs-target="docs-lps">Proiecte LPS</button>
         <button type="button" class="docs-toc-link" data-docs-target="docs-workorders">Programe lucrări</button>
-        <button type="button" class="docs-toc-link" data-docs-target="docs-erp">ERP</button>
+        <button type="button" class="docs-toc-link" data-docs-target="docs-erp">Resurse și inventar</button>
       </div>
 
       <div class="docs-body">
 
         <section class="docs-section" id="docs-nav" data-docs-group="home">
           <h3>Cum navighezi</h3>
-          <p>Platforma este organizată pe cinci zone, fiecare cu propria bară laterală (a doua coloană, chiar lângă cea cu iconițe): <strong>Sesizări</strong> (Prezentare generală, Funcționale, Accidente), <strong>Proiecte</strong> (Home, Proiecte publice, Avarii rețele, Proiecte LPS, Programe lucrări), <strong>ERP</strong> (Home, Echipamente, Parc Auto, Materiale), <strong>Documentație</strong> (pagina de față) și <strong>Stare sistem</strong> (Stare sistem, Auto-îmbunătățire).</p>
+          <p>Platforma este organizată pe cinci zone, fiecare cu propria bară laterală (a doua coloană, chiar lângă cea cu iconițe): <strong>Sesizări</strong> (Prezentare generală, Funcționale, Accidente), <strong>Proiecte</strong> (Home, Proiecte publice, Avarii rețele, Proiecte LPS, Programe lucrări), <strong>Resurse și inventar</strong> (Home, Echipamente, Parc Auto, Materiale, Produse), <strong>HR</strong> (Angajați, Pontaj, Concediu și, într-un meniu derulant, <strong>Documentație</strong> — pagina de față) și <strong>Stare sistem</strong> (Stare sistem, Auto-îmbunătățire).</p>
           <ul>
             <li><strong>⌂ Acasă</strong> (prima iconiță din bara principală) — te duce oricând înapoi la pagina de start, din orice altă pagină te-ai afla.</li>
             <li><strong>Bara principală</strong> (coloana îngustă, cu iconițe) — comută între cele cinci zone de mai sus. Rămâne mereu vizibilă.</li>
-            <li><strong>🔍 Căutare / comenzi rapide</strong> (iconița jos, în bara principală, sau Ctrl/Cmd+K de oriunde) — scrie numele unei pagini ca să sari direct la ea, sau o întrebare ca „cât cablu CYABY mai am”, „unde e excavatorul” sau „cine lucrează la avaria de pe strada X” ca să primești răspunsul direct, din datele reale din ERP, Proiecte publice, Avarii rețele, Proiecte LPS și Programe lucrări. Dacă nu găsește exact ce ai scris, îți arată sugestii apropiate — iar alegerea unei sugestii „învață” acea întrebare pentru data viitoare.</li>
+            <li><strong>🔍 Căutare / comenzi rapide</strong> (iconița jos, în bara principală, sau Ctrl/Cmd+K de oriunde) — scrie numele unei pagini ca să sari direct la ea, sau o întrebare ca „cât cablu CYABY mai am”, „unde e excavatorul” sau „cine lucrează la avaria de pe strada X” ca să primești răspunsul direct, din datele reale din Resurse și inventar, Proiecte publice, Avarii rețele, Proiecte LPS și Programe lucrări. Dacă nu găsește exact ce ai scris, îți arată sugestii apropiate — iar alegerea unei sugestii „învață” acea întrebare pentru data viitoare.</li>
             <li><strong>A doua bară laterală</strong> — arată paginile zonei alese. Pentru Acasă nu există o a doua bară (nu are sub-pagini).</li>
             <li><strong>☰ Meniu</strong> (pe telefon) — o listă rapidă cu Acasă, Sesizări active, Proiecte în lucru, Planificare LPS și Avarii deschise, disponibilă din orice pagină, fără să te întorci mai întâi la Acasă.</li>
             <li><strong>Traseul din capul paginii</strong> (ex: „Acasă / Sesizări funcționale”) — arată mereu unde te afli. Poți apăsa pe „Acasă” din el ca să te întorci direct.</li>
@@ -1217,8 +1377,8 @@
           <ul>
             <li><strong>Sesizări</strong> — Prezentare generală, cu sesizările funcționale și accidentele deja filtrate pe cele active.</li>
             <li><strong>Proiecte</strong> — pagina de start a Proiectelor, cu Proiecte publice, Avarii rețele, Proiecte LPS și Programe lucrări.</li>
-            <li><strong>ERP</strong> — pagina de start a ERP-ului, cu Echipamente, Parc Auto și Materiale.</li>
-            <li><strong>Documentație</strong> — pagina de față.</li>
+            <li><strong>Resurse și inventar</strong> — pagina de start a inventarului, cu Echipamente, Parc Auto, Materiale și Produse.</li>
+            <li><strong>Documentație</strong> — pagina de față, accesibilă din meniul HR.</li>
             <li><strong>Stare sistem</strong> — verificări live ale conexiunii, funcțiilor și notificărilor.</li>
           </ul>
           <h4>Notițele (dreapta)</h4>
@@ -1390,13 +1550,13 @@
         </section>
 
         <section class="docs-section" id="docs-erp" data-docs-group="erp">
-          <h3>ERP — Echipamente, Parc Auto, Materiale</h3>
-          <p>Inventarul firmei, împărțit în trei pagini — <strong>Echipamente</strong> (scule, generatoare, compresoare), <strong>Parc Auto</strong> (utilaje grele, transport) și <strong>Materiale</strong> (consumabile: cabluri, țevi, beton) — plus o pagină de <strong>Home</strong> cu totalurile fiecăreia.</p>
-          <h4>Cum adaugi un echipament sau material</h4>
+          <h3>Resurse și inventar — Echipamente, Parc Auto, Materiale, Produse</h3>
+          <p>Inventarul firmei, împărțit în patru pagini — <strong>Echipamente</strong> (scule, generatoare, compresoare), <strong>Parc Auto</strong> (utilaje grele, transport), <strong>Materiale</strong> (consumabile: cabluri, țevi, beton) și <strong>Produse</strong> (produse finite) — plus o pagină de <strong>Home</strong> cu totalurile fiecăreia.</p>
+          <h4>Cum adaugi un echipament, material sau produs</h4>
           <ol>
-            <li>Apasă <strong>„+ Adaugă echipament / material”</strong> din pagina potrivită — formularul se deschide deja cu categoria corectă bifată.</li>
-            <li>Completează <strong>Denumire</strong>, <strong>Categorie ERP</strong> (dacă vrei s-o schimbi), <strong>Subcategorie</strong>, <strong>Nr. serie / inventar</strong>, <strong>Locație curentă</strong>, <strong>Alocat la</strong> și <strong>Notițe</strong>.</li>
-            <li>Pentru <strong>Materiale</strong>, completezi și <strong>Cantitate</strong> + <strong>Unitate</strong> (ex: 500 m).</li>
+            <li>Apasă <strong>„+ Adaugă echipament / material / produs”</strong> din pagina potrivită — formularul se deschide deja cu categoria corectă bifată.</li>
+            <li>Completează <strong>Denumire</strong>, <strong>Categorie</strong> (dacă vrei s-o schimbi), <strong>Subcategorie</strong>, <strong>Nr. serie / inventar</strong>, <strong>Locație curentă</strong>, <strong>Alocat la</strong> și <strong>Notițe</strong>.</li>
+            <li>Pentru <strong>Materiale</strong> și <strong>Produse</strong>, completezi și <strong>Cantitate</strong> + <strong>Unitate</strong> (ex: 500 m).</li>
             <li>Apasă <strong>„Salvează”</strong>.</li>
           </ol>
           <h4>Parc Auto — adăugare, date și documente</h4>
@@ -1406,7 +1566,7 @@
           <h4>Materiale — scădere din stoc</h4>
           <p>Un material se scade din <strong>Cantitate</strong> imediat ce e rezervat pe un proiect LPS, cu o notă că proiectul nu e încă terminat. Dacă ștergi o rezervare neconsumată încă, cantitatea se întoarce automat în stoc.</p>
           <h4>Legătura cu Planificarea LPS</h4>
-          <p>Din tab-ul <strong>Look-ahead</strong> al unui proiect LPS, butonul <strong>„+ Resursă”</strong> deschide o fereastră cu tot inventarul ERP: alegi <strong>Echipament</strong> sau <strong>Material</strong>, articolul dorit, și completezi fie <strong>perioada</strong> (pentru echipament/mașină), fie <strong>cantitatea necesară</strong> (pentru material). Rezervarea apare apoi direct pe acel element din Look-ahead, cu un buton <strong>„Marchează consumat”</strong> (material) sau <strong>„Eliberează”</strong> (echipament/mașină) când lucrarea se termină.</p>
+          <p>Din tab-ul <strong>Look-ahead</strong> al unui proiect LPS, butonul <strong>„+ Resursă”</strong> deschide o fereastră cu tot inventarul: alegi <strong>Echipament</strong> sau <strong>Material</strong>, articolul dorit, și completezi fie <strong>perioada</strong> (pentru echipament/mașină), fie <strong>cantitatea necesară</strong> (pentru material). Rezervarea apare apoi direct pe acel element din Look-ahead, cu un buton <strong>„Marchează consumat”</strong> (material) sau <strong>„Eliberează”</strong> (echipament/mașină) când lucrarea se termină.</p>
           <h4>Schimbarea stării (Echipamente/Materiale)</h4>
           <p>Fiecare echipament sau material are un buton de stare care trece prin <strong>Disponibil → În folosință → Service → Disponibil</strong>, și butoanele <strong>Editează</strong> / <strong>Șterge</strong>.</p>
         </section>
@@ -1563,7 +1723,7 @@
   <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="addResourceSheetTitle">
     <div class="sheet-handle"></div>
     <div class="sheet-head">
-      <div><h3 id="addResourceSheetTitle">Adaugă resursă din ERP</h3></div>
+      <div><h3 id="addResourceSheetTitle">Adaugă resursă din inventar</h3></div>
       <button type="button" class="sheet-close" data-close-sheet="addResourceSheet" aria-label="Închide">×</button>
     </div>
     <input type="hidden" id="ares-lookahead-id">
@@ -1575,7 +1735,7 @@
       </select>
     </div>
     <div class="ctrl-field">
-      <label>Element din inventarul ERP</label>
+      <label>Element din inventar</label>
       <select id="ares-item"></select>
     </div>
     <div class="ctrl-field" id="ares-quantity-field">
@@ -1605,7 +1765,7 @@
   <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="erpItemFormSheetTitle">
     <div class="sheet-handle"></div>
     <div class="sheet-head">
-      <div><h3 id="erpItemFormSheetTitle">Articol ERP</h3></div>
+      <div><h3 id="erpItemFormSheetTitle">Articol din inventar</h3></div>
       <button type="button" class="sheet-close" data-close-sheet="erpItemFormSheet" aria-label="Închide">×</button>
     </div>
     <input type="hidden" id="ef-id">
@@ -1615,10 +1775,11 @@
         <input type="text" id="ef-name" placeholder="ex: Buldoexcavator JCB 3CX">
       </div>
       <div class="ctrl-field">
-        <label>Categorie ERP</label>
+        <label>Categorie</label>
         <select id="ef-type">
           <option value="echipament">Echipament (se rezervă pe perioadă)</option>
           <option value="material">Material (consumabil — se scade din stoc)</option>
+          <option value="produs">Produs (produs finit — se scade din stoc)</option>
         </select>
       </div>
       <div class="ctrl-field" id="ef-category-field">
@@ -1819,6 +1980,122 @@
   </div>
 </div>
 
+<div class="mobile-sheet" id="hrEmployeeFormSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="hrEmployeeFormSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="hrEmployeeFormSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div><h3 id="hrEmployeeFormSheetTitle">Adaugă angajat</h3></div>
+      <button type="button" class="sheet-close" data-close-sheet="hrEmployeeFormSheet" aria-label="Închide">×</button>
+    </div>
+    <input type="hidden" id="hrEf-id">
+    <div class="pf-grid">
+      <div class="ctrl-field" style="grid-column:1/-1;">
+        <label>Nume</label>
+        <input type="text" id="hrEf-name" placeholder="ex: Ion Popescu">
+      </div>
+      <div class="ctrl-field">
+        <label>Data nașterii</label>
+        <input type="date" id="hrEf-dob">
+      </div>
+      <div class="ctrl-field">
+        <label>Salariu</label>
+        <input type="number" id="hrEf-salary" min="0" step="1" placeholder="ex: 4500">
+      </div>
+      <div class="ctrl-field" style="grid-column:1/-1;">
+        <label>Adresă</label>
+        <input type="text" id="hrEf-address" placeholder="ex: Str. X nr. 1, Cluj-Napoca">
+      </div>
+      <div class="ctrl-field">
+        <label>Zile de concediu alocate</label>
+        <input type="number" id="hrEf-vacation-allowed" min="0" step="1" value="21">
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn" type="button" data-close-sheet="hrEmployeeFormSheet">Anulează</button>
+      <button class="btn btn-primary" id="hrEfSaveBtn" type="button">Salvează</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="hrWorktimeFormSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="hrWorktimeFormSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="hrWorktimeFormSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div><h3 id="hrWorktimeFormSheetTitle">Adaugă pontaj</h3></div>
+      <button type="button" class="sheet-close" data-close-sheet="hrWorktimeFormSheet" aria-label="Închide">×</button>
+    </div>
+    <input type="hidden" id="hrWf-id">
+    <div class="ctrl-field">
+      <label>Angajat</label>
+      <select id="hrWf-employee"></select>
+    </div>
+    <div class="pf-grid">
+      <div class="ctrl-field">
+        <label>Data</label>
+        <input type="date" id="hrWf-date">
+      </div>
+      <div class="ctrl-field">
+        <label>Ore lucrate</label>
+        <input type="number" id="hrWf-hours" min="0" step="0.5" value="8">
+      </div>
+      <div class="ctrl-field">
+        <label>Ore suplimentare</label>
+        <input type="number" id="hrWf-extra-hours" min="0" step="0.5" value="0">
+      </div>
+      <div class="ctrl-field" style="grid-column:1/-1;">
+        <label>Notițe</label>
+        <input type="text" id="hrWf-notes" placeholder="Detalii suplimentare">
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn" type="button" data-close-sheet="hrWorktimeFormSheet">Anulează</button>
+      <button class="btn btn-primary" id="hrWfSaveBtn" type="button">Salvează</button>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-sheet" id="hrVacationFormSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="hrVacationFormSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="hrVacationFormSheetTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div><h3 id="hrVacationFormSheetTitle">Adaugă concediu</h3></div>
+      <button type="button" class="sheet-close" data-close-sheet="hrVacationFormSheet" aria-label="Închide">×</button>
+    </div>
+    <input type="hidden" id="hrVf-id">
+    <div class="ctrl-field">
+      <label>Angajat</label>
+      <select id="hrVf-employee"></select>
+    </div>
+    <div class="sheet-grid">
+      <div class="ctrl-field">
+        <label>De la</label>
+        <input type="date" id="hrVf-start">
+      </div>
+      <div class="ctrl-field">
+        <label>Până la</label>
+        <input type="date" id="hrVf-end">
+      </div>
+    </div>
+    <div class="pf-grid">
+      <div class="ctrl-field">
+        <label>Zile folosite</label>
+        <input type="number" id="hrVf-days" min="0" step="0.5" placeholder="ex: 5">
+      </div>
+      <div class="ctrl-field" style="grid-column:1/-1;">
+        <label>Notițe</label>
+        <input type="text" id="hrVf-notes" placeholder="Detalii suplimentare">
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn" type="button" data-close-sheet="hrVacationFormSheet">Anulează</button>
+      <button class="btn btn-primary" id="hrVfSaveBtn" type="button">Salvează</button>
+    </div>
+  </div>
+</div>
+
 <div class="mobile-sheet" id="recurrenceSheet" aria-hidden="true">
   <div class="mobile-sheet-backdrop" data-close-sheet="recurrenceSheet"></div>
   <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="recurrenceSheetTitle">
@@ -2011,16 +2288,17 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="assets/js/data-services.js?v=20261002e"></script>
-<script src="assets/js/admin-core.js?v=20261002e"></script>
-<script src="assets/js/features/system-status.js?v=20261002e"></script>
-<script src="assets/js/features/lps.js?v=20261002e"></script>
-<script src="assets/js/features/tickets.js?v=20261002e"></script>
-<script src="assets/js/features/projects.js?v=20261002e"></script>
-<script src="assets/js/features/work-orders.js?v=20261002e"></script>
-<script src="assets/js/features/erp.js?v=20261002e"></script>
-<script src="assets/js/features/excel.js?v=20261002e"></script>
-<script src="assets/js/features/search.js?v=20261002e"></script>
+<script src="assets/js/data-services.js?v=20261002g"></script>
+<script src="assets/js/admin-core.js?v=20261002g"></script>
+<script src="assets/js/features/system-status.js?v=20261002g"></script>
+<script src="assets/js/features/lps.js?v=20261002g"></script>
+<script src="assets/js/features/tickets.js?v=20261002g"></script>
+<script src="assets/js/features/projects.js?v=20261002g"></script>
+<script src="assets/js/features/work-orders.js?v=20261002g"></script>
+<script src="assets/js/features/erp.js?v=20261002g"></script>
+<script src="assets/js/features/hr.js?v=20261002g"></script>
+<script src="assets/js/features/excel.js?v=20261002g"></script>
+<script src="assets/js/features/search.js?v=20261002g"></script>
 
 <button type="button" class="back-to-top" id="backToTopBtn" aria-label="Înapoi sus">
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
@@ -2072,8 +2350,8 @@
   </div>
 </div>
 
-<script src="assets/js/ui-shell.js?v=20261002e"></script>
-<script src="assets/js/launch.js?v=20261002e"></script>
+<script src="assets/js/ui-shell.js?v=20261002g"></script>
+<script src="assets/js/launch.js?v=20261002g"></script>
 
 </body>
 </html>

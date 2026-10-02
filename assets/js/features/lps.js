@@ -737,10 +737,15 @@
     backlog: 'Avarii rețele',
     lps: 'Proiecte LPS',
     workorders: 'Programe lucrări',
-    'erp-home': 'ERP',
+    'erp-home': 'Resurse și inventar',
     equipment: 'Echipamente',
     machines: 'Parc Auto',
     materials: 'Materiale',
+    products: 'Produse',
+    'hr-home': 'HR',
+    'hr-employees': 'Angajați',
+    'hr-worktime': 'Pontaj',
+    'hr-vacation': 'Concediu',
     status: 'Stare sistem',
     'status-improve': 'Auto-îmbunătățire',
     'status-audit': 'Jurnal de activitate',
@@ -749,19 +754,21 @@
   };
   // Which rail category each tab belongs to, and each category's
   // default landing tab (used when a rail icon itself is clicked,
-  // rather than a specific item inside its category panel).
+  // rather than a specific item inside its category panel). docs
+  // lives under the HR rail icon now (a dropdown inside it, not its
+  // own icon) — see the sidebar markup and applyRolePermissionsToUI.
   const TAB_CATEGORY = {
     overview: 'tickets', 'tickets-functional': 'tickets', 'tickets-accident': 'tickets',
     'projects-home': 'projects', projects: 'projects', backlog: 'projects', lps: 'projects', workorders: 'projects',
-    'erp-home': 'erp', equipment: 'erp', machines: 'erp', materials: 'erp',
-    docs: 'docs',
+    'erp-home': 'erp', equipment: 'erp', machines: 'erp', materials: 'erp', products: 'erp',
+    'hr-home': 'hr', 'hr-employees': 'hr', 'hr-worktime': 'hr', 'hr-vacation': 'hr', docs: 'hr',
     status: 'status', 'status-improve': 'status', 'status-audit': 'status', 'status-roles': 'status',
   };
   const CATEGORY_DEFAULT_TAB = {
-    tickets: 'overview', projects: 'projects-home', erp: 'erp-home', docs: 'docs', status: 'status',
+    tickets: 'overview', projects: 'projects-home', erp: 'erp-home', hr: 'hr-home', status: 'status',
   };
   const CATEGORY_TITLES = {
-    tickets: 'Sesizări', projects: 'Proiecte', erp: 'ERP', docs: 'Documentație', status: 'Stare sistem',
+    tickets: 'Sesizări', projects: 'Proiecte', erp: 'Resurse și inventar', hr: 'HR', status: 'Stare sistem',
   };
   function setActiveCategory(category){
     document.querySelectorAll('.rail-item[data-category]').forEach(item => {
@@ -812,6 +819,8 @@
   }
 
   const STATUS_TABS = ['status', 'status-improve', 'status-audit', 'status-roles'];
+  // HR_DATA_TABS is declared once in admin-core.js (also used by
+  // applyRolePermissionsToUI there) — reused here, not redeclared.
   function openAdminTab(tabKey, fromPopState){
     // Stare sistem's nav is hidden for anyone but 'god' (see
     // applyRolePermissionsToUI), but the tab itself is still reachable
@@ -819,6 +828,9 @@
     // change — redirect rather than silently rendering a panel nobody
     // meant to let them see.
     if (STATUS_TABS.includes(tabKey) && typeof isGod === 'function' && !isGod()) {
+      tabKey = 'home';
+    }
+    if (HR_DATA_TABS.includes(tabKey) && typeof isGod === 'function' && !isGod()) {
       tabKey = 'home';
     }
     const panelId = panelIdForTab(tabKey);
@@ -864,10 +876,13 @@
     else if (tabKey === 'status-audit') loadAuditLog();
     else if (tabKey === 'status-roles') loadStaffRolesTab();
     else if (tabKey === 'workorders') loadWorkOrders();
-    else if (tabKey === 'equipment' || tabKey === 'machines' || tabKey === 'materials' || tabKey === 'erp-home') loadEquipment();
+    else if (tabKey === 'equipment' || tabKey === 'machines' || tabKey === 'materials' || tabKey === 'products' || tabKey === 'erp-home') loadEquipment();
     else if (tabKey === 'projects-home') renderProjectsHomeStats();
     else if (tabKey === 'home') renderHomeDigest();
     else if (tabKey === 'lps' && isReportFocusedView()) refreshLookaheadWorkspace();
+    else if (tabKey === 'hr-home' || tabKey === 'hr-employees') { if (typeof loadHrEmployees === 'function') loadHrEmployees(); }
+    else if (tabKey === 'hr-worktime') { if (typeof loadHrWorktime === 'function') loadHrWorktime(); }
+    else if (tabKey === 'hr-vacation') { if (typeof loadHrVacation === 'function') loadHrVacation(); }
     if (tabKey === 'machines') {
       const sg = document.querySelector('[data-erp-subgroup="machines"]');
       const tg = document.querySelector('[data-erp-toggle="machines"]');
@@ -879,6 +894,17 @@
       // open (or the "Toate" default) stayed lit in red after navigating
       // away to an unrelated tab entirely.
       document.querySelectorAll('.erp-machines-subcat-btn').forEach(btn => btn.classList.remove('active'));
+    }
+    // Documentație's nested dropdown under HR (see the sidebar markup)
+    // auto-opens whenever landing on any docs-group tab, same as Parc
+    // Auto's subgroup above — otherwise reaching it from the Home nav
+    // card or a search result would land on the docs panel with its
+    // own sidebar entry collapsed and not visibly selected.
+    if (tabKey === 'docs') {
+      const sg = document.querySelector('[data-hr-subgroup="docs"]');
+      const tg = document.querySelector('[data-hr-toggle="docs"]');
+      if (sg) sg.classList.add('open');
+      if (tg) tg.classList.add('open');
     }
     // Proiecte publice always opens on "Active" — otherwise whichever
     // status chip was last clicked earlier in the session (e.g. "Toate"

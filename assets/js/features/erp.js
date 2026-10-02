@@ -42,10 +42,11 @@
   }
   const EQUIPMENT_STATUS_CYCLE = { 'Disponibil': 'In folosinta', 'In folosinta': 'Service', 'Service': 'Disponibil', 'Indisponibil': 'Disponibil' };
   const EQUIPMENT_STATUS_LABEL = { 'Disponibil': 'Disponibil', 'In folosinta': 'În folosință', 'Service': 'Service', 'Indisponibil': 'Indisponibil' };
-  const ERP_CATEGORY_LABEL = { echipament: 'Echipament', masina: 'Mașină', material: 'Material' };
+  const ERP_CATEGORY_LABEL = { echipament: 'Echipament', masina: 'Mașină', material: 'Material', produs: 'Produs' };
   const ERP_CATEGORY_LIST_IDS = {
     echipament: { list: 'equipmentList', count: 'equipmentCount', empty: 'Niciun echipament înregistrat.' },
     material: { list: 'materialsList', count: 'materialsCount', empty: 'Niciun material înregistrat.' },
+    produs: { list: 'productsList', count: 'productsCount', empty: 'Niciun produs înregistrat.' },
   };
   // Parc Auto se împarte în 4 subcategorii fixe, distribuite automat după
   // câmpul "Subcategorie" ales la adăugare — Camion are în plus
@@ -114,7 +115,7 @@
   }
 
   function isLowStock(eq){
-    return eq.erp_category === 'material' && eq.reorder_threshold != null && Number(eq.quantity) <= Number(eq.reorder_threshold);
+    return (eq.erp_category === 'material' || eq.erp_category === 'produs') && eq.reorder_threshold != null && Number(eq.quantity) <= Number(eq.reorder_threshold);
   }
   // Licență transport/Tahograf se aplică doar subcategoriei Camion —
   // celelalte 3 subcategorii nu le au în formular, deci nu intră în
@@ -303,7 +304,7 @@
       <div class="backlog-actions">
         <button class="btn eq-edit" data-requires-write="erp">Editează</button>
         <button class="btn btn-primary eq-status" data-requires-write="erp">${escapeHtml(EQUIPMENT_STATUS_LABEL[EQUIPMENT_STATUS_CYCLE[eq.status]] || 'Schimbă starea')}</button>
-        ${erpCategory === 'material' ? '<button class="btn eq-ledger">Jurnal stoc</button>' : ''}
+        ${(erpCategory === 'material' || erpCategory === 'produs') ? '<button class="btn eq-ledger">Jurnal stoc</button>' : ''}
         <button class="btn eq-delete" data-requires-write="erp">Șterge</button>
       </div>
     `;
@@ -346,7 +347,7 @@
     renderErpHomeStats();
   }
   function renderErpHomeStats(){
-    const counts = { echipament: 0, masina: 0, material: 0 };
+    const counts = { echipament: 0, masina: 0, material: 0, produs: 0 };
     allEquipment.forEach(eq => {
       const erpCategory = eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material');
       if (counts[erpCategory] != null) counts[erpCategory]++;
@@ -357,6 +358,8 @@
     if (maCountEl) maCountEl.textContent = counts.masina;
     const mtCountEl = document.getElementById('erpHomeMaterialsCount');
     if (mtCountEl) mtCountEl.textContent = counts.material;
+    const pdCountEl = document.getElementById('erpHomeProductsCount');
+    if (pdCountEl) pdCountEl.textContent = counts.produs;
     renderErpAlerts();
   }
   function renderErpAlerts(){
@@ -368,8 +371,8 @@
     if (!lowStockItems.length && !expiredDocsItems.length) { wrap.style.display = 'none'; list.innerHTML = ''; return; }
     wrap.style.display = '';
     const lowStockHtml = lowStockItems.map(eq => `
-      <div class="status-history-item" data-goto-tab="materials">
-        <span class="status-history-time">MATERIAL</span>
+      <div class="status-history-item" data-goto-tab="${eq.erp_category === 'produs' ? 'products' : 'materials'}">
+        <span class="status-history-time">${eq.erp_category === 'produs' ? 'PRODUS' : 'MATERIAL'}</span>
         <span class="status-history-dot"></span>
         <div>
           <div class="status-history-check">${escapeHtml(eq.name)}</div>
@@ -396,20 +399,24 @@
   if (erpHomeMachinesCard) erpHomeMachinesCard.addEventListener('click', () => openAdminTab('machines'));
   const erpHomeMaterialsCard = document.getElementById('erpHomeMaterialsCard');
   if (erpHomeMaterialsCard) erpHomeMaterialsCard.addEventListener('click', () => openAdminTab('materials'));
+  const erpHomeProductsCard = document.getElementById('erpHomeProductsCard');
+  if (erpHomeProductsCard) erpHomeProductsCard.addEventListener('click', () => openAdminTab('products'));
   const erpHomeNavEquipment = document.getElementById('erpHomeNavEquipment');
   if (erpHomeNavEquipment) erpHomeNavEquipment.addEventListener('click', () => openAdminTab('equipment'));
   const erpHomeNavMachines = document.getElementById('erpHomeNavMachines');
   if (erpHomeNavMachines) erpHomeNavMachines.addEventListener('click', () => openAdminTab('machines'));
   const erpHomeNavMaterials = document.getElementById('erpHomeNavMaterials');
   if (erpHomeNavMaterials) erpHomeNavMaterials.addEventListener('click', () => openAdminTab('materials'));
+  const erpHomeNavProducts = document.getElementById('erpHomeNavProducts');
+  if (erpHomeNavProducts) erpHomeNavProducts.addEventListener('click', () => openAdminTab('products'));
 
   const efTypeSelect = document.getElementById('ef-type');
-  const ERP_ITEM_FORM_TITLE = { echipament: 'echipament', masina: 'mașină', material: 'material' };
+  const ERP_ITEM_FORM_TITLE = { echipament: 'echipament', masina: 'mașină', material: 'material', produs: 'produs' };
   function syncEquipmentFormFields(){
-    const isMaterial = efTypeSelect.value === 'material';
-    document.getElementById('ef-quantity-field').style.display = isMaterial ? '' : 'none';
-    document.getElementById('ef-unit-field').style.display = isMaterial ? '' : 'none';
-    document.getElementById('ef-reorder-field').style.display = isMaterial ? '' : 'none';
+    const isStockTracked = efTypeSelect.value === 'material' || efTypeSelect.value === 'produs';
+    document.getElementById('ef-quantity-field').style.display = isStockTracked ? '' : 'none';
+    document.getElementById('ef-unit-field').style.display = isStockTracked ? '' : 'none';
+    document.getElementById('ef-reorder-field').style.display = isStockTracked ? '' : 'none';
   }
   if (efTypeSelect) efTypeSelect.addEventListener('change', syncEquipmentFormFields);
   let efEditingOriginalQuantity = null;
@@ -661,17 +668,20 @@
   }
   const addMaterialBtn = document.getElementById('addMaterialBtn');
   if (addMaterialBtn) addMaterialBtn.addEventListener('click', () => openEquipmentForm(null, 'material'));
+  const addProductBtn = document.getElementById('addProductBtn');
+  if (addProductBtn) addProductBtn.addEventListener('click', () => openEquipmentForm(null, 'produs'));
   const efSaveBtn = document.getElementById('efSaveBtn');
   if (efSaveBtn) efSaveBtn.addEventListener('click', async () => {
     const id = document.getElementById('ef-id').value;
     const name = document.getElementById('ef-name').value.trim();
     const erp_category = document.getElementById('ef-type').value;
-    const item_type = erp_category === 'material' ? 'material' : 'echipament';
+    const isStockTracked = erp_category === 'material' || erp_category === 'produs';
+    const item_type = isStockTracked ? 'material' : 'echipament';
     const category = document.getElementById('ef-category').value.trim();
     const quantity = parseFloat(document.getElementById('ef-quantity').value) || 0;
     const unit = document.getElementById('ef-unit').value.trim();
     const reorderRaw = document.getElementById('ef-reorder-threshold').value;
-    const reorder_threshold = erp_category === 'material' && reorderRaw !== '' ? parseFloat(reorderRaw) : null;
+    const reorder_threshold = isStockTracked && reorderRaw !== '' ? parseFloat(reorderRaw) : null;
     const serial_number = document.getElementById('ef-serial').value.trim();
     const location = document.getElementById('ef-location').value.trim();
     const assigned_to = document.getElementById('ef-assigned').value.trim();
@@ -696,7 +706,7 @@
     if (id) {
       const { error } = await supabaseClient.from('equipment_inventory').update(payload).eq('id', id);
       if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
-      if (erp_category === 'material' && efEditingOriginalQuantity !== null && quantity !== efEditingOriginalQuantity) {
+      if (isStockTracked && efEditingOriginalQuantity !== null && quantity !== efEditingOriginalQuantity) {
         logStockLedger(id, name, quantity - efEditingOriginalQuantity, quantity, 'Editare manuală');
       }
       logEntityActivity(erp_category, id, `„${name}” a fost actualizat.`);
@@ -704,7 +714,7 @@
       const { data, error } = await supabaseClient.from('equipment_inventory').insert(payload).select();
       if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
       if (data && data[0]) logEntityActivity(erp_category, data[0].id, `„${name}” a fost adăugat.`);
-      if (erp_category === 'material' && data && data[0]) {
+      if (isStockTracked && data && data[0]) {
         logStockLedger(data[0].id, name, quantity, quantity, 'Articol adăugat');
       }
     }

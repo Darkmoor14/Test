@@ -585,7 +585,7 @@
     await Promise.all([autoArchiveStaleTickets(), autoCleanupStaleProjects()]);
   }
 
-  function showDashboard(email){
+  async function showDashboard(email){
     // Supabase normally returns a lowercase address, but email local
     // parts are case-insensitive for this account. Normalize once so
     // the vlasbogdan@ landing screen cannot disappear on a casing or
@@ -596,16 +596,26 @@
       return;
     }
     currentSessionEmail = normalizedEmail;
-    // This account is identified by its authenticated email, not by
-    // the optional staff_roles lookup below. Switch its initial panel
-    // before revealing the dashboard so the default Overview never
-    // flashes for a frame while that lookup is still in flight.
     const isReportAccount = isReportFocusedView();
     document.documentElement.classList.toggle('report-focused-view', isReportAccount);
+    // Role must be known before the first render — both so a
+    // limited-access account never flashes a write-only control for a
+    // frame, and so restoring the tab a reload lands on (below) can
+    // correctly re-enter a god-only one (Stare sistem, Roluri, HR):
+    // openAdminTab's own redirect-guard checks isGod(), which reads
+    // currentUserRoles, so calling it before this resolves used to
+    // bounce a real god account's reload on one of those tabs straight
+    // back to Acasă — this was the actual cause of "refreshing kicks
+    // me back to the home page" on exactly the tabs it only ever
+    // showed for.
+    await fetchCurrentUserRoles(normalizedEmail);
+    // A sign-out or account switch may happen before the request
+    // resolves. Never let that stale response change the new view.
+    if (currentSessionEmail !== normalizedEmail) return;
     if (isReportAccount) {
       // Land back on whatever tab was open before a refresh instead of
       // always restarting at the home page — see initialHashTab above.
-      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects-home', 'projects', 'backlog', 'lps', 'workorders', 'erp-home', 'equipment', 'machines', 'materials', 'status', 'status-improve', 'status-audit', 'status-roles', 'docs'];
+      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects-home', 'projects', 'backlog', 'lps', 'workorders', 'erp-home', 'equipment', 'machines', 'materials', 'products', 'hr-home', 'hr-employees', 'hr-worktime', 'hr-vacation', 'status', 'status-improve', 'status-audit', 'status-roles', 'docs'];
       const restoredTab = validReportTabs.includes(initialHashTab) ? initialHashTab : 'home';
       openAdminTab(restoredTab, true);
       history.replaceState({ adminTab: restoredTab }, '', window.location.pathname + window.location.search + '#' + restoredTab);
@@ -617,62 +627,54 @@
     userTag.textContent = normalizedEmail;
     const sidebarAvatar = document.getElementById('sidebarAccountAvatar');
     if (sidebarAvatar) sidebarAvatar.textContent = normalizedEmail.charAt(0) || '—';
-    // Role must be known before the first render, so tickets don't
-    // briefly flash the "Ce s-a făcut" field for a limited-access
-    // account before it gets hidden a moment later.
-    fetchCurrentUserRoles(normalizedEmail).then(() => {
-      // A sign-out or account switch may happen before the request
-      // resolves. Never let that stale response change the new view.
-      if (currentSessionEmail !== normalizedEmail) return;
-      applyRolePermissionsToUI();
-      document.documentElement.classList.toggle('report-focused-view', isReportFocusedView());
-      // The sheet's status chips render with the standard 3-option
-      // set at script-load time (role isn't known yet then) — this
-      // adds the 4th "Așteaptă raport" option specifically for the
-      // report-focused role, once we actually know who's logged in.
-      if (isReportFocusedView() && overviewStatusChipsSheet && !overviewStatusChipsSheet.querySelector('[data-key="awaiting_report"]')) {
-        const awaitingDef = reportFocusedChipDefs.find(c => c.key === 'awaiting_report');
-        const chip = document.createElement('button');
-        chip.type = 'button';
-        chip.className = 'chip' + (awaitingDef.key === overviewStatusFilter ? ' active' : '');
-        chip.textContent = awaitingDef.label;
-        chip.dataset.key = awaitingDef.key;
-        chip.addEventListener('click', () => setOverviewStatusFilter(awaitingDef.key));
-        overviewStatusChipsSheet.appendChild(chip);
-      }
-      // "Așteaptă raport" isn't relevant for a limited-role account —
-      // they can't fill the report, so a chip dedicated to "here's
-      // what's missing one" has nothing useful to offer them. The
-      // ticket itself still shows up under "Toate" either way; only
-      // this specific dedicated view is hidden. Chips render once at
-      // script-load time before login (and therefore before the role
-      // is known), so this hides the one in question after the fact
-      // rather than restructuring that earlier initialization.
-      if (modulePermission('tickets') !== 'write') {
-        document.querySelectorAll('[data-key="AwaitingReport"]').forEach(el => {
-          el.style.display = 'none';
-        });
-        // The mobile Overview status filter (Toate/Active/Soluționate)
-        // used to be hidden here, on the theory that sesizari@ should
-        // just work from the full, unfiltered table on Overview —
-        // but that meant this account's phone view had year/month
-        // filtering only, with no way to narrow by status at all.
-        // Now enabled for this role too, same chips full admins get.
-      }
-      runAutoArchiveSweep().finally(() => {
-        loadTickets();
-        loadProjects();
-        loadBacklogProjects();
+    applyRolePermissionsToUI();
+    document.documentElement.classList.toggle('report-focused-view', isReportFocusedView());
+    // The sheet's status chips render with the standard 3-option
+    // set at script-load time (role isn't known yet then) — this
+    // adds the 4th "Așteaptă raport" option specifically for the
+    // report-focused role, once we actually know who's logged in.
+    if (isReportFocusedView() && overviewStatusChipsSheet && !overviewStatusChipsSheet.querySelector('[data-key="awaiting_report"]')) {
+      const awaitingDef = reportFocusedChipDefs.find(c => c.key === 'awaiting_report');
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip' + (awaitingDef.key === overviewStatusFilter ? ' active' : '');
+      chip.textContent = awaitingDef.label;
+      chip.dataset.key = awaitingDef.key;
+      chip.addEventListener('click', () => setOverviewStatusFilter(awaitingDef.key));
+      overviewStatusChipsSheet.appendChild(chip);
+    }
+    // "Așteaptă raport" isn't relevant for a limited-role account —
+    // they can't fill the report, so a chip dedicated to "here's
+    // what's missing one" has nothing useful to offer them. The
+    // ticket itself still shows up under "Toate" either way; only
+    // this specific dedicated view is hidden. Chips render once at
+    // script-load time before login (and therefore before the role
+    // is known), so this hides the one in question after the fact
+    // rather than restructuring that earlier initialization.
+    if (modulePermission('tickets') !== 'write') {
+      document.querySelectorAll('[data-key="AwaitingReport"]').forEach(el => {
+        el.style.display = 'none';
       });
-      loadStaffRoster();
-      // First-ever login on this browser — walk through the basics once,
-      // automatically. Re-openable anytime from the "?" button in the rail.
-      try {
-        if (isReportFocusedView() && !localStorage.getItem(ONBOARDING_SEEN_KEY)) {
-          setTimeout(() => { if (typeof startOnboardingTour === 'function') startOnboardingTour(); }, 900);
-        }
-      } catch (e) { /* localStorage unavailable — just skip auto-start */ }
+      // The mobile Overview status filter (Toate/Active/Soluționate)
+      // used to be hidden here, on the theory that sesizari@ should
+      // just work from the full, unfiltered table on Overview —
+      // but that meant this account's phone view had year/month
+      // filtering only, with no way to narrow by status at all.
+      // Now enabled for this role too, same chips full admins get.
+    }
+    runAutoArchiveSweep().finally(() => {
+      loadTickets();
+      loadProjects();
+      loadBacklogProjects();
     });
+    loadStaffRoster();
+    // First-ever login on this browser — walk through the basics once,
+    // automatically. Re-openable anytime from the "?" button in the rail.
+    try {
+      if (isReportFocusedView() && !localStorage.getItem(ONBOARDING_SEEN_KEY)) {
+        setTimeout(() => { if (typeof startOnboardingTour === 'function') startOnboardingTour(); }, 900);
+      }
+    } catch (e) { /* localStorage unavailable — just skip auto-start */ }
   }
 
   function showLogin(){
