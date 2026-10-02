@@ -207,10 +207,45 @@
           ${roleCell('contabilitate')}
           ${roleCell('god')}
           <td><span class="status-pill ${notified ? 'status-pill-done' : 'status-pill-active'}">${notified ? 'Pornite' : 'Oprite'}</span></td>
-          <td>${isSelf ? '' : `<button type="button" class="btn staff-role-remove-btn" data-email="${escapeHtml(email)}">Șterge</button>`}</td>
+          <td>
+            <button type="button" class="btn staff-role-password-btn" data-email="${escapeHtml(email)}">Parolă</button>
+            ${isSelf ? '' : `<button type="button" class="btn staff-role-remove-btn" data-email="${escapeHtml(email)}">Șterge</button>`}
+          </td>
         </tr>
       `;
     }).join('');
+  }
+  // Random, readable-enough password — used by the "Generează" button
+  // on both the add-person and password-reset sheets so a god account
+  // isn't stuck hand-typing something strong.
+  function generateStaffPassword(){
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+    let out = '';
+    for (let i = 0; i < 12; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    return out;
+  }
+  // Creates the real Supabase Auth login if one doesn't exist yet for
+  // this email, or just resets its password if it does — see
+  // staff-auth-admin's own comment for why this has to be a server-
+  // side Edge Function (service-role only; never available to the
+  // browser directly). Returns true/false; shows its own alert on
+  // failure so call sites don't need to.
+  async function setStaffAuthPassword(email, password){
+    try {
+      const { data, error } = await supabaseClient.functions.invoke('staff-auth-admin', {
+        body: { email, password },
+      });
+      if (error || !data || data.error) {
+        console.error(error || (data && data.error));
+        alert('Eroare la salvarea parolei: ' + ((data && data.error) || (error && error.message) || 'eroare necunoscută') + '. Încercați din nou.');
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error(err);
+      alert('Eroare la salvarea parolei. Verificați conexiunea și încercați din nou.');
+      return false;
+    }
   }
   async function setStaffRole(email, role, enabled){
     if (enabled) {
@@ -239,18 +274,50 @@
     });
     staffRolesTableBody.addEventListener('click', async (e) => {
       const removeBtn = e.target.closest('.staff-role-remove-btn');
-      if (!removeBtn) return;
-      const email = removeBtn.dataset.email;
-      if (!confirm(`Elimini complet accesul pentru „${email}”?`)) return;
-      const { error } = await supabaseClient.from('staff_roles').delete().eq('email', email);
-      if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
-      staffRolesByEmail.delete(email);
-      renderStaffRolesTable();
+      if (removeBtn) {
+        const email = removeBtn.dataset.email;
+        if (!confirm(`Elimini complet accesul pentru „${email}”?`)) return;
+        const { error } = await supabaseClient.from('staff_roles').delete().eq('email', email);
+        if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
+        staffRolesByEmail.delete(email);
+        renderStaffRolesTable();
+        return;
+      }
+      const passwordBtn = e.target.closest('.staff-role-password-btn');
+      if (passwordBtn) {
+        const email = passwordBtn.dataset.email;
+        document.getElementById('spr-email').value = email;
+        document.getElementById('spr-password').value = '';
+        const titleEl = document.getElementById('staffPasswordResetSheetTitle');
+        if (titleEl) titleEl.textContent = `Schimbă parola — ${email}`;
+        setSheetOpen('staffPasswordResetSheet', true);
+      }
     });
   }
+  const srfGeneratePasswordBtn = document.getElementById('srfGeneratePasswordBtn');
+  if (srfGeneratePasswordBtn) srfGeneratePasswordBtn.addEventListener('click', () => {
+    document.getElementById('srf-password').value = generateStaffPassword();
+  });
+  const sprGeneratePasswordBtn = document.getElementById('sprGeneratePasswordBtn');
+  if (sprGeneratePasswordBtn) sprGeneratePasswordBtn.addEventListener('click', () => {
+    document.getElementById('spr-password').value = generateStaffPassword();
+  });
+  const sprSaveBtn = document.getElementById('sprSaveBtn');
+  if (sprSaveBtn) sprSaveBtn.addEventListener('click', async () => {
+    const email = document.getElementById('spr-email').value;
+    const password = document.getElementById('spr-password').value;
+    if (!password || password.length < 6) { alert('Parola trebuie să aibă cel puțin 6 caractere.'); return; }
+    sprSaveBtn.disabled = true;
+    const ok = await setStaffAuthPassword(email, password);
+    sprSaveBtn.disabled = false;
+    if (!ok) return;
+    setSheetOpen('staffPasswordResetSheet', false);
+    showToast('Parola a fost actualizată.');
+  });
   const addStaffRoleBtn = document.getElementById('addStaffRoleBtn');
   if (addStaffRoleBtn) addStaffRoleBtn.addEventListener('click', () => {
     document.getElementById('srf-email').value = '';
+    document.getElementById('srf-password').value = generateStaffPassword();
     document.getElementById('srf-role-inginer').checked = false;
     document.getElementById('srf-role-contabilitate').checked = false;
     document.getElementById('srf-role-god').checked = false;
@@ -260,12 +327,22 @@
   if (srfSaveBtn) srfSaveBtn.addEventListener('click', async () => {
     const email = document.getElementById('srf-email').value.trim().toLowerCase();
     if (!email || !email.includes('@')) { alert('Introduceți un email valid.'); return; }
+    const password = document.getElementById('srf-password').value;
+    if (!password || password.length < 6) { alert('Introduceți o parolă de cel puțin 6 caractere (sau apăsați „Generează”).'); return; }
     const selectedRoles = STAFF_ROLE_KEYS.filter(r => document.getElementById(`srf-role-${r}`).checked);
     if (!selectedRoles.length) { alert('Selectați cel puțin un rol.'); return; }
     if (staffRolesByEmail.has(email)) { alert('Această persoană are deja un rol — editează-i rolurile direct din tabel.'); return; }
+    srfSaveBtn.disabled = true;
+    // Create the actual login first — no point granting permissions to
+    // an account that can't sign in. setStaffAuthPassword shows its
+    // own alert on failure.
+    const authOk = await setStaffAuthPassword(email, password);
+    if (!authOk) { srfSaveBtn.disabled = false; return; }
     const { error } = await supabaseClient.from('staff_roles').insert(selectedRoles.map(role => ({ email, role })));
-    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+    srfSaveBtn.disabled = false;
+    if (error) { console.error(error); alert('Contul a fost creat, dar rolurile nu au putut fi salvate. Încercați din nou din tabel.'); return; }
     setSheetOpen('staffRoleFormSheet', false);
+    showToast('Persoana a fost adăugată — se poate autentifica deja cu emailul și parola setate.');
     await loadStaffRolesTab();
   });
 
