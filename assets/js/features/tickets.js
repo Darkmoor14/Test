@@ -749,14 +749,6 @@
   const homeIconBtn = document.getElementById('homeIconBtn');
   if (homeIconBtn) homeIconBtn.addEventListener('click', () => openAdminTab('home'));
 
-  supabaseClient.auth.onAuthStateChange((_event, session) => {
-    if (session) {
-      showDashboard(session.user.email);
-    } else {
-      showLogin();
-    }
-  });
-
   const chipDefs = [
     { key: 'Ongoing', label: 'Active' },
     { key: 'Terminat', label: 'Soluționate' },
