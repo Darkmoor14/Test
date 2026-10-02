@@ -741,7 +741,6 @@
     equipment: 'Echipamente',
     machines: 'Parc Auto',
     materials: 'Materiale',
-    'erp-audit': 'Jurnal de activitate',
     status: 'Stare sistem',
     'status-improve': 'Auto-îmbunătățire',
     'status-audit': 'Jurnal de activitate',
@@ -753,7 +752,7 @@
   const TAB_CATEGORY = {
     overview: 'tickets', 'tickets-functional': 'tickets', 'tickets-accident': 'tickets',
     'projects-home': 'projects', projects: 'projects', backlog: 'projects', lps: 'projects', workorders: 'projects',
-    'erp-home': 'erp', equipment: 'erp', machines: 'erp', materials: 'erp', 'erp-audit': 'erp',
+    'erp-home': 'erp', equipment: 'erp', machines: 'erp', materials: 'erp',
     docs: 'docs',
     status: 'status', 'status-improve': 'status', 'status-audit': 'status',
   };
@@ -853,7 +852,6 @@
     else if (tabKey === 'tickets-accident') setTicketTypeFilter('accident', { skipRender: true });
     else if (tabKey === 'status' || tabKey === 'status-improve') loadSystemStatus();
     else if (tabKey === 'status-audit') loadAuditLog();
-    else if (tabKey === 'erp-audit') loadErpAuditLog();
     else if (tabKey === 'workorders') loadWorkOrders();
     else if (tabKey === 'equipment' || tabKey === 'machines' || tabKey === 'materials' || tabKey === 'erp-home') loadEquipment();
     else if (tabKey === 'projects-home') renderProjectsHomeStats();

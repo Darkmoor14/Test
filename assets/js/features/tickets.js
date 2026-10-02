@@ -605,7 +605,7 @@
     if (isReportAccount) {
       // Land back on whatever tab was open before a refresh instead of
       // always restarting at the home page — see initialHashTab above.
-      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects-home', 'projects', 'backlog', 'lps', 'workorders', 'erp-home', 'equipment', 'machines', 'materials', 'erp-audit', 'status', 'status-improve', 'status-audit', 'docs'];
+      const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects-home', 'projects', 'backlog', 'lps', 'workorders', 'erp-home', 'equipment', 'machines', 'materials', 'status', 'status-improve', 'status-audit', 'docs'];
       const restoredTab = validReportTabs.includes(initialHashTab) ? initialHashTab : 'home';
       openAdminTab(restoredTab, true);
       history.replaceState({ adminTab: restoredTab }, '', window.location.pathname + window.location.search + '#' + restoredTab);

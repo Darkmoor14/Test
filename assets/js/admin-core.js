@@ -2086,11 +2086,11 @@
   });
 
   /* ============================================================
-     JURNAL DE ACTIVITATE — vedere globală peste entity_log, pe
-     toate categoriile. Se afișează în două locuri din aceleași
-     date (auditLogEntries): tabul "Jurnal de activitate" din Stare
-     sistem (doar categoriile de proiecte, cu dropdown de filtrare)
-     și tabul omonim din ERP (split Proiecte / ERP, fără filtru).
+     JURNAL DE ACTIVITATE — vedere globală peste entity_log, pe toate
+     categoriile (proiecte și ERP deopotrivă), cu un dropdown de
+     filtrare. Exista și un tab separat sub ERP care arăta, confuz,
+     aceleași evenimente de proiecte alături de cele ERP — eliminat;
+     un singur jurnal, sub Stare sistem, e suficient.
      ============================================================ */
   const PROJECT_ENTITY_TYPES = ['project', 'backlog', 'lookahead'];
   const ERP_ENTITY_TYPES = ['echipament', 'masina', 'material'];
@@ -2132,19 +2132,10 @@
     if (!listEl) return;
     const filterSelect = document.getElementById('auditLogCategoryFilter');
     const filterVal = filterSelect ? filterSelect.value : 'all';
-    const projectRows = auditLogEntries.filter(r => PROJECT_ENTITY_TYPES.includes(r.entity_type));
-    const rows = filterVal === 'all' ? projectRows : projectRows.filter(r => r.entity_type === filterVal);
+    const allRows = auditLogEntries.filter(r => PROJECT_ENTITY_TYPES.includes(r.entity_type) || ERP_ENTITY_TYPES.includes(r.entity_type));
+    const rows = filterVal === 'all' ? allRows : allRows.filter(r => r.entity_type === filterVal);
     if (!rows.length) { listEl.innerHTML = '<p class="status-history-empty">Niciun eveniment încă.</p>'; return; }
     listEl.innerHTML = rows.map(entityLogRowHtml).join('');
-  }
-  function renderErpAuditSections(){
-    const projectsList = document.getElementById('erpAuditProjectsList');
-    const erpList = document.getElementById('erpAuditErpList');
-    if (!projectsList || !erpList) return;
-    const projectRows = auditLogEntries.filter(r => PROJECT_ENTITY_TYPES.includes(r.entity_type));
-    const erpRows = auditLogEntries.filter(r => ERP_ENTITY_TYPES.includes(r.entity_type));
-    projectsList.innerHTML = projectRows.length ? projectRows.map(entityLogRowHtml).join('') : '<p class="status-history-empty">Niciun eveniment încă.</p>';
-    erpList.innerHTML = erpRows.length ? erpRows.map(entityLogRowHtml).join('') : '<p class="status-history-empty">Niciun eveniment încă.</p>';
   }
   async function fetchAuditLogEntries(){
     const [{ data: logData, error: logError }, { data: laData }] = await Promise.all([
@@ -2163,19 +2154,6 @@
     const ok = await fetchAuditLogEntries();
     if (!ok) { if (listEl) listEl.innerHTML = '<p class="status-history-empty">Jurnalul nu a putut fi încărcat.</p>'; return; }
     renderAuditLog();
-  }
-  async function loadErpAuditLog(){
-    const projectsList = document.getElementById('erpAuditProjectsList');
-    const erpList = document.getElementById('erpAuditErpList');
-    if (projectsList) projectsList.innerHTML = '<p class="status-history-empty">Se încarcă…</p>';
-    if (erpList) erpList.innerHTML = '<p class="status-history-empty">Se încarcă…</p>';
-    const ok = await fetchAuditLogEntries();
-    if (!ok) {
-      if (projectsList) projectsList.innerHTML = '<p class="status-history-empty">Jurnalul nu a putut fi încărcat.</p>';
-      if (erpList) erpList.innerHTML = '<p class="status-history-empty">Jurnalul nu a putut fi încărcat.</p>';
-      return;
-    }
-    renderErpAuditSections();
   }
   const auditLogCategoryFilter = document.getElementById('auditLogCategoryFilter');
   if (auditLogCategoryFilter) auditLogCategoryFilter.addEventListener('change', renderAuditLog);

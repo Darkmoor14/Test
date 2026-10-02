@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/admin.css?v=20261002c">
+<link rel="stylesheet" href="assets/css/admin.css?v=20261002d">
 </head>
 <body>
 
@@ -120,7 +120,6 @@
             <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="utilaj">Utilaj</button>
           </div>
           <button type="button" class="admin-tab category-panel-item" data-tab="materials">Materiale</button>
-          <button type="button" class="admin-tab category-panel-item" data-tab="erp-audit">Jurnal de activitate</button>
         </div>
         <div class="category-panel-section" data-category="docs">
           <button type="button" class="category-panel-item docs-nav-group-btn active" data-docs-group="home">Home</button>
@@ -961,28 +960,6 @@
       <div class="backlog-list" id="materialsList"></div>
     </div>
 
-    <div class="admin-panel" id="panel-erp-audit">
-      <div class="status-panel-head">
-        <div><div class="home-eyebrow">ERP</div><h2>Jurnal de activitate</h2></div>
-      </div>
-      <div class="status-grid">
-        <div class="status-card status-card-wide" id="statusCardErpAuditProjects">
-          <div class="status-card-head">
-            <h4>Proiecte</h4>
-          </div>
-          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Proiecte publice, avarii de rețea și elemente Look-ahead din LPS.</p>
-          <div class="entity-log-list" id="erpAuditProjectsList" style="max-height:420px;"></div>
-        </div>
-        <div class="status-card status-card-wide" id="statusCardErpAuditErp">
-          <div class="status-card-head">
-            <h4>ERP</h4>
-          </div>
-          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Echipamente, mașini și materiale din inventarul ERP.</p>
-          <div class="entity-log-list" id="erpAuditErpList" style="max-height:420px;"></div>
-        </div>
-      </div>
-    </div>
-
     <div class="admin-panel" id="panel-status">
       <div class="status-panel-head">
         <div><div class="home-eyebrow">Monitorizare</div><h2>Stare sistem</h2></div>
@@ -1137,10 +1114,13 @@
                 <option value="project">Proiecte publice</option>
                 <option value="backlog">Avarii rețele</option>
                 <option value="lookahead">LPS Look-ahead</option>
+                <option value="echipament">Echipamente</option>
+                <option value="masina">Parc Auto</option>
+                <option value="material">Materiale</option>
               </select>
             </div>
           </div>
-          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Schimbările de stare și notițele adăugate pe proiecte publice, avarii de rețea și elemente Look-ahead din LPS — toate, într-un singur fir cronologic ("stare schimbată din Activ în Soluționat de X, pe data de…").</p>
+          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Schimbările de stare și notițele adăugate pe proiecte publice, avarii de rețea, elemente Look-ahead din LPS și inventarul ERP (echipamente, mașini, materiale) — toate, într-un singur fir cronologic ("stare schimbată din Activ în Soluționat de X, pe data de…").</p>
           <div class="entity-log-list" id="auditLogList" style="max-height:560px;"></div>
         </div>
       </div>
@@ -1972,16 +1952,16 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="assets/js/data-services.js?v=20261002c"></script>
-<script src="assets/js/admin-core.js?v=20261002c"></script>
-<script src="assets/js/features/system-status.js?v=20261002c"></script>
-<script src="assets/js/features/lps.js?v=20261002c"></script>
-<script src="assets/js/features/tickets.js?v=20261002c"></script>
-<script src="assets/js/features/projects.js?v=20261002c"></script>
-<script src="assets/js/features/work-orders.js?v=20261002c"></script>
-<script src="assets/js/features/erp.js?v=20261002c"></script>
-<script src="assets/js/features/excel.js?v=20261002c"></script>
-<script src="assets/js/features/search.js?v=20261002c"></script>
+<script src="assets/js/data-services.js?v=20261002d"></script>
+<script src="assets/js/admin-core.js?v=20261002d"></script>
+<script src="assets/js/features/system-status.js?v=20261002d"></script>
+<script src="assets/js/features/lps.js?v=20261002d"></script>
+<script src="assets/js/features/tickets.js?v=20261002d"></script>
+<script src="assets/js/features/projects.js?v=20261002d"></script>
+<script src="assets/js/features/work-orders.js?v=20261002d"></script>
+<script src="assets/js/features/erp.js?v=20261002d"></script>
+<script src="assets/js/features/excel.js?v=20261002d"></script>
+<script src="assets/js/features/search.js?v=20261002d"></script>
 
 <button type="button" class="back-to-top" id="backToTopBtn" aria-label="Înapoi sus">
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
@@ -2033,8 +2013,8 @@
   </div>
 </div>
 
-<script src="assets/js/ui-shell.js?v=20261002c"></script>
-<script src="assets/js/launch.js?v=20261002c"></script>
+<script src="assets/js/ui-shell.js?v=20261002d"></script>
+<script src="assets/js/launch.js?v=20261002d"></script>
 
 </body>
 </html>
