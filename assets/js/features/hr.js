@@ -60,13 +60,12 @@
     if (!tbody) return;
     const countEl = document.getElementById('hrEmployeesCount');
     if (countEl) countEl.textContent = allHrEmployees.length + (allHrEmployees.length === 1 ? ' angajat' : ' angajați');
-    if (!allHrEmployees.length) { tbody.innerHTML = '<tr><td colspan="7" class="no-results">Niciun angajat încă — adaugă primul.</td></tr>'; return; }
+    if (!allHrEmployees.length) { tbody.innerHTML = '<tr><td colspan="6" class="no-results">Niciun angajat încă — adaugă primul.</td></tr>'; return; }
     tbody.innerHTML = allHrEmployees.map(emp => `
       <tr>
         <td>${escapeHtml(emp.full_name)}</td>
         <td>${emp.date_of_birth ? formatWoDateRO(emp.date_of_birth) : '—'}</td>
         <td>${emp.address ? escapeHtml(emp.address) : '—'}</td>
-        <td>${emp.salary != null ? escapeHtml(String(emp.salary)) : '—'}</td>
         <td>${emp.vacation_days_allowed}</td>
         <td>${hrVacationUsedForEmployee(emp.id)}</td>
         <td>
@@ -81,7 +80,6 @@
     document.getElementById('hrEf-name').value = emp ? emp.full_name : '';
     document.getElementById('hrEf-dob').value = emp ? (emp.date_of_birth || '') : '';
     document.getElementById('hrEf-address').value = emp ? (emp.address || '') : '';
-    document.getElementById('hrEf-salary').value = emp && emp.salary != null ? emp.salary : '';
     document.getElementById('hrEf-vacation-allowed').value = emp ? emp.vacation_days_allowed : 21;
     const titleEl = document.getElementById('hrEmployeeFormSheetTitle');
     if (titleEl) titleEl.textContent = emp ? `Editează — ${emp.full_name}` : 'Adaugă angajat';
@@ -96,10 +94,8 @@
     if (!full_name) { alert('Completați numele angajatului.'); return; }
     const date_of_birth = document.getElementById('hrEf-dob').value || null;
     const address = document.getElementById('hrEf-address').value.trim() || null;
-    const salaryRaw = document.getElementById('hrEf-salary').value;
-    const salary = salaryRaw !== '' ? parseFloat(salaryRaw) : null;
     const vacation_days_allowed = parseFloat(document.getElementById('hrEf-vacation-allowed').value) || 0;
-    const payload = { full_name, date_of_birth, address, salary, vacation_days_allowed };
+    const payload = { full_name, date_of_birth, address, vacation_days_allowed };
     if (id) {
       const { error } = await supabaseClient.from('hr_employees').update(payload).eq('id', id);
       if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
