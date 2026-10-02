@@ -209,6 +209,9 @@
         // tab already open) at this specific page instead of always
         // opening admin.html for every device.
         landing_page: 'admin-2.html',
+        // Who this device belongs to — shown as a notifications
+        // on/off badge per person in the Roluri tab.
+        user_email: currentSessionEmail || null,
       }, { onConflict: 'endpoint' });
       if (error) {
         console.error('Push subscription save failed:', error);
