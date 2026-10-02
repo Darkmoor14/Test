@@ -125,6 +125,12 @@
       return { text: `Nu există încă un kilometraj înregistrat pentru ${item.name}.`, tab, matched: false };
     }
     if (/\bunde\b|cine are|la cine/.test(q)) {
+      // Parc Auto doesn't track a location for vehicles (only who they're
+      // allocated to) — echipament/material still have one, set from the
+      // add/edit form, so they keep answering with it.
+      if (isVehicle) {
+        return { text: item.assigned_to ? `${item.name} este alocat(ă) la ${item.assigned_to}.` : `${item.name} nu are o alocare înregistrată.`, tab, matched: true };
+      }
       const loc = item.location ? `se află la ${item.location}` : 'nu are o locație înregistrată';
       const assigned = item.assigned_to ? `, alocat(ă) la ${item.assigned_to}` : '';
       return { text: `${item.name} ${loc}${assigned}.`, tab, matched: true };
@@ -143,7 +149,7 @@
     const parts = isVehicle ? [item.name] : [`${item.name} — ${EQUIPMENT_STATUS_LABEL[item.status] || item.status}`];
     if (isMaterial) parts.push(`stoc: ${Number(item.quantity)}${item.unit ? ' ' + item.unit : ''}`);
     if (isVehicle && item.plate_number) parts.push(`nr. ${item.plate_number}`);
-    if (item.location) parts.push(`locație: ${item.location}`);
+    if (!isVehicle && item.location) parts.push(`locație: ${item.location}`);
     if (item.assigned_to) parts.push(`alocat: ${item.assigned_to}`);
     if (isVehicle && item.odometer_km != null) parts.push(`${Number(item.odometer_km).toLocaleString('ro-RO')} km`);
     return { text: parts.join(' · '), tab, matched: true };

@@ -886,11 +886,7 @@
      bottom-sheet sizing built for the much larger generic
      erpItemFormSheet, which left it looking mostly empty. */
   #vehicleFormSheet .ctrl-field{min-width:0;margin-bottom:12px;}
-  /* Labels like "Tichete parcare — data expirării" wrap to 2 lines while
-     their row-mate ("Rovinietă — data expirării") fits on 1 — without a
-     reserved height, that makes the shorter label's input sit higher
-     than its neighbor. Reserving 2 lines always keeps inputs aligned. */
-  #vehicleFormSheet .ctrl-field label{font-size:10px;margin-bottom:4px;line-height:1.3;min-height:26px;display:block;}
+  #vehicleFormSheet .ctrl-field label{font-size:10px;margin-bottom:2px;line-height:1.3;display:block;}
   #vehicleFormSheet .ctrl-field input,
   #vehicleFormSheet .ctrl-field select{
     font-size:12.5px;padding:7px 9px;height:34px;

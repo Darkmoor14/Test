@@ -864,6 +864,12 @@
       const tg = document.querySelector('[data-erp-toggle="machines"]');
       if (sg) sg.classList.add('open');
       if (tg) tg.classList.add('open');
+    } else {
+      // .erp-machines-subcat-btn isn't .admin-tab, so the toggle above
+      // never reaches it — without this, whichever subcategory was last
+      // open (or the "Toate" default) stayed lit in red after navigating
+      // away to an unrelated tab entirely.
+      document.querySelectorAll('.erp-machines-subcat-btn').forEach(btn => btn.classList.remove('active'));
     }
     // Proiecte publice always opens on "Active" — otherwise whichever
     // status chip was last clicked earlier in the session (e.g. "Toate"
