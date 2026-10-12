@@ -740,6 +740,7 @@
     'erp-home': 'Resurse și inventar',
     equipment: 'Echipamente',
     machines: 'Parc Auto',
+    'machines-fuel-report': 'Raport lunar consum',
     materials: 'Materiale',
     products: 'Produse',
     'hr-home': 'HR',
@@ -760,7 +761,7 @@
   const TAB_CATEGORY = {
     overview: 'tickets', 'tickets-functional': 'tickets', 'tickets-accident': 'tickets',
     'projects-home': 'projects', projects: 'projects', backlog: 'projects', lps: 'projects', workorders: 'projects',
-    'erp-home': 'erp', equipment: 'erp', machines: 'erp', materials: 'erp', products: 'erp',
+    'erp-home': 'erp', equipment: 'erp', machines: 'erp', 'machines-fuel-report': 'erp', materials: 'erp', products: 'erp',
     'hr-home': 'hr', 'hr-employees': 'hr', 'hr-worktime': 'hr', 'hr-vacation': 'hr', docs: 'hr',
     status: 'status', 'status-improve': 'status', 'status-audit': 'status', 'status-roles': 'status',
   };
@@ -879,23 +880,25 @@
     else if (tabKey === 'status-audit') loadAuditLog();
     else if (tabKey === 'status-roles') loadStaffRolesTab();
     else if (tabKey === 'workorders') loadWorkOrders();
-    else if (tabKey === 'equipment' || tabKey === 'machines' || tabKey === 'materials' || tabKey === 'products' || tabKey === 'erp-home') loadEquipment();
+    else if (tabKey === 'equipment' || tabKey === 'machines' || tabKey === 'machines-fuel-report' || tabKey === 'materials' || tabKey === 'products' || tabKey === 'erp-home') loadEquipment();
     else if (tabKey === 'projects-home') renderProjectsHomeStats();
     else if (tabKey === 'home') renderHomeDigest();
     else if (tabKey === 'lps' && isReportFocusedView()) refreshLookaheadWorkspace();
     else if (tabKey === 'hr-home' || tabKey === 'hr-employees') { if (typeof loadHrEmployees === 'function') loadHrEmployees(); }
     else if (tabKey === 'hr-worktime') { if (typeof loadHrWorktime === 'function') loadHrWorktime(); }
     else if (tabKey === 'hr-vacation') { if (typeof loadHrVacation === 'function') loadHrVacation(); }
-    if (tabKey === 'machines') {
+    if (tabKey === 'machines' || tabKey === 'machines-fuel-report') {
       const sg = document.querySelector('[data-erp-subgroup="machines"]');
       const tg = document.querySelector('[data-erp-toggle="machines"]');
       if (sg) sg.classList.add('open');
       if (tg) tg.classList.add('open');
-    } else {
+    }
+    if (tabKey !== 'machines') {
       // .erp-machines-subcat-btn isn't .admin-tab, so the toggle above
       // never reaches it — without this, whichever subcategory was last
       // open (or the "Toate" default) stayed lit in red after navigating
-      // away to an unrelated tab entirely.
+      // away, including to "Raport lunar consum" (same subgroup, but
+      // not itself a subcategory of "machines").
       document.querySelectorAll('.erp-machines-subcat-btn').forEach(btn => btn.classList.remove('active'));
     }
     // Documentație's nested dropdown under HR (see the sidebar markup)

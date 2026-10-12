@@ -273,6 +273,61 @@
     const eq = allEquipment.find(v => v.id === link.dataset.vehicleId);
     if (eq) goToVehicle(eq);
   });
+  // "Consum efectiv" (L/100km for everything except utilaje, which use
+  // L/H instead — there's no odometer to read km off of a stationary
+  // machine) is derived purely from Total alimentare over the period
+  // field matching that unit; Stoc inițial is shown for reference but
+  // isn't part of the formula itself (there's no "stoc final" counted
+  // separately here). vehicle_fuel_consumption_tracking migration
+  // mirrors this exact formula server-side for the >50% alert, so this
+  // is display-only — the real enforcement is the DB trigger.
+  function vehicleFuelConsumption(eq){
+    const isUtilaj = eq.category === 'utilaj';
+    const unit = isUtilaj ? 'L/H' : 'L/100km';
+    const period = isUtilaj ? eq.fuel_period_hours : eq.fuel_period_km;
+    const actual = (eq.fuel_total_added_l != null && period != null && Number(period) > 0)
+      ? (isUtilaj ? Number(eq.fuel_total_added_l) / Number(period) : Number(eq.fuel_total_added_l) / Number(period) * 100)
+      : null;
+    const rated = eq.fuel_rated_consumption != null ? Number(eq.fuel_rated_consumption) : null;
+    const overLimit = actual != null && rated != null && actual > rated * 1.5;
+    return { isUtilaj, unit, actual, rated, overLimit };
+  }
+  function renderMachinesFuelReport(){
+    const tbody = document.getElementById('machinesFuelReportTableBody');
+    const countEl = document.getElementById('machinesFuelReportCount');
+    if (!tbody) return;
+    const vehicles = allEquipment.filter(eq => eq.erp_category === 'masina')
+      .slice()
+      .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ro'));
+    if (countEl) countEl.textContent = vehicles.length + (vehicles.length === 1 ? ' mașină' : ' mașini');
+    if (!vehicles.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="machines-table-empty">Nicio mașină înregistrată.</div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = vehicles.map(eq => {
+      const { isUtilaj, unit, actual, rated, overLimit } = vehicleFuelConsumption(eq);
+      const na = '<span class="mt-na">—</span>';
+      return `
+        <tr class="${overLimit ? 'row-error' : ''}">
+          <td><a href="#" class="ticket-link" data-vehicle-id="${escapeHtml(eq.id)}">${escapeHtml(eq.name)}</a></td>
+          <td>${eq.fuel_initial_stock_l != null ? escapeHtml(String(eq.fuel_initial_stock_l)) : na}</td>
+          <td>${eq.fuel_total_added_l != null ? escapeHtml(String(eq.fuel_total_added_l)) : na}</td>
+          <td>${!isUtilaj ? (eq.fuel_period_km != null ? escapeHtml(String(eq.fuel_period_km)) : na) : na}</td>
+          <td>${isUtilaj ? (eq.fuel_period_hours != null ? escapeHtml(String(eq.fuel_period_hours)) : na) : na}</td>
+          <td class="${overLimit ? 'mt-warn' : ''}">${actual != null ? `${actual.toFixed(1)} ${unit}${overLimit ? ' ⚠' : ''}` : na}</td>
+          <td>${rated != null ? `${rated} ${unit}` : na}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+  const machinesFuelReportTableBody = document.getElementById('machinesFuelReportTableBody');
+  if (machinesFuelReportTableBody) machinesFuelReportTableBody.addEventListener('click', (e) => {
+    const link = e.target.closest('.ticket-link');
+    if (!link) return;
+    e.preventDefault();
+    const eq = allEquipment.find(v => v.id === link.dataset.vehicleId);
+    if (eq) goToVehicle(eq);
+  });
   function renderErpRow(eq){
     const isEquipment = eq.item_type === 'echipament';
     const erpCategory = eq.erp_category || (isEquipment ? 'echipament' : 'material');
@@ -344,6 +399,7 @@
       items.forEach(eq => list.appendChild(renderErpRow(eq)));
     });
     renderMachinesOverview();
+    renderMachinesFuelReport();
     renderErpHomeStats();
   }
   function renderErpHomeStats(){
@@ -448,9 +504,17 @@
   // detail card (vf-id set → update). Licență transport/Tahograf only
   // apply to Camion, and toggle live as the Subcategorie select changes.
   function syncVehicleFormCamionFields(){
-    const isCamion = document.getElementById('vf-subcat').value === 'camion';
+    const subcat = document.getElementById('vf-subcat').value;
+    const isCamion = subcat === 'camion';
     document.getElementById('vf-transport-license-field').style.display = isCamion ? '' : 'none';
     document.getElementById('vf-tachograph-field').style.display = isCamion ? '' : 'none';
+    // Utilaje are tracked by hours worked, not km driven (there's no
+    // odometer on a stationary machine) — everything else is the
+    // reverse. Consum normat's unit follows the same split.
+    const isUtilaj = subcat === 'utilaj';
+    document.getElementById('vf-fuel-km-field').style.display = isUtilaj ? 'none' : '';
+    document.getElementById('vf-fuel-hours-field').style.display = isUtilaj ? '' : 'none';
+    document.getElementById('vf-fuel-rated-unit').textContent = isUtilaj ? 'L/H' : 'L/100km';
   }
   const vfSubcatSelect = document.getElementById('vf-subcat');
   if (vfSubcatSelect) vfSubcatSelect.addEventListener('change', syncVehicleFormCamionFields);
@@ -469,6 +533,11 @@
     document.getElementById('vf-parking-ticket-expires').value = '';
     document.getElementById('vf-vignette-expires').value = '';
     document.getElementById('vf-tachograph-expires').value = '';
+    document.getElementById('vf-fuel-initial-stock').value = '';
+    document.getElementById('vf-fuel-total-added').value = '';
+    document.getElementById('vf-fuel-km').value = '';
+    document.getElementById('vf-fuel-hours').value = '';
+    document.getElementById('vf-fuel-rated').value = '';
     syncVehicleFormCamionFields();
     const titleEl = document.getElementById('vehicleFormSheetTitle');
     if (titleEl) titleEl.textContent = 'Adaugă mașină';
@@ -490,6 +559,11 @@
     document.getElementById('vf-parking-ticket-expires').value = eq.parking_ticket_expires_on || '';
     document.getElementById('vf-vignette-expires').value = eq.vignette_expires_on || '';
     document.getElementById('vf-tachograph-expires').value = eq.tachograph_expires_on || '';
+    document.getElementById('vf-fuel-initial-stock').value = eq.fuel_initial_stock_l ?? '';
+    document.getElementById('vf-fuel-total-added').value = eq.fuel_total_added_l ?? '';
+    document.getElementById('vf-fuel-km').value = eq.fuel_period_km ?? '';
+    document.getElementById('vf-fuel-hours').value = eq.fuel_period_hours ?? '';
+    document.getElementById('vf-fuel-rated').value = eq.fuel_rated_consumption ?? '';
     syncVehicleFormCamionFields();
     const titleEl = document.getElementById('vehicleFormSheetTitle');
     if (titleEl) titleEl.textContent = `Editează — ${eq.name}`;
@@ -528,11 +602,23 @@
       transport_license_expires_on: isCamion ? (document.getElementById('vf-transport-license-expires').value || null) : null,
       tachograph_expires_on: isCamion ? (document.getElementById('vf-tachograph-expires').value || null) : null,
     };
+    const isUtilaj = subcat === 'utilaj';
+    const numOrNull = (elId) => {
+      const v = document.getElementById(elId).value;
+      return v === '' ? null : Number(v);
+    };
+    const fuelPayload = {
+      fuel_initial_stock_l: numOrNull('vf-fuel-initial-stock'),
+      fuel_total_added_l: numOrNull('vf-fuel-total-added'),
+      fuel_period_km: isUtilaj ? null : numOrNull('vf-fuel-km'),
+      fuel_period_hours: isUtilaj ? numOrNull('vf-fuel-hours') : null,
+      fuel_rated_consumption: numOrNull('vf-fuel-rated'),
+    };
     if (id) {
       const payload = Object.assign({
         name, category: subcat, plate_number: plate,
         serial_number: chassis || null, assigned_to: assigned || null, notes: notes || null,
-      }, docsPayload);
+      }, docsPayload, fuelPayload);
       const { error } = await AppDataServices.erp.saveVehicle(supabaseClient, payload, id);
       if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
       logEntityActivity('masina', id, 'Mașina a fost actualizată.');
@@ -544,7 +630,7 @@
         name, item_type: 'echipament', erp_category: 'masina', category: subcat,
         plate_number: plate, serial_number: chassis || null, status: 'Disponibil',
         assigned_to: assigned || null, notes: notes || null,
-      }, docsPayload);
+      }, docsPayload, fuelPayload);
       const { data, error } = await AppDataServices.erp.saveVehicle(supabaseClient, payload, null);
       if (error) { console.error(error); alert('Verificați numărul de înmatriculare și încercați din nou.'); return; }
       if (data && data[0]) logEntityActivity('masina', data[0].id, 'Mașină adăugată.');
@@ -590,6 +676,20 @@
       </div>
       ${metaParts.length ? `<div class="backlog-meta-line">${metaParts.join(' · ')}</div>` : ''}
       <div class="vd-docs-grid">${docsHtml}</div>
+      ${vehicleFuelSummaryHtml(eq)}
+    `;
+  }
+  // Compact read-out of the same figures the "Raport lunar consum" tab
+  // shows in table form — so checking one vehicle's current numbers
+  // doesn't require leaving its own card. Only shown once something's
+  // actually been entered.
+  function vehicleFuelSummaryHtml(eq){
+    if (eq.fuel_total_added_l == null && eq.fuel_rated_consumption == null) return '';
+    const { unit, actual, rated, overLimit } = vehicleFuelConsumption(eq);
+    return `
+      <div class="backlog-meta-line${overLimit ? ' erp-warning-tag' : ''}">
+        Consum: ${actual != null ? `${actual.toFixed(1)} ${unit} efectiv` : 'fără date suficiente'}${rated != null ? ` (normat ${rated} ${unit})` : ''}${overLimit ? ' ⚠ peste 50% față de normat' : ''}
+      </div>
     `;
   }
   function vehicleBigCardHtml(eq){

@@ -118,6 +118,7 @@
             <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="autoutilitara">Autoutilitară</button>
             <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="camion">Camion</button>
             <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="utilaj">Utilaj</button>
+            <button type="button" class="admin-tab category-panel-item docs-nav-subitem" data-tab="machines-fuel-report">Raport lunar consum</button>
           </div>
           <button type="button" class="admin-tab category-panel-item" data-tab="materials">Materiale</button>
           <button type="button" class="admin-tab category-panel-item" data-tab="products">Produse</button>
@@ -978,6 +979,34 @@
         </table>
       </div>
       <div class="vehicle-cards-list" id="machinesCardsList" style="display:none;"></div>
+    </div>
+    <div class="admin-panel" id="panel-machines-fuel-report">
+      <div class="toolbar">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="result-count" id="machinesFuelReportCount"></div>
+        </div>
+      </div>
+      <p class="status-note" style="margin-top:0;">Consumul efectiv e calculat din Total alimentare și Km (sau Timp, pentru utilaje) — vezi fila „Editează” de pe fiecare mașină din Parc Auto pentru a actualiza valorile perioadei curente. Un rând marcat cu <strong>⚠</strong> are un consum efectiv cu peste 50% mai mare decât cel normat — trimite automat o alertă (email + push) către conturile God.</p>
+      <div class="overview-table-wrap">
+        <table class="overview-table" id="machinesFuelReportTable">
+          <colgroup>
+            <col style="width:22%"><col style="width:12%"><col style="width:14%">
+            <col style="width:10%"><col style="width:10%"><col style="width:16%"><col style="width:16%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Mașină</th>
+              <th>Stoc inițial (L)</th>
+              <th>Total alimentare (L)</th>
+              <th>Km</th>
+              <th>Timp (H)</th>
+              <th>Consum efectiv</th>
+              <th>Consum normat</th>
+            </tr>
+          </thead>
+          <tbody id="machinesFuelReportTableBody"></tbody>
+        </table>
+      </div>
     </div>
     <div class="admin-panel" id="panel-materials">
       <div class="toolbar">
@@ -1861,6 +1890,29 @@
       <div class="ctrl-field">
         <label>Notițe</label>
         <input type="text" id="vf-notes" placeholder="Detalii suplimentare">
+      </div>
+    </div>
+    <p class="status-note vf-docs-divider">Consum carburant — perioada curentă</p>
+    <div class="pf-grid">
+      <div class="ctrl-field">
+        <label>Stoc inițial (L)</label>
+        <input type="number" id="vf-fuel-initial-stock" min="0" step="0.1" placeholder="ex: 40">
+      </div>
+      <div class="ctrl-field">
+        <label>Total alimentare (L)</label>
+        <input type="number" id="vf-fuel-total-added" min="0" step="0.1" placeholder="ex: 320">
+      </div>
+      <div class="ctrl-field" id="vf-fuel-km-field">
+        <label>Km</label>
+        <input type="number" id="vf-fuel-km" min="0" step="1" placeholder="ex: 2400">
+      </div>
+      <div class="ctrl-field" id="vf-fuel-hours-field" style="display:none;">
+        <label>Timp (H)</label>
+        <input type="number" id="vf-fuel-hours" min="0" step="0.5" placeholder="ex: 160">
+      </div>
+      <div class="ctrl-field">
+        <label>Consum normat (<span id="vf-fuel-rated-unit">L/100km</span>)</label>
+        <input type="number" id="vf-fuel-rated" min="0" step="0.1" placeholder="ex: 8">
       </div>
     </div>
     <p class="status-note vf-docs-divider">Documente — date de expirare</p>

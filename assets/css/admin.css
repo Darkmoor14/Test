@@ -1180,6 +1180,8 @@
   #machinesTable .mt-expired{color:var(--signal-red);font-weight:600;}
   .machines-table-empty{padding:40px 0;text-align:center;color:var(--ink-400);}
   .mt-row-actions{display:flex;gap:6px;justify-content:flex-end;}
+  #machinesFuelReportTable tr.row-error td{background:var(--signal-red-bg);color:var(--signal-red);}
+  #machinesFuelReportTable .mt-warn{color:var(--signal-orange);font-weight:600;}
   .mt-row-icon-btn{
     display:flex;align-items:center;justify-content:center;flex-shrink:0;
     width:26px;height:26px;border-radius:6px;
