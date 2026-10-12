@@ -2104,17 +2104,23 @@
   let currentUserRole = 'limited';
   async function fetchCurrentUserRole(email){
     try {
+      // Reads admin_html_access, not staff_roles — admin.html's own
+      // full/limited system is deliberately a separate table now, so
+      // it can never be affected by changes made to staff_roles for
+      // admin-3.html's own, independently-evolving role model (see
+      // the admin_html_access migration's own comment for the full
+      // reasoning). The DB-side enforcement
+      // (enforce_resolution_note_permission()) reads the same table.
       const { data, error } = await supabaseClient
-        .from('staff_roles')
+        .from('admin_html_access')
         .select('role')
         .eq('email', email)
         .maybeSingle();
       if (error || !data) {
-        // Restricted by default now, not full — matches the DB's own
-        // policy (is_staff()/enforce_resolution_note_permission()):
-        // only an explicit role='full' row (vlasbogdan@) is
-        // unrestricted; every other account, including one not yet in
-        // staff_roles at all, is treated as limited.
+        // Restricted by default — only an explicit role='full' row
+        // (vlasbogdan@) is unrestricted; every other account,
+        // including one not yet in admin_html_access at all, is
+        // treated as limited.
         currentUserRole = 'limited';
         return;
       }
@@ -3007,7 +3013,7 @@
     });
 
     // currentUserRole ('full' vs 'limited') genuinely does need the
-    // staff_roles lookup below — unlike report-focused-view, this one
+    // admin_html_access lookup below — unlike report-focused-view, this one
     // can't be known synchronously from the email alone. Role must be
     // known before the first real ticket render, so a limited-access
     // account doesn't briefly flash the "Ce s-a făcut" field before it
