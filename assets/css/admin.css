@@ -1182,6 +1182,13 @@
   .mt-row-actions{display:flex;gap:6px;justify-content:flex-end;}
   #machinesFuelReportTable tr.row-error td{background:var(--signal-red-bg);color:var(--signal-red);}
   #machinesFuelReportTable .mt-warn{color:var(--signal-orange);font-weight:600;}
+  .fuel-report-month-nav{display:flex;align-items:center;gap:8px;}
+  .fuel-report-month-label{font-family:var(--mono);font-size:13px;color:var(--ink-900);text-transform:capitalize;white-space:nowrap;min-width:130px;text-align:center;}
+  .fuel-report-month-nav button{
+    width:26px;height:26px;flex-shrink:0;border-radius:50%;border:1px solid var(--line-strong);
+    background:var(--paper-000);color:var(--ink-700);cursor:pointer;font-size:14px;line-height:1;
+  }
+  .fuel-report-month-nav button:hover{border-color:var(--copper-500);color:var(--copper-600);}
   .mt-row-icon-btn{
     display:flex;align-items:center;justify-content:center;flex-shrink:0;
     width:26px;height:26px;border-radius:6px;
