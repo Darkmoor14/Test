@@ -1293,18 +1293,20 @@
       </div>
       <div class="status-grid">
         <div class="status-card status-card-wide">
-          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Fiecare persoană poate avea mai multe roluri deodată (ex: Inginer + Contabilitate) — efectiv, are acces de scriere pe orice modul unde măcar unul din rolurile ei îl permite. „God” e singurul care vede și <strong>Stare sistem</strong>.</p>
+          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Fiecare secțiune din bara principală (Sesizări, Proiecte, Resurse, HR) are propriul rol — bifată, persoana are acces complet la secțiune și îi apare iconița pe Acasă; nebifată, secțiunea îi este complet ascunsă. O persoană poate avea orice combinație. „God” e singurul care vede și <strong>Stare sistem</strong>, și are automat acces la tot restul.</p>
           <div class="overview-table-wrap">
             <table class="overview-table" id="staffRolesTable">
               <colgroup>
-                <col style="width:26%"><col style="width:12%"><col style="width:14%">
-                <col style="width:9%"><col style="width:15%"><col style="width:24%">
+                <col style="width:22%"><col style="width:11%"><col style="width:11%"><col style="width:10%">
+                <col style="width:8%"><col style="width:8%"><col style="width:12%"><col style="width:18%">
               </colgroup>
               <thead>
                 <tr>
                   <th>Email</th>
-                  <th>Inginer</th>
-                  <th>Contabilitate</th>
+                  <th>Sesizări</th>
+                  <th>Proiecte</th>
+                  <th>Resurse</th>
+                  <th>HR</th>
                   <th>God</th>
                   <th>Notificări</th>
                   <th></th>
@@ -1975,8 +1977,10 @@
     <div class="sheet-filter-status">
       <label>Roluri</label>
       <div class="chips">
-        <label class="recur-radio"><input type="checkbox" id="srf-role-inginer"> Inginer</label>
-        <label class="recur-radio"><input type="checkbox" id="srf-role-contabilitate"> Contabilitate</label>
+        <label class="recur-radio"><input type="checkbox" id="srf-role-tickets"> Sesizări</label>
+        <label class="recur-radio"><input type="checkbox" id="srf-role-proiecte"> Proiecte</label>
+        <label class="recur-radio"><input type="checkbox" id="srf-role-erp"> Resurse</label>
+        <label class="recur-radio"><input type="checkbox" id="srf-role-hr"> HR</label>
         <label class="recur-radio"><input type="checkbox" id="srf-role-god"> God</label>
       </div>
     </div>

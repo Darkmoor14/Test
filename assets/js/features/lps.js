@@ -824,9 +824,17 @@
     // applyRolePermissionsToUI), but the tab itself is still reachable
     // by a stale browser back/forward entry or hash from before a role
     // change — redirect rather than silently rendering a panel nobody
-    // meant to let them see.
+    // meant to let them see. Same for any other category (tickets/
+    // projects/erp/hr) once a role no longer grants it — CATEGORY_TO_MODULE
+    // comes from admin-core.js (shared top-level script scope).
     if (STATUS_TABS.includes(tabKey) && typeof isGod === 'function' && !isGod()) {
       tabKey = 'home';
+    } else if (typeof isGod === 'function' && !isGod() && typeof CATEGORY_TO_MODULE !== 'undefined') {
+      const cat = TAB_CATEGORY[tabKey];
+      const mod = cat && CATEGORY_TO_MODULE[cat];
+      if (mod && typeof modulePermission === 'function' && modulePermission(mod) !== 'write') {
+        tabKey = 'home';
+      }
     }
     const panelId = panelIdForTab(tabKey);
     const isHome = tabKey === 'home' && isReportFocusedView();

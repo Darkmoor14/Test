@@ -68,35 +68,27 @@
   let currentSessionEmail = null;
 
   /* ============================================================
-     STAFF ROLES — a person can hold more than one of three named
-     roles at once (see staff_permission()/is_god() in the
-     20261002060000/20261002063000 migrations, the actual
-     enforcement — this mirrors that logic client-side purely to
-     show/hide UI, never as the real security boundary):
+     STAFF ROLES — one independent role per sidebar section, plus
+     god (see staff_permission()/is_god() in the
+     20261012055048_staff_roles_per_section_access migration, the
+     actual enforcement — this mirrors that logic client-side purely
+     to show/hide UI, never as the real security boundary):
 
-       god            — full access everywhere, including Stare sistem.
-       inginer        — tickets: write, proiecte: write, erp: view only.
-       contabilitate  — tickets: view only, proiecte: view only, erp: write.
+       god       — full access everywhere, including Stare sistem.
+       tickets   — Sesizări: full access.
+       proiecte  — Proiecte: full access.
+       erp       — Resurse și inventar: full access.
+       hr        — HR (and Documentație, nested under it): full access.
 
-     Combining inginer + contabilitate (without god) gives write
-     access to all three modules without exposing Stare sistem —
-     that's the point of allowing more than one role per person.
-     Effective permission per module is the highest across all of a
-     person's roles ('write' > 'view' > 'none').
+     A person can hold any combination. No view-only tier any more —
+     holding a section's role grants full read+write on it and shows
+     its icon; not holding it hides that icon/tab entirely (see
+     applyRolePermissionsToUI). God implies every section.
      ============================================================ */
   let currentUserRoles = [];
-  const ROLE_MODULE_LEVEL = {
-    god: () => 2,
-    inginer: (mod) => mod === 'erp' ? 1 : 2,
-    contabilitate: (mod) => mod === 'erp' ? 2 : 1,
-  };
   function modulePermission(mod){
-    let best = 0;
-    currentUserRoles.forEach(role => {
-      const fn = ROLE_MODULE_LEVEL[role];
-      if (fn) best = Math.max(best, fn(mod));
-    });
-    return best === 2 ? 'write' : best === 1 ? 'view' : 'none';
+    if (currentUserRoles.includes('god') || currentUserRoles.includes(mod)) return 'write';
+    return 'none';
   }
   function isGod(){ return currentUserRoles.includes('god'); }
   // Full staff roster (email list only, deduped — one row per role
@@ -129,20 +121,58 @@
       currentUserRoles = [];
     }
   }
-  // Hides Stare sistem entirely for anyone without 'god', and any
-  // add/edit/delete control tagged data-requires-write="<module>" for
-  // a module this person only has 'view' on. Called once role is
-  // known (right after login) — DB-level RLS is the real boundary;
-  // this only keeps the UI from showing controls that would just
-  // fail at save time. HR is open to every staff account (view and
-  // write both) — unlike tickets/proiecte/erp, it has no per-role
-  // split, so nothing needs hiding here for it.
+  // Hides each rail category/home-nav shortcut entirely for anyone not
+  // granted that section's role (god sees everything). Called once
+  // role is known (right after login) — DB-level RLS is the real
+  // boundary; this only keeps the nav from offering a destination that
+  // would just redirect straight back (see openAdminTab's matching
+  // guard in lps.js) or a control that would fail at save time.
+  // data-category (rail/category-panel) vs. role name differ only for
+  // "projects" <-> 'proiecte'. Documentație lives nested under the HR
+  // rail icon (see TAB_CATEGORY in lps.js), so it rides on 'hr' too —
+  // homeNavDocs below, not a category of its own.
+  const CATEGORY_TO_MODULE = { tickets: 'tickets', projects: 'proiecte', erp: 'erp', hr: 'hr' };
   function applyRolePermissionsToUI(){
+    const god = isGod();
+    Object.keys(CATEGORY_TO_MODULE).forEach(category => {
+      const granted = god || modulePermission(CATEGORY_TO_MODULE[category]) === 'write';
+      const railItem = document.querySelector(`.rail-item[data-category="${category}"]`);
+      const panelSection = document.querySelector(`.category-panel-section[data-category="${category}"]`);
+      if (railItem) railItem.style.display = granted ? '' : 'none';
+      if (panelSection) panelSection.style.display = granted ? '' : 'none';
+    });
     const statusRailItem = document.querySelector('.rail-item[data-category="status"]');
     const statusPanelSection = document.querySelector('.category-panel-section[data-category="status"]');
-    const god = isGod();
     if (statusRailItem) statusRailItem.style.display = god ? '' : 'none';
     if (statusPanelSection) statusPanelSection.style.display = god ? '' : 'none';
+    const homeNavVisibility = {
+      homeNavTickets: god || modulePermission('tickets') === 'write',
+      homeNavProjects: god || modulePermission('proiecte') === 'write',
+      homeNavErp: god || modulePermission('erp') === 'write',
+      homeNavHr: god || modulePermission('hr') === 'write',
+      homeNavDocs: god || modulePermission('hr') === 'write',
+      homeNavStatus: god,
+    };
+    Object.keys(homeNavVisibility).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = homeNavVisibility[id] ? '' : 'none';
+    });
+    // Same filtering for the mobile hamburger menu's equivalent links —
+    // it has no erp/hr entries of its own to gate, just tickets/
+    // proiecte/status.
+    const mobileTabVisibility = {
+      overview: god || modulePermission('tickets') === 'write',
+      'tickets-functional': god || modulePermission('tickets') === 'write',
+      'tickets-accident': god || modulePermission('tickets') === 'write',
+      projects: god || modulePermission('proiecte') === 'write',
+      backlog: god || modulePermission('proiecte') === 'write',
+      status: god,
+    };
+    document.querySelectorAll('.mobile-tab-btn[data-tab]').forEach(btn => {
+      if (btn.dataset.tab in mobileTabVisibility) {
+        btn.style.display = mobileTabVisibility[btn.dataset.tab] ? '' : 'none';
+      }
+    });
     // CSS attributes, not a one-time querySelectorAll sweep: ERP/
     // Proiecte/Sesizări rows re-render constantly (every load, every
     // tab switch), so a [data-requires-write="<module>"] control added
@@ -164,18 +194,18 @@
      any combination. Notifications on/off comes from whether
      push_subscriptions has at least one row for that email.
      ============================================================ */
-  const STAFF_ROLE_KEYS = ['inginer', 'contabilitate', 'god'];
+  const STAFF_ROLE_KEYS = ['tickets', 'proiecte', 'erp', 'hr', 'god'];
   let staffRolesByEmail = new Map(); // email -> Set(roles)
   let notifiedEmails = new Set();
   async function loadStaffRolesTab(){
     const tbody = document.getElementById('staffRolesTableBody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="6" class="no-results">Se încarcă…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="no-results">Se încarcă…</td></tr>';
     const [{ data: roleRows, error: roleError }, { data: subRows }] = await Promise.all([
       supabaseClient.from('staff_roles').select('email,role').order('email', { ascending: true }),
       supabaseClient.from('push_subscriptions').select('user_email'),
     ]);
-    if (roleError) { tbody.innerHTML = '<tr><td colspan="6" class="no-results">Lista nu a putut fi încărcată.</td></tr>'; return; }
+    if (roleError) { tbody.innerHTML = '<tr><td colspan="8" class="no-results">Lista nu a putut fi încărcată.</td></tr>'; return; }
     staffRolesByEmail = new Map();
     (roleRows || []).forEach(r => {
       if (!staffRolesByEmail.has(r.email)) staffRolesByEmail.set(r.email, new Set());
@@ -188,7 +218,7 @@
     const tbody = document.getElementById('staffRolesTableBody');
     if (!tbody) return;
     const emails = [...staffRolesByEmail.keys()].sort((a, b) => a.localeCompare(b));
-    if (!emails.length) { tbody.innerHTML = '<tr><td colspan="6" class="no-results">Nimeni încă — adaugă prima persoană.</td></tr>'; return; }
+    if (!emails.length) { tbody.innerHTML = '<tr><td colspan="8" class="no-results">Nimeni încă — adaugă prima persoană.</td></tr>'; return; }
     tbody.innerHTML = emails.map(email => {
       const roles = staffRolesByEmail.get(email);
       const isSelf = email === currentSessionEmail;
@@ -203,8 +233,10 @@
       return `
         <tr>
           <td>${escapeHtml(email)}${isSelf ? ' <span class="backlog-tag">tu</span>' : ''}</td>
-          ${roleCell('inginer')}
-          ${roleCell('contabilitate')}
+          ${roleCell('tickets')}
+          ${roleCell('proiecte')}
+          ${roleCell('erp')}
+          ${roleCell('hr')}
           ${roleCell('god')}
           <td><span class="status-pill ${notified ? 'status-pill-done' : 'status-pill-active'}">${notified ? 'Pornite' : 'Oprite'}</span></td>
           <td>
@@ -318,9 +350,7 @@
   if (addStaffRoleBtn) addStaffRoleBtn.addEventListener('click', () => {
     document.getElementById('srf-email').value = '';
     document.getElementById('srf-password').value = generateStaffPassword();
-    document.getElementById('srf-role-inginer').checked = false;
-    document.getElementById('srf-role-contabilitate').checked = false;
-    document.getElementById('srf-role-god').checked = false;
+    STAFF_ROLE_KEYS.forEach(r => { document.getElementById(`srf-role-${r}`).checked = false; });
     setSheetOpen('staffRoleFormSheet', true);
   });
   const srfSaveBtn = document.getElementById('srfSaveBtn');
