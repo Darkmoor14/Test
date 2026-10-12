@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/admin.css?v=20261012b">
+<link rel="stylesheet" href="assets/css/admin.css?v=20261012c">
 </head>
 <body>
 
@@ -994,20 +994,19 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </button>
       </div>
-      <p class="status-note" style="margin-top:0;">Consumul efectiv e calculat din Total alimentare și Km (sau Timp, pentru utilaje). Apasă „Editează” pe un rând ca să completezi valorile lunii afișate. Un rând marcat cu <strong>⚠</strong> are un consum efectiv cu peste 50% mai mare decât cel normat (completat la mașină, în Parc Auto) — trimite automat o alertă (email + push) către conturile God.</p>
+      <p class="status-note" style="margin-top:0;">Km/Timp arată diferența față de luna anterioară (sau față de citirea inițială a mașinii, în prima lună urmărită). Apasă „Editează” pe un rând ca să introduci noua citire și alimentările lunii afișate. Un rând marcat cu <strong>⚠</strong> are un consum efectiv cu peste 50% mai mare decât cel normat (completat la mașină, în Parc Auto) — trimite automat o alertă (email + push) către conturile God.</p>
       <div class="overview-table-wrap">
         <table class="overview-table" id="machinesFuelReportTable">
           <colgroup>
-            <col style="width:20%"><col style="width:11%"><col style="width:13%">
-            <col style="width:9%"><col style="width:9%"><col style="width:14%"><col style="width:14%"><col style="width:10%">
+            <col style="width:22%"><col style="width:11%"><col style="width:11%">
+            <col style="width:15%"><col style="width:16%"><col style="width:15%"><col style="width:10%">
           </colgroup>
           <thead>
             <tr>
               <th>Mașină</th>
-              <th>Stoc inițial (L)</th>
-              <th>Total alimentare (L)</th>
-              <th>Km</th>
-              <th>Timp (H)</th>
+              <th>Km (diferență)</th>
+              <th>Timp (diferență)</th>
+              <th>Total alimentare</th>
               <th>Consum efectiv</th>
               <th>Consum normat</th>
               <th></th>
@@ -1907,8 +1906,20 @@
         <label>Consum normat (<span id="vf-fuel-rated-unit">L/100km</span>)</label>
         <input type="number" id="vf-fuel-rated" min="0" step="0.1" placeholder="ex: 8">
       </div>
+      <div class="ctrl-field">
+        <label>Capacitate rezervor (L)</label>
+        <input type="number" id="vf-fuel-tank-capacity" min="0" step="1" placeholder="ex: 60">
+      </div>
+      <div class="ctrl-field" id="vf-fuel-initial-km-field">
+        <label>Km inițial</label>
+        <input type="number" id="vf-fuel-initial-km" min="0" step="1" placeholder="ex: 40000">
+      </div>
+      <div class="ctrl-field" id="vf-fuel-initial-hours-field" style="display:none;">
+        <label>Ore inițiale</label>
+        <input type="number" id="vf-fuel-initial-hours" min="0" step="1" placeholder="ex: 1200">
+      </div>
     </div>
-    <p class="status-note" style="margin:0 0 4px;">Stocul, alimentarea și km/orele lunii se completează din fila „Raport lunar consum”, nu de aici — acolo apar lună cu lună, nu doar valoarea curentă.</p>
+    <p class="status-note" style="margin:0 0 4px;">Km/ore inițial(e) e citirea de la cumpărare sau de când ai început urmărirea — pornind de aici, „Raport lunar consum” calculează singur diferența lună de lună. Alimentările se adaugă tot acolo, pe măsură ce vin bonurile.</p>
     <p class="status-note vf-docs-divider">Documente — date de expirare</p>
     <div class="pf-grid">
       <div class="ctrl-field">
@@ -1954,27 +1965,39 @@
     <input type="hidden" id="vfl-vehicle-id">
     <input type="hidden" id="vfl-year">
     <input type="hidden" id="vfl-month">
+    <p class="status-note vf-docs-divider" style="margin-top:0;">Citire bord</p>
     <div class="pf-grid">
       <div class="ctrl-field">
-        <label>Stoc inițial (L)</label>
-        <input type="number" id="vfl-initial-stock" min="0" step="0.1" placeholder="ex: 40">
+        <label>Citire anterioară</label>
+        <div class="vfl-readonly-value" id="vfl-previous-reading">—</div>
       </div>
       <div class="ctrl-field">
-        <label>Total alimentare (L)</label>
-        <input type="number" id="vfl-total-added" min="0" step="0.1" placeholder="ex: 320">
+        <label id="vfl-reading-label">Km nou</label>
+        <input type="number" id="vfl-reading" min="0" step="1" placeholder="ex: 42150">
       </div>
-      <div class="ctrl-field" id="vfl-km-field">
-        <label>Km</label>
-        <input type="number" id="vfl-km" min="0" step="1" placeholder="ex: 2400">
-      </div>
-      <div class="ctrl-field" id="vfl-hours-field" style="display:none;">
-        <label>Timp (H)</label>
-        <input type="number" id="vfl-hours" min="0" step="0.5" placeholder="ex: 160">
+      <div class="ctrl-field" style="grid-column:1/-1;">
+        <label>Diferență (luna aceasta)</label>
+        <div class="vfl-readonly-value" id="vfl-diff-display">—</div>
       </div>
     </div>
     <div class="sheet-actions">
-      <button class="btn" type="button" data-close-sheet="vehicleFuelLogFormSheet">Anulează</button>
-      <button class="btn btn-primary" id="vflSaveBtn" type="button">Salvează</button>
+      <button class="btn btn-primary" id="vflSaveReadingBtn" type="button">Salvează citirea</button>
+    </div>
+    <p class="status-note vf-docs-divider">Alimentări luna aceasta — <span id="vfl-purchase-total">0 L</span></p>
+    <div class="entity-log-list" id="vflPurchaseList"></div>
+    <div class="pf-grid">
+      <div class="ctrl-field">
+        <label>Litri</label>
+        <input type="number" id="vfl-purchase-liters" min="0" step="0.1" placeholder="ex: 50">
+      </div>
+      <div class="ctrl-field">
+        <label>Notă (opțional)</label>
+        <input type="text" id="vfl-purchase-note" placeholder="ex: bon nr. 123">
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn" type="button" data-close-sheet="vehicleFuelLogFormSheet">Închide</button>
+      <button class="btn btn-primary" id="vflPurchaseAddBtn" type="button">+ Adaugă alimentare</button>
     </div>
   </div>
 </div>
@@ -2417,17 +2440,17 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="assets/js/data-services.js?v=20261012b"></script>
-<script src="assets/js/admin-core.js?v=20261012b"></script>
-<script src="assets/js/features/system-status.js?v=20261012b"></script>
-<script src="assets/js/features/lps.js?v=20261012b"></script>
-<script src="assets/js/features/tickets.js?v=20261012b"></script>
-<script src="assets/js/features/projects.js?v=20261012b"></script>
-<script src="assets/js/features/work-orders.js?v=20261012b"></script>
-<script src="assets/js/features/erp.js?v=20261012b"></script>
-<script src="assets/js/features/hr.js?v=20261012b"></script>
-<script src="assets/js/features/excel.js?v=20261012b"></script>
-<script src="assets/js/features/search.js?v=20261012b"></script>
+<script src="assets/js/data-services.js?v=20261012c"></script>
+<script src="assets/js/admin-core.js?v=20261012c"></script>
+<script src="assets/js/features/system-status.js?v=20261012c"></script>
+<script src="assets/js/features/lps.js?v=20261012c"></script>
+<script src="assets/js/features/tickets.js?v=20261012c"></script>
+<script src="assets/js/features/projects.js?v=20261012c"></script>
+<script src="assets/js/features/work-orders.js?v=20261012c"></script>
+<script src="assets/js/features/erp.js?v=20261012c"></script>
+<script src="assets/js/features/hr.js?v=20261012c"></script>
+<script src="assets/js/features/excel.js?v=20261012c"></script>
+<script src="assets/js/features/search.js?v=20261012c"></script>
 
 <button type="button" class="back-to-top" id="backToTopBtn" aria-label="Înapoi sus">
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
@@ -2479,8 +2502,8 @@
   </div>
 </div>
 
-<script src="assets/js/ui-shell.js?v=20261012b"></script>
-<script src="assets/js/launch.js?v=20261012b"></script>
+<script src="assets/js/ui-shell.js?v=20261012c"></script>
+<script src="assets/js/launch.js?v=20261012c"></script>
 
 </body>
 </html>
