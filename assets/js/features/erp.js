@@ -194,16 +194,47 @@
     { key: 'utilaj', label: 'Utilaj' },
     { key: 'notificari', label: 'Notificări' },
   ];
+  function machinesFilterCounts(){
+    const allVehicles = allEquipment.filter(eq => eq.erp_category === 'masina');
+    const urgentVehicles = allVehicles.filter(vehicleHasUrgentDocs);
+    const subcatCounts = { masina_mica: 0, autoutilitara: 0, camion: 0, utilaj: 0 };
+    allVehicles.forEach(eq => { if (subcatCounts[eq.category] != null) subcatCounts[eq.category]++; });
+    return { allVehicles, urgentVehicles, subcatCounts };
+  }
+  // Shared by the Prezentare generală cards and the Raport lunar
+  // consum cards below -- same defs, same counts, same toggle-off
+  // behaviour, just a different active key and a different callback
+  // for what "filter changed" means on each page.
+  function renderMachinesFilterCardsInto(cardsWrap, activeKey, onToggle){
+    if (!cardsWrap) return;
+    const { urgentVehicles, subcatCounts } = machinesFilterCounts();
+    cardsWrap.innerHTML = MACHINES_FILTER_CARD_DEFS.map(def => {
+      const count = def.key === 'notificari' ? urgentVehicles.length : subcatCounts[def.key];
+      const isActive = activeKey === def.key;
+      const isWarn = def.key === 'notificari' && count > 0;
+      return `
+        <button type="button" class="priority-card${isWarn ? ' warn' : ''}${isActive ? ' active' : ''}" data-subcat="${def.key}">
+          <span class="k">${escapeHtml(def.label)}</span>
+          <div class="num">${count}</div>
+        </button>
+      `;
+    }).join('');
+    // Clicking an already-active card clears it back to "Toate" —
+    // a card is a toggle, not a one-way door.
+    cardsWrap.querySelectorAll('.priority-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const nextKey = activeKey === card.dataset.subcat ? 'Toate' : card.dataset.subcat;
+        onToggle(nextKey);
+      });
+    });
+  }
   function renderMachinesOverview(){
     const cardsWrap = document.getElementById('machinesFilterCards');
     const tbody = document.getElementById('machinesTableBody');
     const tableWrap = document.getElementById('machinesTableWrap');
     const cardsList = document.getElementById('machinesCardsList');
     if (!cardsWrap || !tbody || !tableWrap || !cardsList) return;
-    const allVehicles = allEquipment.filter(eq => eq.erp_category === 'masina');
-    const urgentVehicles = allVehicles.filter(vehicleHasUrgentDocs);
-    const subcatCounts = { masina_mica: 0, autoutilitara: 0, camion: 0, utilaj: 0 };
-    allVehicles.forEach(eq => { if (subcatCounts[eq.category] != null) subcatCounts[eq.category]++; });
+    const { allVehicles, urgentVehicles } = machinesFilterCounts();
 
     // The cards only make sense as a quick-filter on top of "Prezentare
     // generală" — once you've navigated into a specific sidebar section
@@ -212,24 +243,8 @@
     const showCards = machinesSidebarKey === 'Toate';
     cardsWrap.style.display = showCards ? '' : 'none';
     if (showCards) {
-      cardsWrap.innerHTML = MACHINES_FILTER_CARD_DEFS.map(def => {
-        const count = def.key === 'notificari' ? urgentVehicles.length : subcatCounts[def.key];
-        const isActive = machinesSubcatFilter === def.key;
-        const isWarn = def.key === 'notificari' && count > 0;
-        return `
-          <button type="button" class="priority-card${isWarn ? ' warn' : ''}${isActive ? ' active' : ''}" data-subcat="${def.key}">
-            <span class="k">${escapeHtml(def.label)}</span>
-            <div class="num">${count}</div>
-          </button>
-        `;
-      }).join('');
-      // Clicking an already-active card clears it back to "Toate" —
-      // a card is a toggle, not a one-way door.
-      cardsWrap.querySelectorAll('.priority-card').forEach(card => {
-        card.addEventListener('click', () => {
-          const nextKey = machinesSubcatFilter === card.dataset.subcat ? 'Toate' : card.dataset.subcat;
-          setMachinesSubcatFilter(nextKey, { sidebarKey: 'Toate' });
-        });
+      renderMachinesFilterCardsInto(cardsWrap, machinesSubcatFilter, (nextKey) => {
+        setMachinesSubcatFilter(nextKey, { sidebarKey: 'Toate' });
       });
     } else {
       cardsWrap.innerHTML = '';
@@ -364,13 +379,26 @@
   const erpLoadedAt = new Date();
   let fuelReportYear = erpLoadedAt.getFullYear();
   let fuelReportMonth = erpLoadedAt.getMonth() + 1; // 1-12, matches vehicle_fuel_logs.month
+  // Independent of machinesSubcatFilter (Prezentare generală's own
+  // quick-filter) -- the two pages can be filtered to different
+  // subcategories at the same time, same as their sidebar entries are
+  // independent pages.
+  let fuelReportSubcatFilter = 'Toate';
   function renderMachinesFuelReport(){
     const tbody = document.getElementById('machinesFuelReportTableBody');
     const countEl = document.getElementById('machinesFuelReportCount');
     const labelEl = document.getElementById('fuelReportMonthLabel');
+    const cardsWrap = document.getElementById('machinesFuelReportFilterCards');
     if (!tbody) return;
     if (labelEl) labelEl.textContent = `${REPORT_MONTHS[fuelReportMonth - 1]} ${fuelReportYear}`;
-    const vehicles = allEquipment.filter(eq => eq.erp_category === 'masina')
+    const { allVehicles, urgentVehicles } = machinesFilterCounts();
+    renderMachinesFilterCardsInto(cardsWrap, fuelReportSubcatFilter, (nextKey) => {
+      fuelReportSubcatFilter = nextKey;
+      renderMachinesFuelReport();
+    });
+    const vehicles = (fuelReportSubcatFilter === 'Toate' ? allVehicles
+      : fuelReportSubcatFilter === 'notificari' ? urgentVehicles
+      : allVehicles.filter(eq => eq.category === fuelReportSubcatFilter))
       .slice()
       .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ro'));
     if (countEl) countEl.textContent = vehicles.length + (vehicles.length === 1 ? ' mașină' : ' mașini');
