@@ -20,7 +20,6 @@ use tauri::{
     Manager, WindowEvent,
 };
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
-use tauri_plugin_process::ProcessExt;
 use tauri_plugin_updater::UpdaterExt;
 
 const UPDATE_CHECK_INTERVAL: Duration = Duration::from_secs(2 * 60 * 60);
@@ -30,7 +29,6 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let show_item = MenuItem::with_id(app, "show", "Deschide", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Ieșire", true, None::<&str>)?;
@@ -103,7 +101,7 @@ async fn check_for_update(app: tauri::AppHandle) {
     if !is_visible {
         // Nobody's watching -- install and relaunch quietly.
         if install_update(update).await {
-            app.restart();
+            tauri::process::restart(&app.env());
         }
         return;
     }
@@ -127,7 +125,7 @@ async fn check_for_update(app: tauri::AppHandle) {
             }
             tauri::async_runtime::spawn(async move {
                 if install_update(update).await {
-                    app_for_restart.restart();
+                    tauri::process::restart(&app_for_restart.env());
                 }
             });
         });

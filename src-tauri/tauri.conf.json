@@ -24,7 +24,7 @@
       "csp": null
     },
     "trayIcon": {
-      "iconPath": "icons/icon-512.png",
+      "iconPath": "icons/icon.png",
       "tooltip": "Insta Grup Admin"
     }
   },
@@ -42,7 +42,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "REPLACE_WITH_GENERATED_PUBLIC_KEY",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE5RTgzQkNEMUE1MTA3RkEKUldUNkIxRWF6VHZvcVNyamtLeVJJck92TDZpeUhLb05wTDVqb1ZGdUJQWXZZTE5LZXdldGluYWgK",
       "endpoints": [
         "https://github.com/Darkmoor14/Test/releases/latest/download/latest.json"
       ]

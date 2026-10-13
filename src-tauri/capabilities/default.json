@@ -9,7 +9,6 @@
     "core:window:allow-show",
     "core:window:allow-close",
     "updater:default",
-    "dialog:default",
-    "process:default"
+    "dialog:default"
   ]
 }
