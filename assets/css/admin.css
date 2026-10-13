@@ -1195,6 +1195,7 @@
   #machinesFuelReportTable tr.row-error td{background:var(--signal-red-bg);color:var(--signal-red);}
   #machinesFuelReportTable .mt-warn{color:var(--signal-orange);font-weight:600;}
   #machinesFuelReportTable .mt-name{font-weight:600;color:var(--ink-900);}
+  #machinesFuelReportTable .fuel-log-edit-btn{margin-left:auto;}
   /* Same row/font sizing as Prezentare generală's table (shared
      .overview-table rules) -- only the wrap itself grows, reaching
      further down the page instead of stopping at a fixed 600px like
