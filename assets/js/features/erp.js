@@ -354,6 +354,20 @@
       .sort((a, b) => (b.year - a.year) || (b.month - a.month));
     return logs.length ? logs[0] : null;
   }
+  // "Service la" (fuel_service_due_km/hours) is a one-time threshold
+  // set on the vehicle itself -- not an interval -- that gets manually
+  // bumped to the next target after each real service. The countdown
+  // needs both that threshold and a current reading to mean anything.
+  function vehicleServiceCountdown(eq){
+    const isUtilaj = eq.category === 'utilaj';
+    const due = isUtilaj ? eq.fuel_service_due_hours : eq.fuel_service_due_km;
+    if (due == null) return null;
+    const log = latestFuelLog(eq);
+    const field = vehicleReadingField(eq);
+    const current = log && log[field] != null ? Number(log[field]) : null;
+    if (current == null) return null;
+    return { remaining: Number(due) - current, unit: isUtilaj ? 'h' : 'km' };
+  }
   // Full picture for one vehicle in one month: the reading entered (if
   // any), what it's measured against, the resulting delta, that
   // month's fuel-bill total, and the consumption that implies.
@@ -913,6 +927,8 @@
     document.getElementById('vf-fuel-rated-unit').textContent = isUtilaj ? 'L/H' : 'L/100km';
     document.getElementById('vf-fuel-initial-km-field').style.display = isUtilaj ? 'none' : '';
     document.getElementById('vf-fuel-initial-hours-field').style.display = isUtilaj ? '' : 'none';
+    document.getElementById('vf-service-due-km-field').style.display = isUtilaj ? 'none' : '';
+    document.getElementById('vf-service-due-hours-field').style.display = isUtilaj ? '' : 'none';
   }
   const vfSubcatSelect = document.getElementById('vf-subcat');
   if (vfSubcatSelect) vfSubcatSelect.addEventListener('change', syncVehicleFormCamionFields);
@@ -935,6 +951,8 @@
     document.getElementById('vf-fuel-tank-capacity').value = '';
     document.getElementById('vf-fuel-initial-km').value = '';
     document.getElementById('vf-fuel-initial-hours').value = '';
+    document.getElementById('vf-service-due-km').value = '';
+    document.getElementById('vf-service-due-hours').value = '';
     syncVehicleFormCamionFields();
     const titleEl = document.getElementById('vehicleFormSheetTitle');
     if (titleEl) titleEl.textContent = 'Adaugă mașină';
@@ -960,6 +978,8 @@
     document.getElementById('vf-fuel-tank-capacity').value = eq.fuel_tank_capacity_l ?? '';
     document.getElementById('vf-fuel-initial-km').value = eq.fuel_initial_km ?? '';
     document.getElementById('vf-fuel-initial-hours').value = eq.fuel_initial_hours ?? '';
+    document.getElementById('vf-service-due-km').value = eq.fuel_service_due_km ?? '';
+    document.getElementById('vf-service-due-hours').value = eq.fuel_service_due_hours ?? '';
     syncVehicleFormCamionFields();
     const titleEl = document.getElementById('vehicleFormSheetTitle');
     if (titleEl) titleEl.textContent = `Editează — ${eq.name}`;
@@ -1008,6 +1028,8 @@
       fuel_tank_capacity_l: vfNumOrNull('vf-fuel-tank-capacity'),
       fuel_initial_km: isUtilaj ? null : vfNumOrNull('vf-fuel-initial-km'),
       fuel_initial_hours: isUtilaj ? vfNumOrNull('vf-fuel-initial-hours') : null,
+      fuel_service_due_km: isUtilaj ? null : vfNumOrNull('vf-service-due-km'),
+      fuel_service_due_hours: isUtilaj ? vfNumOrNull('vf-service-due-hours') : null,
     };
     if (id) {
       const payload = Object.assign({
@@ -1089,6 +1111,12 @@
     const consumptionVal = c && c.actual != null
       ? `${c.actual.toFixed(1)} ${c.unit}${c.rated != null ? ` (normat ${c.rated} ${c.unit})` : ''}${c.overLimit ? ' ⚠' : ''}`
       : '—';
+    const service = vehicleServiceCountdown(eq);
+    const serviceWarnThreshold = isUtilaj ? 50 : 1000;
+    const serviceCls = service == null ? '' : service.remaining <= 0 ? 'mt-expired' : service.remaining <= serviceWarnThreshold ? 'mt-warn' : '';
+    const serviceVal = service == null ? '—'
+      : service.remaining >= 0 ? `${service.remaining} ${service.unit}`
+      : `depășit cu ${Math.abs(service.remaining)} ${service.unit}`;
     return `
       <div class="vd-docs-grid">
         <div class="vd-doc-item">
@@ -1099,6 +1127,12 @@
           <div class="vd-doc-label">Consum efectiv</div>
           <div class="vd-doc-value ${c && c.overLimit ? 'mt-warn' : ''}">${consumptionVal}</div>
         </div>
+        ${service != null ? `
+        <div class="vd-doc-item">
+          <div class="vd-doc-label">${isUtilaj ? 'Ore rămase service' : 'Km rămași service'}</div>
+          <div class="vd-doc-value ${serviceCls}">${serviceVal}${serviceCls ? ' ⚠' : ''}</div>
+        </div>
+        ` : ''}
       </div>
     `;
   }
