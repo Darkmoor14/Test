@@ -92,6 +92,15 @@
       btn.classList.toggle('active', btn.dataset.subcat === machinesSidebarKey);
     });
     renderEquipment();
+    // Encodes which subcategory is open as a second hash segment
+    // (#machines/masina_mica) -- replaceState, not pushState, so
+    // switching between subcategories stays the single back-step it
+    // always was, but a reload now lands back on the right one instead
+    // of always resetting to Prezentare generală (see openAdminTab's
+    // restore logic in lps.js).
+    if (typeof history !== 'undefined') {
+      history.replaceState({ adminTab: 'machines', subcat: machinesSidebarKey }, '', window.location.pathname + window.location.search + '#machines/' + machinesSidebarKey);
+    }
   }
 
   /* ============================================================

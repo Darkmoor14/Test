@@ -899,9 +899,15 @@
     // -- the whole subgroup sits unhighlighted even though the right
     // panel is showing. Guarded on "nothing already active" so a real
     // click's own follow-up setMachinesSubcatFilter call (which runs
-    // right after this returns) is never fought or overridden.
+    // right after this returns) is never fought or overridden. Restores
+    // the exact subcategory the URL remembers (initialHashMachinesSubcat,
+    // e.g. "masina_mica" from #machines/masina_mica) rather than always
+    // resetting to Prezentare generală -- this only ever matters on the
+    // very first restore, since any later entry into "machines" already
+    // has something active and skips this branch entirely.
     if (tabKey === 'machines' && !document.querySelector('.erp-machines-subcat-btn.active') && typeof setMachinesSubcatFilter === 'function') {
-      setMachinesSubcatFilter('Toate', { sidebarKey: 'Toate' });
+      const restoreSubcat = (typeof initialHashMachinesSubcat !== 'undefined' && initialHashMachinesSubcat) || 'Toate';
+      setMachinesSubcatFilter(restoreSubcat, { sidebarKey: restoreSubcat });
     }
     if (tabKey !== 'machines') {
       // .erp-machines-subcat-btn isn't .admin-tab, so the toggle above
@@ -963,12 +969,26 @@
   window.addEventListener('popstate', (event) => {
     const tabKey = (event.state && event.state.adminTab) || 'overview';
     openAdminTab(tabKey, true);
+    // openAdminTab's own self-heal (see above) only fires on the very
+    // first entry into "machines" this session -- a genuine back/forward
+    // step between subcategories needs its own restore here, from the
+    // subcat this particular history entry carries.
+    if (tabKey === 'machines' && event.state && event.state.subcat && typeof setMachinesSubcatFilter === 'function') {
+      setMachinesSubcatFilter(event.state.subcat, { sidebarKey: event.state.subcat });
+    }
   });
   // A hard refresh keeps the browser's URL (hash included) — capture it
   // here, before the replaceState below overwrites it, so showDashboard()
   // can land back on whatever tab was open instead of always restarting
   // at the default. See its use in the report-focused-view branch.
-  const initialHashTab = window.location.hash.slice(1);
+  // "machines" additionally encodes which Parc Auto subcategory was open
+  // as a second segment (#machines/masina_mica) -- every other tab is a
+  // single admin-tab with nothing further to remember, but Parc Auto's
+  // sidebar sub-items all share that one tabKey, so the plain tabKey
+  // alone can't tell them apart on restore (see openAdminTab below).
+  const initialHashParts = window.location.hash.slice(1).split('/');
+  const initialHashTab = initialHashParts[0];
+  const initialHashMachinesSubcat = initialHashParts[1] || null;
   // Replaces (not pushes) the current history entry so the very first
   // back-press still correctly leaves admin.html entirely, landing on
   // whatever page linked here — it doesn't insert an extra step.

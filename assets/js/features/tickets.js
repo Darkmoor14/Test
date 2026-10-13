@@ -618,7 +618,13 @@
       const validReportTabs = ['home', 'overview', 'tickets-functional', 'tickets-accident', 'projects-home', 'projects', 'backlog', 'lps', 'workorders', 'erp-home', 'equipment', 'machines', 'machines-fuel-report', 'materials', 'products', 'hr-home', 'hr-employees', 'hr-worktime', 'hr-vacation', 'status', 'status-improve', 'status-audit', 'status-roles', 'docs'];
       const restoredTab = validReportTabs.includes(initialHashTab) ? initialHashTab : 'home';
       openAdminTab(restoredTab, true);
-      history.replaceState({ adminTab: restoredTab }, '', window.location.pathname + window.location.search + '#' + restoredTab);
+      // For "machines", openAdminTab's own self-heal already wrote a
+      // subcategory-aware hash (#machines/masina_mica) via
+      // setMachinesSubcatFilter -- reuse it as-is instead of stomping it
+      // back down to the bare tab name.
+      const liveHash = window.location.hash.replace(/^#/, '');
+      const hashToWrite = (restoredTab === 'machines' && liveHash.indexOf('machines') === 0) ? liveHash : restoredTab;
+      history.replaceState({ adminTab: restoredTab }, '', window.location.pathname + window.location.search + '#' + hashToWrite);
     }
     loginWrap.style.display = 'none';
     dash.classList.add('show');
