@@ -7,6 +7,38 @@
   // selection bar (see updateArchiveBar/openTicketEdit below).
   let editingTicketId = null;
 
+  // Unsaved, in-progress field edits, keyed by ticket id then by field
+  // selector — e.g. draftEdits[42]['.f-resolver'] = 'text typed but
+  // not saved yet'. Populated only by the field's own input/change
+  // listener (see renderTickets in admin-core.js), never by
+  // snapshotting whatever the DOM happens to contain — that
+  // distinction matters: a re-render triggered by fresh server data
+  // (another admin's save, a bulk import) must show that fresh data,
+  // not silently overwrite it with whatever was on screen before,
+  // which is exactly what an unconditional DOM snapshot would do.
+  // Only fields actually typed into end up here, and only those get
+  // reapplied after a rebuild. Cleared for a ticket once its own save
+  // succeeds (or its edit is cancelled). Ported from admin.html, which
+  // had this and admin-3 didn't — a background refresh (stale-tab
+  // trigger, another admin's save, a push notification) used to
+  // silently wipe whatever you were mid-typing into a ticket card.
+  const draftEdits = {};
+  // Fields a re-render must not silently blank out mid-edit — e.g.
+  // clicking "Editează" to fix the street name while "Soluționat de"
+  // already has unsaved text typed into it below. Any trigger that
+  // calls renderTickets() (the edit toggle, a filter change, a fresh
+  // loadTickets() from a push notification arriving, etc.) tears down
+  // and rebuilds every card's innerHTML from the current ticket data —
+  // these are the fields tracked in draftEdits (declared above) so an
+  // actual unsaved edit survives that rebuild. '.f-resnote' never
+  // actually exists in admin-3's DOM (resolution_note is read-only for
+  // everyone here) but costs nothing to list — querySelector just
+  // returns null and the loop skips it, same as admin.html's list.
+  const RENDER_DRAFT_FIELD_SELECTORS = [
+    '.f-name', '.f-phone', '.f-email', '.f-address', '.f-description', '.f-submitted-date',
+    '.f-status', '.f-resolver', '.f-resnote', '.f-resolved-date',
+  ];
+
   function escapeHtml(value){
     return String(value ?? '')
       .replace(/&/g, '&amp;')
@@ -41,6 +73,14 @@
   // afterward.
   let overviewStatusFilter = 'active';
   let overviewSearchQuery = '';
+  // Multi-select for bulk-sharing several tickets at once from the
+  // Overview mobile card list (see .ov-card-share/#overviewShareBar)
+  // — kept separate from Sesizări's own selectedIds/#archiveBar
+  // rather than reused, so selecting tickets here to share them can
+  // never also expose the archive/mark-duplicate bulk actions, which
+  // don't make sense from this flow. Ported from admin.html, which
+  // had this and admin-3 didn't.
+  let overviewShareSelectedIds = new Set();
 
   // A ticket that's Terminat but still has no "Ce s-a făcut" written
   // up yet — status and report-writing are two separate things (see
@@ -1485,10 +1525,11 @@
           ${isDuplicate
             ? `<td><span class="duplicate-badge">Duplicat</span></td>
                <td>${canonicalTicket ? `<a href="#" class="ticket-link" data-ticket-id="${canonicalTicket.id}" title="Mergi la sesizarea originală">${escapeHtml(canonicalTicket.ticket_number || '—')}</a>` : '—'}</td>`
-            : `<td>${isDone ? fmtDateOnly(t.resolved_on) : '—'}</td>
+            : `<td>${isDone ? `<span class="resolved-date-toggle" data-ticket-id="${t.id}" title="Vezi ce s-a făcut">${fmtDateOnly(t.resolved_on)}</span>` : '—'}</td>
                <td>${resolutionDays !== null ? formatDurationDays(resolutionDays) : '—'}</td>`
           }
         </tr>
+        ${isDone ? `<tr class="resnote-expand-row" data-ticket-id="${t.id}" style="display:none;"><td colspan="9"><strong>Ce s-a făcut:</strong> ${t.resolution_note ? escapeHtml(t.resolution_note) : '<em>Nu a fost completat încă.</em>'}</td></tr>` : ''}
       `;
     }).join('');
 
@@ -1514,6 +1555,9 @@
               <span class="ov-card-type">${isUrgent ? 'Accident' : 'Defect'}</span>
               <span class="ov-card-num">${escapeHtml(t.ticket_number || '—')}</span>
               ${isDuplicate ? `<span class="duplicate-badge">Duplicat</span>` : ''}
+              <span class="ov-card-share ${overviewShareSelectedIds.has(t.id) ? 'selected' : ''}" data-ticket-id="${t.id}" role="checkbox" aria-checked="${overviewShareSelectedIds.has(t.id) ? 'true' : 'false'}" aria-label="Selectează pentru trimitere">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              </span>
             </div>
             <div class="ov-card-address">${escapeHtml(t.address || '—')}</div>
             <div class="ov-card-meta">
@@ -1524,21 +1568,122 @@
               ? (getCanonicalTicket(t)
                 ? `<div class="ov-card-resolved duplicate-link-note ov-card-goto-original" data-canonical-id="${getCanonicalTicket(t).id}">Duplicat al ${escapeHtml(getCanonicalTicket(t).ticket_number || '—')} — Mergi la original</div>`
                 : `<div class="ov-card-resolved duplicate-link-note">Duplicat al —</div>`)
-              : isDone ? `<div class="ov-card-resolved">Soluționat: ${fmtDateOnly(t.resolved_on)}</div>` : ''
+              : isDone ? `<div class="ov-card-resolved resolved-date-toggle-mobile" data-ticket-id="${t.id}">Soluționat: ${fmtDateOnly(t.resolved_on)}</div>` : ''
             }
+            ${(isDone && !isDuplicate) ? `<div class="resnote-expand-mobile" data-ticket-id="${t.id}" style="display:none;"><strong>Ce s-a făcut:</strong> ${t.resolution_note ? escapeHtml(t.resolution_note) : '<em>Nu a fost completat încă.</em>'}</div>` : ''}
           </button>
         `;
       }).join('');
     }
   }
 
+  // Ported from admin.html, which had this and admin-3 didn't: a
+  // native-share flow off the Overview mobile cards — meant for
+  // someone with no login at all (a subcontractor, a crew lead
+  // without the app), sent through whatever the phone already has
+  // (WhatsApp, SMS, email) via the native share sheet. Deliberately
+  // just a text snapshot, not a link back into the system.
+  function ticketShareText(t){
+    const isUrgent = t.type === 'Anunt accident';
+    const lines = [
+      `Sesizare ${t.ticket_number || '—'} (${isUrgent ? 'Accident' : 'Defect'})`,
+      `Adresă: ${t.address || '—'}`,
+      `Telefon: ${t.phone || '—'}`,
+    ];
+    if (t.description) lines.push(`Descriere: ${t.description}`);
+    if (t.status === 'Terminat' && t.resolution_note) lines.push(`Ce s-a făcut: ${t.resolution_note}`);
+    return lines.join('\n');
+  }
+  // Shared by shareTicket() (used when exactly one ticket ends up
+  // selected — see shareSelectedOverviewTickets() below) and the bulk
+  // send from #overviewShareSendBtn — same navigator.share-first/
+  // clipboard-fallback logic either way, just fed a different title/
+  // text and a message grammatically matched to how many tickets it's
+  // actually about.
+  async function shareText(title, text, itemLabel){
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text });
+      } catch (err) {
+        if (err.name !== 'AbortError') console.error(err); // AbortError = user closed the share sheet, not a real failure
+      }
+      return;
+    }
+    // Desktop / no Web Share API support — copy instead, same as
+    // every other "no share sheet available" fallback would.
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(`Datele ${itemLabel} au fost copiate.`);
+    } catch (err) {
+      console.error(err);
+      alert(`Nu am putut partaja sau copia datele ${itemLabel}.`);
+    }
+  }
+  async function shareTicket(ticketId){
+    const t = allTickets.find(x => x.id === ticketId);
+    if (!t) return;
+    await shareText(`Sesizare ${t.ticket_number || ''}`, ticketShareText(t), 'acestei sesizări');
+  }
+  async function shareSelectedOverviewTickets(){
+    const tickets = Array.from(overviewShareSelectedIds)
+      .map(id => allTickets.find(t => t.id === id))
+      .filter(Boolean);
+    if (tickets.length === 0) return;
+    if (tickets.length === 1) {
+      await shareTicket(tickets[0].id);
+    } else {
+      const text = tickets.map(ticketShareText).join('\n\n---\n\n');
+      await shareText(`${tickets.length} sesizări`, text, 'sesizărilor');
+    }
+    overviewShareSelectedIds.clear();
+    updateOverviewShareBar();
+    renderOverviewTable();
+  }
+
+  const overviewShareBar = document.getElementById('overviewShareBar');
+  const overviewShareCount = document.getElementById('overviewShareCount');
+  const overviewShareClearBtn = document.getElementById('overviewShareClearBtn');
+  const overviewShareSendBtn = document.getElementById('overviewShareSendBtn');
+  function updateOverviewShareBar(){
+    if (!overviewShareBar) return;
+    overviewShareCount.textContent = overviewShareSelectedIds.size + ' selectate';
+    overviewShareBar.classList.toggle('show', overviewShareSelectedIds.size > 0);
+  }
+  if (overviewShareClearBtn) {
+    overviewShareClearBtn.addEventListener('click', () => {
+      overviewShareSelectedIds.clear();
+      updateOverviewShareBar();
+      renderOverviewTable();
+    });
+  }
+  if (overviewShareSendBtn) {
+    overviewShareSendBtn.addEventListener('click', () => shareSelectedOverviewTickets());
+  }
+
   const overviewCardsMobileEl = document.getElementById('overviewCardsMobile');
   if (overviewCardsMobileEl) {
     overviewCardsMobileEl.addEventListener('click', (e) => {
+      const shareBtn = e.target.closest('.ov-card-share');
+      if (shareBtn) {
+        e.stopPropagation();
+        const id = shareBtn.dataset.ticketId;
+        if (overviewShareSelectedIds.has(id)) overviewShareSelectedIds.delete(id);
+        else overviewShareSelectedIds.add(id);
+        updateOverviewShareBar();
+        renderOverviewTable();
+        return;
+      }
       const gotoOriginal = e.target.closest('.ov-card-goto-original');
       if (gotoOriginal) {
         e.stopPropagation();
         goToTicket(gotoOriginal.dataset.canonicalId);
+        return;
+      }
+      const dateToggle = e.target.closest('.resolved-date-toggle-mobile');
+      if (dateToggle) {
+        e.stopPropagation();
+        const expand = overviewCardsMobileEl.querySelector(`.resnote-expand-mobile[data-ticket-id="${dateToggle.dataset.ticketId}"]`);
+        if (expand) expand.style.display = expand.style.display === 'none' ? 'block' : 'none';
         return;
       }
       const card = e.target.closest('.ov-card');

@@ -1109,9 +1109,16 @@
 
   document.getElementById('overviewTableBody').addEventListener('click', (e) => {
     const link = e.target.closest('.ticket-link');
-    if (!link) return;
-    e.preventDefault();
-    goToTicket(link.dataset.ticketId);
+    if (link) {
+      e.preventDefault();
+      goToTicket(link.dataset.ticketId);
+      return;
+    }
+    const dateToggle = e.target.closest('.resolved-date-toggle');
+    if (dateToggle) {
+      const row = document.querySelector(`.resnote-expand-row[data-ticket-id="${dateToggle.dataset.ticketId}"]`);
+      if (row) row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+    }
   });
 
   

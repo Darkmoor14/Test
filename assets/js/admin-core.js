@@ -1533,6 +1533,42 @@
         </div>
       `;
 
+      // Re-apply any unsaved edit tracked for this ticket — runs
+      // before the field listeners below so it sizes/syncs correctly
+      // against the restored text, not the blank/saved starting value.
+      // A field with no tracked draft is left exactly as the template
+      // above rendered it (i.e. showing the current, possibly just-
+      // refreshed, server value) — only fields the person actually
+      // typed into get overridden here.
+      const draft = draftEdits[t.id];
+      if (draft) {
+        Object.entries(draft).forEach(([sel, val]) => {
+          const el = card.querySelector(sel);
+          if (el) el.value = val;
+        });
+        if (draft['.f-status'] != null) {
+          const resolvedDateEl = card.querySelector('.f-resolved-date');
+          if (resolvedDateEl) resolvedDateEl.disabled = draft['.f-status'] !== 'Terminat';
+        }
+      }
+
+      // Tracks each field's own unsaved edits as they happen — not a
+      // blanket snapshot of the whole card, so a re-render caused by
+      // fresh data arriving (not by this person typing) never has
+      // anything to wrongly restore. '.f-status' uses 'change' (it's
+      // a <select>); its own disabled-state sync for '.f-resolved-date'
+      // stays in the dedicated listener further below, unaffected by
+      // this.
+      RENDER_DRAFT_FIELD_SELECTORS.forEach(sel => {
+        const el = card.querySelector(sel);
+        if (!el) return;
+        const eventName = sel === '.f-status' ? 'change' : 'input';
+        el.addEventListener(eventName, () => {
+          if (!draftEdits[t.id]) draftEdits[t.id] = {};
+          draftEdits[t.id][sel] = el.value;
+        });
+      });
+
       const checkbox = card.querySelector('.f-select');
       const returnOverviewBtn = card.querySelector('.ticket-return-overview');
       if (returnOverviewBtn) {
@@ -1585,6 +1621,7 @@
       if (cancelEditBtn) {
         cancelEditBtn.addEventListener('click', () => {
           if (editingTicketId === t.id) editingTicketId = null;
+          delete draftEdits[t.id];
           renderTickets();
         });
       }
@@ -1768,6 +1805,10 @@
             return;
           }
           if (editingTicketId === t.id) editingTicketId = null;
+          // The save just succeeded, so whatever was tracked as
+          // unsaved for this ticket is now exactly what's in the
+          // database — nothing left to protect on the next re-render.
+          delete draftEdits[t.id];
 
           // Fires an email to vlasbogdan@ the moment a ticket actually
           // ENTERS the "awaiting report" state — Terminat with no
