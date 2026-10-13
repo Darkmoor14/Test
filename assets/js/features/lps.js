@@ -893,6 +893,16 @@
       if (sg) sg.classList.add('open');
       if (tg) tg.classList.add('open');
     }
+    // A reload, browser back/forward, or a direct hash landing calls
+    // openAdminTab without ever going through an .erp-machines-subcat-btn
+    // click, so nothing has told it which subcategory button to light up
+    // -- the whole subgroup sits unhighlighted even though the right
+    // panel is showing. Guarded on "nothing already active" so a real
+    // click's own follow-up setMachinesSubcatFilter call (which runs
+    // right after this returns) is never fought or overridden.
+    if (tabKey === 'machines' && !document.querySelector('.erp-machines-subcat-btn.active') && typeof setMachinesSubcatFilter === 'function') {
+      setMachinesSubcatFilter('Toate', { sidebarKey: 'Toate' });
+    }
     if (tabKey !== 'machines') {
       // .erp-machines-subcat-btn isn't .admin-tab, so the toggle above
       // never reaches it — without this, whichever subcategory was last
