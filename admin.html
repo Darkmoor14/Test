@@ -3773,7 +3773,7 @@
     noteIds: ['ticketsFilterNoteDesktop', 'ticketsFilterNoteMobile'],
   });
 
-  async function loadTickets(silent){
+  async function loadTickets(silent, isRetry){
     const list = document.getElementById('ticketList');
     if (!silent) list.innerHTML = '<div class="no-results">Se încarcă...</div>';
     const { data, error } = await supabaseClient
@@ -3782,6 +3782,21 @@
       .order('submitted_on', { ascending: false });
 
     if (error) {
+      // Opening the app via a push notification (cold start or waking
+      // it from the background) sometimes races Supabase's own session
+      // revalidation — the very first query right after can fail
+      // outright (shows up as an opaque "400") even though the session
+      // is actually fine moments later, which otherwise needed a manual
+      // force-close + reopen to clear. One retry, only after confirming
+      // there's still a real session to use, covers that without
+      // masking an actual logged-out state (getSession() comes back
+      // empty then, so this falls straight through to the error below).
+      if (!isRetry) {
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        if (sessionData && sessionData.session) {
+          return loadTickets(silent, true);
+        }
+      }
       if (!silent) list.innerHTML = '<div class="no-results">Eroare la încărcarea tichetelor. Reîncercați.</div>';
       console.error(error);
       return;
@@ -4199,6 +4214,15 @@
     // went hidden yet this session (e.g. very first load), so nothing
     // fires then either.
     if (tabHiddenAt && (Date.now() - tabHiddenAt) >= STALE_TAB_THRESHOLD_MS) {
+      // A standalone PWA left in the background for a while often isn't
+      // actually reloaded when it's reopened (the OS/browser just
+      // resumes the same live page) — so whatever status filter was
+      // last clicked, possibly days ago, was still sitting there
+      // instead of the standard view "opening the app" implies. Reset
+      // to the same defaults a real fresh load already starts at,
+      // before the refresh below re-renders with fresh data.
+      setOverviewStatusFilter('active');
+      setTicketStatusFilter('Ongoing');
       refreshAllAdminData();
     }
     tabHiddenAt = null;
