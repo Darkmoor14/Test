@@ -1192,6 +1192,11 @@
   .mt-row-actions{display:flex;gap:6px;justify-content:flex-end;}
   #machinesFuelReportTable tr.row-error td{background:var(--signal-red-bg);color:var(--signal-red);}
   #machinesFuelReportTable .mt-warn{color:var(--signal-orange);font-weight:600;}
+  #machinesFuelReportTable{font-size:14.5px;}
+  #machinesFuelReportTable th{font-size:11px;padding:12px 14px;}
+  #machinesFuelReportTable td{padding:14px;}
+  #machinesFuelReportTable .mt-name{font-size:14.5px;font-weight:600;color:var(--ink-900);}
+  #machinesFuelReportTable .fuel-log-edit-btn{font-size:13px;padding:7px 14px;}
   .fuel-report-month-nav{display:flex;align-items:center;gap:8px;}
   .fuel-report-month-label{font-family:var(--mono);font-size:13px;color:var(--ink-900);text-transform:capitalize;white-space:nowrap;min-width:130px;text-align:center;}
   .fuel-report-month-nav button{

@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/admin.css?v=20261013d">
+<link rel="stylesheet" href="assets/css/admin.css?v=20261013e">
 </head>
 <body>
 
@@ -998,12 +998,13 @@
       <div class="overview-table-wrap">
         <table class="overview-table" id="machinesFuelReportTable">
           <colgroup>
-            <col style="width:22%"><col style="width:11%"><col style="width:11%">
-            <col style="width:15%"><col style="width:16%"><col style="width:15%"><col style="width:10%">
+            <col style="width:17%"><col style="width:12%"><col style="width:10%"><col style="width:10%">
+            <col style="width:14%"><col style="width:15%"><col style="width:13%"><col style="width:9%">
           </colgroup>
           <thead>
             <tr>
               <th>Mașină</th>
+              <th>Nr. înmatriculare</th>
               <th>Km (diferență)</th>
               <th>Timp (diferență)</th>
               <th>Total alimentare</th>
@@ -2001,19 +2002,18 @@
   </div>
 </div>
 
-<div class="mobile-sheet" id="fuelReportExportScopeSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="fuelReportExportScopeSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="fuelReportExportScopeSheetTitle">
+<div class="mobile-sheet" id="fuelReportExportFilterSheet" aria-hidden="true">
+  <div class="mobile-sheet-backdrop" data-close-sheet="fuelReportExportFilterSheet"></div>
+  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="fuelReportExportFilterSheetTitle">
     <div class="sheet-handle"></div>
     <div class="sheet-head">
-      <div><h3 id="fuelReportExportScopeSheetTitle">Raport Excel</h3></div>
-      <button type="button" class="sheet-close" id="fuelReportExportScopeCloseBtn" aria-label="Închide">×</button>
+      <div><h3 id="fuelReportExportFilterSheetTitle">Raport Excel</h3><p>Ce mașini vrei să incluzi în export?</p></div>
+      <button type="button" class="sheet-close" id="fuelReportExportFilterCloseBtn" aria-label="Închide">×</button>
     </div>
-    <p class="status-note" style="margin-top:0;">Pentru luna afișată sau pentru toate lunile cu date înregistrate?</p>
-    <div class="sheet-actions" style="flex-direction:column;gap:8px;">
-      <button class="btn btn-primary" id="fuelReportExportMonthBtn" type="button" style="width:100%;justify-content:center;">Luna afișată</button>
-      <button class="btn" id="fuelReportExportAllBtn" type="button" style="width:100%;justify-content:center;">Toate lunile</button>
-      <button class="btn" id="fuelReportExportCancelBtn" type="button" style="width:100%;justify-content:center;">Anulează</button>
+    <div class="month-picker-list" id="fuelReportExportFilterList"></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="fuelReportExportFilterCancelBtn">Anulează</button>
+      <button type="button" class="btn btn-primary" id="fuelReportExportFilterConfirmBtn">Continuă</button>
     </div>
   </div>
 </div>
@@ -2439,17 +2439,17 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="assets/js/data-services.js?v=20261013d"></script>
-<script src="assets/js/admin-core.js?v=20261013d"></script>
-<script src="assets/js/features/system-status.js?v=20261013d"></script>
-<script src="assets/js/features/lps.js?v=20261013d"></script>
-<script src="assets/js/features/tickets.js?v=20261013d"></script>
-<script src="assets/js/features/projects.js?v=20261013d"></script>
-<script src="assets/js/features/work-orders.js?v=20261013d"></script>
-<script src="assets/js/features/erp.js?v=20261013d"></script>
-<script src="assets/js/features/hr.js?v=20261013d"></script>
-<script src="assets/js/features/excel.js?v=20261013d"></script>
-<script src="assets/js/features/search.js?v=20261013d"></script>
+<script src="assets/js/data-services.js?v=20261013e"></script>
+<script src="assets/js/admin-core.js?v=20261013e"></script>
+<script src="assets/js/features/system-status.js?v=20261013e"></script>
+<script src="assets/js/features/lps.js?v=20261013e"></script>
+<script src="assets/js/features/tickets.js?v=20261013e"></script>
+<script src="assets/js/features/projects.js?v=20261013e"></script>
+<script src="assets/js/features/work-orders.js?v=20261013e"></script>
+<script src="assets/js/features/erp.js?v=20261013e"></script>
+<script src="assets/js/features/hr.js?v=20261013e"></script>
+<script src="assets/js/features/excel.js?v=20261013e"></script>
+<script src="assets/js/features/search.js?v=20261013e"></script>
 
 <button type="button" class="back-to-top" id="backToTopBtn" aria-label="Înapoi sus">
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
@@ -2501,8 +2501,8 @@
   </div>
 </div>
 
-<script src="assets/js/ui-shell.js?v=20261013d"></script>
-<script src="assets/js/launch.js?v=20261013d"></script>
+<script src="assets/js/ui-shell.js?v=20261013e"></script>
+<script src="assets/js/launch.js?v=20261013e"></script>
 
 </body>
 </html>

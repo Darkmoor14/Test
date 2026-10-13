@@ -204,10 +204,14 @@
   // Shared by the Prezentare generală cards and the Raport lunar
   // consum cards below -- same defs, same counts, same toggle-off
   // behaviour, just a different active key and a different callback
-  // for what "filter changed" means on each page.
-  function renderMachinesFilterCardsInto(cardsWrap, activeKey, onToggle){
+  // for what "filter changed" means on each page. urgentOverride lets
+  // a page swap in its own meaning for "Notificări" -- Raport lunar
+  // consum cares about over-limit fuel consumption, not expiring
+  // documents, so reusing the doc-based list there would be wrong.
+  function renderMachinesFilterCardsInto(cardsWrap, activeKey, onToggle, urgentOverride){
     if (!cardsWrap) return;
-    const { urgentVehicles, subcatCounts } = machinesFilterCounts();
+    const { urgentVehicles: docUrgentVehicles, subcatCounts } = machinesFilterCounts();
+    const urgentVehicles = urgentOverride || docUrgentVehicles;
     cardsWrap.innerHTML = MACHINES_FILTER_CARD_DEFS.map(def => {
       const count = def.key === 'notificari' ? urgentVehicles.length : subcatCounts[def.key];
       const isActive = activeKey === def.key;
@@ -391,19 +395,23 @@
     const cardsWrap = document.getElementById('machinesFuelReportFilterCards');
     if (!tbody) return;
     if (labelEl) labelEl.textContent = `${REPORT_MONTHS[fuelReportMonth - 1]} ${fuelReportYear}`;
-    const { allVehicles, urgentVehicles } = machinesFilterCounts();
+    const { allVehicles } = machinesFilterCounts();
+    // This page's own "Notificări" — vehicles over 50% of normat for
+    // the month currently displayed, not the doc-expiry warnings
+    // Prezentare generală's identical-looking card means.
+    const fuelUrgentVehicles = allVehicles.filter(eq => vehicleFuelConsumption(eq, fuelReportYear, fuelReportMonth).overLimit);
     renderMachinesFilterCardsInto(cardsWrap, fuelReportSubcatFilter, (nextKey) => {
       fuelReportSubcatFilter = nextKey;
       renderMachinesFuelReport();
-    });
+    }, fuelUrgentVehicles);
     const vehicles = (fuelReportSubcatFilter === 'Toate' ? allVehicles
-      : fuelReportSubcatFilter === 'notificari' ? urgentVehicles
+      : fuelReportSubcatFilter === 'notificari' ? fuelUrgentVehicles
       : allVehicles.filter(eq => eq.category === fuelReportSubcatFilter))
       .slice()
       .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ro'));
     if (countEl) countEl.textContent = vehicles.length + (vehicles.length === 1 ? ' mașină' : ' mașini');
     if (!vehicles.length) {
-      tbody.innerHTML = `<tr><td colspan="7"><div class="machines-table-empty">Nicio mașină înregistrată.</div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8"><div class="machines-table-empty">Nicio mașină înregistrată.</div></td></tr>`;
       return;
     }
     tbody.innerHTML = vehicles.map(eq => {
@@ -411,7 +419,8 @@
       const na = '<span class="mt-na">—</span>';
       return `
         <tr class="${c.overLimit ? 'row-error' : ''}">
-          <td><a href="#" class="ticket-link" data-vehicle-id="${escapeHtml(eq.id)}">${escapeHtml(eq.name)}</a></td>
+          <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div></td>
+          <td><a href="#" class="ticket-link" data-vehicle-id="${escapeHtml(eq.id)}">${escapeHtml(eq.plate_number || '—')}</a></td>
           <td>${!c.isUtilaj && c.delta != null ? escapeHtml(String(c.delta)) + ' km' : na}</td>
           <td>${c.isUtilaj && c.delta != null ? escapeHtml(String(c.delta)) + ' h' : na}</td>
           <td>${c.totalAdded > 0 ? escapeHtml(String(c.totalAdded)) + ' L' : na}</td>
@@ -577,46 +586,67 @@
     const eq = allEquipment.find(v => v.id === link.dataset.vehicleId);
     if (eq) goToVehicle(eq);
   });
-  // Mirrors Sesizări's own "Raport Excel" choice-then-generate flow
-  // (openReportTypeSelection in excel.js) but self-contained here --
-  // just two destinations instead of that one's year/month picker,
-  // since a fuel report sheet is one flat table either way.
-  function openFuelReportExportScope(){
-    const sheet = document.getElementById('fuelReportExportScopeSheet');
-    const monthBtn = document.getElementById('fuelReportExportMonthBtn');
-    const allBtn = document.getElementById('fuelReportExportAllBtn');
-    const cancelBtn = document.getElementById('fuelReportExportCancelBtn');
-    const closeBtn = document.getElementById('fuelReportExportScopeCloseBtn');
+  // Which vehicles an export can be narrowed to -- same subcategories
+  // as the filter cards, minus "Notificări" (not a real subcategory,
+  // meaningless as an export scope).
+  const FUEL_EXPORT_SUBCAT_OPTIONS = [
+    { key: 'Toate', label: 'Toate' },
+    { key: 'masina_mica', label: VEHICLE_SUBCAT_LABEL.masina_mica },
+    { key: 'autoutilitara', label: VEHICLE_SUBCAT_LABEL.autoutilitara },
+    { key: 'camion', label: VEHICLE_SUBCAT_LABEL.camion },
+    { key: 'utilaj', label: VEHICLE_SUBCAT_LABEL.utilaj },
+  ];
+  function openFuelReportExportFilter(){
+    const sheet = document.getElementById('fuelReportExportFilterSheet');
+    const list = document.getElementById('fuelReportExportFilterList');
+    const confirmBtn = document.getElementById('fuelReportExportFilterConfirmBtn');
+    const cancelBtn = document.getElementById('fuelReportExportFilterCancelBtn');
+    const closeBtn = document.getElementById('fuelReportExportFilterCloseBtn');
     const backdrop = sheet ? sheet.querySelector('.mobile-sheet-backdrop') : null;
-    if (!sheet || !monthBtn || !allBtn || !cancelBtn || !closeBtn || !backdrop) {
-      return Promise.resolve('month');
+    if (!sheet || !list || !confirmBtn || !cancelBtn || !closeBtn || !backdrop) {
+      return Promise.resolve('Toate');
     }
-    setSheetOpen('fuelReportExportScopeSheet', true);
+    list.innerHTML = FUEL_EXPORT_SUBCAT_OPTIONS.map((opt, index) => `
+      <label class="month-picker-option">
+        <input type="radio" name="fuelExportFilterChoice" value="${opt.key}" ${index === 0 ? 'checked' : ''}>
+        <span>${opt.label}</span>
+      </label>
+    `).join('');
+    setSheetOpen('fuelReportExportFilterSheet', true);
     return new Promise(resolve => {
       let settled = false;
       const cleanup = (result) => {
         if (settled) return;
         settled = true;
-        setSheetOpen('fuelReportExportScopeSheet', false);
-        monthBtn.removeEventListener('click', handleMonth);
-        allBtn.removeEventListener('click', handleAll);
+        setSheetOpen('fuelReportExportFilterSheet', false);
+        confirmBtn.removeEventListener('click', handleConfirm);
         cancelBtn.removeEventListener('click', handleCancel);
         closeBtn.removeEventListener('click', handleCancel);
         backdrop.removeEventListener('click', handleCancel);
         document.removeEventListener('keydown', handleKeydown);
         resolve(result);
       };
-      const handleMonth = () => cleanup('month');
-      const handleAll = () => cleanup('all');
+      const handleConfirm = () => {
+        const picked = list.querySelector('input[name="fuelExportFilterChoice"]:checked');
+        cleanup(picked ? picked.value : 'Toate');
+      };
       const handleCancel = () => cleanup(null);
       const handleKeydown = (event) => { if (event.key === 'Escape') handleCancel(); };
-      monthBtn.addEventListener('click', handleMonth);
-      allBtn.addEventListener('click', handleAll);
+      confirmBtn.addEventListener('click', handleConfirm);
       cancelBtn.addEventListener('click', handleCancel);
       closeBtn.addEventListener('click', handleCancel);
       backdrop.addEventListener('click', handleCancel);
       document.addEventListener('keydown', handleKeydown);
     });
+  }
+  // Years any vehicle has logged fuel data for -- drives whether the
+  // year picker below is even shown (reportYearSheet skips itself for
+  // a single option, same as Sesizări's own yearly export).
+  function fuelReportExportYearsWithData(){
+    const years = new Set();
+    allVehicleFuelLogs.forEach(l => years.add(l.year));
+    allVehicleFuelPurchases.forEach(p => years.add(p.year));
+    return [...years].sort((a, b) => b - a);
   }
   function fuelReportAoaForPeriod(vehicles, year, month){
     const header = ['Mașină', 'Nr. înmatriculare', 'Km (diferență)', 'Timp (diferență)', 'Total alimentare (L)', 'Consum efectiv', 'Consum normat'];
@@ -638,47 +668,47 @@
   async function exportFuelReportToExcel(){
     const btn = document.getElementById('fuelReportExportBtn');
     if (!btn) return;
-    const scope = await openFuelReportExportScope();
-    if (scope === null) return;
-    const vehicles = allEquipment.filter(eq => eq.erp_category === 'masina')
+    const subcat = await openFuelReportExportFilter();
+    if (subcat === null) return;
+    const allVehicles = allEquipment.filter(eq => eq.erp_category === 'masina');
+    const vehicles = (subcat === 'Toate' ? allVehicles : allVehicles.filter(eq => eq.category === subcat))
       .slice()
       .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ro'));
-    if (!vehicles.length) { alert('Nicio mașină înregistrată.'); return; }
+    if (!vehicles.length) { alert('Nicio mașină înregistrată pentru acest filtru.'); return; }
+
+    const yearsWithData = fuelReportExportYearsWithData();
+    let year;
+    if (yearsWithData.length > 1) {
+      const pickedYear = await openReportYearSelection(yearsWithData.map(String));
+      if (pickedYear === null) return;
+      year = Number(pickedYear);
+    } else {
+      year = yearsWithData.length === 1 ? yearsWithData[0] : fuelReportYear;
+    }
+    const monthSelection = await openReportMonthSelection(year);
+    if (monthSelection === null) return;
+    const months = monthSelection === 'all'
+      ? Array.from({ length: 12 }, (_, i) => i + 1)
+      : monthSelection.map(i => i + 1).sort((a, b) => a - b);
+
     btn.disabled = true;
     try {
       const workbook = XLSX.utils.book_new();
-      if (scope === 'month') {
-        const aoa = fuelReportAoaForPeriod(vehicles, fuelReportYear, fuelReportMonth);
+      months.forEach(m => {
+        const aoa = fuelReportAoaForPeriod(vehicles, year, m);
         const ws = XLSX.utils.aoa_to_sheet(aoa);
         autosizeWorksheet(ws, aoa);
-        XLSX.utils.book_append_sheet(workbook, ws, `${REPORT_MONTHS[fuelReportMonth - 1]} ${fuelReportYear}`.slice(0, 31));
-      } else {
-        const periods = new Set();
-        allVehicleFuelLogs.forEach(l => periods.add(`${l.year}-${l.month}`));
-        allVehicleFuelPurchases.forEach(p => periods.add(`${p.year}-${p.month}`));
-        if (!periods.size) {
-          alert('Nu există date de consum înregistrate încă.');
-          btn.disabled = false;
-          return;
-        }
-        const sortedPeriods = [...periods]
-          .map(p => { const [y, m] = p.split('-').map(Number); return { y, m }; })
-          .sort((a, b) => a.y - b.y || a.m - b.m);
-        sortedPeriods.forEach(({ y, m }) => {
-          const aoa = fuelReportAoaForPeriod(vehicles, y, m);
-          const ws = XLSX.utils.aoa_to_sheet(aoa);
-          autosizeWorksheet(ws, aoa);
-          XLSX.utils.book_append_sheet(workbook, ws, `${REPORT_MONTHS[m - 1]} ${y}`.slice(0, 31));
-        });
-      }
+        XLSX.utils.book_append_sheet(workbook, ws, `${REPORT_MONTHS[m - 1]} ${year}`.slice(0, 31));
+      });
       const bytes = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = scope === 'month'
-        ? `consum-carburant-${fuelReportYear}-${String(fuelReportMonth).padStart(2, '0')}.xlsx`
-        : 'consum-carburant-toate-lunile.xlsx';
+      const subcatSuffix = subcat === 'Toate' ? '' : `-${subcat}`;
+      a.download = monthSelection === 'all'
+        ? `consum-carburant-${year}${subcatSuffix}.xlsx`
+        : `consum-carburant-${year}-${monthSelection.map(i => String(i + 1).padStart(2, '0')).join('-')}${subcatSuffix}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
