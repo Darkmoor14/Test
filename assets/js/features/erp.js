@@ -324,6 +324,17 @@
   function fuelLogFor(vehicleId, year, month){
     return allVehicleFuelLogs.find(l => l.vehicle_id === vehicleId && l.year === year && l.month === month) || null;
   }
+  // Most recent reading ever entered for this vehicle -- whatever
+  // month was last logged, independent of which month "Raport lunar
+  // consum" happens to be scrolled to. Distinct from eq.fuel_initial_km
+  // (the one-time purchase/start-of-tracking baseline, never updated).
+  function latestFuelLog(eq){
+    const field = vehicleReadingField(eq);
+    const logs = allVehicleFuelLogs
+      .filter(l => l.vehicle_id === eq.id && l[field] != null)
+      .sort((a, b) => (b.year - a.year) || (b.month - a.month));
+    return logs.length ? logs[0] : null;
+  }
   // Full picture for one vehicle in one month: the reading entered (if
   // any), what it's measured against, the resulting delta, that
   // month's fuel-bill total, and the consumption that implies.
@@ -1002,21 +1013,34 @@
       </div>
       ${metaParts.length ? `<div class="backlog-meta-line">${metaParts.join(' · ')}</div>` : ''}
       <div class="vd-docs-grid">${docsHtml}</div>
-      ${vehicleFuelSummaryHtml(eq)}
+      ${vehicleFuelReadingRowHtml(eq)}
     `;
   }
-  // Compact read-out of this real-world calendar month's fuel figures
-  // (independent of whatever month "Raport lunar consum" happens to be
-  // scrolled to) — so checking one vehicle's current numbers doesn't
-  // require leaving its own card. Only shown once something's
-  // actually been entered for this month, or a rated consumption is
-  // set at all.
-  function vehicleFuelSummaryHtml(eq){
-    const c = vehicleFuelConsumption(eq, erpLoadedAt.getFullYear(), erpLoadedAt.getMonth() + 1);
-    if (c.actual == null && c.rated == null) return '';
+  // Second doc-style row, right below the ITP/Asigurare/... grid: the
+  // latest odometer/hour-meter reading actually entered (never the
+  // one-time initial reading from the vehicle form) and the fuel
+  // consumption that reading implies for its own month — so checking a
+  // vehicle's current numbers doesn't require leaving its own card.
+  function vehicleFuelReadingRowHtml(eq){
+    const log = latestFuelLog(eq);
+    const isUtilaj = eq.category === 'utilaj';
+    const unit = isUtilaj ? 'h' : 'km';
+    const field = vehicleReadingField(eq);
+    const readingVal = log ? `${log[field]} ${unit}` : '—';
+    const c = log ? vehicleFuelConsumption(eq, log.year, log.month) : null;
+    const consumptionVal = c && c.actual != null
+      ? `${c.actual.toFixed(1)} ${c.unit}${c.rated != null ? ` (normat ${c.rated} ${c.unit})` : ''}${c.overLimit ? ' ⚠' : ''}`
+      : '—';
     return `
-      <div class="backlog-meta-line${c.overLimit ? ' erp-warning-tag' : ''}">
-        Consum (${REPORT_MONTHS[erpLoadedAt.getMonth()]}): ${c.actual != null ? `${c.actual.toFixed(1)} ${c.unit} efectiv` : 'fără date suficiente'}${c.rated != null ? ` (normat ${c.rated} ${c.unit})` : ''}${c.overLimit ? ' ⚠ peste 50% față de normat' : ''}
+      <div class="vd-docs-grid">
+        <div class="vd-doc-item">
+          <div class="vd-doc-label">${isUtilaj ? 'Ore actuale' : 'Km actual'}</div>
+          <div class="vd-doc-value">${readingVal}</div>
+        </div>
+        <div class="vd-doc-item">
+          <div class="vd-doc-label">Consum efectiv</div>
+          <div class="vd-doc-value ${c && c.overLimit ? 'mt-warn' : ''}">${consumptionVal}</div>
+        </div>
       </div>
     `;
   }
