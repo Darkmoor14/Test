@@ -882,7 +882,6 @@
     else if (tabKey === 'workorders') loadWorkOrders();
     else if (tabKey === 'equipment' || tabKey === 'machines' || tabKey === 'machines-fuel-report' || tabKey === 'materials' || tabKey === 'products' || tabKey === 'erp-home') loadEquipment();
     else if (tabKey === 'projects-home') renderProjectsHomeStats();
-    else if (tabKey === 'home') renderHomeDigest();
     else if (tabKey === 'lps' && isReportFocusedView()) refreshLookaheadWorkspace();
     else if (tabKey === 'hr-home' || tabKey === 'hr-employees') { if (typeof loadHrEmployees === 'function') loadHrEmployees(); }
     else if (tabKey === 'hr-worktime') { if (typeof loadHrWorktime === 'function') loadHrWorktime(); }

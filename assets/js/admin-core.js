@@ -2508,40 +2508,6 @@
   }
 
   /* ============================================================
-     REZUMATUL SĂPTĂMÂNII (home digest) — un rezumat client-side din
-     datele deja încărcate (nu un cron/email de server, pentru care
-     n-avem un furnizor de email configurat): sesizări noi/soluționate,
-     proiecte noi, avarii soluționate și alertele ERP active, din
-     ultimele 7 zile.
-     ============================================================ */
-  function renderHomeDigest(){
-    const grid = document.getElementById('homeDigestGrid');
-    if (!grid) return;
-    const rangeEl = document.getElementById('homeDigestRange');
-    if (rangeEl) rangeEl.textContent = 'ultimele 7 zile';
-    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const newTickets = (typeof allTickets !== 'undefined' ? allTickets : []).filter(t => !isDuplicateTicket(t) && t.submitted_on && parseTicketDate(t.submitted_on).getTime() >= sevenDaysAgo).length;
-    const solvedTickets = (typeof allTickets !== 'undefined' ? allTickets : []).filter(t => !isDuplicateTicket(t) && t.status === 'Terminat' && t.resolved_on && parseTicketDate(t.resolved_on).getTime() >= sevenDaysAgo).length;
-    const newProjects = (typeof allProjects !== 'undefined' ? allProjects : []).filter(p => p.created_at && new Date(p.created_at).getTime() >= sevenDaysAgo).length;
-    const solvedBacklog = (typeof allBacklogProjects !== 'undefined' ? allBacklogProjects : []).filter(p => p.resolved_on && new Date(p.resolved_on).getTime() >= sevenDaysAgo).length;
-    const activeAlerts = (typeof allEquipment !== 'undefined' ? allEquipment : []).filter(e => isLowStock(e) || hasExpiredDocs(e)).length;
-    const tiles = [
-      { num: newTickets, label: 'Sesizări noi', tab: 'overview' },
-      { num: solvedTickets, label: 'Sesizări soluționate', tab: 'overview' },
-      { num: newProjects, label: 'Proiecte noi', tab: 'projects' },
-      { num: solvedBacklog, label: 'Avarii soluționate', tab: 'backlog' },
-      { num: activeAlerts, label: 'Alerte ERP active', tab: 'erp-home', warn: activeAlerts > 0 },
-    ];
-    grid.innerHTML = tiles.map(t => `
-      <div class="home-digest-tile" data-goto-tab="${t.tab}">
-        <div class="status-stat${t.warn ? ' warn' : ''}">${t.num}</div>
-        <div class="status-stat-label">${escapeHtml(t.label)}</div>
-      </div>
-    `).join('');
-    grid.querySelectorAll('.home-digest-tile').forEach(tile => tile.addEventListener('click', () => openAdminTab(tile.dataset.gotoTab)));
-  }
-
-  /* ============================================================
      PROIECTE → HOME — a small analytics summary across all four
      project-family panels (Proiecte publice, Avarii rețele, LPS,
      Programe lucrări), reusing whatever each panel already loaded
