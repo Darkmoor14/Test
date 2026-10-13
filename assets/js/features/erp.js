@@ -440,7 +440,9 @@
           <td>${c.totalAdded > 0 ? escapeHtml(String(c.totalAdded)) + ' L' : na}</td>
           <td class="${c.overLimit ? 'mt-warn' : ''}">${c.actual != null ? `${c.actual.toFixed(1)} ${c.unit}${c.overLimit ? ' ⚠' : ''}` : na}</td>
           <td>${c.rated != null ? `${c.rated} ${c.unit}` : na}</td>
-          <td><button type="button" class="btn fuel-log-edit-btn" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}">Editează</button></td>
+          <td><button type="button" class="mt-row-icon-btn fuel-log-edit-btn" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+          </button></td>
         </tr>
       `;
     }).join('');
@@ -1071,7 +1073,8 @@
     if (eq.assigned_to) metaParts.push(`Alocat la: ${escapeHtml(eq.assigned_to)}`);
     if (eq.notes) metaParts.push(`Notițe: ${escapeHtml(eq.notes)}`);
     const isCamion = eq.category === 'camion';
-    const docsHtml = VEHICLE_DOC_FIELDS.filter(f => !f.camionOnly || isCamion).map(f => {
+    const docFields = VEHICLE_DOC_FIELDS.filter(f => !f.camionOnly || isCamion);
+    const docsHtml = docFields.map(f => {
       const val = eq[f.key];
       const cls = docDateClass(val);
       return `
@@ -1092,8 +1095,8 @@
         <span class="backlog-tag">${escapeHtml(VEHICLE_SUBCAT_LABEL[eq.category] || '')}</span>
       </div>
       ${metaParts.length ? `<div class="backlog-meta-line">${metaParts.join(' · ')}</div>` : ''}
-      <div class="vd-docs-grid">${docsHtml}</div>
-      ${vehicleFuelReadingRowHtml(eq)}
+      <div class="vd-docs-grid" style="grid-template-columns:repeat(${docFields.length},1fr);">${docsHtml}</div>
+      ${vehicleFuelReadingRowHtml(eq, docFields.length)}
     `;
   }
   // Second doc-style row, right below the ITP/Asigurare/... grid: the
@@ -1101,7 +1104,7 @@
   // one-time initial reading from the vehicle form) and the fuel
   // consumption that reading implies for its own month — so checking a
   // vehicle's current numbers doesn't require leaving its own card.
-  function vehicleFuelReadingRowHtml(eq){
+  function vehicleFuelReadingRowHtml(eq, columnCount){
     const log = latestFuelLog(eq);
     const isUtilaj = eq.category === 'utilaj';
     const unit = isUtilaj ? 'h' : 'km';
@@ -1118,7 +1121,7 @@
       : service.remaining >= 0 ? `${service.remaining} ${service.unit}`
       : `depășit cu ${Math.abs(service.remaining)} ${service.unit}`;
     return `
-      <div class="vd-docs-grid">
+      <div class="vd-docs-grid" style="grid-template-columns:repeat(${columnCount},1fr);">
         <div class="vd-doc-item">
           <div class="vd-doc-label">${isUtilaj ? 'Ore actuale' : 'Km actual'}</div>
           <div class="vd-doc-value">${readingVal}</div>
