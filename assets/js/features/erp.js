@@ -422,7 +422,7 @@
       : fuelReportSubcatFilter === 'notificari' ? fuelUrgentVehicles
       : allVehicles.filter(eq => eq.category === fuelReportSubcatFilter))
       .slice()
-      .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ro'));
+      .sort((a, b) => (a.plate_number || '').localeCompare(b.plate_number || '', 'ro'));
     if (countEl) countEl.textContent = vehicles.length + (vehicles.length === 1 ? ' mașină' : ' mașini');
     if (!vehicles.length) {
       tbody.innerHTML = `<tr><td colspan="8"><div class="machines-table-empty">Nicio mașină înregistrată.</div></td></tr>`;
