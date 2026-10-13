@@ -354,19 +354,27 @@
       .sort((a, b) => (b.year - a.year) || (b.month - a.month));
     return logs.length ? logs[0] : null;
   }
-  // "Service la" (fuel_service_due_km/hours) is a one-time threshold
-  // set on the vehicle itself -- not an interval -- that gets manually
-  // bumped to the next target after each real service. The countdown
-  // needs both that threshold and a current reading to mean anything.
+  // Service tracking is interval-based (fuel_service_interval_km/hours,
+  // e.g. "every 10000 km") rather than a one-off target you recompute
+  // by hand. The next due point is fuel_service_last_km/hours (set the
+  // moment "Service efectuat" is clicked) plus that interval -- or,
+  // before any service has ever been marked done, fuel_initial_km/hours
+  // plus the interval, so a freshly-configured vehicle already has a
+  // sensible first due point with no extra setup.
   function vehicleServiceCountdown(eq){
     const isUtilaj = eq.category === 'utilaj';
-    const due = isUtilaj ? eq.fuel_service_due_hours : eq.fuel_service_due_km;
-    if (due == null) return null;
+    const interval = isUtilaj ? eq.fuel_service_interval_hours : eq.fuel_service_interval_km;
+    if (interval == null) return null;
+    const baseline = isUtilaj
+      ? (eq.fuel_service_last_hours ?? eq.fuel_initial_hours)
+      : (eq.fuel_service_last_km ?? eq.fuel_initial_km);
+    if (baseline == null) return null;
     const log = latestFuelLog(eq);
     const field = vehicleReadingField(eq);
     const current = log && log[field] != null ? Number(log[field]) : null;
     if (current == null) return null;
-    return { remaining: Number(due) - current, unit: isUtilaj ? 'h' : 'km' };
+    const due = Number(baseline) + Number(interval);
+    return { remaining: due - current, due, unit: isUtilaj ? 'h' : 'km' };
   }
   // Full picture for one vehicle in one month: the reading entered (if
   // any), what it's measured against, the resulting delta, that
@@ -980,8 +988,8 @@
     document.getElementById('vf-fuel-tank-capacity').value = eq.fuel_tank_capacity_l ?? '';
     document.getElementById('vf-fuel-initial-km').value = eq.fuel_initial_km ?? '';
     document.getElementById('vf-fuel-initial-hours').value = eq.fuel_initial_hours ?? '';
-    document.getElementById('vf-service-due-km').value = eq.fuel_service_due_km ?? '';
-    document.getElementById('vf-service-due-hours').value = eq.fuel_service_due_hours ?? '';
+    document.getElementById('vf-service-due-km').value = eq.fuel_service_interval_km ?? '';
+    document.getElementById('vf-service-due-hours').value = eq.fuel_service_interval_hours ?? '';
     syncVehicleFormCamionFields();
     const titleEl = document.getElementById('vehicleFormSheetTitle');
     if (titleEl) titleEl.textContent = `Editează — ${eq.name}`;
@@ -1030,8 +1038,8 @@
       fuel_tank_capacity_l: vfNumOrNull('vf-fuel-tank-capacity'),
       fuel_initial_km: isUtilaj ? null : vfNumOrNull('vf-fuel-initial-km'),
       fuel_initial_hours: isUtilaj ? vfNumOrNull('vf-fuel-initial-hours') : null,
-      fuel_service_due_km: isUtilaj ? null : vfNumOrNull('vf-service-due-km'),
-      fuel_service_due_hours: isUtilaj ? vfNumOrNull('vf-service-due-hours') : null,
+      fuel_service_interval_km: isUtilaj ? null : vfNumOrNull('vf-service-due-km'),
+      fuel_service_interval_hours: isUtilaj ? vfNumOrNull('vf-service-due-hours') : null,
     };
     if (id) {
       const payload = Object.assign({
@@ -1143,6 +1151,11 @@
     return `
       <div class="vehicle-big-card" id="vehicle-card-${escapeHtml(eq.id)}">
         <div class="vehicle-big-card-actions">
+          ${vehicleServiceCountdown(eq) != null ? `
+          <button type="button" class="mt-row-icon-btn mt-service-done-icon" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Service efectuat" aria-label="Marchează service efectuat pentru ${escapeHtml(eq.name)}">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </button>
+          ` : ''}
           <button type="button" class="mt-row-icon-btn mt-edit-icon" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
           </button>
@@ -1189,6 +1202,25 @@
     return true;
   }
   const machinesCardsList = document.getElementById('machinesCardsList');
+  // Resets the interval's baseline to whatever's currently logged, so
+  // the next due point becomes current + interval -- the only way the
+  // countdown is meant to move forward, instead of editing a raw
+  // target by hand each time a real service happens.
+  async function markServiceDone(eq){
+    const isUtilaj = eq.category === 'utilaj';
+    const log = latestFuelLog(eq);
+    const field = vehicleReadingField(eq);
+    const current = log && log[field] != null ? Number(log[field]) : null;
+    if (current == null) return;
+    const unit = isUtilaj ? 'ore' : 'km';
+    if (!confirm(`Marchezi service efectuat pentru „${eq.name}” la ${current} ${unit}? Următorul service se calculează de la această valoare.`)) return;
+    const payload = isUtilaj ? { fuel_service_last_hours: current } : { fuel_service_last_km: current };
+    const { error } = await AppDataServices.erp.saveVehicle(supabaseClient, payload, eq.id);
+    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+    logEntityActivity('masina', eq.id, `Service efectuat la ${current} ${unit}.`);
+    showToast('Service marcat ca efectuat.');
+    loadEquipment();
+  }
   if (machinesCardsList) machinesCardsList.addEventListener('click', (e) => {
     const editIcon = e.target.closest('.mt-edit-icon');
     if (editIcon) {
@@ -1197,7 +1229,12 @@
       return;
     }
     const deleteIcon = e.target.closest('.mt-delete-icon');
-    if (deleteIcon) deleteVehicle(deleteIcon.dataset.vehicleId);
+    if (deleteIcon) { deleteVehicle(deleteIcon.dataset.vehicleId); return; }
+    const serviceDoneIcon = e.target.closest('.mt-service-done-icon');
+    if (serviceDoneIcon) {
+      const eq = allEquipment.find(v => v.id === serviceDoneIcon.dataset.vehicleId);
+      if (eq) markServiceDone(eq);
+    }
   });
   const erpMachinesToggle = document.querySelector('[data-erp-toggle="machines"]');
   const erpMachinesSubgroup = document.querySelector('[data-erp-subgroup="machines"]');

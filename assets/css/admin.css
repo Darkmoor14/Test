@@ -925,7 +925,7 @@
     position:relative;border:1px solid var(--line-strong);border-radius:10px;
     padding:16px 18px;background:var(--paper-000);
   }
-  .vehicle-big-card .backlog-title-line{margin-bottom:6px;padding-right:70px;}
+  .vehicle-big-card .backlog-title-line{margin-bottom:6px;padding-right:100px;}
   .vehicle-big-card .backlog-meta-line{white-space:normal;}
   .vehicle-big-card .vd-docs-grid{
     display:grid;gap:8px 16px;margin-top:10px;
