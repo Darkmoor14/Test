@@ -51,9 +51,19 @@ self.addEventListener('push', (event) => {
 // without needing a full reload.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data && event.notification.data.url
+  const rawUrl = event.notification.data && event.notification.data.url
     ? event.notification.data.url
     : 'admin-3.html';
+  // rawUrl ("admin-3.html?ticket=...") is relative, and iOS's Web Push
+  // implementation doesn't reliably resolve a relative URL passed to
+  // clients.openWindow() the way the spec says it should — tapping a
+  // notification with the app fully closed (so there's no existing
+  // client to focus/postMessage into, only this cold-start path) could
+  // land on a straight-up 404 instead of the app. self.location is the
+  // service worker's own script URL, which always carries the correct
+  // origin/path regardless of what subdirectory this is deployed under,
+  // so resolving against that here removes any ambiguity.
+  const targetUrl = new URL(rawUrl, self.location.href).href;
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
