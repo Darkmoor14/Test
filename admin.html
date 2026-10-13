@@ -2974,16 +2974,12 @@
       ? overviewStatusChipsPopover.querySelector('[data-key="awaiting_report"]')
       : null;
     if (isReportFocusedView() && overviewStatusChipsPopover && !existingAwaitingChip) {
-      // This account's whole dashboard exists to answer "what needs my
-      // report" -- opening it on the generic "active" scope (every
-      // other account's default) meant the one view this account
-      // actually needs required an extra manual click, every single
-      // login. Only set on this genuine first-time transition into the
-      // report-focused view (guarded by !existingAwaitingChip, same as
-      // the chip append itself), not on every re-fire of this callback,
-      // so a mid-session filter change the person made deliberately
-      // never gets silently overwritten by a later token refresh.
-      overviewStatusFilter = 'awaiting_report';
+      // Used to also auto-switch overviewStatusFilter to 'awaiting_report'
+      // here, landing this account straight on that view every fresh
+      // login instead of the standard "Active" scope everyone else
+      // gets -- removed at the account owner's request (it read as the
+      // filter randomly not being on the standard view after opening
+      // the app). The chip itself stays; it's still one click away.
       const awaitingDef = reportFocusedChipDefs.find(c => c.key === 'awaiting_report');
       const chip = document.createElement('button');
       chip.type = 'button';
