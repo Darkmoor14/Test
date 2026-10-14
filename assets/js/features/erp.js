@@ -325,23 +325,45 @@
     const eq = allEquipment.find(v => v.id === link.dataset.vehicleId);
     if (eq) goToVehicle(eq);
   });
-  // Which raw reading column a vehicle uses -- utilaje are tracked by
-  // engine hours (no odometer on a stationary machine), everything
-  // else by km.
-  function vehicleReadingField(eq){
-    return eq.category === 'utilaj' ? 'fuel_odometer_hours' : 'fuel_odometer_km';
+  // Which metrics a vehicle is tracked by. Utilaje are stationary (no
+  // odometer) so hours-only; everything else drives, so km-only --
+  // except Camion/Autoutilitara, which also run stationary a lot (PTO,
+  // hydraulics, a crane) and so track both at once.
+  function vfSubcatTracksKm(category){
+    return category !== 'utilaj';
   }
+  function vfSubcatTracksHours(category){
+    return category === 'utilaj' || category === 'camion' || category === 'autoutilitara';
+  }
+  function vehicleTracksKm(eq){
+    return vfSubcatTracksKm(eq.category);
+  }
+  function vehicleTracksHours(eq){
+    return vfSubcatTracksHours(eq.category);
+  }
+  function vehicleUnits(eq){
+    const units = [];
+    if (vehicleTracksKm(eq)) units.push('km');
+    if (vehicleTracksHours(eq)) units.push('hours');
+    return units;
+  }
+  function readingFieldFor(unit){ return unit === 'hours' ? 'fuel_odometer_hours' : 'fuel_odometer_km'; }
+  function initialFieldFor(unit){ return unit === 'hours' ? 'fuel_initial_hours' : 'fuel_initial_km'; }
+  function serviceIntervalFieldFor(unit){ return unit === 'hours' ? 'fuel_service_interval_hours' : 'fuel_service_interval_km'; }
+  function serviceLastFieldFor(unit){ return unit === 'hours' ? 'fuel_service_last_hours' : 'fuel_service_last_km'; }
+  function ratedFieldFor(unit){ return unit === 'hours' ? 'fuel_rated_consumption_hours' : 'fuel_rated_consumption_km'; }
+  function unitLabel(unit){ return unit === 'hours' ? 'h' : 'km'; }
   // Baseline a month's delta is measured against: the most recent
   // EARLIER month's own reading for this vehicle, or -- for its
   // first-ever tracked month -- the one-time initial reading set on
   // the vehicle itself (purchase, or whenever tracking started).
-  function previousFuelReading(eq, year, month){
-    const field = vehicleReadingField(eq);
+  function previousFuelReadingFor(eq, unit, year, month){
+    const field = readingFieldFor(unit);
     const earlier = allVehicleFuelLogs
       .filter(l => l.vehicle_id === eq.id && l[field] != null && (l.year < year || (l.year === year && l.month < month)))
       .sort((a, b) => (b.year - a.year) || (b.month - a.month));
     if (earlier.length) return Number(earlier[0][field]);
-    const initial = eq.category === 'utilaj' ? eq.fuel_initial_hours : eq.fuel_initial_km;
+    const initial = eq[initialFieldFor(unit)];
     return initial != null ? Number(initial) : null;
   }
   function fuelPurchaseSum(vehicleId, year, month){
@@ -352,12 +374,12 @@
   function fuelLogFor(vehicleId, year, month){
     return allVehicleFuelLogs.find(l => l.vehicle_id === vehicleId && l.year === year && l.month === month) || null;
   }
-  // Most recent reading ever entered for this vehicle -- whatever
+  // Most recent reading ever entered for this vehicle+unit -- whatever
   // month was last logged, independent of which month "Raport lunar
   // consum" happens to be scrolled to. Distinct from eq.fuel_initial_km
   // (the one-time purchase/start-of-tracking baseline, never updated).
-  function latestFuelLog(eq){
-    const field = vehicleReadingField(eq);
+  function latestFuelLogFor(eq, unit){
+    const field = readingFieldFor(unit);
     const logs = allVehicleFuelLogs
       .filter(l => l.vehicle_id === eq.id && l[field] != null)
       .sort((a, b) => (b.year - a.year) || (b.month - a.month));
@@ -369,47 +391,59 @@
   // moment "Service efectuat" is clicked) plus that interval -- or,
   // before any service has ever been marked done, fuel_initial_km/hours
   // plus the interval, so a freshly-configured vehicle already has a
-  // sensible first due point with no extra setup.
-  function vehicleServiceCountdown(eq){
-    const isUtilaj = eq.category === 'utilaj';
-    const interval = isUtilaj ? eq.fuel_service_interval_hours : eq.fuel_service_interval_km;
+  // sensible first due point with no extra setup. Camion/Autoutilitara
+  // get one of these per unit (km and hours independently) -- whichever
+  // comes due first is the one that matters, same as a real engine
+  // service.
+  function vehicleServiceCountdownFor(eq, unit){
+    const interval = eq[serviceIntervalFieldFor(unit)];
     if (interval == null) return null;
-    const baseline = isUtilaj
-      ? (eq.fuel_service_last_hours ?? eq.fuel_initial_hours)
-      : (eq.fuel_service_last_km ?? eq.fuel_initial_km);
+    const baseline = eq[serviceLastFieldFor(unit)] ?? eq[initialFieldFor(unit)];
     if (baseline == null) return null;
-    const log = latestFuelLog(eq);
-    const field = vehicleReadingField(eq);
+    const log = latestFuelLogFor(eq, unit);
+    const field = readingFieldFor(unit);
     const current = log && log[field] != null ? Number(log[field]) : null;
     if (current == null) return null;
     const due = Number(baseline) + Number(interval);
-    return { remaining: due - current, due, unit: isUtilaj ? 'h' : 'km' };
+    return { remaining: due - current, due, unit: unitLabel(unit) };
   }
-  // Full picture for one vehicle in one month: the reading entered (if
-  // any), what it's measured against, the resulting delta, that
-  // month's fuel-bill total, and the consumption that implies.
-  // vehicle_fuel_odometer_and_purchase_ledger migration mirrors this
-  // exact logic server-side (check_vehicle_month_fuel_consumption) for
-  // the >50% alert, so this is display-only here. REPORT_MONTHS comes
-  // from excel.js (shared top-level script scope, same cross-file
-  // pattern already used throughout this app) — only referenced
-  // inside functions, never at load time, so file load order doesn't
-  // matter.
-  function vehicleFuelConsumption(eq, year, month){
-    const isUtilaj = eq.category === 'utilaj';
-    const unit = isUtilaj ? 'L/H' : 'L/100km';
-    const field = vehicleReadingField(eq);
+  // Full picture for one vehicle+unit in one month: the reading entered
+  // (if any), what it's measured against, the resulting delta, that
+  // month's fuel-bill total, and the consumption that implies. A
+  // Camion/Autoutilitara that both drove and ran stationary in the same
+  // month gets both of these computed against the SAME fuel-bill total
+  // (there's only one tank) -- each is "what this would be if all of
+  // it went to that use", not a true split, since the data doesn't
+  // distinguish which liters went where.
+  // vehicle_dual_unit_consumption_trigger migration mirrors this exact
+  // logic server-side (check_vehicle_month_fuel_consumption) for the
+  // >50% alert, so this is display-only here. REPORT_MONTHS comes from
+  // excel.js (shared top-level script scope, same cross-file pattern
+  // already used throughout this app) — only referenced inside
+  // functions, never at load time, so file load order doesn't matter.
+  function vehicleFuelConsumptionFor(eq, unit, year, month){
+    const unitLbl = unitLabel(unit);
+    const unitRateLabel = unit === 'hours' ? 'L/H' : 'L/100km';
+    const field = readingFieldFor(unit);
     const log = fuelLogFor(eq.id, year, month);
     const reading = (log && log[field] != null) ? Number(log[field]) : null;
-    const baseline = previousFuelReading(eq, year, month);
+    const baseline = previousFuelReadingFor(eq, unit, year, month);
     const delta = (reading != null && baseline != null && reading - baseline > 0) ? (reading - baseline) : null;
     const totalAdded = fuelPurchaseSum(eq.id, year, month);
     const actual = (delta != null && totalAdded > 0)
-      ? (isUtilaj ? totalAdded / delta : totalAdded / delta * 100)
+      ? (unit === 'hours' ? totalAdded / delta : totalAdded / delta * 100)
       : null;
-    const rated = eq.fuel_rated_consumption != null ? Number(eq.fuel_rated_consumption) : null;
+    const rated = eq[ratedFieldFor(unit)] != null ? Number(eq[ratedFieldFor(unit)]) : null;
     const overLimit = actual != null && rated != null && actual > rated * 1.5;
-    return { isUtilaj, unit, reading, baseline, delta, totalAdded, actual, rated, overLimit };
+    return { unit: unitLbl, unitRateLabel, reading, baseline, delta, totalAdded, actual, rated, overLimit };
+  }
+  // Across every unit this vehicle tracks (one for most, two for
+  // Camion/Autoutilitara).
+  function vehicleFuelConsumptions(eq, year, month){
+    return vehicleUnits(eq).map(u => vehicleFuelConsumptionFor(eq, u, year, month));
+  }
+  function vehicleFuelOverLimit(eq, year, month){
+    return vehicleFuelConsumptions(eq, year, month).some(c => c.overLimit);
   }
   const erpLoadedAt = new Date();
   let fuelReportYear = erpLoadedAt.getFullYear();
@@ -430,7 +464,7 @@
     // This page's own "Notificări" — vehicles over 50% of normat for
     // the month currently displayed, not the doc-expiry warnings
     // Prezentare generală's identical-looking card means.
-    const fuelUrgentVehicles = allVehicles.filter(eq => vehicleFuelConsumption(eq, fuelReportYear, fuelReportMonth).overLimit);
+    const fuelUrgentVehicles = allVehicles.filter(eq => vehicleFuelOverLimit(eq, fuelReportYear, fuelReportMonth));
     renderMachinesFilterCardsInto(cardsWrap, fuelReportSubcatFilter, (nextKey) => {
       fuelReportSubcatFilter = nextKey;
       renderMachinesFuelReport();
@@ -446,17 +480,27 @@
       return;
     }
     tbody.innerHTML = vehicles.map(eq => {
-      const c = vehicleFuelConsumption(eq, fuelReportYear, fuelReportMonth);
+      const cs = vehicleFuelConsumptions(eq, fuelReportYear, fuelReportMonth);
+      const kmC = cs.find(c => c.unit === 'km');
+      const hC = cs.find(c => c.unit === 'h');
+      const overLimit = cs.some(c => c.overLimit);
+      const totalAdded = fuelPurchaseSum(eq.id, fuelReportYear, fuelReportMonth);
       const na = '<span class="mt-na">—</span>';
+      // Camion/Autoutilitara track both -- join whichever of the two
+      // have a value into one cell instead of adding more columns.
+      const joinPair = (fmt) => {
+        const parts = [kmC, hC].filter(Boolean).map(fmt).filter(Boolean);
+        return parts.length ? parts.join(' · ') : na;
+      };
       return `
-        <tr class="${c.overLimit ? 'row-error' : ''}">
+        <tr class="${overLimit ? 'row-error' : ''}">
           <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div></td>
           <td><a href="#" class="ticket-link" data-vehicle-id="${escapeHtml(eq.id)}">${escapeHtml(eq.plate_number || '—')}</a></td>
-          <td>${!c.isUtilaj && c.delta != null ? escapeHtml(String(c.delta)) + ' km' : na}</td>
-          <td>${c.isUtilaj && c.delta != null ? escapeHtml(String(c.delta)) + ' h' : na}</td>
-          <td>${c.totalAdded > 0 ? escapeHtml(String(c.totalAdded)) + ' L' : na}</td>
-          <td class="${c.overLimit ? 'mt-warn' : ''}">${c.actual != null ? `${c.actual.toFixed(1)} ${c.unit}${c.overLimit ? ' ⚠' : ''}` : na}</td>
-          <td>${c.rated != null ? `${c.rated} ${c.unit}` : na}</td>
+          <td>${kmC && kmC.delta != null ? escapeHtml(String(kmC.delta)) + ' km' : na}</td>
+          <td>${hC && hC.delta != null ? escapeHtml(String(hC.delta)) + ' h' : na}</td>
+          <td>${totalAdded > 0 ? escapeHtml(String(totalAdded)) + ' L' : na}</td>
+          <td class="${overLimit ? 'mt-warn' : ''}">${joinPair(c => c.actual != null ? `${c.actual.toFixed(1)} ${c.unitRateLabel}${c.overLimit ? ' ⚠' : ''}` : null)}</td>
+          <td>${joinPair(c => c.rated != null ? `${c.rated} ${c.unitRateLabel}` : null)}</td>
           <td><button type="button" class="mt-row-icon-btn fuel-log-edit-btn" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
           </button></td>
@@ -483,27 +527,37 @@
      stock_ledger). fuelLogSheetContext tracks which vehicle+month the
      open sheet refers to, for both halves and their handlers below.
      ============================================================ */
-  let fuelLogSheetContext = null; // { vehicleId, year, month, eq, baseline }
-  function updateVflDiffDisplay(){
-    if (!fuelLogSheetContext) return;
-    const { eq, baseline } = fuelLogSheetContext;
-    const prevEl = document.getElementById('vfl-previous-reading');
-    const diffEl = document.getElementById('vfl-diff-display');
-    const unit = eq.category === 'utilaj' ? 'h' : 'km';
-    if (prevEl) prevEl.textContent = baseline != null ? `${baseline} ${unit}` : 'fără citire anterioară';
+  let fuelLogSheetContext = null; // { vehicleId, year, month, eq, baselineKm, baselineHours }
+  // One km block + one hours block, each independently filled/diffed --
+  // Camion/Autoutilitara show both (a month might only move one of the
+  // two, e.g. a truck that only ran stationary that month), everything
+  // else shows just the one it tracks (see openVehicleFuelLogForm).
+  function updateVflDiffDisplayFor(prefix, baseline, unitLbl){
+    const prevEl = document.getElementById(`vfl-previous-reading-${prefix}`);
+    const diffEl = document.getElementById(`vfl-diff-display-${prefix}`);
+    if (prevEl) prevEl.textContent = baseline != null ? `${baseline} ${unitLbl}` : 'fără citire anterioară';
     if (!diffEl) return;
-    const newVal = document.getElementById('vfl-reading').value;
+    const readingEl = document.getElementById(`vfl-reading-${prefix}`);
+    const newVal = readingEl ? readingEl.value : '';
     if (newVal === '' || baseline == null) {
       diffEl.textContent = baseline == null ? 'nimic de comparat încă' : '—';
       diffEl.classList.remove('negative');
       return;
     }
     const diff = Number(newVal) - baseline;
-    diffEl.textContent = `${diff >= 0 ? '+' : ''}${diff} ${unit}`;
+    diffEl.textContent = `${diff >= 0 ? '+' : ''}${diff} ${unitLbl}`;
     diffEl.classList.toggle('negative', diff < 0);
   }
-  const vflReadingInput = document.getElementById('vfl-reading');
-  if (vflReadingInput) vflReadingInput.addEventListener('input', updateVflDiffDisplay);
+  function updateVflDiffDisplay(){
+    if (!fuelLogSheetContext) return;
+    const { baselineKm, baselineHours } = fuelLogSheetContext;
+    updateVflDiffDisplayFor('km', baselineKm, 'km');
+    updateVflDiffDisplayFor('hours', baselineHours, 'h');
+  }
+  const vflReadingKmInput = document.getElementById('vfl-reading-km');
+  if (vflReadingKmInput) vflReadingKmInput.addEventListener('input', updateVflDiffDisplay);
+  const vflReadingHoursInput = document.getElementById('vfl-reading-hours');
+  if (vflReadingHoursInput) vflReadingHoursInput.addEventListener('input', updateVflDiffDisplay);
   function renderFuelPurchaseList(){
     const listEl = document.getElementById('vflPurchaseList');
     const totalEl = document.getElementById('vfl-purchase-total');
@@ -532,17 +586,23 @@
   // rather than inline table inputs, same reasoning as every other
   // add/edit flow in this file (room for labels/validation).
   function openVehicleFuelLogForm(eq){
-    const field = vehicleReadingField(eq);
     const log = fuelLogFor(eq.id, fuelReportYear, fuelReportMonth);
-    const baseline = previousFuelReading(eq, fuelReportYear, fuelReportMonth);
-    fuelLogSheetContext = { vehicleId: eq.id, year: fuelReportYear, month: fuelReportMonth, eq, baseline };
+    const tracksKm = vehicleTracksKm(eq);
+    const tracksHours = vehicleTracksHours(eq);
+    fuelLogSheetContext = {
+      vehicleId: eq.id, year: fuelReportYear, month: fuelReportMonth, eq,
+      baselineKm: tracksKm ? previousFuelReadingFor(eq, 'km', fuelReportYear, fuelReportMonth) : null,
+      baselineHours: tracksHours ? previousFuelReadingFor(eq, 'hours', fuelReportYear, fuelReportMonth) : null,
+    };
     document.getElementById('vfl-vehicle-id').value = eq.id;
     document.getElementById('vfl-year').value = fuelReportYear;
     document.getElementById('vfl-month').value = fuelReportMonth;
-    document.getElementById('vfl-reading').value = (log && log[field] != null) ? log[field] : '';
-    const isUtilaj = eq.category === 'utilaj';
-    const readingLabelEl = document.getElementById('vfl-reading-label');
-    if (readingLabelEl) readingLabelEl.textContent = isUtilaj ? 'Ore noi (citire contor)' : 'Km nou (citire bord)';
+    const kmSection = document.getElementById('vfl-km-section');
+    const hoursSection = document.getElementById('vfl-hours-section');
+    if (kmSection) kmSection.style.display = tracksKm ? '' : 'none';
+    if (hoursSection) hoursSection.style.display = tracksHours ? '' : 'none';
+    document.getElementById('vfl-reading-km').value = (log && log.fuel_odometer_km != null) ? log.fuel_odometer_km : '';
+    document.getElementById('vfl-reading-hours').value = (log && log.fuel_odometer_hours != null) ? log.fuel_odometer_hours : '';
     updateVflDiffDisplay();
     renderFuelPurchaseList();
     document.getElementById('vfl-purchase-liters').value = '';
@@ -554,16 +614,24 @@
   const vflSaveReadingBtn = document.getElementById('vflSaveReadingBtn');
   if (vflSaveReadingBtn) vflSaveReadingBtn.addEventListener('click', async () => {
     if (!fuelLogSheetContext) return;
-    const { vehicleId, year, month, eq } = fuelLogSheetContext;
-    const isUtilaj = eq.category === 'utilaj';
-    const readingVal = document.getElementById('vfl-reading').value;
-    if (readingVal === '') { alert('Introduceți citirea.'); return; }
+    const { vehicleId, year, month, eq, baselineKm, baselineHours } = fuelLogSheetContext;
+    const kmVal = vehicleTracksKm(eq) ? document.getElementById('vfl-reading-km').value : '';
+    const hoursVal = vehicleTracksHours(eq) ? document.getElementById('vfl-reading-hours').value : '';
+    if (kmVal === '' && hoursVal === '') { alert('Introduceți cel puțin o citire.'); return; }
+    // Odometers/hour-meters only ever increase -- a reading below the
+    // last one on record is almost always a mistyped/placeholder value
+    // (the exact bug that made service countdowns show the wrong
+    // number), so flag it rather than silently saving it.
+    const belowBaseline = [];
+    if (kmVal !== '' && baselineKm != null && Number(kmVal) < baselineKm) belowBaseline.push(`Km (${kmVal} < ${baselineKm})`);
+    if (hoursVal !== '' && baselineHours != null && Number(hoursVal) < baselineHours) belowBaseline.push(`Ore (${hoursVal} < ${baselineHours})`);
+    if (belowBaseline.length && !confirm(`Citirea introdusă e mai mică decât cea anterioară pentru: ${belowBaseline.join(', ')}. Continui oricum?`)) return;
     const payload = {
       vehicle_id: vehicleId, year, month,
-      fuel_odometer_km: isUtilaj ? null : Number(readingVal),
-      fuel_odometer_hours: isUtilaj ? Number(readingVal) : null,
       updated_at: new Date().toISOString(),
     };
+    if (kmVal !== '') payload.fuel_odometer_km = Number(kmVal);
+    if (hoursVal !== '') payload.fuel_odometer_hours = Number(hoursVal);
     vflSaveReadingBtn.disabled = true;
     const { error } = await supabaseClient.from('vehicle_fuel_logs').upsert(payload, { onConflict: 'vehicle_id,year,month' });
     vflSaveReadingBtn.disabled = false;
@@ -685,15 +753,19 @@
     const header = ['Mașină', 'Nr. înmatriculare', 'Km (diferență)', 'Timp (diferență)', 'Total alimentare (L)', 'Consum efectiv', 'Consum normat'];
     const rows = [header];
     vehicles.forEach(eq => {
-      const c = vehicleFuelConsumption(eq, year, month);
+      const cs = vehicleFuelConsumptions(eq, year, month);
+      const kmC = cs.find(c => c.unit === 'km');
+      const hC = cs.find(c => c.unit === 'h');
+      const totalAdded = fuelPurchaseSum(eq.id, year, month);
+      const joinPair = (fmt) => [kmC, hC].filter(Boolean).map(fmt).filter(Boolean).join(' · ');
       rows.push([
         eq.name || '',
         eq.plate_number || '',
-        (!c.isUtilaj && c.delta != null) ? c.delta : '',
-        (c.isUtilaj && c.delta != null) ? c.delta : '',
-        c.totalAdded > 0 ? c.totalAdded : '',
-        c.actual != null ? `${c.actual.toFixed(1)} ${c.unit}` : '',
-        c.rated != null ? `${c.rated} ${c.unit}` : '',
+        kmC && kmC.delta != null ? kmC.delta : '',
+        hC && hC.delta != null ? hC.delta : '',
+        totalAdded > 0 ? totalAdded : '',
+        joinPair(c => c.actual != null ? `${c.actual.toFixed(1)} ${c.unitRateLabel}` : ''),
+        joinPair(c => c.rated != null ? `${c.rated} ${c.unitRateLabel}` : ''),
       ]);
     });
     return rows;
@@ -936,18 +1008,21 @@
     const isCamion = subcat === 'camion';
     document.getElementById('vf-transport-license-field').style.display = isCamion ? '' : 'none';
     document.getElementById('vf-tachograph-field').style.display = isCamion ? '' : 'none';
-    // Utilaje are tracked by hours worked, not km driven (there's no
-    // odometer on a stationary machine) — everything else is the
-    // reverse. Consum normat's unit, and which initial-reading field
-    // applies, both follow that same split (the monthly readings
-    // themselves live in "Raport lunar consum", not on this form —
-    // see openVehicleFuelLogForm).
-    const isUtilaj = subcat === 'utilaj';
-    document.getElementById('vf-fuel-rated-unit').textContent = isUtilaj ? 'L/H' : 'L/100km';
-    document.getElementById('vf-fuel-initial-km-field').style.display = isUtilaj ? 'none' : '';
-    document.getElementById('vf-fuel-initial-hours-field').style.display = isUtilaj ? '' : 'none';
-    document.getElementById('vf-service-due-km-field').style.display = isUtilaj ? 'none' : '';
-    document.getElementById('vf-service-due-hours-field').style.display = isUtilaj ? '' : 'none';
+    // Utilaje are tracked by hours worked only (there's no odometer on
+    // a stationary machine); masina_mica by km only. Camion/Autoutilitara
+    // track both -- they also run stationary a lot (PTO, hydraulics, a
+    // crane), not just drive. Which initial-reading/interval/rated
+    // fields show follows that split (the monthly readings themselves
+    // live in "Raport lunar consum", not on this form — see
+    // openVehicleFuelLogForm).
+    const tracksKm = vfSubcatTracksKm(subcat);
+    const tracksHours = vfSubcatTracksHours(subcat);
+    document.getElementById('vf-fuel-rated-km-field').style.display = tracksKm ? '' : 'none';
+    document.getElementById('vf-fuel-rated-hours-field').style.display = tracksHours ? '' : 'none';
+    document.getElementById('vf-fuel-initial-km-field').style.display = tracksKm ? '' : 'none';
+    document.getElementById('vf-fuel-initial-hours-field').style.display = tracksHours ? '' : 'none';
+    document.getElementById('vf-service-due-km-field').style.display = tracksKm ? '' : 'none';
+    document.getElementById('vf-service-due-hours-field').style.display = tracksHours ? '' : 'none';
   }
   const vfSubcatSelect = document.getElementById('vf-subcat');
   if (vfSubcatSelect) vfSubcatSelect.addEventListener('change', syncVehicleFormCamionFields);
@@ -966,7 +1041,8 @@
     document.getElementById('vf-parking-ticket-expires').value = '';
     document.getElementById('vf-vignette-expires').value = '';
     document.getElementById('vf-tachograph-expires').value = '';
-    document.getElementById('vf-fuel-rated').value = '';
+    document.getElementById('vf-fuel-rated-km').value = '';
+    document.getElementById('vf-fuel-rated-hours').value = '';
     document.getElementById('vf-fuel-tank-capacity').value = '';
     document.getElementById('vf-fuel-initial-km').value = '';
     document.getElementById('vf-fuel-initial-hours').value = '';
@@ -993,7 +1069,8 @@
     document.getElementById('vf-parking-ticket-expires').value = eq.parking_ticket_expires_on || '';
     document.getElementById('vf-vignette-expires').value = eq.vignette_expires_on || '';
     document.getElementById('vf-tachograph-expires').value = eq.tachograph_expires_on || '';
-    document.getElementById('vf-fuel-rated').value = eq.fuel_rated_consumption ?? '';
+    document.getElementById('vf-fuel-rated-km').value = eq.fuel_rated_consumption_km ?? '';
+    document.getElementById('vf-fuel-rated-hours').value = eq.fuel_rated_consumption_hours ?? '';
     document.getElementById('vf-fuel-tank-capacity').value = eq.fuel_tank_capacity_l ?? '';
     document.getElementById('vf-fuel-initial-km').value = eq.fuel_initial_km ?? '';
     document.getElementById('vf-fuel-initial-hours').value = eq.fuel_initial_hours ?? '';
@@ -1037,18 +1114,20 @@
       transport_license_expires_on: isCamion ? (document.getElementById('vf-transport-license-expires').value || null) : null,
       tachograph_expires_on: isCamion ? (document.getElementById('vf-tachograph-expires').value || null) : null,
     };
-    const isUtilaj = subcat === 'utilaj';
+    const tracksKm = vfSubcatTracksKm(subcat);
+    const tracksHours = vfSubcatTracksHours(subcat);
     const vfNumOrNull = (elId) => {
       const v = document.getElementById(elId).value;
       return v === '' ? null : Number(v);
     };
     const fuelPayload = {
-      fuel_rated_consumption: vfNumOrNull('vf-fuel-rated'),
+      fuel_rated_consumption_km: tracksKm ? vfNumOrNull('vf-fuel-rated-km') : null,
+      fuel_rated_consumption_hours: tracksHours ? vfNumOrNull('vf-fuel-rated-hours') : null,
       fuel_tank_capacity_l: vfNumOrNull('vf-fuel-tank-capacity'),
-      fuel_initial_km: isUtilaj ? null : vfNumOrNull('vf-fuel-initial-km'),
-      fuel_initial_hours: isUtilaj ? vfNumOrNull('vf-fuel-initial-hours') : null,
-      fuel_service_interval_km: isUtilaj ? null : vfNumOrNull('vf-service-due-km'),
-      fuel_service_interval_hours: isUtilaj ? vfNumOrNull('vf-service-due-hours') : null,
+      fuel_initial_km: tracksKm ? vfNumOrNull('vf-fuel-initial-km') : null,
+      fuel_initial_hours: tracksHours ? vfNumOrNull('vf-fuel-initial-hours') : null,
+      fuel_service_interval_km: tracksKm ? vfNumOrNull('vf-service-due-km') : null,
+      fuel_service_interval_hours: tracksHours ? vfNumOrNull('vf-service-due-hours') : null,
     };
     if (id) {
       const payload = Object.assign({
@@ -1121,38 +1200,56 @@
   // one-time initial reading from the vehicle form) and the fuel
   // consumption that reading implies for its own month — so checking a
   // vehicle's current numbers doesn't require leaving its own card.
+  // Camion/Autoutilitara render this twice over (once per unit they
+  // track) rather than picking one — a truck's km and hours countdowns
+  // are independent, so both need their own visible row of numbers.
   function vehicleFuelReadingRowHtml(eq, columnCount){
-    const log = latestFuelLog(eq);
-    const isUtilaj = eq.category === 'utilaj';
-    const unit = isUtilaj ? 'h' : 'km';
-    const field = vehicleReadingField(eq);
-    const readingVal = log ? `${log[field]} ${unit}` : '—';
-    const c = log ? vehicleFuelConsumption(eq, log.year, log.month) : null;
-    const consumptionVal = c && c.actual != null
-      ? `${c.actual.toFixed(1)} ${c.unit}${c.rated != null ? ` (normat ${c.rated} ${c.unit})` : ''}${c.overLimit ? ' ⚠' : ''}`
-      : '—';
-    const service = vehicleServiceCountdown(eq);
-    const serviceWarnThreshold = isUtilaj ? 50 : 1000;
-    const serviceCls = service == null ? '' : service.remaining <= 0 ? 'mt-expired' : service.remaining <= serviceWarnThreshold ? 'mt-warn' : '';
-    const serviceVal = service == null ? '—'
-      : service.remaining >= 0 ? `${service.remaining} ${service.unit}`
-      : `depășit cu ${Math.abs(service.remaining)} ${service.unit}`;
+    const items = [];
+    vehicleUnits(eq).forEach(unit => {
+      const unitLbl = unitLabel(unit);
+      const log = latestFuelLogFor(eq, unit);
+      const field = readingFieldFor(unit);
+      const readingVal = log ? `${log[field]} ${unitLbl}` : '—';
+      items.push({
+        label: unit === 'hours' ? 'Ore actuale' : 'Km actual',
+        value: readingVal,
+        cls: '',
+      });
+      const c = log ? vehicleFuelConsumptionFor(eq, unit, log.year, log.month) : null;
+      const consumptionVal = c && c.actual != null
+        ? `${c.actual.toFixed(1)} ${c.unitRateLabel}${c.rated != null ? ` (normat ${c.rated} ${c.unitRateLabel})` : ''}${c.overLimit ? ' ⚠' : ''}`
+        : '—';
+      items.push({
+        label: unit === 'hours' ? 'Consum efectiv (ore)' : 'Consum efectiv',
+        value: consumptionVal,
+        cls: c && c.overLimit ? 'mt-warn' : '',
+      });
+      const service = vehicleServiceCountdownFor(eq, unit);
+      if (service != null) {
+        const warnThreshold = unit === 'hours' ? 50 : 1000;
+        const serviceCls = service.remaining <= 0 ? 'mt-expired' : service.remaining <= warnThreshold ? 'mt-warn' : '';
+        const serviceVal = service.remaining >= 0 ? `${service.remaining} ${service.unit}`
+          : `depășit cu ${Math.abs(service.remaining)} ${service.unit}`;
+        items.push({
+          label: unit === 'hours' ? 'Ore rămase service' : 'Km rămași service',
+          value: `${serviceVal}${serviceCls ? ' ⚠' : ''}`,
+          cls: serviceCls,
+        });
+      }
+    });
+    // Normally matches the docs row above so values line up in columns
+    // (see vehicleCardContentHtml) -- but a dual-tracked vehicle can
+    // have more items here than that row has columns, in which case
+    // this row just uses its own count instead of forcing a squeeze.
+    const finalColumnCount = Math.max(columnCount, items.length);
     return `
-      <div class="vd-docs-grid" style="grid-template-columns:repeat(${columnCount},1fr);">
+      <div class="vd-docs-grid vd-fuel-grid" style="grid-template-columns:repeat(${finalColumnCount},1fr);">
+        ${items.map(it => `
         <div class="vd-doc-item">
-          <div class="vd-doc-label">${isUtilaj ? 'Ore actuale' : 'Km actual'}</div>
-          <div class="vd-doc-value">${readingVal}</div>
+          <div class="vd-doc-label">${escapeHtml(it.label)}</div>
+          <div class="vd-doc-value ${it.cls}">${it.value}</div>
         </div>
-        <div class="vd-doc-item">
-          <div class="vd-doc-label">Consum efectiv</div>
-          <div class="vd-doc-value ${c && c.overLimit ? 'mt-warn' : ''}">${consumptionVal}</div>
-        </div>
-        ${service != null ? `
-        <div class="vd-doc-item">
-          <div class="vd-doc-label">${isUtilaj ? 'Ore rămase service' : 'Km rămași service'}</div>
-          <div class="vd-doc-value ${serviceCls}">${serviceVal}${serviceCls ? ' ⚠' : ''}</div>
-        </div>
-        ` : ''}
+        `).join('')}
       </div>
     `;
   }
@@ -1160,7 +1257,7 @@
     return `
       <div class="vehicle-big-card" id="vehicle-card-${escapeHtml(eq.id)}">
         <div class="vehicle-big-card-actions">
-          ${vehicleServiceCountdown(eq) != null ? `
+          ${vehicleUnits(eq).some(u => vehicleServiceCountdownFor(eq, u) != null) ? `
           <button type="button" class="mt-row-icon-btn mt-service-done-icon" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Service efectuat" aria-label="Marchează service efectuat pentru ${escapeHtml(eq.name)}">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
           </button>
@@ -1215,18 +1312,25 @@
   // the next due point becomes current + interval -- the only way the
   // countdown is meant to move forward, instead of editing a raw
   // target by hand each time a real service happens.
+  // Camion/Autoutilitara reset both counters at once here -- one real
+  // service event covers the whole engine, km and hours alike -- rather
+  // than needing two separate confirmations.
   async function markServiceDone(eq){
-    const isUtilaj = eq.category === 'utilaj';
-    const log = latestFuelLog(eq);
-    const field = vehicleReadingField(eq);
-    const current = log && log[field] != null ? Number(log[field]) : null;
-    if (current == null) return;
-    const unit = isUtilaj ? 'ore' : 'km';
-    if (!confirm(`Marchezi service efectuat pentru „${eq.name}” la ${current} ${unit}? Următorul service se calculează de la această valoare.`)) return;
-    const payload = isUtilaj ? { fuel_service_last_hours: current } : { fuel_service_last_km: current };
+    const readings = vehicleUnits(eq)
+      .filter(u => vehicleServiceCountdownFor(eq, u) != null)
+      .map(u => {
+        const log = latestFuelLogFor(eq, u);
+        const field = readingFieldFor(u);
+        return { unit: u, current: Number(log[field]) };
+      });
+    if (!readings.length) return;
+    const summary = readings.map(r => `${r.current} ${r.unit === 'hours' ? 'ore' : 'km'}`).join(' / ');
+    if (!confirm(`Marchezi service efectuat pentru „${eq.name}” la ${summary}? Următorul service se calculează de la aceste valori.`)) return;
+    const payload = {};
+    readings.forEach(r => { payload[serviceLastFieldFor(r.unit)] = r.current; });
     const { error } = await AppDataServices.erp.saveVehicle(supabaseClient, payload, eq.id);
     if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
-    logEntityActivity('masina', eq.id, `Service efectuat la ${current} ${unit}.`);
+    logEntityActivity('masina', eq.id, `Service efectuat la ${summary}.`);
     showToast('Service marcat ca efectuat.');
     loadEquipment();
   }

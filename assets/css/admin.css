@@ -923,6 +923,12 @@
   .vehicle-big-card .vd-doc-item{min-width:0;}
   .vehicle-big-card .vd-doc-item .vd-doc-label{font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;}
   .vehicle-big-card .vd-doc-item .vd-doc-value{font-size:13px;margin-top:2px;white-space:nowrap;}
+  /* The fuel/service row's "Consum efectiv" value ("67.2 L/100km (normat
+     35 L/100km)") runs noticeably longer than any doc-expiry date, and a
+     dual-tracked Camion/Autoutilitara packs up to 6 of these into the
+     same narrow per-column width — nowrap let it overflow into the next
+     column instead of wrapping onto a second line. */
+  .vehicle-big-card .vd-fuel-grid .vd-doc-value{white-space:normal;}
   .vehicle-big-card .vd-doc-value.mt-warn{color:var(--signal-orange);font-weight:600;}
   .vehicle-big-card .vd-doc-value.mt-expired{color:var(--signal-red);font-weight:600;}
   .vehicle-big-card-actions{position:absolute;top:14px;right:14px;display:flex;gap:6px;}

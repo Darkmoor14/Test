@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/admin.css?v=20261013n">
+<link rel="stylesheet" href="assets/css/admin.css?v=20261014a">
 </head>
 <body>
 
@@ -1901,9 +1901,13 @@
     </div>
     <p class="status-note vf-docs-divider">Consum carburant</p>
     <div class="pf-grid">
-      <div class="ctrl-field">
-        <label>Consum normat (<span id="vf-fuel-rated-unit">L/100km</span>)</label>
-        <input type="number" id="vf-fuel-rated" min="0" step="0.1" placeholder="ex: 8">
+      <div class="ctrl-field" id="vf-fuel-rated-km-field">
+        <label>Consum normat (L/100km)</label>
+        <input type="number" id="vf-fuel-rated-km" min="0" step="0.1" placeholder="ex: 8">
+      </div>
+      <div class="ctrl-field" id="vf-fuel-rated-hours-field" style="display:none;">
+        <label>Consum normat (L/H)</label>
+        <input type="number" id="vf-fuel-rated-hours" min="0" step="0.1" placeholder="ex: 3">
       </div>
       <div class="ctrl-field">
         <label>Capacitate rezervor (L)</label>
@@ -1971,19 +1975,38 @@
     <input type="hidden" id="vfl-vehicle-id">
     <input type="hidden" id="vfl-year">
     <input type="hidden" id="vfl-month">
-    <p class="status-note vf-docs-divider" style="margin-top:0;">Citire bord</p>
-    <div class="pf-grid">
-      <div class="ctrl-field">
-        <label>Citire anterioară</label>
-        <div class="vfl-readonly-value" id="vfl-previous-reading">—</div>
+    <div id="vfl-km-section">
+      <p class="status-note vf-docs-divider" style="margin-top:0;">Citire Km</p>
+      <div class="pf-grid">
+        <div class="ctrl-field">
+          <label>Citire anterioară</label>
+          <div class="vfl-readonly-value" id="vfl-previous-reading-km">—</div>
+        </div>
+        <div class="ctrl-field">
+          <label>Km nou</label>
+          <input type="number" id="vfl-reading-km" min="0" step="1" placeholder="ex: 42150">
+        </div>
+        <div class="ctrl-field" style="grid-column:1/-1;">
+          <label>Diferență (luna aceasta)</label>
+          <div class="vfl-readonly-value" id="vfl-diff-display-km">—</div>
+        </div>
       </div>
-      <div class="ctrl-field">
-        <label id="vfl-reading-label">Km nou</label>
-        <input type="number" id="vfl-reading" min="0" step="1" placeholder="ex: 42150">
-      </div>
-      <div class="ctrl-field" style="grid-column:1/-1;">
-        <label>Diferență (luna aceasta)</label>
-        <div class="vfl-readonly-value" id="vfl-diff-display">—</div>
+    </div>
+    <div id="vfl-hours-section">
+      <p class="status-note vf-docs-divider">Citire Ore</p>
+      <div class="pf-grid">
+        <div class="ctrl-field">
+          <label>Citire anterioară</label>
+          <div class="vfl-readonly-value" id="vfl-previous-reading-hours">—</div>
+        </div>
+        <div class="ctrl-field">
+          <label>Ore noi</label>
+          <input type="number" id="vfl-reading-hours" min="0" step="1" placeholder="ex: 1450">
+        </div>
+        <div class="ctrl-field" style="grid-column:1/-1;">
+          <label>Diferență (luna aceasta)</label>
+          <div class="vfl-readonly-value" id="vfl-diff-display-hours">—</div>
+        </div>
       </div>
     </div>
     <div class="sheet-actions">
@@ -2445,17 +2468,17 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="assets/js/data-services.js?v=20261013n"></script>
-<script src="assets/js/admin-core.js?v=20261013n"></script>
-<script src="assets/js/features/system-status.js?v=20261013n"></script>
-<script src="assets/js/features/lps.js?v=20261013n"></script>
-<script src="assets/js/features/tickets.js?v=20261013n"></script>
-<script src="assets/js/features/projects.js?v=20261013n"></script>
-<script src="assets/js/features/work-orders.js?v=20261013n"></script>
-<script src="assets/js/features/erp.js?v=20261013n"></script>
-<script src="assets/js/features/hr.js?v=20261013n"></script>
-<script src="assets/js/features/excel.js?v=20261013n"></script>
-<script src="assets/js/features/search.js?v=20261013n"></script>
+<script src="assets/js/data-services.js?v=20261014a"></script>
+<script src="assets/js/admin-core.js?v=20261014a"></script>
+<script src="assets/js/features/system-status.js?v=20261014a"></script>
+<script src="assets/js/features/lps.js?v=20261014a"></script>
+<script src="assets/js/features/tickets.js?v=20261014a"></script>
+<script src="assets/js/features/projects.js?v=20261014a"></script>
+<script src="assets/js/features/work-orders.js?v=20261014a"></script>
+<script src="assets/js/features/erp.js?v=20261014a"></script>
+<script src="assets/js/features/hr.js?v=20261014a"></script>
+<script src="assets/js/features/excel.js?v=20261014a"></script>
+<script src="assets/js/features/search.js?v=20261014a"></script>
 
 <button type="button" class="back-to-top" id="backToTopBtn" aria-label="Înapoi sus">
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
@@ -2507,8 +2530,8 @@
   </div>
 </div>
 
-<script src="assets/js/ui-shell.js?v=20261013n"></script>
-<script src="assets/js/launch.js?v=20261013n"></script>
+<script src="assets/js/ui-shell.js?v=20261014a"></script>
+<script src="assets/js/launch.js?v=20261014a"></script>
 
 </body>
 </html>
