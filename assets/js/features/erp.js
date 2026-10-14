@@ -1306,8 +1306,8 @@
     return `
       <div class="vehicle-big-card" id="vehicle-card-${escapeHtml(eq.id)}">
         <div class="vehicle-big-card-actions">
-          ${vehicleUnits(eq).some(u => vehicleServiceCountdownFor(eq, u) != null) ? `
-          <button type="button" class="mt-row-icon-btn mt-service-done-icon" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Service efectuat" aria-label="Marchează service efectuat pentru ${escapeHtml(eq.name)}">
+          ${vehicleDueUnits(eq).length > 0 ? `
+          <button type="button" class="mt-row-icon-btn mt-service-done-icon" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Service scadent" aria-label="Vezi service scadent pentru ${escapeHtml(eq.name)}">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
           </button>
           ` : ''}
@@ -1359,26 +1359,95 @@
   const machinesCardsList = document.getElementById('machinesCardsList');
   // Resets the interval's baseline to whatever's currently logged, so
   // the next due point becomes current + interval -- the only way the
-  // countdown is meant to move forward, instead of editing a raw
-  // target by hand each time a real service happens.
-  // Camion/Autoutilitara reset both counters at once here -- one real
-  // service event covers the whole engine, km and hours alike -- rather
-  // than needing two separate confirmations.
-  async function markServiceDone(eq){
-    const readings = vehicleUnits(eq)
-      .filter(u => vehicleServiceCountdownFor(eq, u) != null)
-      .map(u => ({ unit: u, current: currentServiceReadingFor(eq, u) }));
-    if (!readings.length) return;
+  // countdown is meant to move forward, instead of editing a raw target
+  // by hand each time a real service happens. Takes whichever units the
+  // caller hands it -- a single one from a per-item "Marchează efectuat"
+  // in the due-service sheet below, or all of them at once from its
+  // "Marchează toate efectuate" convenience button.
+  async function markServiceDoneForUnits(eq, units){
+    const readings = units
+      .map(u => ({ unit: u, current: currentServiceReadingFor(eq, u) }))
+      .filter(r => r.current != null);
+    if (!readings.length) return false;
     const summary = readings.map(r => `${r.current} ${r.unit === 'hours' ? 'ore' : 'km'}`).join(' / ');
-    if (!confirm(`Marchezi service efectuat pentru „${eq.name}” la ${summary}? Următorul service se calculează de la aceste valori.`)) return;
+    if (!confirm(`Marchezi service efectuat pentru „${eq.name}” la ${summary}? Următorul service se calculează de la aceste valori.`)) return false;
     const payload = {};
     readings.forEach(r => { payload[serviceLastFieldFor(r.unit)] = r.current; });
     const { error } = await AppDataServices.erp.saveVehicle(supabaseClient, payload, eq.id);
-    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return false; }
     logEntityActivity('masina', eq.id, `Service efectuat la ${summary}.`);
     showToast('Service marcat ca efectuat.');
-    loadEquipment();
+    return true;
   }
+  // Which of a vehicle's tracked units are actually due soon (orange)
+  // or overdue (red) -- i.e. serviceDueClass() is non-empty, not just
+  // "has a countdown at all". This is what gates the checkmark icon and
+  // what the sheet below lists: a vehicle with 9000km left shouldn't
+  // show either, only one that's actually worth acting on.
+  function vehicleDueUnits(eq){
+    return vehicleUnits(eq).map(unit => {
+      const countdown = vehicleServiceCountdownFor(eq, unit);
+      if (countdown == null) return null;
+      const cls = serviceDueClass(countdown.remaining, unit);
+      return cls ? { unit, countdown, cls } : null;
+    }).filter(Boolean);
+  }
+  // Which vehicle the open serviceDueSheet refers to -- re-read from
+  // allEquipment (not captured once) on every render so resolving one
+  // item and reloading reflects immediately, same as fuelLogSheetContext.
+  let serviceDueSheetVehicleId = null;
+  function renderServiceDueSheet(){
+    const listEl = document.getElementById('serviceDueList');
+    const markAllBtn = document.getElementById('serviceDueMarkAllBtn');
+    if (!listEl || !serviceDueSheetVehicleId) return;
+    const eq = allEquipment.find(v => v.id === serviceDueSheetVehicleId);
+    const due = eq ? vehicleDueUnits(eq) : [];
+    if (!due.length) {
+      // Nothing left due (the vehicle vanished, or its only due item
+      // just got resolved) -- an empty sheet isn't useful, close it.
+      setSheetOpen('serviceDueSheet', false);
+      return;
+    }
+    listEl.innerHTML = due.map(d => {
+      const label = d.unit === 'hours' ? 'Ore rămase service' : 'Km rămași service';
+      const val = d.countdown.remaining >= 0 ? `${d.countdown.remaining} ${d.countdown.unit}`
+        : `depășit cu ${Math.abs(d.countdown.remaining)} ${d.countdown.unit}`;
+      return `
+        <div class="fuel-purchase-item">
+          <div>
+            <div class="fuel-purchase-item-main">${escapeHtml(label)}</div>
+            <div class="fuel-purchase-item-note ${d.cls}">${val} ⚠</div>
+          </div>
+          <button type="button" class="btn btn-primary service-due-resolve-btn" data-requires-write="erp" data-unit="${d.unit}">Marchează efectuat</button>
+        </div>
+      `;
+    }).join('');
+    if (markAllBtn) markAllBtn.style.display = due.length > 1 ? '' : 'none';
+  }
+  function openServiceDueSheet(eq){
+    serviceDueSheetVehicleId = eq.id;
+    const titleEl = document.getElementById('serviceDueSheetTitle');
+    if (titleEl) titleEl.textContent = `Service efectuat — ${eq.name}`;
+    renderServiceDueSheet();
+    setSheetOpen('serviceDueSheet', true);
+  }
+  const serviceDueList = document.getElementById('serviceDueList');
+  if (serviceDueList) serviceDueList.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.service-due-resolve-btn');
+    if (!btn || !serviceDueSheetVehicleId) return;
+    const eq = allEquipment.find(v => v.id === serviceDueSheetVehicleId);
+    if (!eq) return;
+    const ok = await markServiceDoneForUnits(eq, [btn.dataset.unit]);
+    if (ok) { await loadEquipment(); renderServiceDueSheet(); }
+  });
+  const serviceDueMarkAllBtn = document.getElementById('serviceDueMarkAllBtn');
+  if (serviceDueMarkAllBtn) serviceDueMarkAllBtn.addEventListener('click', async () => {
+    if (!serviceDueSheetVehicleId) return;
+    const eq = allEquipment.find(v => v.id === serviceDueSheetVehicleId);
+    if (!eq) return;
+    const ok = await markServiceDoneForUnits(eq, vehicleDueUnits(eq).map(d => d.unit));
+    if (ok) { await loadEquipment(); renderServiceDueSheet(); }
+  });
   if (machinesCardsList) machinesCardsList.addEventListener('click', (e) => {
     const editIcon = e.target.closest('.mt-edit-icon');
     if (editIcon) {
@@ -1391,7 +1460,7 @@
     const serviceDoneIcon = e.target.closest('.mt-service-done-icon');
     if (serviceDoneIcon) {
       const eq = allEquipment.find(v => v.id === serviceDoneIcon.dataset.vehicleId);
-      if (eq) markServiceDone(eq);
+      if (eq) openServiceDueSheet(eq);
     }
   });
   const erpMachinesToggle = document.querySelector('[data-erp-toggle="machines"]');

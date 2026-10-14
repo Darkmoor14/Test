@@ -1185,6 +1185,8 @@
   #machinesTable .mt-na{color:var(--ink-400);}
   #machinesTable .mt-warn{color:var(--signal-orange);font-weight:600;}
   #machinesTable .mt-expired{color:var(--signal-red);font-weight:600;}
+  #serviceDueList .mt-warn{color:var(--signal-orange);font-weight:600;}
+  #serviceDueList .mt-expired{color:var(--signal-red);font-weight:600;}
   .machines-table-empty{padding:40px 0;text-align:center;color:var(--ink-400);}
   .mt-row-actions{display:flex;gap:6px;justify-content:flex-end;}
   #machinesFuelReportTable tr.row-error td{background:var(--signal-red-bg);color:var(--signal-red);}
