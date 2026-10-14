@@ -189,3 +189,29 @@
       beginFocusSettle();
     });
   })();
+
+  // Native scrollbars don't follow border-radius, so any
+  // .mobile-sheet-panel or .overview-table-wrap whose content needs to
+  // scroll -- a tall sheet on a short screen, a table with more rows
+  // than fit -- looked like its corners had gone square on whichever
+  // side the scrollbar landed, even though the left corners (no
+  // scrollbar there) stayed properly rounded. Both now keep their
+  // border-radius + overflow:hidden (admin.css) and the actual
+  // scrolling moves one level in, onto a wrapper this adds around their
+  // existing content once at load -- the scrollbar still shows up, just
+  // clipped to the rounded shape by its parent instead of poking past
+  // it. Every element this touches is static HTML already in the page
+  // at load, and anything that looks these up later does so by
+  // getElementById, which keeps resolving fine regardless of how deep
+  // an element ends up nested -- nothing downstream needs to know this
+  // ran.
+  (function(){
+    function wrapScrollable(el, scrollClass){
+      const inner = document.createElement('div');
+      inner.className = scrollClass;
+      while (el.firstChild) inner.appendChild(el.firstChild);
+      el.appendChild(inner);
+    }
+    document.querySelectorAll('.mobile-sheet-panel').forEach(el => wrapScrollable(el, 'mobile-sheet-panel-scroll'));
+    document.querySelectorAll('.overview-table-wrap').forEach(el => wrapScrollable(el, 'overview-table-scroll'));
+  })();

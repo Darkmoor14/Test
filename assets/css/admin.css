@@ -879,9 +879,11 @@
       position:fixed;top:50%;left:50%;right:auto;bottom:auto;
       transform:translate(-50%,-50%);
       width:340px;max-width:calc(100vw - 40px);
-      border-radius:14px;padding:18px 20px;max-height:82vh;
+      border-radius:14px;max-height:82vh;
       box-shadow:0 20px 60px rgba(20,24,29,0.28);
     }
+    #calendarDaySheet .mobile-sheet-panel-scroll,
+    #calendarEventFormSheet .mobile-sheet-panel-scroll{padding:18px 20px;}
     #calendarDaySheet .sheet-handle,
     #calendarEventFormSheet .sheet-handle{display:none;}
   }
@@ -943,9 +945,12 @@
       position:fixed;top:50%;left:50%;right:auto;bottom:auto;
       transform:translate(-50%,-50%);
       width:460px;max-width:calc(100vw - 40px);
-      border-radius:14px;padding:18px 20px;max-height:86vh;
+      border-radius:14px;max-height:86vh;
       box-shadow:0 20px 60px rgba(20,24,29,0.28);
     }
+    #vehicleFormSheet .mobile-sheet-panel-scroll,
+    #vehicleFuelLogFormSheet .mobile-sheet-panel-scroll,
+    #serviceDueSheet .mobile-sheet-panel-scroll{padding:18px 20px;}
     #vehicleFormSheet .sheet-handle,
     #vehicleFuelLogFormSheet .sheet-handle,
     #serviceDueSheet .sheet-handle{display:none;}
@@ -1292,11 +1297,21 @@
   .overview-table-wrap{
     border:1px solid var(--line-strong);border-radius:6px;
     background:var(--paper-000);
+    max-height:600px;
+    /* hidden here, auto one level in on .overview-table-scroll (see
+       ui-shell.js) -- a native scrollbar ignores border-radius, so
+       scrolling directly on this rounded element squared off its
+       top/bottom-right corners on any screen short/narrow enough to
+       need one. Clipping here instead crops the inner scrollbar to
+       the curve, same fix as .mobile-sheet-panel above. */
+    overflow:hidden;
+  }
+  .overview-table-scroll{
+    max-height:inherit;overflow:auto;
     /* Header + ~15 data rows before its own scrollbar kicks in (kept
        independent from the page's scroll) — the header stays pinned
        via position:sticky on .overview-table th as you scroll within
        this box specifically. */
-    max-height:600px;overflow-y:auto;overflow-x:auto;
   }
   .overview-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px;}
   /* Explicit widths (table-layout:fixed) instead of letting the
@@ -1873,9 +1888,20 @@
     position:absolute;left:0;right:0;bottom:0;
     background:var(--paper-000);
     border-radius:22px 22px 0 0;
-    padding:18px 20px calc(22px + env(safe-area-inset-bottom, 0));
     box-shadow:0 -16px 40px rgba(20,24,29,0.18);
-    max-height:min(78vh, 680px);overflow:auto;
+    max-height:min(78vh, 680px);
+    /* hidden, not auto: the actual scrolling happens one level in, on
+       .mobile-sheet-panel-scroll (see ui-shell.js, which wraps every
+       sheet's content in one at load). A native scrollbar doesn't
+       follow border-radius, so putting overflow:auto directly on this
+       rounded element left its top/bottom-right corners looking square
+       on any screen short enough to need scrolling -- clipping here
+       instead crops the inner scrollbar to match the curve. */
+    overflow:hidden;
+  }
+  .mobile-sheet-panel-scroll{
+    overflow:auto;max-height:inherit;
+    padding:18px 20px calc(22px + env(safe-area-inset-bottom, 0));
   }
   .sheet-handle{
     width:44px;height:5px;border-radius:999px;background:var(--line-strong);
