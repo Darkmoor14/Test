@@ -205,7 +205,7 @@
   ];
   function machinesFilterCounts(){
     const allVehicles = allEquipment.filter(eq => eq.erp_category === 'masina');
-    const urgentVehicles = allVehicles.filter(vehicleHasUrgentDocs);
+    const urgentVehicles = allVehicles.filter(eq => vehicleHasUrgentDocs(eq) || vehicleHasUrgentService(eq));
     const subcatCounts = { masina_mica: 0, autoutilitara: 0, camion: 0, utilaj: 0 };
     allVehicles.forEach(eq => { if (subcatCounts[eq.category] != null) subcatCounts[eq.category]++; });
     return { allVehicles, urgentVehicles, subcatCounts };
@@ -287,7 +287,7 @@
 
     if (onOverview) {
       if (!filtered.length) {
-        tbody.innerHTML = `<tr><td colspan="8"><div class="machines-table-empty">Nicio mașină înregistrată.</div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9"><div class="machines-table-empty">Nicio mașină înregistrată.</div></td></tr>`;
         return;
       }
       function dateCell(dateStr, applicable){
@@ -295,6 +295,21 @@
         if (!dateStr) return '<td class="mt-na">—</td>';
         const cls = docDateClass(dateStr);
         return `<td class="${cls}">${formatWoDateRO(dateStr)}${cls ? ' ⚠' : ''}</td>`;
+      }
+      // One cell covers every unit the vehicle tracks -- most vehicles
+      // show just a km or hours countdown, Camion/Autoutilitara show
+      // both side by side (same " · " join the Raport lunar consum
+      // table already uses for its own dual-unit columns).
+      function serviceDueCell(eq){
+        const parts = vehicleUnits(eq).map(unit => {
+          const c = vehicleServiceCountdownFor(eq, unit);
+          if (c == null) return null;
+          const cls = serviceDueClass(c.remaining, unit);
+          const val = c.remaining >= 0 ? `${c.remaining} ${c.unit}` : `depășit cu ${Math.abs(c.remaining)} ${c.unit}`;
+          return `<span class="${cls}">${val}${cls ? ' ⚠' : ''}</span>`;
+        }).filter(Boolean);
+        if (!parts.length) return '<td class="mt-na">—</td>';
+        return `<td>${parts.join(' · ')}</td>`;
       }
       tbody.innerHTML = filtered.map(eq => {
         const isCamion = eq.category === 'camion';
@@ -308,6 +323,7 @@
             ${dateCell(eq.parking_ticket_expires_on, true)}
             ${dateCell(eq.vignette_expires_on, true)}
             ${dateCell(eq.tachograph_expires_on, isCamion)}
+            ${serviceDueCell(eq)}
           </tr>
         `;
       }).join('');
@@ -406,6 +422,27 @@
     if (current == null) return null;
     const due = Number(baseline) + Number(interval);
     return { remaining: due - current, due, unit: unitLabel(unit) };
+  }
+  // Two-tier warning, same shape as docDateClass/vehicleHasUrgentDocs
+  // above: an orange heads-up with no Notificări entry well before it's
+  // actually due, and a red one -- which DOES count toward Notificări --
+  // once it's close enough to matter. Hours get the same thresholds
+  // scaled down by the km:h ratio the rest of this file already uses
+  // for its single service-warning cutoff (1000km ~ 50h).
+  const SERVICE_WARN_KM = 2500;
+  const SERVICE_URGENT_KM = 500;
+  function serviceWarnThreshold(unit){ return unit === 'hours' ? SERVICE_WARN_KM / 20 : SERVICE_WARN_KM; }
+  function serviceUrgentThreshold(unit){ return unit === 'hours' ? SERVICE_URGENT_KM / 20 : SERVICE_URGENT_KM; }
+  function serviceDueClass(remaining, unit){
+    if (remaining <= serviceUrgentThreshold(unit)) return 'mt-expired';
+    if (remaining <= serviceWarnThreshold(unit)) return 'mt-warn';
+    return '';
+  }
+  function vehicleHasUrgentService(eq){
+    return vehicleUnits(eq).some(u => {
+      const c = vehicleServiceCountdownFor(eq, u);
+      return c != null && c.remaining <= serviceUrgentThreshold(u);
+    });
   }
   // Full picture for one vehicle+unit in one month: the reading entered
   // (if any), what it's measured against, the resulting delta, that
@@ -1226,8 +1263,7 @@
       });
       const service = vehicleServiceCountdownFor(eq, unit);
       if (service != null) {
-        const warnThreshold = unit === 'hours' ? 50 : 1000;
-        const serviceCls = service.remaining <= 0 ? 'mt-expired' : service.remaining <= warnThreshold ? 'mt-warn' : '';
+        const serviceCls = serviceDueClass(service.remaining, unit);
         const serviceVal = service.remaining >= 0 ? `${service.remaining} ${service.unit}`
           : `depășit cu ${Math.abs(service.remaining)} ${service.unit}`;
         items.push({
