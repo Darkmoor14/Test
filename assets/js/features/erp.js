@@ -411,14 +411,27 @@
   // get one of these per unit (km and hours independently) -- whichever
   // comes due first is the one that matters, same as a real engine
   // service.
+  // "Current" reading for service-countdown purposes: the latest logged
+  // value if one exists, or -- for a vehicle with no monthly reading at
+  // all yet (either freshly configured, or because its only logged
+  // value turned out to be bad data and got cleared) -- the one-time
+  // initial reading, so the countdown still shows something (the full
+  // interval, since baseline defaults to that same initial reading)
+  // instead of silently vanishing until the next "Raport lunar consum"
+  // entry.
+  function currentServiceReadingFor(eq, unit){
+    const log = latestFuelLogFor(eq, unit);
+    const field = readingFieldFor(unit);
+    if (log && log[field] != null) return Number(log[field]);
+    const initial = eq[initialFieldFor(unit)];
+    return initial != null ? Number(initial) : null;
+  }
   function vehicleServiceCountdownFor(eq, unit){
     const interval = eq[serviceIntervalFieldFor(unit)];
     if (interval == null) return null;
     const baseline = eq[serviceLastFieldFor(unit)] ?? eq[initialFieldFor(unit)];
     if (baseline == null) return null;
-    const log = latestFuelLogFor(eq, unit);
-    const field = readingFieldFor(unit);
-    const current = log && log[field] != null ? Number(log[field]) : null;
+    const current = currentServiceReadingFor(eq, unit);
     if (current == null) return null;
     const due = Number(baseline) + Number(interval);
     return { remaining: due - current, due, unit: unitLabel(unit) };
@@ -1354,11 +1367,7 @@
   async function markServiceDone(eq){
     const readings = vehicleUnits(eq)
       .filter(u => vehicleServiceCountdownFor(eq, u) != null)
-      .map(u => {
-        const log = latestFuelLogFor(eq, u);
-        const field = readingFieldFor(u);
-        return { unit: u, current: Number(log[field]) };
-      });
+      .map(u => ({ unit: u, current: currentServiceReadingFor(eq, u) }));
     if (!readings.length) return;
     const summary = readings.map(r => `${r.current} ${r.unit === 'hours' ? 'ore' : 'km'}`).join(' / ');
     if (!confirm(`Marchezi service efectuat pentru „${eq.name}” la ${summary}? Următorul service se calculează de la aceste valori.`)) return;
