@@ -1214,6 +1214,13 @@
   .fuel-purchase-item:first-child{border-top:none;}
   .fuel-purchase-item-main{font-size:13px;color:var(--ink-900);}
   .fuel-purchase-item-note{font-size:11.5px;color:var(--ink-600);margin-top:2px;}
+  /* A due document's row needs a date input alongside its own Salvează
+     (an odometer-based item just gets one button) -- reuses the exact
+     .ctrl-field input look from every other date field in this app
+     (vehicleFormSheet's own expiry dates included), just narrowed down
+     to fit this row instead of a full form grid. */
+  .service-due-date-edit{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .service-due-date-edit .ctrl-field{flex:0 0 150px;min-width:0;}
   .fuel-purchase-delete{
     flex-shrink:0;width:24px;height:24px;border-radius:50%;border:1px solid var(--line-strong);
     background:var(--paper-000);color:var(--ink-400);cursor:pointer;font-size:14px;line-height:1;

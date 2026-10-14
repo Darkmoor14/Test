@@ -1306,8 +1306,8 @@
     return `
       <div class="vehicle-big-card" id="vehicle-card-${escapeHtml(eq.id)}">
         <div class="vehicle-big-card-actions">
-          ${vehicleDueUnits(eq).length > 0 ? `
-          <button type="button" class="mt-row-icon-btn mt-service-done-icon" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Service scadent" aria-label="Vezi service scadent pentru ${escapeHtml(eq.name)}">
+          ${vehicleDueItems(eq).length > 0 ? `
+          <button type="button" class="mt-row-icon-btn mt-service-done-icon" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Scadențe" aria-label="Vezi scadențele pentru ${escapeHtml(eq.name)}">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
           </button>
           ` : ''}
@@ -1389,8 +1389,28 @@
       const countdown = vehicleServiceCountdownFor(eq, unit);
       if (countdown == null) return null;
       const cls = serviceDueClass(countdown.remaining, unit);
-      return cls ? { unit, countdown, cls } : null;
+      return cls ? { type: 'service', unit, countdown, cls } : null;
     }).filter(Boolean);
+  }
+  // Documents due soon (orange, <=14 days) or already expired (red) --
+  // same docDateClass() the Prezentare generală table's own date
+  // columns already use, just filtered down to the ones actually worth
+  // surfacing (an empty/never-set date isn't "due", it's just unset).
+  function vehicleDueDocs(eq){
+    const isCamion = eq.category === 'camion';
+    return VEHICLE_DOC_FIELDS.filter(f => !f.camionOnly || isCamion).map(f => {
+      const dateStr = eq[f.key];
+      const cls = docDateClass(dateStr);
+      return cls ? { type: 'doc', key: f.key, label: f.label, dateStr, cls } : null;
+    }).filter(Boolean);
+  }
+  // Everything currently worth surfacing on this vehicle -- due/overdue
+  // service intervals AND due/expired documents together. Gates the
+  // checkmark icon and populates the sheet it opens, so a km countdown
+  // and an expiring ITP show up the same way instead of two different
+  // UI patterns for "something needs attention on this car".
+  function vehicleDueItems(eq){
+    return [...vehicleDueUnits(eq), ...vehicleDueDocs(eq)];
   }
   // Which vehicle the open serviceDueSheet refers to -- re-read from
   // allEquipment (not captured once) on every render so resolving one
@@ -1401,7 +1421,7 @@
     const markAllBtn = document.getElementById('serviceDueMarkAllBtn');
     if (!listEl || !serviceDueSheetVehicleId) return;
     const eq = allEquipment.find(v => v.id === serviceDueSheetVehicleId);
-    const due = eq ? vehicleDueUnits(eq) : [];
+    const due = eq ? vehicleDueItems(eq) : [];
     if (!due.length) {
       // Nothing left due (the vehicle vanished, or its only due item
       // just got resolved) -- an empty sheet isn't useful, close it.
@@ -1409,6 +1429,21 @@
       return;
     }
     listEl.innerHTML = due.map(d => {
+      if (d.type === 'doc') {
+        const statusText = d.cls === 'mt-expired' ? `Expirat pe ${formatWoDateRO(d.dateStr)}` : `Expiră pe ${formatWoDateRO(d.dateStr)}`;
+        return `
+          <div class="fuel-purchase-item">
+            <div>
+              <div class="fuel-purchase-item-main">${escapeHtml(d.label)}</div>
+              <div class="fuel-purchase-item-note ${d.cls}">${statusText} ⚠</div>
+            </div>
+            <div class="service-due-date-edit">
+              <div class="ctrl-field"><input type="date" class="service-due-date-input" data-key="${d.key}" value="${escapeHtml(d.dateStr || '')}"></div>
+              <button type="button" class="btn btn-primary service-due-date-save-btn" data-requires-write="erp" data-key="${d.key}">Salvează</button>
+            </div>
+          </div>
+        `;
+      }
       const label = d.unit === 'hours' ? 'Ore rămase service' : 'Km rămași service';
       const val = d.countdown.remaining >= 0 ? `${d.countdown.remaining} ${d.countdown.unit}`
         : `depășit cu ${Math.abs(d.countdown.remaining)} ${d.countdown.unit}`;
@@ -1422,23 +1457,45 @@
         </div>
       `;
     }).join('');
-    if (markAllBtn) markAllBtn.style.display = due.length > 1 ? '' : 'none';
+    // Bulk-resolve only ever applies to service intervals -- there's no
+    // automatic value for a renewed document the way there is for an
+    // odometer reading, so it stays a per-document Salvează only.
+    const serviceCount = due.filter(d => d.type === 'service').length;
+    if (markAllBtn) markAllBtn.style.display = serviceCount > 1 ? '' : 'none';
   }
   function openServiceDueSheet(eq){
     serviceDueSheetVehicleId = eq.id;
     const titleEl = document.getElementById('serviceDueSheetTitle');
-    if (titleEl) titleEl.textContent = `Service efectuat — ${eq.name}`;
+    if (titleEl) titleEl.textContent = `Scadențe — ${eq.name}`;
     renderServiceDueSheet();
     setSheetOpen('serviceDueSheet', true);
   }
   const serviceDueList = document.getElementById('serviceDueList');
   if (serviceDueList) serviceDueList.addEventListener('click', async (e) => {
-    const btn = e.target.closest('.service-due-resolve-btn');
-    if (!btn || !serviceDueSheetVehicleId) return;
-    const eq = allEquipment.find(v => v.id === serviceDueSheetVehicleId);
+    const eq = serviceDueSheetVehicleId ? allEquipment.find(v => v.id === serviceDueSheetVehicleId) : null;
     if (!eq) return;
-    const ok = await markServiceDoneForUnits(eq, [btn.dataset.unit]);
-    if (ok) { await loadEquipment(); renderServiceDueSheet(); }
+    const resolveBtn = e.target.closest('.service-due-resolve-btn');
+    if (resolveBtn) {
+      const ok = await markServiceDoneForUnits(eq, [resolveBtn.dataset.unit]);
+      if (ok) { await loadEquipment(); renderServiceDueSheet(); }
+      return;
+    }
+    const dateSaveBtn = e.target.closest('.service-due-date-save-btn');
+    if (dateSaveBtn) {
+      const key = dateSaveBtn.dataset.key;
+      const input = serviceDueList.querySelector(`.service-due-date-input[data-key="${key}"]`);
+      const newVal = input ? input.value : '';
+      if (!newVal) { alert('Alegeți o dată.'); return; }
+      dateSaveBtn.disabled = true;
+      const { error } = await AppDataServices.erp.saveVehicle(supabaseClient, { [key]: newVal }, eq.id);
+      dateSaveBtn.disabled = false;
+      if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+      const fieldDef = VEHICLE_DOC_FIELDS.find(f => f.key === key);
+      logEntityActivity('masina', eq.id, `${fieldDef ? fieldDef.label : key} actualizat la ${formatWoDateRO(newVal)}.`);
+      showToast('Data a fost actualizată.');
+      await loadEquipment();
+      renderServiceDueSheet();
+    }
   });
   const serviceDueMarkAllBtn = document.getElementById('serviceDueMarkAllBtn');
   if (serviceDueMarkAllBtn) serviceDueMarkAllBtn.addEventListener('click', async () => {
