@@ -5,25 +5,42 @@ section at a time, mounted into the existing page rather than run as a
 separate app. See the migration tracker doc (linked from the main
 conversation) for the full feature-parity checklist and progress.
 
-**Status**: three sections done — Stare sistem (System status: dashboard,
+**Status**: four sections done — Stare sistem (System status: dashboard,
 auto-îmbunătățire, jurnal de activitate, roluri), Acasă (Home: clock,
 mini-calendar with full recurring-event CRUD, personal to-do widget,
-role-gated nav grid), and the **core** of Sesizări/Tickets (Prezentare
+role-gated nav grid), the **core** of Sesizări/Tickets (Prezentare
 generală + the ticket list: listing/filtering, create/edit with draft
 protection, status workflow, duplicate detection/linking, charts,
-push tie-ins for manually-added tickets) — **all mounted into
-admin-3.html**, replacing their old hand-written panels. Desktop only
-for now; mobile is deliberately deferred.
+push tie-ins for manually-added tickets), and the **core** of
+Proiecte+Resurse (Proiecte publice, Avarii rețele, Programe lucrări
+with its calendar, Proiecte → Home, Echipamente/Materiale/Produse,
+ERP → Home, and the shared Istoric/Listă de verificare/Jurnal stoc
+sheets used across all of the above plus still-vanilla LPS/Parc Auto)
+— **all mounted into admin-3.html**, replacing their old hand-written
+panels. Desktop only for now; mobile is deliberately deferred.
 
-**Tickets' Excel import/export (Raport Excel + the repair-sheet
-import) is its own deferred follow-up round** — it's ~1700 lines of
-workbook-generation/parsing logic in `assets/js/features/excel.js` on
-its own, comparable in size to everything else in Tickets combined.
-The Excel toolbar icons are hidden in the mounted version until that
-round ships; `excel.js` itself is untouched and dormant (its own
-button-click wiring is guarded and finds nothing to attach to), so it
-causes no errors, but it's not reachable either. See the migration
-tracker doc for the full breakdown.
+**Three follow-up rounds are deliberately deferred, same reasoning
+each time — a sub-feature whose own size rivals everything else in
+its section combined:**
+- **Tickets' Excel import/export** (Raport Excel + the repair-sheet
+  import) — ~1700 lines in `assets/js/features/excel.js`.
+- **Proiecte LPS** (Last Planner System: Gantt chart, PPC/variance
+  calculations, 7 sub-tabs) — stays entirely vanilla (`lps.js`,
+  `panel-lps`), not touched this round beyond the bare minimum
+  (`openAdminTab`'s tab-switch plumbing) needed to keep it working
+  alongside the new React panels.
+- **Parc Auto + Raport lunar consum** (vehicle fleet: fuel/service/
+  document-expiry tracking, dual-unit km/hours math) — stays vanilla
+  in `erp.js`; only the document-expiry alert logic was ported
+  (duplicated, not shared) so ERP → Home's alert banner still works.
+  Proiecte publice's own "Importă din Excel" bulk-add is a smaller,
+  separately-deferred piece (see the migration tracker doc).
+
+Each deferred feature's toolbar entry points are hidden/removed from
+the mounted markup; the underlying vanilla code (where it still
+exists) is left dormant rather than deleted — its own guarded
+`if (btn) btn.addEventListener(...)` wiring just finds nothing and
+no-ops. See the migration tracker doc for the full breakdown.
 
 ## Stack
 
@@ -154,6 +171,74 @@ src/
     TicketsRoot.tsx             composes all of the above across its 5
                                  portal targets -- see mount.tsx's
                                  mountTickets/TicketsAppRoot
+  features/shared/
+    entityLogClient.ts          createLogEntityActivity(supabase, getEmail)
+                                  -- plain insert helper, used by both React
+                                  stores and (indirectly) by window bridges
+    EntityLogSheet.tsx           "Istoric" sheet (entity_log: activity + notes)
+    ChecklistSheet.tsx           "Listă de verificare" sheet (JSON array column)
+    StockLedgerSheet.tsx         "Jurnal stoc" read-only history sheet
+    SharedSheetsRoot.tsx         mounts all three ONCE, independent of
+                                  Proiecte/ERP's own roots -- exposes
+                                  window.openEntityLogSheet/openChecklistSheet/
+                                  openStockLedgerSheet so every caller (React
+                                  or still-vanilla LPS/Parc Auto) opens the
+                                  same sheet instance
+  features/projects/
+    types.ts, projectUtils.ts   Project/BacklogProject/WorkOrder models +
+                                  pure progress/status/filter/date logic,
+                                  ported 1:1 from projects.js/work-orders.js
+    useProjectsStore.ts          the central hook -- current_projects/
+                                  backlog_projects/work_orders, every filter/
+                                  selection/form piece of state, mutations,
+                                  and the window.allProjects/allBacklogProjects/
+                                  allWorkOrders/calcProjectStatus bridges
+                                  search.js's smart search still calls into
+    ProjectsContext.tsx          React context wrapping the store -- lets
+                                  3 topbar portal targets + 4 panel targets
+                                  share one tree (see ProjectsRoot.tsx)
+    ProjectsTopbarControls.tsx   year-bar + quick-filters inner content for
+                                  the projects/backlog topbar slots (own
+                                  lighter SimpleFilterPopover -- Proiecte is
+                                  year+status only, Avarii status only,
+                                  neither needed Tickets' month/day popover)
+    ProjectCard.tsx, ProjectForm.tsx, ProjectsPanel.tsx   Proiecte publice
+    BacklogForm.tsx, BacklogPanel.tsx                     Avarii rețele
+    WorkOrderForm.tsx, WorkOrdersCalendar.tsx,
+    WorkOrdersPanel.tsx          Programe lucrări, including the month-grid
+                                  calendar (fixes a pre-existing bug: the
+                                  vanilla version's dateKey/HOME_CLOCK_
+                                  MONTH_NAMES were deleted from vanilla JS
+                                  during the earlier Acasă rewrite and never
+                                  replaced, so it threw on load)
+    ProjectsHomePanel.tsx        "Proiecte → Home" stats + nav -- LPS's own
+                                  count is read straight from its localStorage
+                                  key (internalProjects is browser-local, not
+                                  Supabase, see lps.js) rather than a bridge
+    ProjectsRoot.tsx              composes all of the above -- see mount.tsx's
+                                  mountProjects/ProjectsAppRoot
+  features/erp/
+    types.ts, erpUtils.ts        EquipmentItem model + status/category labels,
+                                  isLowStock, and a ported (not shared)
+                                  copy of expiredDocNames/hasExpiredDocs for
+                                  ERP Home's alert banner (Parc Auto's own
+                                  full vehicle-doc logic stays in erp.js)
+    useErpStore.ts                the central hook -- fetches the whole
+                                  equipment_inventory table (all 4
+                                  erp_category values, needed for ERP Home's
+                                  counts/alerts across all of them) but only
+                                  CRUDs the 3 non-vehicle categories
+    ErpContext.tsx
+    EquipmentForm.tsx             shared add/edit sheet for Echipamente/
+                                  Materiale/Produse (not vehicles -- those
+                                  keep their own separate vehicleFormSheet)
+    EquipmentRow.tsx, CategoryPanel.tsx   one generic list row/panel
+                                  parameterized by category
+    ErpHomePanel.tsx              "ERP → Home" stats + alerts + nav
+    ErpRoot.tsx                   composes all of the above -- see mount.tsx's
+                                  mountErp/ErpAppRoot (no topbar portals --
+                                  ERP panels never had a year-bar/quick-filters
+                                  strip, just a plain toolbar)
   App.tsx     standalone-only: login gate + god-role check + tab switcher
   main.tsx    standalone entry (index.html)
   mount.tsx   mounted entry (admin-3.html) -- exposes window.AdminReactStatus
@@ -198,3 +283,22 @@ src/
   itself moves to React — e.g. once Proiecte is rewritten, Acasă's
   "Proiecte" nav button and `window.openAdminTab('projects-home')`
   can likely be replaced with a direct React-to-React call.
+- Proiecte/ERP follow the exact same bridge contract as Tickets:
+  `window.allProjects`/`allBacklogProjects`/`allWorkOrders` (kept live
+  via `useEffect`s in `useProjectsStore`, read by search.js's smart
+  search), `window.calcProjectStatus` (same file, now that the vanilla
+  copy in the deleted `projects.js` is gone), and
+  `window.openEntityLogSheet`/`openChecklistSheet`/`openStockLedgerSheet`
+  (set by `SharedSheetsRoot`, called bare by LPS's still-vanilla
+  look-ahead items exactly as before).
+- Unlike Tickets, Proiecte/ERP's React stores do **not** yet listen for
+  `admin:tabchange` to silently refresh on tab entry — they fetch once
+  on login (`sessionEmail` becoming non-null) and after their own
+  mutations, which was judged good enough for this round given lower
+  concurrent-editing pressure than Sesizări. Worth adding later if it
+  turns out to matter in practice.
+- `projects.js` and `work-orders.js` were deleted outright rather than
+  trimmed like `tickets.js` was — unlike tickets.js (which also held
+  genuinely shared bootstrap: login/session, the shared Filtre-popover/
+  search-toggle widget factories), neither file held anything other
+  code depended on, so there was nothing worth keeping.

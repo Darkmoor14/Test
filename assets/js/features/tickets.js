@@ -266,10 +266,7 @@
     // concern -- see admin-react/'s useStaffRoster + FilterPopover,
     // which fetch modulePermission('tickets') themselves rather than
     // reading it from here.
-    runAutoArchiveSweep().finally(() => {
-      loadProjects();
-      loadBacklogProjects();
-    });
+    runAutoArchiveSweep();
     loadStaffRoster();
     // First-ever login on this browser — walk through the basics once,
     // automatically. Re-openable anytime from the "?" button in the rail.
@@ -287,23 +284,12 @@
     dash.classList.remove('show');
     logoutBtn.style.display = 'none';
     userTag.textContent = '';
-    allProjects = [];
-    projectSelectedIds.clear();
-    projectSearchQuery = '';
-    projectsFilter = 'Ongoing';
-    projectYearFilter = 'all';
-    projectYearFilterInitialized = false;
     currentAdminTab = 'overview';
     openAdminTab('overview', true);
-    // Tickets' own React store watches sessionEmail via its own auth
-    // listener and reloads on a fresh login -- see
-    // admin-react/'s useTicketsStore.
-    document.getElementById('projectList').innerHTML = '';
-    document.getElementById('projectsCount').textContent = '';
-    document.getElementById('projectsSelectionCount').textContent = '0 selectate';
-    document.getElementById('projectForm').style.display = 'none';
-    document.getElementById('excelPreview').style.display = 'none';
-    updateProjectsArchiveBar();
+    // Tickets' and Proiecte/ERP's own React stores each watch
+    // sessionEmail via their own auth listener and reload on a fresh
+    // login -- see admin-react/'s useTicketsStore/useProjectsStore/
+    // useErpStore.
   }
 
   loginForm.addEventListener('submit', async (e) => {

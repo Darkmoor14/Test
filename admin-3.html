@@ -174,80 +174,13 @@
         <input type="file" id="repairSheetInput" accept=".xlsx,.xls,.csv" style="display:none;">
       </div>
       <div class="overview-year-bar admin-tabs-row-year" data-year-panel="projects">
-        <label for="projectYearFilterSelectDesktop">An:</label>
-        <select id="projectYearFilterSelectDesktop"></select>
-        <span class="year-warning" id="yearWarningProjectsDesktop">⚠ Nu e anul curent</span>
+        <div id="reactProjectsYearBar"></div>
       </div>
       <div class="overview-quick-filters" data-year-panel="projects">
-        <div class="overview-popover-wrap">
-          <button type="button" class="overview-icon-btn" id="projectsFilterToggleBtn" aria-label="Filtre">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-          </button>
-          <div class="filter-popover" id="projectsFilterPopover">
-            <div class="sheet-grid popover-yearmonth">
-              <div class="ctrl-field">
-                <label for="projectYearFilterSelectMobile">An</label>
-                <select id="projectYearFilterSelectMobile"></select>
-              </div>
-            </div>
-            <div class="sheet-filter-status">
-              <label>Stare listă</label>
-              <div class="chips" id="projectsChipsWrapSheet"></div>
-            </div>
-            <div class="popover-saved-views">
-              <label>Vizualizări salvate</label>
-              <div class="saved-views-chips" id="projectsSavedViewsWrap"></div>
-              <button type="button" class="save-view-btn" id="projectsSaveViewBtn">+ Salvează vizualizarea curentă</button>
-            </div>
-          </div>
-        </div>
-        <button type="button" class="overview-icon-btn add-btn" id="addProjectBtn" data-requires-write="proiecte" title="Adaugă proiect" aria-label="Adaugă proiect">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
-        <div class="overview-search-wrap" id="projectSearchWrap">
-          <button type="button" class="overview-icon-btn" id="projectSearchToggleBtn" aria-label="Căutare">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
-          <input type="search" id="projectSearchBox" placeholder="Caută titlu, adresă…">
-        </div>
-        <span class="overview-quick-filters-count" id="projectsCountMobile">0 proiecte</span>
-        <span class="filter-status-note" id="projectsFilterNoteMobile"></span>
-        <input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none;">
-        <button type="button" class="overview-icon-btn excel-icon-btn" id="importExcelBtn" title="Importă din Excel" aria-label="Importă din Excel">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        </button>
+        <div id="reactProjectsQuickFilters"></div>
       </div>
       <div class="overview-quick-filters" data-year-panel="backlog">
-        <div class="overview-popover-wrap">
-          <button type="button" class="overview-icon-btn" id="backlogFilterToggleBtn" aria-label="Filtre">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-          </button>
-          <div class="filter-popover" id="backlogFilterPopover">
-            <div class="sheet-filter-status">
-              <label>Stare listă</label>
-              <div class="chips" id="backlogChipsWrap"></div>
-            </div>
-            <div class="popover-saved-views">
-              <label>Vizualizări salvate</label>
-              <div class="saved-views-chips" id="backlogSavedViewsWrap"></div>
-              <button type="button" class="save-view-btn" id="backlogSaveViewBtn">+ Salvează vizualizarea curentă</button>
-            </div>
-          </div>
-        </div>
-        <button type="button" class="overview-icon-btn add-btn" id="addBacklogBtn" data-requires-write="proiecte" title="Adaugă lucrare" aria-label="Adaugă lucrare">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
-        <div class="overview-search-wrap" id="backlogSearchWrap">
-          <button type="button" class="overview-icon-btn" id="backlogSearchToggleBtn" aria-label="Căutare">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
-          <input type="search" id="backlogSearchBox" placeholder="Caută titlu, adresă, angajat…">
-        </div>
-        <span class="overview-quick-filters-count" id="backlogCountMobile">0 lucrări</span>
-        <span class="filter-status-note" id="backlogFilterNoteMobile"></span>
-        <button type="button" class="overview-icon-btn excel-icon-btn" id="exportBacklogExcelBtn" title="Exportă Excel" aria-label="Exportă Excel">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        </button>
+        <div id="reactBacklogQuickFilters"></div>
       </div>
         </div>
       </div>
@@ -266,54 +199,7 @@
       <div id="reactHomeRoot"></div>
     </div>
     <div class="admin-panel" id="panel-projects-home">
-      <div class="priority-grid">
-        <button type="button" class="priority-card" id="projHomeProjectsCard">
-          <span class="k">● Proiecte publice</span>
-          <div class="num" id="projHomeProjectsCount">0</div>
-          <div class="sub">Active momentan</div>
-        </button>
-        <button type="button" class="priority-card warn" id="projHomeBacklogCard">
-          <span class="k">⚡ Avarii rețele</span>
-          <div class="num" id="projHomeBacklogCount">0</div>
-          <div class="sub">Lucrări deschise</div>
-        </button>
-        <button type="button" class="priority-card" id="projHomeLpsCard">
-          <span class="k">◫ Proiecte LPS</span>
-          <div class="num" id="projHomeLpsCount">0</div>
-          <div class="sub">Proiecte interne de planificare</div>
-        </button>
-        <button type="button" class="priority-card done" id="projHomeWorkOrdersCard">
-          <span class="k">🗓 Programe lucrări</span>
-          <div class="num" id="projHomeWorkOrdersCount">0</div>
-          <div class="sub">Programate în următoarele 14 zile</div>
-        </button>
-      </div>
-      <div class="home-nav-grid" style="margin-top:28px;">
-        <button type="button" class="home-nav-btn" id="projHomeNavProjects">
-          <span class="home-nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M9 4v5"/></svg>
-          </span>
-          <span class="home-nav-text"><span class="home-nav-label">Proiecte publice</span><span class="home-nav-sub">Lucrări în curs și programate</span></span>
-        </button>
-        <button type="button" class="home-nav-btn" id="projHomeNavBacklog">
-          <span class="home-nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
-          </span>
-          <span class="home-nav-text"><span class="home-nav-label">Avarii rețele</span><span class="home-nav-sub">Lucrări din teren</span></span>
-        </button>
-        <button type="button" class="home-nav-btn" id="projHomeNavLps">
-          <span class="home-nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M3 9h6"/><path d="M3 15h6"/></svg>
-          </span>
-          <span class="home-nav-text"><span class="home-nav-label">Proiecte LPS</span><span class="home-nav-sub">Planificare Last Planner</span></span>
-        </button>
-        <button type="button" class="home-nav-btn" id="projHomeNavWorkOrders">
-          <span class="home-nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
-          </span>
-          <span class="home-nav-text"><span class="home-nav-label">Programe lucrări</span><span class="home-nav-sub">Calendar de lucrări planificate</span></span>
-        </button>
-      </div>
+      <div id="reactProjectsHomeRoot"></div>
     </div>
     <div class="admin-panel" id="panel-lps">
       <div class="internal-projects-head">
@@ -382,69 +268,7 @@
     </div>
 
     <div class="admin-panel" id="panel-workorders">
-      <div class="toolbar">
-        <div style="display:flex; align-items:center; gap:14px;">
-          <div class="result-count" id="workOrdersCount"></div>
-        </div>
-        <button type="button" class="btn btn-primary" id="addWorkOrderBtn" data-requires-write="proiecte">+ Programare nouă</button>
-      </div>
-
-      <div class="wo-calendar">
-        <div class="wo-calendar-head">
-          <button type="button" class="wo-cal-nav" id="woCalPrevBtn" aria-label="Luna anterioară">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <span class="wo-calendar-month" id="woCalMonthLabel">—</span>
-          <button type="button" class="wo-cal-nav" id="woCalNextBtn" aria-label="Luna următoare">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-          <button type="button" class="btn" id="woCalTodayBtn">Azi</button>
-          <button type="button" class="btn" id="woCalDownloadBtn" title="Descarcă / printează calendarul">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Descarcă
-          </button>
-        </div>
-        <div class="wo-calendar-weekdays">
-          <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
-        </div>
-        <div class="wo-calendar-grid" id="woCalendarGrid"></div>
-      </div>
-
-      <div class="project-form" id="workOrderForm" style="display:none;">
-        <input type="hidden" id="wf-id">
-        <div class="pf-grid">
-          <div class="ctrl-field">
-            <label>Lucrare</label>
-            <input type="text" id="wf-title" placeholder="ex: Asfaltare Str. Gh. Doja">
-          </div>
-          <div class="ctrl-field">
-            <label>Loc / adresă</label>
-            <input type="text" id="wf-location" placeholder="ex: Str. Gh. Doja, Târgu-Mureș">
-          </div>
-          <div class="ctrl-field">
-            <label>Echipă / responsabil</label>
-            <input type="text" id="wf-crew" placeholder="ex: Echipa 2 - Ionel Ghiurchi">
-          </div>
-          <div class="ctrl-field">
-            <label>Data programată</label>
-            <input type="date" id="wf-start">
-          </div>
-          <div class="ctrl-field">
-            <label>Până la (opțional)</label>
-            <input type="date" id="wf-end">
-          </div>
-          <div class="ctrl-field" style="grid-column:1/-1;">
-            <label>Descriere</label>
-            <input type="text" id="wf-description" placeholder="Detalii despre lucrare">
-          </div>
-        </div>
-        <div class="pf-actions">
-          <button class="btn" id="wfCancelBtn" type="button">Anulează</button>
-          <button class="btn btn-primary" id="wfSaveBtn" type="button">Salvează programarea</button>
-        </div>
-      </div>
-
-      <h3 class="wo-list-heading">Toate programările</h3>
-      <div class="backlog-list" id="workOrdersList"></div>
+      <div id="reactWorkOrdersRoot"></div>
     </div>
 
     <div class="admin-panel" id="panel-tickets">
@@ -452,163 +276,18 @@
     </div>
 
     <div class="admin-panel" id="panel-projects">
-      <div class="toolbar">
-        <div style="display:flex; align-items:center; gap:14px;">
-          <div class="result-count" id="projectsCount"></div>
-          <span class="filter-status-note" id="projectsFilterNoteDesktop"></span>
-        </div>
-      </div>
-      <div class="archive-bar" id="projectsArchiveBar">
-        <span id="projectsSelectionCount">0 selectate</span>
-        <button class="btn" id="projectsClearSelectionBtn" type="button">Anulează selecția</button>
-        <button class="btn btn-primary" id="projectsArchiveSelectedBtn" type="button">Arhivează selectate</button>
-      </div>
-
-      <div class="project-form" id="projectForm" style="display:none;">
-        <input type="hidden" id="pf-id">
-        <div class="pf-grid">
-          <div class="ctrl-field">
-            <label>Tip lucrare / Titlu</label>
-            <input type="text" id="pf-title" placeholder="ex: Reabilitare rețea electrică">
-          </div>
-          <div class="ctrl-field">
-            <label>Adresă</label>
-            <input type="text" id="pf-address" placeholder="ex: Str. Gh. Doja, Târgu-Mureș">
-          </div>
-          <div class="ctrl-field">
-            <label>Data început</label>
-            <input type="date" id="pf-start">
-          </div>
-          <div class="ctrl-field">
-            <label>Data finalizare estimată</label>
-            <input type="date" id="pf-due">
-          </div>
-          <div class="ctrl-field" style="grid-column:1/-1;">
-            <label>Note (opțional, intern)</label>
-            <input type="text" id="pf-notes" placeholder="Vizibil doar aici, nu pe site">
-          </div>
-        </div>
-        <div class="pf-actions">
-          <button class="btn" id="pfCancelBtn" type="button">Anulează</button>
-          <button class="btn btn-primary" id="pfSaveBtn" type="button">Salvează proiectul</button>
-        </div>
-      </div>
-
-      <div class="excel-preview" id="excelPreview" style="display:none;">
-        <p class="excel-preview-note">Previzualizare — verificați rândurile înainte de a confirma importul. Coloane așteptate: <strong>Tip lucrare, Adresă, Data început, Data finalizare</strong> (prima linie = titluri de coloană).</p>
-        <div class="excel-preview-table-wrap"><table class="excel-preview-table" id="excelPreviewTable"></table></div>
-        <div class="pf-actions">
-          <button class="btn" id="excelCancelBtn" type="button">Anulează</button>
-          <button class="btn btn-primary" id="excelConfirmBtn" type="button">Confirmă importul</button>
-        </div>
-      </div>
-
-      <div class="project-list" id="projectList"></div>
+      <div id="reactProjectsPanelRoot"></div>
     </div>
 
     <div class="admin-panel" id="panel-backlog">
-      <div class="toolbar">
-        <div style="display:flex; align-items:center; gap:14px;">
-          <div class="result-count" id="backlogCount"></div>
-          <span class="filter-status-note" id="backlogFilterNoteDesktop"></span>
-        </div>
-      </div>
-
-      <div class="project-form" id="backlogForm" style="display:none;">
-        <input type="hidden" id="bf-id">
-        <div class="pf-grid">
-          <div class="ctrl-field">
-            <label>Tipul lucrării</label>
-            <input type="text" id="bf-title" placeholder="ex: Extindere rețea electrică">
-          </div>
-          <div class="ctrl-field">
-            <label>Adresă</label>
-            <input type="text" id="bf-address" placeholder="ex: Str. Gh. Doja, Târgu-Mureș">
-          </div>
-          <div class="ctrl-field">
-            <label>Nume angajat</label>
-            <input type="text" id="bf-employee" placeholder="ex: Ionel Ghiurchi">
-          </div>
-          <div class="ctrl-field">
-            <label>Data înregistrării</label>
-            <input type="date" id="bf-start">
-          </div>
-          <div class="ctrl-field" style="grid-column:1/-1;">
-            <label>Descriere</label>
-            <input type="text" id="bf-description" placeholder="Detalii despre lucrare">
-          </div>
-        </div>
-        <div class="pf-actions">
-          <button class="btn" id="bfCancelBtn" type="button">Anulează</button>
-          <button class="btn btn-primary" id="bfSaveBtn" type="button">Salvează lucrarea</button>
-        </div>
-      </div>
-
-      <div class="backlog-list" id="backlogList"></div>
+      <div id="reactBacklogPanelRoot"></div>
     </div>
 
     <div class="admin-panel" id="panel-erp-home">
-      <div class="priority-grid">
-        <button type="button" class="priority-card" id="erpHomeEquipmentCard">
-          <span class="k">● Echipamente</span>
-          <div class="num" id="erpHomeEquipmentCount">0</div>
-          <div class="sub">Scule și utilaje mici</div>
-        </button>
-        <button type="button" class="priority-card" id="erpHomeMachinesCard">
-          <span class="k">◆ Parc Auto</span>
-          <div class="num" id="erpHomeMachinesCount">0</div>
-          <div class="sub">Utilaje grele și transport</div>
-        </button>
-        <button type="button" class="priority-card" id="erpHomeMaterialsCard">
-          <span class="k">■ Materiale</span>
-          <div class="num" id="erpHomeMaterialsCount">0</div>
-          <div class="sub">Stoc consumabile</div>
-        </button>
-        <button type="button" class="priority-card" id="erpHomeProductsCard">
-          <span class="k">▲ Produse</span>
-          <div class="num" id="erpHomeProductsCount">0</div>
-          <div class="sub">Produse finite</div>
-        </button>
-      </div>
-      <div class="erp-alerts-wrap" id="erpAlertsWrap" style="display:none;margin-top:24px;">
-        <h3 class="status-subhead">Alerte stoc și revizii</h3>
-        <div class="status-history-list" id="erpAlertsList"></div>
-      </div>
-      <div class="home-nav-grid" style="margin-top:28px;">
-        <button type="button" class="home-nav-btn" id="erpHomeNavEquipment">
-          <span class="home-nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></svg>
-          </span>
-          <span class="home-nav-text"><span class="home-nav-label">Echipamente</span><span class="home-nav-sub">Scule, generatoare, compresoare</span></span>
-        </button>
-        <button type="button" class="home-nav-btn" id="erpHomeNavMachines">
-          <span class="home-nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8"/><path d="M14 17H9"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="17.5" cy="17.5" r="1.5"/></svg>
-          </span>
-          <span class="home-nav-text"><span class="home-nav-label">Parc Auto</span><span class="home-nav-sub">Utilaje grele și autovehicule</span></span>
-        </button>
-        <button type="button" class="home-nav-btn" id="erpHomeNavMaterials">
-          <span class="home-nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
-          </span>
-          <span class="home-nav-text"><span class="home-nav-label">Materiale</span><span class="home-nav-sub">Stoc consumabile de șantier</span></span>
-        </button>
-        <button type="button" class="home-nav-btn" id="erpHomeNavProducts">
-          <span class="home-nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 7.3 12 12l-8.5-4.7"/><path d="M12 22V12"/><path d="m3.3 7 8.2-4.6a1 1 0 0 1 1 0L20.7 7a1 1 0 0 1 .5.87v8.26a1 1 0 0 1-.5.87l-8.2 4.6a1 1 0 0 1-1 0l-8.2-4.6a1 1 0 0 1-.5-.87V7.87a1 1 0 0 1 .5-.87z"/></svg>
-          </span>
-          <span class="home-nav-text"><span class="home-nav-label">Produse</span><span class="home-nav-sub">Produse finite, stoc</span></span>
-        </button>
-      </div>
+      <div id="reactErpHomeRoot"></div>
     </div>
     <div class="admin-panel" id="panel-equipment">
-      <div class="toolbar">
-        <div style="display:flex; align-items:center; gap:14px;">
-          <div class="result-count" id="equipmentCount"></div>
-        </div>
-        <button type="button" class="btn btn-primary" id="addEquipmentBtn" data-requires-write="erp">+ Adaugă echipament</button>
-      </div>
-      <div class="backlog-list" id="equipmentList"></div>
+      <div id="reactEquipmentPanelRoot"></div>
     </div>
     <div class="admin-panel" id="panel-machines">
       <div class="toolbar">
@@ -682,22 +361,10 @@
       </div>
     </div>
     <div class="admin-panel" id="panel-materials">
-      <div class="toolbar">
-        <div style="display:flex; align-items:center; gap:14px;">
-          <div class="result-count" id="materialsCount"></div>
-        </div>
-        <button type="button" class="btn btn-primary" id="addMaterialBtn" data-requires-write="erp">+ Adaugă material</button>
-      </div>
-      <div class="backlog-list" id="materialsList"></div>
+      <div id="reactMaterialsPanelRoot"></div>
     </div>
     <div class="admin-panel" id="panel-products">
-      <div class="toolbar">
-        <div style="display:flex; align-items:center; gap:14px;">
-          <div class="result-count" id="productsCount"></div>
-        </div>
-        <button type="button" class="btn btn-primary" id="addProductBtn" data-requires-write="erp">+ Adaugă produs</button>
-      </div>
-      <div class="backlog-list" id="productsList"></div>
+      <div id="reactProductsPanelRoot"></div>
     </div>
 
     <div class="admin-panel" id="panel-hr-home">
@@ -1168,68 +835,6 @@
   </div>
 </div>
 
-<div class="mobile-sheet" id="erpItemFormSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="erpItemFormSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="erpItemFormSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div><h3 id="erpItemFormSheetTitle">Articol din inventar</h3></div>
-      <button type="button" class="sheet-close" data-close-sheet="erpItemFormSheet" aria-label="Închide">×</button>
-    </div>
-    <input type="hidden" id="ef-id">
-    <div class="pf-grid">
-      <div class="ctrl-field">
-        <label>Denumire</label>
-        <input type="text" id="ef-name" placeholder="ex: Buldoexcavator JCB 3CX">
-      </div>
-      <div class="ctrl-field">
-        <label>Categorie</label>
-        <select id="ef-type">
-          <option value="echipament">Echipament (se rezervă pe perioadă)</option>
-          <option value="material">Material (consumabil — se scade din stoc)</option>
-          <option value="produs">Produs (produs finit — se scade din stoc)</option>
-        </select>
-      </div>
-      <div class="ctrl-field" id="ef-category-field">
-        <label>Subcategorie</label>
-        <input type="text" id="ef-category" placeholder="ex: Utilaj greu / Material electric">
-      </div>
-      <div class="ctrl-field" id="ef-quantity-field">
-        <label>Cantitate</label>
-        <input type="number" id="ef-quantity" min="0" step="1" value="1">
-      </div>
-      <div class="ctrl-field" id="ef-unit-field">
-        <label>Unitate</label>
-        <input type="text" id="ef-unit" placeholder="ex: buc, kg, m">
-      </div>
-      <div class="ctrl-field" id="ef-reorder-field">
-        <label>Prag reaprovizionare</label>
-        <input type="number" id="ef-reorder-threshold" min="0" step="1" placeholder="ex: 50 (opțional)">
-      </div>
-      <div class="ctrl-field">
-        <label>Nr. serie / inventar</label>
-        <input type="text" id="ef-serial" placeholder="ex: SN-4471">
-      </div>
-      <div class="ctrl-field">
-        <label>Locație curentă</label>
-        <input type="text" id="ef-location" placeholder="ex: Depozit central / Șantier Str. X">
-      </div>
-      <div class="ctrl-field">
-        <label>Alocat la</label>
-        <input type="text" id="ef-assigned" placeholder="ex: Echipa 2 / Ionel Ghiurchi">
-      </div>
-      <div class="ctrl-field" style="grid-column:1/-1;">
-        <label>Notițe</label>
-        <input type="text" id="ef-notes" placeholder="Detalii suplimentare">
-      </div>
-    </div>
-    <div class="sheet-actions">
-      <button class="btn" id="efCancelBtn" type="button" data-close-sheet="erpItemFormSheet">Anulează</button>
-      <button class="btn btn-primary" id="efSaveBtn" type="button">Salvează</button>
-    </div>
-  </div>
-</div>
-
 <div class="mobile-sheet" id="vehicleFormSheet" aria-hidden="true">
   <div class="mobile-sheet-backdrop" data-close-sheet="vehicleFormSheet"></div>
   <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vehicleFormSheetTitle">
@@ -1434,37 +1039,7 @@
   </div>
 </div>
 
-<div class="mobile-sheet" id="entityLogSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="entityLogSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="entityLogSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div><h3 id="entityLogSheetTitle">Istoric</h3></div>
-      <button type="button" class="sheet-close" data-close-sheet="entityLogSheet" aria-label="Închide">×</button>
-    </div>
-    <div class="entity-log-list" id="entityLogList"></div>
-    <div class="entity-log-add">
-      <textarea id="entityLogNoteInput" rows="2" placeholder="Adaugă o notiță…"></textarea>
-      <button type="button" class="btn btn-primary" id="entityLogAddBtn">Adaugă notiță</button>
-    </div>
-  </div>
-</div>
-
-<div class="mobile-sheet" id="checklistSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="checklistSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="checklistSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div><h3 id="checklistSheetTitle">Listă de verificare</h3></div>
-      <button type="button" class="sheet-close" data-close-sheet="checklistSheet" aria-label="Închide">×</button>
-    </div>
-    <div class="checklist-items" id="checklistItems"></div>
-    <div class="checklist-add">
-      <input type="text" id="checklistNewItemInput" placeholder="Element nou…">
-      <button type="button" class="btn" id="checklistAddBtn">+ Adaugă</button>
-    </div>
-  </div>
-</div>
+<div id="reactSharedSheetsRoot"></div>
 
 <div class="command-palette" id="commandPalette" aria-hidden="true">
   <div class="command-palette-backdrop" data-close-palette></div>
@@ -1476,18 +1051,6 @@
     </div>
     <div class="command-palette-results" id="commandPaletteResults"></div>
     <div class="command-palette-answer" id="commandPaletteAnswer" hidden></div>
-  </div>
-</div>
-
-<div class="mobile-sheet" id="stockLedgerSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="stockLedgerSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="stockLedgerSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div><h3 id="stockLedgerSheetTitle">Jurnal stoc</h3></div>
-      <button type="button" class="sheet-close" data-close-sheet="stockLedgerSheet" aria-label="Închide">×</button>
-    </div>
-    <div class="entity-log-list" id="stockLedgerList"></div>
   </div>
 </div>
 
@@ -1728,12 +1291,12 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="assets/js/data-services.js?v=20261019a"></script>
-<script src="assets/js/admin-core.js?v=20261019c"></script>
+<script src="assets/js/admin-core.js?v=20261019d"></script>
 <!-- Built from admin-react/ (source: admin-react/src/mount.tsx) — do not
      hand-edit this file, rebuild it instead:
        cd admin-react && npx vite build --config vite.mount.config.ts
      then copy dist-mount/admin-react-status.js here. -->
-<script src="assets/js/admin-react-status.js?v=20261019c"></script>
+<script src="assets/js/admin-react-status.js?v=20261019d"></script>
 <script>
   // Mounts Stare sistem's four React panels plus Acasă and Sesizări
   // (Tickets), reusing the page's own already-created Supabase client
@@ -1772,14 +1335,52 @@
         ticketsPanelRoot: ticketsRootEl,
       }, supabaseClient);
     }
+
+    var sharedSheetsEl = document.getElementById('reactSharedSheetsRoot');
+    if (sharedSheetsEl) window.AdminReactStatus.mountSharedSheets(sharedSheetsEl, supabaseClient);
+
+    var projectsHomeRootEl = document.getElementById('reactProjectsHomeRoot');
+    var projectsYearBarEl = document.getElementById('reactProjectsYearBar');
+    var projectsQuickFiltersEl = document.getElementById('reactProjectsQuickFilters');
+    var backlogQuickFiltersEl = document.getElementById('reactBacklogQuickFilters');
+    var projectsPanelRootEl = document.getElementById('reactProjectsPanelRoot');
+    var backlogPanelRootEl = document.getElementById('reactBacklogPanelRoot');
+    var workOrdersPanelRootEl = document.getElementById('reactWorkOrdersRoot');
+    if (projectsHomeRootEl && projectsYearBarEl && projectsQuickFiltersEl && backlogQuickFiltersEl && projectsPanelRootEl && backlogPanelRootEl && workOrdersPanelRootEl) {
+      window.AdminReactStatus.mountProjects(projectsHomeRootEl, {
+        projectsYearBar: projectsYearBarEl,
+        projectsQuickFilters: projectsQuickFiltersEl,
+        backlogQuickFilters: backlogQuickFiltersEl,
+        projectsHomeRoot: projectsHomeRootEl,
+        projectsPanelRoot: projectsPanelRootEl,
+        backlogPanelRoot: backlogPanelRootEl,
+        workOrdersPanelRoot: workOrdersPanelRootEl,
+      }, supabaseClient);
+    }
+
+    var erpHomeRootEl = document.getElementById('reactErpHomeRoot');
+    var equipmentPanelRootEl = document.getElementById('reactEquipmentPanelRoot');
+    var materialsPanelRootEl = document.getElementById('reactMaterialsPanelRoot');
+    var productsPanelRootEl = document.getElementById('reactProductsPanelRoot');
+    if (erpHomeRootEl && equipmentPanelRootEl && materialsPanelRootEl && productsPanelRootEl) {
+      window.AdminReactStatus.mountErp(erpHomeRootEl, {
+        erpHomeRoot: erpHomeRootEl,
+        equipmentPanelRoot: equipmentPanelRootEl,
+        materialsPanelRoot: materialsPanelRootEl,
+        productsPanelRoot: productsPanelRootEl,
+      }, supabaseClient);
+    }
   })();
 </script>
 <script src="assets/js/features/system-status.js?v=20261019b"></script>
-<script src="assets/js/features/lps.js?v=20261019c"></script>
-<script src="assets/js/features/tickets.js?v=20261019c"></script>
-<script src="assets/js/features/projects.js?v=20261019a"></script>
-<script src="assets/js/features/work-orders.js?v=20261019b"></script>
-<script src="assets/js/features/erp.js?v=20261019a"></script>
+<script src="assets/js/features/lps.js?v=20261019d"></script>
+<script src="assets/js/features/tickets.js?v=20261019d"></script>
+<!-- projects.js and work-orders.js are gone: Proiecte publice, Avarii
+     rețele, and Programe lucrări are now admin-react/'s features/projects/
+     (see mountProjects() above) -- nothing in either file was shared
+     bootstrap, unlike tickets.js, so both were fully replaced rather
+     than trimmed. -->
+<script src="assets/js/features/erp.js?v=20261019b"></script>
 <script src="assets/js/features/hr.js?v=20261019b"></script>
 <script src="assets/js/features/excel.js?v=20261019a"></script>
 <script src="assets/js/features/search.js?v=20261019a"></script>

@@ -9,6 +9,9 @@ import { Roles } from './features/status/Roles';
 import { HomePage } from './features/home/HomePage';
 import type { HomeNavKey } from './features/home/NavGrid';
 import { TicketsRoot, type TicketsMountTargets } from './features/tickets/TicketsRoot';
+import { ProjectsRoot, type ProjectsMountTargets } from './features/projects/ProjectsRoot';
+import { ErpRoot, type ErpMountTargets } from './features/erp/ErpRoot';
+import { SharedSheetsRoot } from './features/shared/SharedSheetsRoot';
 import { useState, useEffect } from 'react';
 
 // Entry point for mounting into admin-3.html, as opposed to main.tsx
@@ -29,6 +32,9 @@ declare global {
       mountRoles: (el: HTMLElement, client: SupabaseClient) => void;
       mountHome: (el: HTMLElement, client: SupabaseClient) => void;
       mountTickets: (overviewPanelRootEl: HTMLElement, targets: TicketsMountTargets, client: SupabaseClient) => void;
+      mountProjects: (projectsHomeRootEl: HTMLElement, targets: ProjectsMountTargets, client: SupabaseClient) => void;
+      mountErp: (erpHomeRootEl: HTMLElement, targets: ErpMountTargets, client: SupabaseClient) => void;
+      mountSharedSheets: (el: HTMLElement, client: SupabaseClient) => void;
     };
   }
 }
@@ -128,6 +134,33 @@ function TicketsAppRoot({ client, targets }: { client: SupabaseClient; targets: 
   );
 }
 
+function ProjectsAppRoot({ client, targets }: { client: SupabaseClient; targets: ProjectsMountTargets }) {
+  const sessionEmail = useSessionEmail(client);
+  return (
+    <SupabaseProvider client={client}>
+      <ProjectsRoot sessionEmail={sessionEmail} targets={targets} />
+    </SupabaseProvider>
+  );
+}
+
+function ErpAppRoot({ client, targets }: { client: SupabaseClient; targets: ErpMountTargets }) {
+  const sessionEmail = useSessionEmail(client);
+  return (
+    <SupabaseProvider client={client}>
+      <ErpRoot sessionEmail={sessionEmail} targets={targets} />
+    </SupabaseProvider>
+  );
+}
+
+function SharedSheetsAppRoot({ client }: { client: SupabaseClient }) {
+  const sessionEmail = useSessionEmail(client);
+  return (
+    <SupabaseProvider client={client}>
+      <SharedSheetsRoot sessionEmail={sessionEmail} />
+    </SupabaseProvider>
+  );
+}
+
 const roots = new WeakMap<HTMLElement, Root>();
 function getRoot(el: HTMLElement): Root {
   let root = roots.get(el);
@@ -156,5 +189,14 @@ window.AdminReactStatus = {
   },
   mountTickets(overviewPanelRootEl, targets, client) {
     getRoot(overviewPanelRootEl).render(<TicketsAppRoot client={client} targets={targets} />);
+  },
+  mountProjects(projectsHomeRootEl, targets, client) {
+    getRoot(projectsHomeRootEl).render(<ProjectsAppRoot client={client} targets={targets} />);
+  },
+  mountErp(erpHomeRootEl, targets, client) {
+    getRoot(erpHomeRootEl).render(<ErpAppRoot client={client} targets={targets} />);
+  },
+  mountSharedSheets(el, client) {
+    getRoot(el).render(<SharedSheetsAppRoot client={client} />);
   },
 };

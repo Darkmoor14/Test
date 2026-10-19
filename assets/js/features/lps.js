@@ -885,9 +885,12 @@
     // -- it listens for this event (see admin-react/'s
     // useTicketsStore) instead of reading setTicketTypeFilter here.
     window.dispatchEvent(new CustomEvent('admin:tabchange', { detail: tabKey }));
-    if (tabKey === 'workorders') loadWorkOrders();
-    else if (tabKey === 'equipment' || tabKey === 'machines' || tabKey === 'machines-fuel-report' || tabKey === 'materials' || tabKey === 'products' || tabKey === 'erp-home') loadEquipment();
-    else if (tabKey === 'projects-home') renderProjectsHomeStats();
+    // Proiecte publice/Avarii rețele/Programe lucrări/ERP Home are now
+    // admin-react/'s own panels -- they load once on login (see
+    // useProjectsStore/useErpStore) and reload themselves after their
+    // own mutations, same as Tickets. Parc Auto (still vanilla/deferred)
+    // is the one piece of ERP that still needs a reload on tab entry.
+    if (tabKey === 'equipment' || tabKey === 'machines' || tabKey === 'machines-fuel-report' || tabKey === 'materials' || tabKey === 'products' || tabKey === 'erp-home') loadEquipment();
     else if (tabKey === 'lps' && isReportFocusedView()) refreshLookaheadWorkspace();
     else if (tabKey === 'hr-home' || tabKey === 'hr-employees') { if (typeof loadHrEmployees === 'function') loadHrEmployees(); }
     else if (tabKey === 'hr-worktime') { if (typeof loadHrWorktime === 'function') loadHrWorktime(); }
@@ -933,14 +936,10 @@
       if (sg) sg.classList.add('open');
       if (tg) tg.classList.add('open');
     }
-    // Proiecte publice always opens on "Active" — otherwise whichever
-    // status chip was last clicked earlier in the session (e.g. "Toate"
-    // while triaging) silently stuck for every later visit to this tab,
-    // which read as if "Toate" were the actual default.
-    if (tabKey === 'projects' && currentAdminTab !== 'projects') {
-      if (typeof setProjectYearFilter === 'function') setProjectYearFilter('all');
-      setProjectsFilter('Ongoing');
-    }
+    // Proiecte publice's "always opens on Active" reset is now
+    // admin-react/'s own concern -- its useProjectsStore already
+    // initializes projectsFilter to 'Ongoing' every mount, so there's
+    // no stuck-filter state to reset here.
 
     // Browser back/forward support — each real tab switch becomes its
     // own history entry, so pressing back steps back through

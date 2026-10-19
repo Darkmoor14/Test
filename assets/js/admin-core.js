@@ -332,18 +332,17 @@
      not a replacement for that existing behavior.
      ============================================================ */
   function refreshAllAdminData(){
-    // Tickets/Overview reload themselves on every tab switch into a
-    // ticket-related view -- see the admin:tabchange dispatch in
-    // lps.js's openAdminTab and admin-react/'s useTicketsStore.
-    loadProjects();
-    loadBacklogProjects();
+    // Tickets/Overview and Proiecte/Avarii/Programe lucrări/ERP reload
+    // themselves on login and on every relevant tab switch -- see the
+    // admin:tabchange dispatch in lps.js's openAdminTab and
+    // admin-react/'s useTicketsStore/useProjectsStore/useErpStore.
     // Calendar events (Acasă) now reload themselves — see admin-react/'s
     // useCalendarEvents hook, which the React pilot mounted into
     // panel-home owns independently.
-    // These three also keep the home-page smart search answerable
-    // across ERP/Programe lucrări/LPS without visiting those tabs first.
+    // This one also keeps the home-page smart search answerable across
+    // Parc Auto without visiting that tab first (Parc Auto itself still
+    // reads straight off allEquipment, kept vanilla/deferred this round).
     loadEquipment();
-    loadWorkOrders();
     loadInternalProjects();
   }
 
@@ -353,13 +352,10 @@
       // admin-react/'s useTicketsStore) -- this just navigates there;
       // React's own store already defaults to its standard view.
       tabKey = 'overview';
-    } else if (tabKey === 'projects') {
-      if (projectsSearchWidget) projectsSearchWidget.applyExternalQuery('');
-      setProjectYearFilter('all');
-      setProjectsFilter('Ongoing');
-    } else if (tabKey === 'backlog') {
-      if (backlogSearchWidget) backlogSearchWidget.applyExternalQuery('');
-      setBacklogFilter('Ongoing');
+    } else if (tabKey === 'projects' || tabKey === 'backlog') {
+      // Proiecte/Avarii filter state is now React-owned (see
+      // admin-react/'s useProjectsStore) -- this just navigates there;
+      // React's own store already defaults to its standard view.
     } else if (tabKey === 'reports') {
       // Same note as the 'tickets' branch above -- React's Overview
       // store owns this state now. The "Așteaptă raport" default this
@@ -582,216 +578,25 @@
   // Priority cards, the narrow-filter banner, and the add-ticket
   // form are now the React Tickets pilot's own concern (see the
   // comment above, near the start of this file's ticket-related code).
-  function openProjectForm(project){
-    excelPreviewWrap.style.display = 'none';
-    document.getElementById('pf-id').value = project ? project.id : '';
-    document.getElementById('pf-title').value = project ? project.title : '';
-    document.getElementById('pf-address').value = project ? project.address : '';
-    document.getElementById('pf-start').value = project ? project.start_date : '';
-    document.getElementById('pf-due').value = project ? project.due_date : '';
-    document.getElementById('pf-notes').value = project ? (project.notes || '') : '';
-    projectForm.style.display = 'block';
-    projectForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-
-  document.getElementById('addProjectBtn').addEventListener('click', () => openProjectForm(null));
-  document.getElementById('pfCancelBtn').addEventListener('click', () => {
-    projectForm.style.display = 'none';
-  });
-
-  document.getElementById('pfSaveBtn').addEventListener('click', async () => {
-    const id = document.getElementById('pf-id').value;
-    const title = document.getElementById('pf-title').value.trim();
-    const address = document.getElementById('pf-address').value.trim();
-    const start = document.getElementById('pf-start').value;
-    const due = document.getElementById('pf-due').value;
-    const notes = document.getElementById('pf-notes').value.trim();
-
-    if (!title || !address || !start || !due) {
-      alert('Completați tip lucrare, adresă, data început și data finalizare.');
-      return;
-    }
-    if (new Date(due) < new Date(start)) {
-      alert('Data de finalizare nu poate fi înainte de data de început.');
-      return;
-    }
-
-    const payload = { title, address, start_date: start, due_date: due, notes: notes || null };
-    const { error } = id
-      ? await supabaseClient.from('current_projects').update(payload).eq('id', id)
-      : await supabaseClient.from('current_projects').insert(payload);
-
-    if (error) {
-      console.error(error);
-      alert('Eroare la salvare. Încercați din nou.');
-      return;
-    }
-    projectForm.style.display = 'none';
-    showToast(id ? 'Proiectul a fost actualizat.' : 'Proiectul a fost adăugat.');
-    loadProjects();
-  });
-
-  /* ============================================================
-     ISTORIC & NOTIȚE (entity_log) — infrastructură comună pentru
-     Proiecte publice, Avarii rețele și elementele Look-ahead din
-     LPS. Un singur tabel ține atât evenimentele automate (schimbări
-     de stare) cât și notițele scrise de oameni, afișate împreună
-     într-un cronologic — un fir de activitate, ca pe un ticket
-     Plane/Linear, nu două liste separate.
-     ============================================================ */
-  let entityLogCurrent = { type: null, id: null, title: null };
+  // Proiecte publice's add/edit form (openProjectForm/pfSaveBtn) is now
+  // admin-react/'s ProjectForm. The entity_log (Istoric) and checklist
+  // (Listă de verificare) SHEETS are now admin-react/'s EntityLogSheet/
+  // ChecklistSheet, opened via window.openEntityLogSheet/
+  // window.openChecklistSheet -- Proiecte/Avarii/Echipamente-Materiale-
+  // Produse are all React-owned and call those directly; LPS look-ahead
+  // items (still vanilla/deferred) call the exact same two window
+  // functions by bare identifier, same bridge contract as Tickets'
+  // window.goToTicket. Only the plain activity-logging INSERT helper
+  // stays here, genuinely shared (LPS/Parc Auto, both still vanilla,
+  // call it by bare identifier too).
   async function logEntityActivity(entityType, entityId, text){
     try {
       await supabaseClient.from('entity_log').insert({ entity_type: entityType, entity_id: entityId, kind: 'activity', text, user_email: currentSessionEmail || null });
     } catch (e) { /* best effort — never block the action it's describing */ }
   }
-  async function renderEntityLog(){
-    const listEl = document.getElementById('entityLogList');
-    if (!listEl || !entityLogCurrent.id) return;
-    const { data, error } = await supabaseClient.from('entity_log').select('*')
-      .eq('entity_type', entityLogCurrent.type).eq('entity_id', entityLogCurrent.id)
-      .order('created_at', { ascending: false }).limit(100);
-    if (error) { listEl.innerHTML = '<p class="status-history-empty">Istoricul nu a putut fi încărcat.</p>'; return; }
-    if (!data || data.length === 0) { listEl.innerHTML = '<p class="status-history-empty">Niciun eveniment încă.</p>'; return; }
-    listEl.innerHTML = data.map(row => `
-      <div class="entity-log-item ${row.kind}">
-        <span class="entity-log-time">${formatLogTimeRO(row.created_at)}</span>
-        <div>
-          <div class="entity-log-text">${escapeHtml(row.text)}</div>
-          ${row.user_email ? `<div class="entity-log-author">${escapeHtml(row.user_email)}</div>` : ''}
-        </div>
-      </div>
-    `).join('');
-  }
-  async function openEntityLogSheet(entityType, entityId, title){
-    entityLogCurrent = { type: entityType, id: entityId, title };
-    const titleEl = document.getElementById('entityLogSheetTitle');
-    if (titleEl) titleEl.textContent = `Istoric — ${title}`;
-    const noteInput = document.getElementById('entityLogNoteInput');
-    if (noteInput) noteInput.value = '';
-    document.getElementById('entityLogList').innerHTML = '<p class="status-history-empty">Se încarcă…</p>';
-    setSheetOpen('entityLogSheet', true);
-    await renderEntityLog();
-  }
-  const entityLogAddBtn = document.getElementById('entityLogAddBtn');
-  if (entityLogAddBtn) entityLogAddBtn.addEventListener('click', async () => {
-    const input = document.getElementById('entityLogNoteInput');
-    const text = input.value.trim();
-    if (!text || !entityLogCurrent.id) return;
-    entityLogAddBtn.disabled = true;
-    const { error } = await supabaseClient.from('entity_log').insert({
-      entity_type: entityLogCurrent.type, entity_id: entityLogCurrent.id, kind: 'note', text, user_email: currentSessionEmail || null,
-    });
-    entityLogAddBtn.disabled = false;
-    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
-    input.value = '';
-    renderEntityLog();
-  });
 
-  /* ============================================================
-     LISTE DE VERIFICARE (sub-tasks) — un array JSON simplu
-     ({text, done}) direct pe rândul proiectului/avariei/elementului
-     Look-ahead, salvat integral la fiecare schimbare — suficient de
-     simplu cât timp o singură persoană editează odată o listă.
-     ============================================================ */
-  let checklistCurrent = { table: null, id: null, items: [], onSaved: null };
-  function renderChecklistItems(){
-    const listEl = document.getElementById('checklistItems');
-    if (!listEl) return;
-    if (!checklistCurrent.items.length) {
-      listEl.innerHTML = '<p class="status-history-empty">Nicio verificare adăugată încă.</p>';
-    } else {
-      listEl.innerHTML = checklistCurrent.items.map((item, i) => `
-        <div class="checklist-item ${item.done ? 'done' : ''}">
-          <input type="checkbox" class="checklist-item-check" data-index="${i}" ${item.done ? 'checked' : ''}>
-          <span class="checklist-item-text">${escapeHtml(item.text)}</span>
-          <button type="button" class="checklist-item-remove" data-index="${i}" aria-label="Șterge">×</button>
-        </div>
-      `).join('');
-    }
-    const titleEl = document.getElementById('checklistSheetTitle');
-    if (titleEl) {
-      const done = checklistCurrent.items.filter(i => i.done).length;
-      titleEl.textContent = `Listă de verificare${checklistCurrent.items.length ? ` (${done}/${checklistCurrent.items.length})` : ''}`;
-    }
-  }
-  async function saveChecklist(){
-    if (!checklistCurrent.id) return;
-    await supabaseClient.from(checklistCurrent.table).update({ checklist: checklistCurrent.items }).eq('id', checklistCurrent.id);
-    if (checklistCurrent.onSaved) checklistCurrent.onSaved();
-  }
-  function openChecklistSheet(table, id, items, onSaved){
-    checklistCurrent = { table, id, items: Array.isArray(items) ? JSON.parse(JSON.stringify(items)) : [], onSaved };
-    renderChecklistItems();
-    setSheetOpen('checklistSheet', true);
-  }
-  const checklistItemsEl = document.getElementById('checklistItems');
-  if (checklistItemsEl) {
-    checklistItemsEl.addEventListener('click', async (e) => {
-      const removeBtn = e.target.closest('.checklist-item-remove');
-      if (!removeBtn) return;
-      checklistCurrent.items.splice(Number(removeBtn.dataset.index), 1);
-      renderChecklistItems();
-      await saveChecklist();
-    });
-    checklistItemsEl.addEventListener('change', async (e) => {
-      const checkbox = e.target.closest('.checklist-item-check');
-      if (!checkbox) return;
-      checklistCurrent.items[Number(checkbox.dataset.index)].done = checkbox.checked;
-      renderChecklistItems();
-      await saveChecklist();
-    });
-  }
-  const checklistAddBtn = document.getElementById('checklistAddBtn');
-  const checklistNewItemInput = document.getElementById('checklistNewItemInput');
-  if (checklistAddBtn && checklistNewItemInput) {
-    checklistAddBtn.addEventListener('click', async () => {
-      const text = checklistNewItemInput.value.trim();
-      if (!text) return;
-      checklistCurrent.items.push({ text, done: false });
-      checklistNewItemInput.value = '';
-      renderChecklistItems();
-      await saveChecklist();
-    });
-    checklistNewItemInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); checklistAddBtn.click(); } });
-  }
-
-  /* ============================================================
-     PROIECTE → HOME — a small analytics summary across all four
-     project-family panels (Proiecte publice, Avarii rețele, LPS,
-     Programe lucrări), reusing whatever each panel already loaded
-     rather than issuing its own separate queries.
-     ============================================================ */
-  function renderProjectsHomeStats(){
-    const projCountEl = document.getElementById('projHomeProjectsCount');
-    if (projCountEl) projCountEl.textContent = (typeof allProjects !== 'undefined' ? allProjects.filter(p => !p.archived).length : 0);
-    const backlogCountEl = document.getElementById('projHomeBacklogCount');
-    if (backlogCountEl) backlogCountEl.textContent = (typeof allBacklogProjects !== 'undefined' ? allBacklogProjects.filter(p => (p.status || 'Ongoing') !== 'Terminat').length : 0);
-    const lpsCountEl = document.getElementById('projHomeLpsCount');
-    if (lpsCountEl) lpsCountEl.textContent = (typeof internalProjects !== 'undefined' ? internalProjects.length : 0);
-    const woCountEl = document.getElementById('projHomeWorkOrdersCount');
-    if (woCountEl) {
-      const in14Days = new Date(); in14Days.setDate(in14Days.getDate() + 14);
-      const upcoming = allWorkOrders.filter(w => w.status !== 'Finalizat' && w.status !== 'Anulat' && new Date(w.scheduled_date) <= in14Days);
-      woCountEl.textContent = upcoming.length;
-    }
-  }
-  const projHomeProjectsCard = document.getElementById('projHomeProjectsCard');
-  if (projHomeProjectsCard) projHomeProjectsCard.addEventListener('click', () => openAdminTab('projects'));
-  const projHomeBacklogCard = document.getElementById('projHomeBacklogCard');
-  if (projHomeBacklogCard) projHomeBacklogCard.addEventListener('click', () => openAdminTab('backlog'));
-  const projHomeLpsCard = document.getElementById('projHomeLpsCard');
-  if (projHomeLpsCard) projHomeLpsCard.addEventListener('click', () => openAdminTab('lps'));
-  const projHomeWorkOrdersCard = document.getElementById('projHomeWorkOrdersCard');
-  if (projHomeWorkOrdersCard) projHomeWorkOrdersCard.addEventListener('click', () => openAdminTab('workorders'));
-  const projHomeNavProjects = document.getElementById('projHomeNavProjects');
-  if (projHomeNavProjects) projHomeNavProjects.addEventListener('click', () => openAdminTab('projects'));
-  const projHomeNavBacklog = document.getElementById('projHomeNavBacklog');
-  if (projHomeNavBacklog) projHomeNavBacklog.addEventListener('click', () => openAdminTab('backlog'));
-  const projHomeNavLps = document.getElementById('projHomeNavLps');
-  if (projHomeNavLps) projHomeNavLps.addEventListener('click', () => openAdminTab('lps'));
-  const projHomeNavWorkOrders = document.getElementById('projHomeNavWorkOrders');
-  if (projHomeNavWorkOrders) projHomeNavWorkOrders.addEventListener('click', () => openAdminTab('workorders'));
+  // Proiecte → Home's stats/nav (renderProjectsHomeStats + its card/nav
+  // listeners) is now admin-react/'s ProjectsHomePanel.
 
   /* ============================================================
      ONBOARDING — un tur ghidat rapid pentru cineva nou, cu un
