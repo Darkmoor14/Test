@@ -769,7 +769,7 @@
     tickets: 'overview', projects: 'projects-home', erp: 'erp-home', hr: 'hr-home', status: 'status',
   };
   const CATEGORY_TITLES = {
-    tickets: 'Sesizări', projects: 'Proiecte', erp: 'Resurse și inventar', hr: 'HR', status: 'Stare sistem',
+    tickets: 'Sesizări', erp: 'Resurse și inventar', hr: 'HR', status: 'Stare sistem',
   };
   function setActiveCategory(category){
     document.querySelectorAll('.rail-item[data-category]').forEach(item => {
@@ -778,12 +778,22 @@
     document.querySelectorAll('.category-panel-section').forEach(sec => {
       sec.classList.toggle('active', sec.dataset.category === category);
     });
+    // Proiecte's sub-nav lives in a horizontal bar above the page body
+    // instead of the second sidebar (see .category-topbar in admin-3.html)
+    // — the only category reshuffled like this so far, see the
+    // conversation that asked for it before rolling the same treatment
+    // out to any other section.
+    document.querySelectorAll('.category-topbar[data-category-topbar]').forEach(bar => {
+      bar.classList.toggle('active', bar.dataset.categoryTopbar === category);
+    });
     const titleEl = document.getElementById('categoryPanelTitle');
     if (titleEl) titleEl.textContent = CATEGORY_TITLES[category] || '';
     // Acasă isn't a category with sub-items — nothing to show in the
     // second sidebar there, so it collapses itself rather than
-    // sitting empty. This is independent of the user's own manual
-    // collapse toggle (a different class), which still applies again
+    // sitting empty (Proiecte collapses it too now, for the same
+    // reason — its sub-nav moved to the topbar above). This is
+    // independent of the user's own manual collapse toggle (a
+    // different class), which still applies again
     // as soon as a real category is picked.
     const catPanel = document.getElementById('categoryPanel');
     if (catPanel) catPanel.classList.toggle('empty', !CATEGORY_TITLES[category]);

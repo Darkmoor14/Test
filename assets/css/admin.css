@@ -291,6 +291,32 @@
      nested. A smaller font here was the one remaining visible
      inconsistency across the sidebar after the .admin-tab fix above. */
 
+  /* Proiecte's sub-nav, horizontal instead of the second sidebar (see
+     the comment on setActiveCategory in lps.js) — one row of plain
+     buttons today since Proiecte's own sub-items are flat; a category
+     with real nesting underneath (like Resurse și inventar's Parc Auto)
+     would need its own dropdown-capable item if this ever extends
+     there. */
+  .category-topbar{
+    display:none;align-items:center;gap:2px;flex-wrap:wrap;
+    padding:10px 28px;border-bottom:1px solid var(--line);background:var(--paper-000);
+  }
+  .category-topbar.active{display:flex;}
+  .category-topbar-item{
+    padding:8px 14px;border-radius:8px;border:none;background:none;
+    color:var(--ink-700);font-family:var(--body);font-size:13.5px;font-weight:500;cursor:pointer;white-space:nowrap;
+  }
+  .category-topbar-item:hover{background:var(--paper-100);color:var(--ink-900);}
+  .category-topbar-item.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;}
+  /* Same equal-specificity clash as .category-panel-item.admin-tab
+     (see its own comment above) — reassert this bar's own look. */
+  .category-topbar-item.admin-tab{
+    font-family:var(--body);font-size:13.5px;font-weight:500;color:var(--ink-700);
+    padding:8px 14px;border-bottom:none;margin-bottom:0;
+  }
+  .category-topbar-item.admin-tab:hover{background:var(--paper-100);color:var(--ink-900);}
+  .category-topbar-item.admin-tab.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;border-bottom-color:transparent;}
+
   .main{flex:1;min-width:0;display:flex;flex-direction:column;}
   .topbar{
     display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
@@ -303,6 +329,7 @@
   @media(max-width:900px){
     .rail{display:none;}
     .category-panel{display:none;}
+    .category-topbar.active{display:none;}
     .topbar{padding:14px 16px;}
     .page-body{padding:16px;}
   }
