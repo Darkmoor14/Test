@@ -145,18 +145,10 @@
     const statusPanelSection = document.querySelector('.category-panel-section[data-category="status"]');
     if (statusRailItem) statusRailItem.style.display = god ? '' : 'none';
     if (statusPanelSection) statusPanelSection.style.display = god ? '' : 'none';
-    const homeNavVisibility = {
-      homeNavTickets: god || modulePermission('tickets') === 'write',
-      homeNavProjects: god || modulePermission('proiecte') === 'write',
-      homeNavErp: god || modulePermission('erp') === 'write',
-      homeNavHr: god || modulePermission('hr') === 'write',
-      homeNavDocs: god || modulePermission('hr') === 'write',
-      homeNavStatus: god,
-    };
-    Object.keys(homeNavVisibility).forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = homeNavVisibility[id] ? '' : 'none';
-    });
+    // Acasă's own nav-grid visibility is computed independently inside
+    // the React pilot now (see admin-react/'s useStaffRoster +
+    // NavGrid.tsx) — it fetches its own roles rather than reading
+    // currentUserRoles/isGod()/modulePermission() from here.
     // Same filtering for the mobile hamburger menu's equivalent links —
     // it has no erp/hr entries of its own to gate, just tickets/
     // proiecte/status.
@@ -343,7 +335,9 @@
     loadTickets(true);
     loadProjects();
     loadBacklogProjects();
-    loadCalendarEvents();
+    // Calendar events (Acasă) now reload themselves — see admin-react/'s
+    // useCalendarEvents hook, which the React pilot mounted into
+    // panel-home owns independently.
     // These three also keep the home-page smart search answerable
     // across ERP/Programe lucrări/LPS without visiting those tabs first.
     loadEquipment();
@@ -396,33 +390,38 @@
     btn.addEventListener('click', () => openAdminTab(btn.dataset.tab));
   });
 
-  const homeNavTicketsBtn = document.getElementById('homeNavTickets');
-  if (homeNavTicketsBtn) {
-    homeNavTicketsBtn.addEventListener('click', () => {
-      // Lands on Overview now that Sesizări has a proper Overview
-      // sub-view — matches the breadcrumb's own middle "Sesizări"
-      // crumb (see renderBreadcrumb below), so both entry points into
-      // Sesizări agree on where "Sesizări" itself actually means.
-      // Lands on the tab's own default view (Active, current year/
-      // month) rather than forcing "Toate"/every year/every month —
-      // that used to be harmless, but now shows up as a permanent
-      // "Filtru: Toate, toate lunile, toți anii" note (see
-      // createFilterPopoverWidget) every single time, which reads as
-      // her having deliberately broadened the filter when she just
-      // clicked a nav button.
-      editingTicketId = null;
-      if (ticketsSearchWidget) ticketsSearchWidget.applyExternalQuery('');
-      openAdminTab('overview');
-    });
-  }
-  const homeNavProjectsBtn = document.getElementById('homeNavProjects');
-  if (homeNavProjectsBtn) homeNavProjectsBtn.addEventListener('click', () => openAdminTab('projects-home'));
-  const homeNavErpBtn = document.getElementById('homeNavErp');
-  if (homeNavErpBtn) homeNavErpBtn.addEventListener('click', () => openAdminTab('erp-home'));
-  const homeNavStatusBtn = document.getElementById('homeNavStatus');
-  if (homeNavStatusBtn) homeNavStatusBtn.addEventListener('click', () => openAdminTab('status'));
-  const homeNavDocsBtn = document.getElementById('homeNavDocs');
-  if (homeNavDocsBtn) homeNavDocsBtn.addEventListener('click', () => openAdminTab('docs'));
+  /* ============================================================
+     ACASĂ (panel-home) used to be hand-written vanilla JS here and in
+     features/system-status.js (clock, mini calendar + recurring
+     events, to-do widget, nav grid). It's now a React pilot (see
+     admin-react/, built into assets/js/admin-react-status.js and
+     mounted directly into panel-home in admin-3.html) — do not re-add
+     that code here, edit the React source instead and rebuild.
+
+     The one thing the React side still reaches back into vanilla for:
+     its "Sesizări" nav button needs the exact same reset-then-navigate
+     behavior the old homeNavTicketsBtn click handler had (see the
+     comment that used to sit on it, preserved below) — exposed here as
+     a small explicit window.* bridge function rather than the React
+     bundle reaching into tickets.js's module-scope editingTicketId/
+     ticketsSearchWidget by bare name.
+     ============================================================ */
+  window.goHomeToTicketsOverview = function(){
+    // Lands on Overview now that Sesizări has a proper Overview
+    // sub-view — matches the breadcrumb's own middle "Sesizări"
+    // crumb (see renderBreadcrumb below), so both entry points into
+    // Sesizări agree on where "Sesizări" itself actually means.
+    // Lands on the tab's own default view (Active, current year/
+    // month) rather than forcing "Toate"/every year/every month —
+    // that used to be harmless, but now shows up as a permanent
+    // "Filtru: Toate, toate lunile, toți anii" note (see
+    // createFilterPopoverWidget) every single time, which reads as
+    // her having deliberately broadened the filter when she just
+    // clicked a nav button.
+    editingTicketId = null;
+    if (ticketsSearchWidget) ticketsSearchWidget.applyExternalQuery('');
+    openAdminTab('overview');
+  };
 
   // Documentație's own sidebar — Home / Sesizări / Proiecte (dropdown
   // of its four sub-areas) / ERP, the same category-panel pattern as
@@ -533,506 +532,9 @@
     });
   }
 
-  // Live clock + fully interactive calendar on the start page — click
-  // a day to see/add/edit/delete events for it. Events persist in
-  // Supabase (calendar_events table — see calendar_events_setup.sql)
-  // so they survive across devices/browsers, same as tickets/projects.
-  const HOME_CLOCK_MONTH_NAMES = ['ianuarie','februarie','martie','aprilie','mai','iunie','iulie','august','septembrie','octombrie','noiembrie','decembrie'];
-  const HOME_CLOCK_DAY_NAMES = ['duminică','luni','marți','miercuri','joi','vineri','sâmbătă'];
-
-  let calendarEvents = [];
-  const today0 = new Date();
-  let calendarViewYear = today0.getFullYear();
-  let calendarViewMonth = today0.getMonth();
-  let selectedCalendarDate = null; // 'YYYY-MM-DD'
-
-  function dateKey(d){
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }
-
-  /* ============================================================
-     RECURRING EVENTS — whole-series only (no per-occurrence
-     exceptions): a recurring row's own start_time is occurrence #1,
-     and every later occurrence is computed virtually at render time
-     from recurrence_freq/interval/days_of_week/end_type/end_date/
-     count, never persisted as its own row. Editing or deleting the
-     row therefore edits/deletes the entire series in one step —
-     genuinely simpler for a small team, and what the "Appointment
-     Recurrence"-style dialog itself defines (a pattern, not a list
-     of individual dates).
-     ============================================================ */
-  function isoWeekday(d){ return d.getDay() === 0 ? 7 : d.getDay(); } // Monday=1..Sunday=7
-  function mondayOfWeek(d){
-    const wd = isoWeekday(d);
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate() - (wd - 1));
-  }
-  // Walks day-by-day from the series' own start date rather than a
-  // closed-form formula per frequency — correct for irregular
-  // patterns (weekly on several weekdays at once) without risking a
-  // subtle off-by-one in per-frequency math, and cheap enough at
-  // calendar-UI scale (bounded to 10 years ≈ 3660 iterations worst
-  // case, and only ever called for the currently-viewed month/day).
-  function getRecurrenceOccurrenceDates(event, rangeStart, rangeEnd){
-    if (!event.recurrence_freq || !event.start_time) return [];
-    const seriesStart = new Date(event.start_time);
-    const cursor0 = new Date(seriesStart.getFullYear(), seriesStart.getMonth(), seriesStart.getDate());
-    const hardStop = new Date(cursor0.getTime() + 10 * 365 * 86400000);
-    const endDate = event.recurrence_end_type === 'date' && event.recurrence_end_date
-      ? new Date(event.recurrence_end_date + 'T00:00:00')
-      : null;
-    const maxCount = event.recurrence_end_type === 'count' ? (event.recurrence_count || 0) : Infinity;
-    const interval = Math.max(1, event.recurrence_interval || 1);
-    const weeklyDays = event.recurrence_freq === 'weekly'
-      ? (event.recurrence_days_of_week && event.recurrence_days_of_week.length ? event.recurrence_days_of_week : [isoWeekday(cursor0)])
-      : null;
-    const seriesWeekStart = event.recurrence_freq === 'weekly' ? mondayOfWeek(cursor0) : null;
-
-    const results = [];
-    let occurrenceCount = 0;
-    let d = new Date(cursor0);
-    while (d <= hardStop && d <= rangeEnd) {
-      if (endDate && d > endDate) break;
-      if (occurrenceCount >= maxCount) break;
-      let matches = false;
-      if (event.recurrence_freq === 'daily') {
-        const diffDays = Math.round((d - cursor0) / 86400000);
-        matches = diffDays % interval === 0;
-      } else if (event.recurrence_freq === 'weekly') {
-        if (weeklyDays.includes(isoWeekday(d))) {
-          const weekStart = mondayOfWeek(d);
-          const diffWeeks = Math.round((weekStart - seriesWeekStart) / (7 * 86400000));
-          matches = diffWeeks >= 0 && diffWeeks % interval === 0;
-        }
-      } else if (event.recurrence_freq === 'monthly') {
-        matches = d >= cursor0 && d.getDate() === cursor0.getDate()
-          && ((d.getFullYear() - cursor0.getFullYear()) * 12 + (d.getMonth() - cursor0.getMonth())) % interval === 0;
-      } else if (event.recurrence_freq === 'yearly') {
-        matches = d >= cursor0 && d.getDate() === cursor0.getDate() && d.getMonth() === cursor0.getMonth()
-          && (d.getFullYear() - cursor0.getFullYear()) % interval === 0;
-      }
-      if (matches) {
-        occurrenceCount++;
-        if (d >= rangeStart) results.push(new Date(d));
-      }
-      d = new Date(d.getTime() + 86400000);
-    }
-    return results;
-  }
-  // Builds a display-only virtual occurrence: same id/title/
-  // description/location/reminder/attendees as the series row, with
-  // start_time/end_time shifted onto the given occurrence date (same
-  // time-of-day and duration as the series' own first occurrence).
-  function buildOccurrenceEvent(event, occurrenceDate){
-    const masterStart = new Date(event.start_time);
-    const start = new Date(occurrenceDate.getFullYear(), occurrenceDate.getMonth(), occurrenceDate.getDate(), masterStart.getHours(), masterStart.getMinutes());
-    let end = null;
-    if (event.end_time) {
-      const durationMs = new Date(event.end_time) - masterStart;
-      end = new Date(start.getTime() + durationMs);
-    }
-    return { ...event, start_time: start.toISOString(), end_time: end ? end.toISOString() : null, is_recurring_occurrence: true };
-  }
-  function eventsOnDate(dateKeyStr){
-    const [y, m, d] = dateKeyStr.split('-').map(Number);
-    const targetDate = new Date(y, m - 1, d);
-    const direct = calendarEvents.filter(e => e.start_time && !e.recurrence_freq && dateKey(new Date(e.start_time)) === dateKeyStr);
-    const recurring = calendarEvents
-      .filter(e => e.recurrence_freq && getRecurrenceOccurrenceDates(e, targetDate, targetDate).length > 0)
-      .map(e => buildOccurrenceEvent(e, targetDate));
-    return [...direct, ...recurring].sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
-  }
-
-  async function loadCalendarEvents(){
-    if (!document.getElementById('homeClockTime')) return;
-    const { data, error } = await supabaseClient
-      .from('calendar_events')
-      .select('*')
-      .order('start_time', { ascending: true });
-    if (error) {
-      console.error('loadCalendarEvents failed:', error);
-      return;
-    }
-    calendarEvents = data || [];
-    renderHomeMiniCal();
-    renderHomeCalToday();
-    renderTodoNotes();
-    if (selectedCalendarDate) renderCalendarDayEvents();
-  }
-
-  /* ============================================================
-     RECURRENCE PICKER — mirrors a classic "Appointment Recurrence"
-     dialog (pattern + range), opened from the "🔁" button on the
-     event form. pendingRecurrence holds the in-progress choice for
-     whichever event is currently open in the form; null means "does
-     not repeat". Committed into the event's own payload on Salvează,
-     same as every other field in the form — there's no separate save
-     step for the recurrence sheet itself.
-     ============================================================ */
-  let pendingRecurrence = null;
-  const RECUR_INTERVAL_UNITS = {
-    daily: (n) => n === 1 ? 'zi' : 'zile',
-    weekly: (n) => n === 1 ? 'săptămână' : 'săptămâni',
-    monthly: (n) => n === 1 ? 'lună' : 'luni',
-    yearly: (n) => n === 1 ? 'an' : 'ani',
-  };
-  const RECUR_FREQ_LABELS = { daily: 'zilnic', weekly: 'săptămânal', monthly: 'lunar', yearly: 'anual' };
-  const WEEKDAY_SHORT_NAMES = { 1: 'L', 2: 'Ma', 3: 'Mi', 4: 'J', 5: 'V', 6: 'S', 7: 'D' };
-
-  function describeRecurrence(r){
-    if (!r) return '🔁 Nu se repetă';
-    let desc = `🔁 Se repetă ${RECUR_FREQ_LABELS[r.recurrence_freq]}`;
-    if ((r.recurrence_interval || 1) > 1) {
-      desc = `🔁 La fiecare ${r.recurrence_interval} ${RECUR_INTERVAL_UNITS[r.recurrence_freq](r.recurrence_interval)}`;
-    }
-    if (r.recurrence_freq === 'weekly' && r.recurrence_days_of_week && r.recurrence_days_of_week.length) {
-      desc += ' (' + r.recurrence_days_of_week.slice().sort().map(d => WEEKDAY_SHORT_NAMES[d]).join(', ') + ')';
-    }
-    return desc;
-  }
-  function updateCefRecurBtn(){
-    const btn = document.getElementById('cefRecurBtn');
-    if (!btn) return;
-    btn.textContent = describeRecurrence(pendingRecurrence);
-    btn.classList.toggle('active', !!pendingRecurrence);
-  }
-
-  function updateRecurIntervalUnit(){
-    const freq = document.querySelector('input[name="recur-freq"]:checked').value;
-    const n = Number(document.getElementById('recurInterval').value) || 1;
-    document.getElementById('recurIntervalUnit').textContent = RECUR_INTERVAL_UNITS[freq](n);
-    document.getElementById('recurWeekdaysRow').style.display = freq === 'weekly' ? '' : 'none';
-  }
-  document.querySelectorAll('input[name="recur-freq"]').forEach(r => r.addEventListener('change', updateRecurIntervalUnit));
-  const recurIntervalInput = document.getElementById('recurInterval');
-  if (recurIntervalInput) recurIntervalInput.addEventListener('input', updateRecurIntervalUnit);
-
-  function openRecurrenceSheet(){
-    const dateVal = document.getElementById('cef-date').value || dateKey(new Date());
-    document.getElementById('recurStartDate').value = dateVal;
-    const r = pendingRecurrence;
-    const freq = (r && r.recurrence_freq) || 'weekly';
-    document.querySelector(`input[name="recur-freq"][value="${freq}"]`).checked = true;
-    document.getElementById('recurInterval').value = (r && r.recurrence_interval) || 1;
-    document.querySelectorAll('#recurWeekdaysRow input[type="checkbox"]').forEach(cb => {
-      cb.checked = !!(r && r.recurrence_days_of_week && r.recurrence_days_of_week.includes(Number(cb.value)));
-    });
-    // Default weekly selection, when opening fresh, to the event's own
-    // weekday — matches the picture's own default of pre-checking the
-    // appointment's day.
-    if (!r) {
-      const [y, m, d] = dateVal.split('-').map(Number);
-      const wd = isoWeekday(new Date(y, m - 1, d));
-      document.querySelectorAll('#recurWeekdaysRow input[type="checkbox"]').forEach(cb => {
-        cb.checked = Number(cb.value) === wd;
-      });
-    }
-    const endType = (r && r.recurrence_end_type) || 'date';
-    document.querySelector(`input[name="recur-end"][value="${endType}"]`).checked = true;
-    document.getElementById('recurEndDate').value = (r && r.recurrence_end_date)
-      || (() => { const dt = new Date(dateVal + 'T00:00:00'); dt.setMonth(dt.getMonth() + 6); return dateKey(dt); })();
-    document.getElementById('recurCount').value = (r && r.recurrence_count) || 10;
-    updateRecurIntervalUnit();
-    setSheetOpen('recurrenceSheet', true);
-  }
-  const cefRecurBtn = document.getElementById('cefRecurBtn');
-  if (cefRecurBtn) cefRecurBtn.addEventListener('click', openRecurrenceSheet);
-  document.querySelectorAll('[id^="recur"][id$="CloseBtn"], #recurCancelBtn').forEach(btn => {
-    btn.addEventListener('click', () => setSheetOpen('recurrenceSheet', false));
-  });
-  const recurRemoveBtn = document.getElementById('recurRemoveBtn');
-  if (recurRemoveBtn) recurRemoveBtn.addEventListener('click', () => {
-    pendingRecurrence = null;
-    updateCefRecurBtn();
-    setSheetOpen('recurrenceSheet', false);
-  });
-  const recurOkBtn = document.getElementById('recurOkBtn');
-  if (recurOkBtn) recurOkBtn.addEventListener('click', () => {
-    const freq = document.querySelector('input[name="recur-freq"]:checked').value;
-    const interval = Math.max(1, Number(document.getElementById('recurInterval').value) || 1);
-    const daysOfWeek = freq === 'weekly'
-      ? [...document.querySelectorAll('#recurWeekdaysRow input[type="checkbox"]:checked')].map(cb => Number(cb.value))
-      : null;
-    if (freq === 'weekly' && (!daysOfWeek || daysOfWeek.length === 0)) {
-      alert('Alege cel puțin o zi a săptămânii.');
-      return;
-    }
-    const endType = document.querySelector('input[name="recur-end"]:checked').value;
-    pendingRecurrence = {
-      recurrence_freq: freq,
-      recurrence_interval: interval,
-      recurrence_days_of_week: daysOfWeek,
-      recurrence_end_type: endType,
-      recurrence_end_date: endType === 'date' ? (document.getElementById('recurEndDate').value || null) : null,
-      recurrence_count: endType === 'count' ? (Number(document.getElementById('recurCount').value) || 1) : null,
-    };
-    updateCefRecurBtn();
-    setSheetOpen('recurrenceSheet', false);
-  });
-
-  function openCalendarEventForm(event, defaultDateKey){
-    document.getElementById('calendarEventFormSheetTitle').textContent = event ? 'Editează eveniment' : 'Eveniment nou';
-    document.getElementById('cef-id').value = event ? event.id : '';
-    document.getElementById('cef-title').value = event ? event.title : '';
-    document.getElementById('cef-allday').checked = event ? !!event.all_day : false;
-    const start = event ? new Date(event.start_time) : null;
-    const end = event && event.end_time ? new Date(event.end_time) : null;
-    document.getElementById('cef-date').value = event ? dateKey(start) : (defaultDateKey || dateKey(new Date()));
-
-    // Ora început: snap to the 15-min select when the existing value
-    // lands exactly on the grid (or there's no event yet — default to
-    // the next 15-min slot from now); otherwise fall back to the
-    // precise input, pre-filled, so an odd existing time is never
-    // silently rounded off when just reopening the form to edit
-    // something else.
-    const startPrecise = document.getElementById('cef-start-time');
-    const startSelect = document.getElementById('cef-start-time-select');
-    if (start) {
-      const hhmm = pad2(start.getHours()) + ':' + pad2(start.getMinutes());
-      startPrecise.value = hhmm;
-      if (start.getMinutes() % 15 === 0) {
-        startSelect.value = hhmm;
-        setCefTimeMode('start', false);
-      } else {
-        setCefTimeMode('start', true);
-      }
-    } else {
-      const now = new Date();
-      let mins = Math.ceil(now.getMinutes() / 15) * 15;
-      let hrs = now.getHours();
-      if (mins === 60) { mins = 0; hrs = (hrs + 1) % 24; }
-      const hhmm = pad2(hrs) + ':' + pad2(mins);
-      startSelect.value = hhmm;
-      startPrecise.value = hhmm;
-      setCefTimeMode('start', false);
-    }
-
-    // Ora sfârșit: a relative duration (30 min by default) rather than
-    // an absolute time — snapped to one of the offered durations when
-    // the existing end_time matches one exactly, otherwise the
-    // precise input.
-    const endPrecise = document.getElementById('cef-end-time');
-    const endDurationSelect = document.getElementById('cef-end-duration-select');
-    if (end && start) {
-      const hhmm = pad2(end.getHours()) + ':' + pad2(end.getMinutes());
-      endPrecise.value = hhmm;
-      const diffMin = Math.round((end - start) / 60000);
-      if ([30, 60, 90, 120].includes(diffMin)) {
-        endDurationSelect.value = String(diffMin);
-        setCefTimeMode('end', false);
-      } else {
-        setCefTimeMode('end', true);
-      }
-    } else {
-      endDurationSelect.value = '30';
-      endPrecise.value = '';
-      setCefTimeMode('end', false);
-    }
-
-    document.getElementById('cef-location').value = event ? (event.location || '') : '';
-    document.getElementById('cef-description').value = event ? (event.description || '') : '';
-    document.getElementById('cef-reminder').value = event && event.reminder_minutes_before ? String(event.reminder_minutes_before) : '';
-    document.getElementById('cefDeleteBtn').style.display = event ? '' : 'none';
-
-    const attendeesListEl = document.getElementById('cefAttendeesList');
-    const currentAttendees = (event && Array.isArray(event.attendees)) ? event.attendees : [];
-    attendeesListEl.innerHTML = allStaffEmails.length
-      ? allStaffEmails.map(email => `<label class="cef-attendee-item"><input type="checkbox" value="${escapeHtml(email)}"${currentAttendees.includes(email) ? ' checked' : ''}> ${escapeHtml(email)}</label>`).join('')
-      : '<span class="cef-attendees-empty">Lista de conturi nu s-a încărcat încă.</span>';
-
-    pendingRecurrence = (event && event.recurrence_freq) ? {
-      recurrence_freq: event.recurrence_freq,
-      recurrence_interval: event.recurrence_interval || 1,
-      recurrence_days_of_week: event.recurrence_days_of_week || null,
-      recurrence_end_type: event.recurrence_end_type || 'never',
-      recurrence_end_date: event.recurrence_end_date || null,
-      recurrence_count: event.recurrence_count || null,
-    } : null;
-    updateCefRecurBtn();
-
-    toggleCefTimeFields();
-    setSheetOpen('calendarEventFormSheet', true);
-  }
-
-  function toggleCefTimeFields(){
-    const allDay = document.getElementById('cef-allday').checked;
-    document.getElementById('cef-start-time-field').style.display = allDay ? 'none' : '';
-    document.getElementById('cef-end-time-field').style.display = allDay ? 'none' : '';
-  }
-  const cefAllDayCheckbox = document.getElementById('cef-allday');
-  if (cefAllDayCheckbox) cefAllDayCheckbox.addEventListener('change', toggleCefTimeFields);
-
-  const cefSaveBtn = document.getElementById('cefSaveBtn');
-  if (cefSaveBtn) {
-    cefSaveBtn.addEventListener('click', async () => {
-      const id = document.getElementById('cef-id').value;
-      const title = document.getElementById('cef-title').value.trim();
-      if (!title) { document.getElementById('cef-title').focus(); return; }
-      const allDay = document.getElementById('cef-allday').checked;
-      const dateVal = document.getElementById('cef-date').value;
-      if (!dateVal) { document.getElementById('cef-date').focus(); return; }
-      const startTimeVal = getCefStartValue() || '00:00';
-      const endTimeVal = getCefEndValue(dateVal, startTimeVal);
-      const startISO = new Date(`${dateVal}T${allDay ? '00:00' : startTimeVal}`).toISOString();
-      const endISO = (!allDay && endTimeVal) ? new Date(`${dateVal}T${endTimeVal}`).toISOString() : null;
-      const reminderVal = document.getElementById('cef-reminder').value;
-      const payload = {
-        title,
-        description: document.getElementById('cef-description').value.trim() || null,
-        location: document.getElementById('cef-location').value.trim() || null,
-        start_time: startISO,
-        end_time: endISO,
-        all_day: allDay,
-        reminder_minutes_before: reminderVal ? Number(reminderVal) : null,
-        reminder_sent_at: null,
-        recurrence_freq: pendingRecurrence ? pendingRecurrence.recurrence_freq : null,
-        recurrence_interval: pendingRecurrence ? pendingRecurrence.recurrence_interval : null,
-        recurrence_days_of_week: pendingRecurrence ? pendingRecurrence.recurrence_days_of_week : null,
-        recurrence_end_type: pendingRecurrence ? pendingRecurrence.recurrence_end_type : null,
-        recurrence_end_date: pendingRecurrence ? pendingRecurrence.recurrence_end_date : null,
-        recurrence_count: pendingRecurrence ? pendingRecurrence.recurrence_count : null,
-        attendees: Array.from(document.querySelectorAll('#cefAttendeesList input:checked')).map(cb => cb.value) || null,
-      };
-      if (!payload.attendees.length) payload.attendees = null;
-      cefSaveBtn.disabled = true;
-      try {
-        if (id) {
-          const { error } = await supabaseClient.from('calendar_events').update(payload).eq('id', id);
-          if (error) throw error;
-        } else {
-          payload.created_by = currentSessionEmail || null;
-          const { error } = await supabaseClient.from('calendar_events').insert(payload);
-          if (error) throw error;
-        }
-        await loadCalendarEvents();
-        setSheetOpen('calendarEventFormSheet', false);
-        if (selectedCalendarDate) openCalendarDay(dateKey(new Date(startISO)));
-        showToast('Eveniment salvat.');
-      } catch (err) {
-        console.error('Salvarea evenimentului a eșuat:', err);
-        alert('Salvarea evenimentului a eșuat. Încearcă din nou.');
-      } finally {
-        cefSaveBtn.disabled = false;
-      }
-    });
-  }
-
-  const cefDeleteBtn = document.getElementById('cefDeleteBtn');
-  if (cefDeleteBtn) {
-    cefDeleteBtn.addEventListener('click', async () => {
-      const id = document.getElementById('cef-id').value;
-      if (!id) return;
-      if (!confirm('Ștergi acest eveniment?')) return;
-      const { error } = await supabaseClient.from('calendar_events').delete().eq('id', id);
-      if (error) { console.error('Ștergerea a eșuat:', error); alert('Ștergerea a eșuat.'); return; }
-      await loadCalendarEvents();
-      setSheetOpen('calendarEventFormSheet', false);
-    });
-  }
-
-  // Sticky-notes to-do list (vlasbogdan@ only) — same browser-storage
-  // approach as internalProjects/LPS just below: personal scratch
-  // space, not shared operational data, so it never touches Supabase.
-  const TODO_STORAGE_KEY = 'insta-grup-vlas-todo-v1';
-  let todoNotes = [];
-  function loadTodoNotes(){
-    try {
-      const saved = JSON.parse(localStorage.getItem(TODO_STORAGE_KEY) || '[]');
-      todoNotes = Array.isArray(saved) ? saved : [];
-    } catch (_) {
-      todoNotes = [];
-    }
-  }
-  function saveTodoNotes(){
-    localStorage.setItem(TODO_STORAGE_KEY, JSON.stringify(todoNotes));
-  }
-  // Today's calendar events double as to-do items — pulled live from
-  // calendarEvents (see eventsOnDate()) rather than copied into
-  // TODO_STORAGE_KEY, so there's exactly one source of truth and they
-  // never drift out of sync with the calendar itself.
-  // An event with no attendees is a team-wide item, shown to everyone
-  // (the original behavior); one with attendees only shows up in the
-  // to-do list of the people it's actually assigned to.
-  function todaysLinkedCalendarEvents(){
-    if (typeof calendarEvents === 'undefined' || typeof eventsOnDate !== 'function') return [];
-    return eventsOnDate(dateKey(new Date())).filter(e => {
-      return !Array.isArray(e.attendees) || e.attendees.length === 0 || e.attendees.includes(currentSessionEmail);
-    });
-  }
-  function renderTodoNotes(){
-    const list = document.getElementById('homeTodoList');
-    const empty = document.getElementById('homeTodoEmpty');
-    if (!list) return;
-    const linkedEvents = todaysLinkedCalendarEvents();
-    if (!todoNotes.length && !linkedEvents.length) {
-      list.innerHTML = '';
-      if (empty) empty.hidden = false;
-      return;
-    }
-    if (empty) empty.hidden = true;
-    const infoIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
-    const eventItemsHtml = linkedEvents.map(e => {
-      const timeLabel = e.all_day ? 'Toată ziua' : pad2(new Date(e.start_time).getHours()) + ':' + pad2(new Date(e.start_time).getMinutes());
-      return `
-        <div class="home-todo-note-calendar" data-event-id="${escapeHtml(String(e.id))}">
-          <span class="home-todo-note-calendar-badge">${infoIcon} Din calendar</span>
-          <p class="home-todo-note-calendar-text">${escapeHtml(e.title || 'Eveniment')}</p>
-          <span class="home-todo-note-calendar-time">Azi · ${escapeHtml(timeLabel)}</span>
-        </div>
-      `;
-    }).join('');
-    const noteItemsHtml = todoNotes.map((note, i) => `
-      <div class="home-todo-note color-${(i % 4) + 1}" data-note-id="${escapeHtml(note.id)}">
-        <textarea placeholder="Notează aici…">${escapeHtml(note.text || '')}</textarea>
-        <button type="button" class="home-todo-note-delete" aria-label="Șterge notița">×</button>
-      </div>
-    `).join('');
-    list.innerHTML = eventItemsHtml + noteItemsHtml;
-    list.querySelectorAll('.home-todo-note-calendar').forEach(el => {
-      el.addEventListener('click', () => {
-        const ev = calendarEvents.find(e => String(e.id) === el.dataset.eventId);
-        if (ev) openCalendarEventForm(ev, dateKey(new Date(ev.start_time)));
-      });
-    });
-  }
-  function addTodoNote(){
-    const note = { id: 'todo-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7), text: '' };
-    todoNotes.unshift(note);
-    saveTodoNotes();
-    renderTodoNotes();
-    const newTextarea = document.querySelector(`.home-todo-note[data-note-id="${note.id}"] textarea`);
-    if (newTextarea) newTextarea.focus();
-  }
-  const homeTodoAddBtn = document.getElementById('homeTodoAddBtn');
-  if (homeTodoAddBtn) homeTodoAddBtn.addEventListener('click', addTodoNote);
-  const homeTodoList = document.getElementById('homeTodoList');
-  if (homeTodoList) {
-    // Debounced per-note save on typing, rather than saving on every
-    // keystroke — same idea as any autosave field, just local instead
-    // of a network request.
-    let todoSaveTimer = null;
-    homeTodoList.addEventListener('input', (event) => {
-      const noteEl = event.target.closest('.home-todo-note');
-      if (!noteEl) return;
-      const note = todoNotes.find(n => n.id === noteEl.dataset.noteId);
-      if (!note) return;
-      note.text = event.target.value;
-      clearTimeout(todoSaveTimer);
-      todoSaveTimer = setTimeout(saveTodoNotes, 400);
-    });
-    homeTodoList.addEventListener('click', (event) => {
-      const deleteBtn = event.target.closest('.home-todo-note-delete');
-      if (!deleteBtn) return;
-      const noteEl = deleteBtn.closest('.home-todo-note');
-      if (!noteEl) return;
-      todoNotes = todoNotes.filter(n => n.id !== noteEl.dataset.noteId);
-      saveTodoNotes();
-      renderTodoNotes();
-    });
-  }
-  if (document.getElementById('homeTodoList')) {
-    loadTodoNotes();
-    renderTodoNotes();
-  }
+  /* Acasă (panel-home) is now a React pilot -- see the comment on
+     window.goHomeToTicketsOverview above; do not re-add vanilla
+     clock/calendar/to-do code here. */
 
 /* ============================================================
      OVERVIEW CHARTS — ticket volume by month, and average time to

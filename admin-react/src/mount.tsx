@@ -6,6 +6,8 @@ import { StatusDashboard } from './features/status/StatusDashboard';
 import { AutoImprove } from './features/status/AutoImprove';
 import { AuditLog } from './features/status/AuditLog';
 import { Roles } from './features/status/Roles';
+import { HomePage } from './features/home/HomePage';
+import type { HomeNavKey } from './features/home/NavGrid';
 import { useState, useEffect } from 'react';
 
 // Entry point for mounting into admin-3.html, as opposed to main.tsx
@@ -17,13 +19,37 @@ import { useState, useEffect } from 'react';
 declare global {
   interface Window {
     currentAdminTab?: string;
+    openAdminTab?: (tabKey: string) => void;
+    goHomeToTicketsOverview?: () => void;
     AdminReactStatus?: {
       mountDashboard: (el: HTMLElement, client: SupabaseClient) => void;
       mountAutoImprove: (el: HTMLElement, client: SupabaseClient) => void;
       mountAuditLog: (el: HTMLElement, client: SupabaseClient) => void;
       mountRoles: (el: HTMLElement, client: SupabaseClient) => void;
+      mountHome: (el: HTMLElement, client: SupabaseClient) => void;
     };
   }
+}
+
+// Maps Acasă's nav-grid buttons to the real (still-vanilla) tabs they
+// open. Sesizări needs the extra filter-reset admin-core.js exposes as
+// window.goHomeToTicketsOverview (see its own comment there for why);
+// the rest are plain openAdminTab calls, same as every other
+// still-vanilla cross-tab link on this page.
+const HOME_NAV_TARGETS: Record<HomeNavKey, string> = {
+  tickets: '', // handled specially below
+  projects: 'projects-home',
+  erp: 'erp-home',
+  hr: 'hr-home',
+  docs: 'docs',
+  status: 'status',
+};
+function navigateFromHome(key: HomeNavKey) {
+  if (key === 'tickets') {
+    window.goHomeToTicketsOverview?.();
+    return;
+  }
+  window.openAdminTab?.(HOME_NAV_TARGETS[key]);
 }
 
 function getCurrentTab(): string {
@@ -86,6 +112,15 @@ function RolesRoot({ client }: { client: SupabaseClient }) {
   );
 }
 
+function HomeRoot({ client }: { client: SupabaseClient }) {
+  const sessionEmail = useSessionEmail(client);
+  return (
+    <SupabaseProvider client={client}>
+      <HomePage sessionEmail={sessionEmail} onNavigate={navigateFromHome} />
+    </SupabaseProvider>
+  );
+}
+
 const roots = new WeakMap<HTMLElement, Root>();
 function getRoot(el: HTMLElement): Root {
   let root = roots.get(el);
@@ -108,5 +143,8 @@ window.AdminReactStatus = {
   },
   mountRoles(el, client) {
     getRoot(el).render(<RolesRoot client={client} />);
+  },
+  mountHome(el, client) {
+    getRoot(el).render(<HomeRoot client={client} />);
   },
 };

@@ -5,10 +5,12 @@ import { StatusDashboard } from './features/status/StatusDashboard';
 import { AutoImprove } from './features/status/AutoImprove';
 import { AuditLog } from './features/status/AuditLog';
 import { Roles } from './features/status/Roles';
+import { HomePage } from './features/home/HomePage';
 
-type StatusTab = 'status' | 'status-improve' | 'status-audit' | 'status-roles';
+type StatusTab = 'home' | 'status' | 'status-improve' | 'status-audit' | 'status-roles';
 
 const TABS: { key: StatusTab; label: string }[] = [
+  { key: 'home', label: 'Acasă' },
   { key: 'status', label: 'Stare sistem' },
   { key: 'status-improve', label: 'Auto-îmbunătățire' },
   { key: 'status-audit', label: 'Jurnal de activitate' },
@@ -69,7 +71,7 @@ export default function App() {
   const supabase = useSupabase();
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [isGod, setIsGod] = useState<boolean | null>(null);
-  const [activeTab, setActiveTab] = useState<StatusTab>('status');
+  const [activeTab, setActiveTab] = useState<StatusTab>('home');
 
   useGlobalTelemetry(sessionEmail);
 
@@ -127,6 +129,7 @@ export default function App() {
             ))}
           </div>
           <div className="page-body">
+            {activeTab === 'home' && <HomePage sessionEmail={sessionEmail} onNavigate={() => {}} />}
             {activeTab === 'status' && <StatusDashboard sessionEmail={sessionEmail} />}
             {activeTab === 'status-improve' && <AutoImprove />}
             {activeTab === 'status-audit' && <AuditLog />}

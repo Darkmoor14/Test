@@ -5,10 +5,13 @@ section at a time, mounted into the existing page rather than run as a
 separate app. See the migration tracker doc (linked from the main
 conversation) for the full feature-parity checklist and progress.
 
-**Status**: pilot section — Stare sistem (System status: dashboard,
-auto-îmbunătățire, jurnal de activitate, roluri) — **now mounted into
-admin-3.html**, replacing its old hand-written panels. Desktop only for
-now; mobile is deliberately deferred.
+**Status**: two sections done — Stare sistem (System status: dashboard,
+auto-îmbunătățire, jurnal de activitate, roluri) and Acasă (Home: clock,
+mini-calendar with full recurring-event CRUD, personal to-do widget,
+role-gated nav grid) — **both mounted into admin-3.html**, replacing
+their old hand-written panels. Desktop only for now; mobile is
+deliberately deferred. See the migration tracker doc for what's next
+(Sesizări/Tickets).
 
 ## Stack
 
@@ -101,6 +104,19 @@ src/
     AuditLog.tsx              "Jurnal de activitate" tab
     Roles.tsx                 "Roluri" tab
     StatusHistorySheet.tsx    the "i" button's 48h history sheet
+  features/home/
+    calendarUtils.ts          event model + whole-series recurrence math
+                               (pure functions, ported 1:1 from admin-core.js)
+    useCalendarEvents.ts      calendar_events CRUD (Supabase)
+    useStaffRoster.ts         own god/modulePermission() + allStaffEmails
+                               fetch -- independent of vanilla's globals
+    useTodoNotes.ts           personal to-do notes (localStorage only)
+    useReminders.ts           once-a-minute foreground reminder engine
+                               (toast + OS notification)
+    HomeClock.tsx, MiniCalendar.tsx, EventCard.tsx, NavGrid.tsx
+    CalendarDaySheet.tsx, CalendarEventFormSheet.tsx, RecurrenceSheet.tsx
+    TodoWidget.tsx
+    HomePage.tsx               "Acasă" panel -- composes all of the above
   App.tsx     standalone-only: login gate + god-role check + tab switcher
   main.tsx    standalone entry (index.html)
   mount.tsx   mounted entry (admin-3.html) -- exposes window.AdminReactStatus
@@ -112,11 +128,25 @@ src/
   real current tab live off `window.currentAdminTab` (the shell's own
   global); the standalone app has no such router, so it falls back to a
   fixed `"status"` label there.
-- When this pilot replaced the old vanilla Stare sistem code, the dead
-  code was removed from `assets/js/admin-core.js` and
-  `assets/js/features/system-status.js` (the latter now holds only the
-  unrelated Acasă home-page clock/calendar code that happened to share
-  the same file) — if a future section's rewrite follows the same
-  pattern, do the same cleanup rather than leaving the old vanilla
-  version running alongside the React one (duplicate telemetry,
-  duplicate DOM ids, wasted work).
+- When each pilot section replaced its old vanilla code, the dead code
+  was removed from the relevant vanilla files rather than left running
+  alongside the React version (duplicate telemetry, duplicate DOM ids,
+  wasted work) — `assets/js/admin-core.js` (Roluri/audit log, then
+  Acasă's clock/calendar/to-do/nav-grid code) and
+  `assets/js/features/system-status.js` (now empty but for a pointer
+  comment -- it used to hold both Stare sistem and the Acasă code that
+  happened to share the same file). Keep doing the same cleanup for
+  future sections.
+- Acasă's nav grid still needs to reach into vanilla land for cross-tab
+  navigation, since Sesizări/Proiecte/ERP/HR/Docs/Stare-sistem-as-a-
+  *destination* aren't all React yet. Rather than the React bundle
+  reaching into vanilla's module-scope variables by bare identifier
+  (which would technically work — classic `<script>` tags share one
+  global lexical environment on this page — but is fragile and
+  undocumented), the contract is explicit: `window.openAdminTab` (an
+  ordinary top-level `function` declaration, already a real `window`
+  property) for plain tab switches, and a small purpose-built
+  `window.goHomeToTicketsOverview` (see its own comment in
+  admin-core.js) for the one case for that needs a vanilla filter reset
+  first. Same pattern `window.currentAdminTab` already used — update or
+  remove these bridges as each destination section itself moves to React.

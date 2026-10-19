@@ -804,8 +804,9 @@
     const crumbs = [{ label: 'Acasă', tab: 'home' }];
     if (tabKey === 'overview') {
       // Overview is now what "Sesizări" itself lands on (see
-      // homeNavTickets' click handler above and this same crumb's
-      // target below) — a proper sub-view of Sesizări, not a
+      // window.goHomeToTicketsOverview, called from the Acasă React
+      // pilot's nav grid, and this same crumb's target below) — a
+      // proper sub-view of Sesizări, not a
       // separate top-level destination, so it renders as the
       // "Sesizări" crumb rather than "Prezentare generală".
       crumbs.push({ label: 'Sesizări', tab: 'overview' });

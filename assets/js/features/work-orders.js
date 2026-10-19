@@ -70,11 +70,11 @@
     });
   }
 
-  // Full month calendar — independent month cursor from the home
+  // Full month calendar — independent month cursor from the Acasă
   // page's mini-calendar (someone reviewing October's schedule
   // shouldn't also flip the home widget to October). Same Monday-first
-  // grid math as renderHomeMiniCal(), sized for a day's work order
-  // titles to actually fit rather than just a dot.
+  // grid math as the React Acasă pilot's MiniCalendar, sized for a day's
+  // work order titles to actually fit rather than just a dot.
   let woCalYear = new Date().getFullYear();
   let woCalMonthIdx = new Date().getMonth();
   function workOrdersOnDate(dateKeyStr){

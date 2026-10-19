@@ -290,5 +290,6 @@
   if (hrHomeNavWorktime) hrHomeNavWorktime.addEventListener('click', () => openAdminTab('hr-worktime'));
   const hrHomeNavVacation = document.getElementById('hrHomeNavVacation');
   if (hrHomeNavVacation) hrHomeNavVacation.addEventListener('click', () => openAdminTab('hr-vacation'));
-  const homeNavHrBtn = document.getElementById('homeNavHr');
-  if (homeNavHrBtn) homeNavHrBtn.addEventListener('click', () => openAdminTab('hr-home'));
+  // homeNavHr's own click wiring moved into the Acasă React pilot (see
+  // admin-react/'s NavGrid.tsx) — it now calls openAdminTab('hr-home')
+  // directly from there.

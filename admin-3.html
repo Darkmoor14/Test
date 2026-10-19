@@ -366,77 +366,7 @@
       <div class="page-body">
 
     <div class="admin-panel" id="panel-home">
-      <div class="home-start-grid">
-        <div class="home-clock-card">
-          <div class="home-clock-time" id="homeClockTime">--:--:--</div>
-          <div class="home-clock-date" id="homeClockDate">—</div>
-          <div class="home-mini-cal">
-            <div class="home-mini-cal-head">
-              <button type="button" class="home-mini-cal-nav" id="homeMiniCalPrevBtn" aria-label="Luna anterioară">‹</button>
-              <span class="home-mini-cal-month" id="homeMiniCalMonth">—</span>
-              <button type="button" class="home-mini-cal-nav" id="homeMiniCalNextBtn" aria-label="Luna următoare">›</button>
-            </div>
-            <div class="home-mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
-            <div class="home-mini-cal-grid" id="homeMiniCalGrid"></div>
-          </div>
-          <div class="home-cal-today">
-            <span class="k">Astăzi</span>
-            <div class="calendar-day-events" id="homeCalTodayList"></div>
-          </div>
-          <button type="button" class="btn home-cal-add-btn" id="homeCalAddBtn">+ Eveniment</button>
-        </div>
-        <div class="home-start-main">
-          <div class="home-intro">
-            <div><div class="home-eyebrow">Acasă</div><h2 id="homeGreeting">Bine ai revenit.</h2></div>
-          </div>
-          <div class="home-nav-grid">
-            <button type="button" class="home-nav-btn" id="homeNavTickets">
-              <span class="home-nav-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              </span>
-              <span class="home-nav-text"><span class="home-nav-label">Sesizări</span><span class="home-nav-sub">Funcționale și accidente</span></span>
-            </button>
-            <button type="button" class="home-nav-btn" id="homeNavProjects">
-              <span class="home-nav-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="14" x2="14" y2="14"/></svg>
-              </span>
-              <span class="home-nav-text"><span class="home-nav-label">Proiecte</span><span class="home-nav-sub">Publice, avarii rețele, LPS, programe</span></span>
-            </button>
-            <button type="button" class="home-nav-btn" id="homeNavErp">
-              <span class="home-nav-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-              </span>
-              <span class="home-nav-text"><span class="home-nav-label">Resurse și inventar</span><span class="home-nav-sub">Echipamente, mașini, materiale, produse</span></span>
-            </button>
-            <button type="button" class="home-nav-btn" id="homeNavHr">
-              <span class="home-nav-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M17 3.13a4 4 0 0 1 0 7.75"/></svg>
-              </span>
-              <span class="home-nav-text"><span class="home-nav-label">HR</span><span class="home-nav-sub">Angajați, pontaj, concediu</span></span>
-            </button>
-            <button type="button" class="home-nav-btn" id="homeNavDocs">
-              <span class="home-nav-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
-              </span>
-              <span class="home-nav-text"><span class="home-nav-label">Documentație</span><span class="home-nav-sub">Ghid de utilizare a platformei</span></span>
-            </button>
-            <button type="button" class="home-nav-btn" id="homeNavStatus">
-              <span class="home-nav-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-              </span>
-              <span class="home-nav-text"><span class="home-nav-label">Stare sistem</span><span class="home-nav-sub">Conexiune, funcții, memento-uri</span></span>
-            </button>
-          </div>
-        </div>
-        <div class="home-todo-card">
-          <div class="home-todo-head">
-            <h3>De făcut</h3>
-            <button type="button" class="home-todo-add" id="homeTodoAddBtn" aria-label="Notiță nouă">+ Notiță</button>
-          </div>
-          <div class="home-todo-list" id="homeTodoList"></div>
-          <p class="home-todo-empty" id="homeTodoEmpty" hidden>Nicio notiță încă — apasă „+ Notiță” ca să adaugi prima.</p>
-        </div>
-      </div>
+      <div id="reactHomeRoot"></div>
     </div>
     <div class="admin-panel" id="panel-projects-home">
       <div class="priority-grid">
@@ -1462,101 +1392,6 @@
   </div>
 </div>
 
-<div class="mobile-sheet" id="calendarDaySheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="calendarDaySheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="calendarDaySheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div>
-        <h3 id="calendarDaySheetTitle">—</h3>
-      </div>
-      <button type="button" class="sheet-close" data-close-sheet="calendarDaySheet" aria-label="Închide">×</button>
-    </div>
-    <div class="calendar-day-events" id="calendarDayEventsList"></div>
-    <div class="sheet-actions">
-      <button type="button" class="btn btn-primary" id="calendarDayAddBtn">+ Eveniment nou</button>
-    </div>
-  </div>
-</div>
-
-<div class="mobile-sheet" id="calendarEventFormSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="calendarEventFormSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="calendarEventFormSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div>
-        <h3 id="calendarEventFormSheetTitle">Eveniment nou</h3>
-      </div>
-      <button type="button" class="sheet-close" data-close-sheet="calendarEventFormSheet" aria-label="Închide">×</button>
-    </div>
-    <input type="hidden" id="cef-id">
-    <div class="ctrl-field">
-      <label>Titlu</label>
-      <input type="text" id="cef-title" placeholder="ex: Întâlnire șantier" autocomplete="off">
-    </div>
-    <label class="cef-allday-field">
-      <input type="checkbox" id="cef-allday"> Toată ziua
-    </label>
-    <div class="sheet-grid">
-      <div class="ctrl-field">
-        <label for="cef-date">Data</label>
-        <input type="date" id="cef-date">
-      </div>
-      <div class="ctrl-field" id="cef-start-time-field">
-        <label for="cef-start-time-select">Ora început</label>
-        <div class="cef-time-row">
-          <select id="cef-start-time-select"></select>
-          <button type="button" class="cef-time-edit-btn" id="cef-start-time-toggle" title="Editează o oră exactă" aria-label="Editează o oră exactă">🕐</button>
-          <input type="time" id="cef-start-time" class="cef-time-precise" hidden>
-        </div>
-      </div>
-      <div class="ctrl-field" id="cef-end-time-field">
-        <label for="cef-end-duration-select">Ora sfârșit</label>
-        <div class="cef-time-row">
-          <select id="cef-end-duration-select">
-            <option value="30">30 minute</option>
-            <option value="60">1 oră</option>
-            <option value="90">1,5 ore</option>
-            <option value="120">2 ore</option>
-          </select>
-          <button type="button" class="cef-time-edit-btn" id="cef-end-time-toggle" title="Editează o oră exactă" aria-label="Editează o oră exactă">🕐</button>
-          <input type="time" id="cef-end-time" class="cef-time-precise" hidden>
-        </div>
-      </div>
-    </div>
-    <div class="ctrl-field">
-      <button type="button" class="btn cef-recur-btn" id="cefRecurBtn">🔁 Nu se repetă</button>
-    </div>
-    <div class="ctrl-field">
-      <label for="cef-reminder">Memento</label>
-      <select id="cef-reminder">
-        <option value="">Fără memento</option>
-        <option value="5">Cu 5 minute înainte</option>
-        <option value="15">Cu 15 minute înainte</option>
-        <option value="30">Cu 30 minute înainte</option>
-        <option value="60">Cu 1 oră înainte</option>
-        <option value="1440">Cu 1 zi înainte</option>
-      </select>
-    </div>
-    <div class="ctrl-field">
-      <label for="cef-location">Locație (opțional)</label>
-      <input type="text" id="cef-location" placeholder="ex: Str. Gh. Doja nr. 4" autocomplete="off">
-    </div>
-    <div class="ctrl-field">
-      <label for="cef-description">Descriere (opțional)</label>
-      <input type="text" id="cef-description" placeholder="Detalii" autocomplete="off">
-    </div>
-    <div class="ctrl-field">
-      <label>Alocat cui (opțional)</label>
-      <div class="cef-attendees-list" id="cefAttendeesList"></div>
-      <p class="cef-attendees-hint">Lăsat gol → vizibil pentru toată lumea pe Acasă. Bifat → apare doar în „De făcut" al persoanelor alese.</p>
-    </div>
-    <div class="sheet-actions cef-actions">
-      <button type="button" class="btn" id="cefDeleteBtn" style="display:none;">Șterge</button>
-      <button type="button" class="btn btn-primary" id="cefSaveBtn">Salvează</button>
-    </div>
-  </div>
-</div>
 
 <div class="mobile-sheet" id="addResourceSheet" aria-hidden="true">
   <div class="mobile-sheet-backdrop" data-close-sheet="addResourceSheet"></div>
@@ -2035,54 +1870,6 @@
   </div>
 </div>
 
-<div class="mobile-sheet" id="recurrenceSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="recurrenceSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="recurrenceSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div><h3 id="recurrenceSheetTitle">Recurență eveniment</h3></div>
-      <button type="button" class="sheet-close" id="recurrenceCloseBtn" aria-label="Închide">×</button>
-    </div>
-    <div class="recur-section">
-      <label class="recur-section-label">Model de recurență</label>
-      <div class="recur-freq-row" id="recurFreqRow">
-        <label class="recur-radio"><input type="radio" name="recur-freq" value="daily"> Zilnic</label>
-        <label class="recur-radio"><input type="radio" name="recur-freq" value="weekly" checked> Săptămânal</label>
-        <label class="recur-radio"><input type="radio" name="recur-freq" value="monthly"> Lunar</label>
-        <label class="recur-radio"><input type="radio" name="recur-freq" value="yearly"> Anual</label>
-      </div>
-      <div class="recur-interval-row">
-        <span>Repetă la fiecare</span>
-        <input type="number" id="recurInterval" min="1" value="1">
-        <span id="recurIntervalUnit">săptămână(i)</span>
-      </div>
-      <div class="recur-weekdays-row" id="recurWeekdaysRow">
-        <label class="recur-checkbox"><input type="checkbox" value="1"> Luni</label>
-        <label class="recur-checkbox"><input type="checkbox" value="2"> Marți</label>
-        <label class="recur-checkbox"><input type="checkbox" value="3"> Miercuri</label>
-        <label class="recur-checkbox"><input type="checkbox" value="4"> Joi</label>
-        <label class="recur-checkbox"><input type="checkbox" value="5"> Vineri</label>
-        <label class="recur-checkbox"><input type="checkbox" value="6"> Sâmbătă</label>
-        <label class="recur-checkbox"><input type="checkbox" value="7"> Duminică</label>
-      </div>
-    </div>
-    <div class="recur-section">
-      <label class="recur-section-label">Interval de recurență</label>
-      <div class="ctrl-field">
-        <label for="recurStartDate">Start</label>
-        <input type="date" id="recurStartDate" disabled>
-      </div>
-      <label class="recur-radio-row"><input type="radio" name="recur-end" value="date" checked> Se termină la <input type="date" id="recurEndDate"></label>
-      <label class="recur-radio-row"><input type="radio" name="recur-end" value="count"> Se termină după <input type="number" id="recurCount" min="1" value="10"> apariții</label>
-      <label class="recur-radio-row"><input type="radio" name="recur-end" value="never"> Fără dată de final</label>
-    </div>
-    <div class="sheet-actions">
-      <button type="button" class="btn" id="recurRemoveBtn">Elimină recurența</button>
-      <button type="button" class="btn" id="recurCancelBtn">Anulează</button>
-      <button type="button" class="btn btn-primary" id="recurOkBtn">OK</button>
-    </div>
-  </div>
-</div>
 
 <div class="mobile-sheet" id="reportTypeSheet" aria-hidden="true">
   <div class="mobile-sheet-backdrop"></div>
@@ -2228,16 +2015,17 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="assets/js/data-services.js?v=20261019a"></script>
-<script src="assets/js/admin-core.js?v=20261019a"></script>
+<script src="assets/js/admin-core.js?v=20261019b"></script>
 <!-- Built from admin-react/ (source: admin-react/src/mount.tsx) — do not
      hand-edit this file, rebuild it instead:
        cd admin-react && npx vite build --config vite.mount.config.ts
      then copy dist-mount/admin-react-status.js here. -->
-<script src="assets/js/admin-react-status.js?v=20261019a"></script>
+<script src="assets/js/admin-react-status.js?v=20261019b"></script>
 <script>
-  // Mounts Stare sistem's four React panels, reusing the page's own
-  // already-created Supabase client (supabaseClient, from admin-core.js's
-  // shared top-level scope) rather than a second one. Safe to do
+  // Mounts Stare sistem's four React panels plus Acasă, reusing the
+  // page's own already-created Supabase client (supabaseClient, from
+  // admin-core.js's shared top-level scope) rather than a second one.
+  // Safe to do
   // immediately at load, regardless of login state — each component
   // starts with sessionEmail=null and updates itself reactively once
   // supabaseClient's own auth listener resolves a real session; the
@@ -2249,19 +2037,21 @@
     var improveEl = document.getElementById('reactStatusImproveRoot');
     var auditEl = document.getElementById('reactStatusAuditRoot');
     var rolesEl = document.getElementById('reactStatusRolesRoot');
+    var homeEl = document.getElementById('reactHomeRoot');
     if (dashboardEl) window.AdminReactStatus.mountDashboard(dashboardEl, supabaseClient);
     if (improveEl) window.AdminReactStatus.mountAutoImprove(improveEl, supabaseClient);
     if (auditEl) window.AdminReactStatus.mountAuditLog(auditEl, supabaseClient);
     if (rolesEl) window.AdminReactStatus.mountRoles(rolesEl, supabaseClient);
+    if (homeEl) window.AdminReactStatus.mountHome(homeEl, supabaseClient);
   })();
 </script>
-<script src="assets/js/features/system-status.js?v=20261019a"></script>
-<script src="assets/js/features/lps.js?v=20261019a"></script>
+<script src="assets/js/features/system-status.js?v=20261019b"></script>
+<script src="assets/js/features/lps.js?v=20261019b"></script>
 <script src="assets/js/features/tickets.js?v=20261019a"></script>
 <script src="assets/js/features/projects.js?v=20261019a"></script>
-<script src="assets/js/features/work-orders.js?v=20261019a"></script>
+<script src="assets/js/features/work-orders.js?v=20261019b"></script>
 <script src="assets/js/features/erp.js?v=20261019a"></script>
-<script src="assets/js/features/hr.js?v=20261019a"></script>
+<script src="assets/js/features/hr.js?v=20261019b"></script>
 <script src="assets/js/features/excel.js?v=20261019a"></script>
 <script src="assets/js/features/search.js?v=20261019a"></script>
 
