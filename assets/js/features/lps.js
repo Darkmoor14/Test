@@ -880,14 +880,12 @@
     document.querySelectorAll('.ticket-type-switch').forEach(sw => {
       sw.classList.toggle('active', panelId === 'overview' || panelId === 'tickets');
     });
-    // Locks which type shows on the shared Sesizări panel — whichever
-    // of the two tabs was actually clicked. skipRender: true since
-    // whatever calls openAdminTab() already triggers its own render
-    // right after (refreshAllAdminData() below, or goToTicket's own
-    // explicit renderTickets()).
-    if (tabKey === 'tickets-functional') setTicketTypeFilter('functional', { skipRender: true });
-    else if (tabKey === 'tickets-accident') setTicketTypeFilter('accident', { skipRender: true });
-    else if (tabKey === 'workorders') loadWorkOrders();
+    // Which of the two Sesizări sub-tabs is showing, plus a silent
+    // refresh on switch, is now the React Tickets pilot's own concern
+    // -- it listens for this event (see admin-react/'s
+    // useTicketsStore) instead of reading setTicketTypeFilter here.
+    window.dispatchEvent(new CustomEvent('admin:tabchange', { detail: tabKey }));
+    if (tabKey === 'workorders') loadWorkOrders();
     else if (tabKey === 'equipment' || tabKey === 'machines' || tabKey === 'machines-fuel-report' || tabKey === 'materials' || tabKey === 'products' || tabKey === 'erp-home') loadEquipment();
     else if (tabKey === 'projects-home') renderProjectsHomeStats();
     else if (tabKey === 'lps' && isReportFocusedView()) refreshLookaheadWorkspace();
@@ -971,6 +969,11 @@
       if (typeof flushFeatureClickTally === 'function') flushFeatureClickTally();
     }
     currentAdminTab = tabKey;
+    // Explicit window property (not just the bare lexical currentAdminTab
+    // above) so other classic scripts/bundles that read window.currentAdminTab
+    // directly -- e.g. admin-react's useGlobalTelemetry -- see the real
+    // current tab instead of always falling back to their own default.
+    window.currentAdminTab = tabKey;
   }
 
   window.addEventListener('popstate', (event) => {
@@ -1001,132 +1004,9 @@
   // whatever page linked here — it doesn't insert an extra step.
   history.replaceState({ adminTab: 'overview' }, '', window.location.pathname + window.location.search + '#overview');
 
-  function setTicketFilter(filterKey){
-    activeFilter = filterKey;
-    selectedIds.clear();
-    updateArchiveBar();
-    document.querySelectorAll('#ticketStatusChipsMobile .chip').forEach(chip => {
-      chip.classList.toggle('active', chip.dataset.key === filterKey);
-    });
-    if (typeof ticketsFilterWidget !== 'undefined' && ticketsFilterWidget) ticketsFilterWidget.syncActiveState();
-    renderTickets();
-  }
-
-  function setTicketTypeFilter(filterKey, { skipRender = false } = {}){
-    activeTypeFilter = filterKey;
-    selectedIds.clear();
-    updateArchiveBar();
-    if (!skipRender) renderTickets();
-  }
-
-  function updateActiveNarrowFilterUI(){
-    const wrap = document.getElementById('activeNarrowFilter');
-    const label = document.getElementById('activeNarrowFilterLabel');
-    if (!wrap || !label) return;
-    let text = '';
-    if (agingOnlyFilter) text = 'Filtru activ: doar tichete deschise de peste ' + AGING_THRESHOLD_DAYS + ' zile';
-    else if (typeOnlyFilter === 'functional') text = 'Filtru activ: doar tichete cu defect';
-    else if (typeOnlyFilter === 'accident') text = 'Filtru activ: doar accidente';
-    label.textContent = text;
-    wrap.classList.toggle('show', !!text);
-  }
-
-  function clearNarrowFilter(){
-    agingOnlyFilter = false;
-    typeOnlyFilter = null;
-    updateActiveNarrowFilterUI();
-    renderTickets();
-  }
-
-  const clearNarrowFilterBtn = document.getElementById('clearNarrowFilterBtn');
-  if (clearNarrowFilterBtn) clearNarrowFilterBtn.addEventListener('click', clearNarrowFilter);
-
-  function goToTicket(ticketId){
-    const targetTicket = allTickets.find(ticket => ticket.id === ticketId);
-    if (!targetTicket) return;
-    // Preserve the exact table state so a ticket opened from Overview
-    // can return to the same table, filter, year, and month.
-    overviewReturnState = currentAdminTab === 'overview'
-      ? {
-          status: overviewStatusFilter,
-          priority: overviewCardFilter,
-          year: ticketYearFilter,
-          month: ticketMonthFilter,
-          ticketId,
-        }
-      : null;
-    agingOnlyFilter = false;
-    typeOnlyFilter = null;
-    updateActiveNarrowFilterUI();
-    // Only clear the Sesizări search if it's stale — i.e. it does NOT
-    // already match the ticket being navigated to. A search that
-    // still matches (e.g. the very search that found this ticket)
-    // must survive the click; only a leftover, unrelated search from
-    // earlier browsing gets wiped, and only then.
-    if (ticketSearchQuery.trim() && !matchesSearch(targetTicket, ticketSearchQuery.trim().toLowerCase()) && ticketsSearchWidget) {
-      ticketsSearchWidget.applyExternalQuery('');
-    }
-    // Only widen the year/month filters when the target ticket
-    // actually falls outside them — otherwise clicking into (or
-    // getting a push notification for) a ticket that was already
-    // visible under e.g. "2026 / Octombrie" silently blew that filter
-    // back to "Toți anii" every time.
-    if (!matchesYear(targetTicket, ticketYearFilter)) setTicketYearFilter('all');
-    if (!matchesMonth(targetTicket, ticketMonthFilter)) setTicketMonthFilter('all');
-    // Same "only widen if necessary" fix as the year/month filters
-    // just above — this used to unconditionally force the status
-    // filter to Toate on every click, even when the target ticket was
-    // already visible under whatever was currently selected (e.g.
-    // clicking an active ticket while already viewing "Active").
-    // "Toate" also includes archived tickets (see getFilteredTickets),
-    // so it's the right fallback for an archived target too.
-    if (!ticketMatchesStatusFilter(targetTicket, activeFilter)) {
-      setTicketFilter('Toate');
-    }
-    // Sesizări funcționale/accidente are two separate tabs sharing one
-    // panel — route to whichever one actually holds this ticket's
-    // type, instead of a no-longer-valid single "tickets" tab key.
-    openAdminTab(targetTicket.type === 'Anunt accident' ? 'tickets-accident' : 'tickets-functional');
-
-    requestAnimationFrame(() => {
-      const card = document.getElementById('ticket-card-' + ticketId);
-      if (card) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        card.classList.add('jump-highlight');
-        setTimeout(() => card.classList.remove('jump-highlight'), 1800);
-      }
-    });
-  }
-
-  function returnToOverviewTable(){
-    const state = overviewReturnState;
-    overviewReturnState = null;
-    if (!state) {
-      openAdminTab('overview');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    setTicketYearFilter(state.year);
-    setTicketMonthFilter(state.month);
-    overviewCardFilter = state.priority;
-    updateOverviewNarrowFilterUI();
-    setOverviewStatusFilter(state.status);
-    openAdminTab('overview');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  document.getElementById('overviewTableBody').addEventListener('click', (e) => {
-    const link = e.target.closest('.ticket-link');
-    if (link) {
-      e.preventDefault();
-      goToTicket(link.dataset.ticketId);
-      return;
-    }
-    const dateToggle = e.target.closest('.resolved-date-toggle');
-    if (dateToggle) {
-      const row = document.querySelector(`.resnote-expand-row[data-ticket-id="${dateToggle.dataset.ticketId}"]`);
-      if (row) row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
-    }
-  });
-
-  
+  // setTicketFilter/setTicketTypeFilter/updateActiveNarrowFilterUI/
+  // clearNarrowFilter/goToTicket/returnToOverviewTable, and the old
+  // #overviewTableBody click wiring, are now the React Tickets
+  // pilot's own concern -- see admin-react/'s useTicketsStore
+  // (goToTicket in particular is exposed back to vanilla as
+  // window.goToTicket for search.js/admin-core.js's own callers).

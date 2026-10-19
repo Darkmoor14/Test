@@ -155,126 +155,23 @@
         <span class="topbar-title" id="topbarTitle">Acasă</span>
         <div class="topbar-actions">
       <!-- Desktop-only year/month shortcuts for the first two panels. -->
+      <!-- React (admin-react/src/features/tickets/) mounts inside each
+           of the 5 containers below -- this outer div's own classes/
+           data-year-panel attr stay vanilla-owned (lps.js's
+           openAdminTab already toggles visibility by id/dataset match)
+           so React doesn't fight that toggle by re-rendering it away. -->
       <div class="overview-year-bar admin-tabs-row-year active" data-year-panel="overview">
-        <label for="yearFilterSelectDesktop">An:</label>
-        <select id="yearFilterSelectDesktop"></select>
-        <label for="monthFilterSelectDesktop">Lună:</label>
-        <select id="monthFilterSelectDesktop"></select>
-        <span class="year-warning" id="yearWarningOverviewDesktop">⚠ Nu e anul curent</span>
+        <div id="reactOverviewYearBar" style="display:contents;"></div>
       </div>
       <div class="overview-year-bar admin-tabs-row-year" data-year-panel="tickets">
-        <label for="yearFilterSelectTicketsDesktop">An:</label>
-        <select id="yearFilterSelectTicketsDesktop"></select>
-        <label for="monthFilterSelectTicketsDesktop">Lună:</label>
-        <select id="monthFilterSelectTicketsDesktop"></select>
-        <span class="year-warning" id="yearWarningTicketsDesktop">⚠ Nu e anul curent</span>
+        <div id="reactTicketsYearBar" style="display:contents;"></div>
       </div>
       <div class="overview-quick-filters active" data-year-panel="overview">
-        <div class="overview-popover-wrap">
-          <button type="button" class="overview-icon-btn" id="overviewFilterToggleBtn" aria-label="Filtre">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-          </button>
-          <div class="filter-popover" id="overviewFilterPopover">
-            <div class="sheet-grid popover-yearmonth">
-              <div class="ctrl-field">
-                <label for="yearFilterSelectOverviewMobile">An</label>
-                <select id="yearFilterSelectOverviewMobile"></select>
-              </div>
-              <div class="ctrl-field">
-                <label for="monthFilterSelectOverviewMobile">Lună</label>
-                <select id="monthFilterSelectOverviewMobile"></select>
-              </div>
-            </div>
-            <div class="sheet-mini-calendar popover-daygrid" id="overviewMiniCalendar">
-              <div class="mini-cal-header">
-                <button type="button" id="miniCalPrevBtn" aria-label="Luna anterioară">‹</button>
-                <button type="button" class="mini-cal-month-label" id="miniCalLabel">—</button>
-                <button type="button" id="miniCalNextBtn" aria-label="Luna următoare">›</button>
-              </div>
-              <div class="mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
-              <div class="mini-cal-grid" id="miniCalGrid"></div>
-              <button type="button" class="mini-cal-clear-btn" id="miniCalClearBtn">Toate zilele</button>
-            </div>
-            <div class="sheet-filter-status">
-              <label>Stare listă</label>
-              <div class="chips" id="overviewStatusChipsSheet"></div>
-            </div>
-            <div class="popover-saved-views">
-              <label>Vizualizări salvate</label>
-              <div class="saved-views-chips" id="overviewSavedViewsWrap"></div>
-              <button type="button" class="save-view-btn" id="overviewSaveViewBtn">+ Salvează vizualizarea curentă</button>
-            </div>
-          </div>
-        </div>
-        <button type="button" class="overview-icon-btn add-btn" id="addTicketBtnOverview" data-requires-write="tickets" title="Adaugă sesizare" aria-label="Adaugă sesizare">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
-        <div class="overview-search-wrap" id="overviewSearchWrap">
-          <button type="button" class="overview-icon-btn" id="overviewSearchToggleBtn" aria-label="Căutare">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
-          <input type="search" id="overviewSearchBox" placeholder="Caută nume, adresă, telefon…">
-        </div>
-        <span class="filter-status-note filter-status-note-overview" id="overviewFilterNote"></span>
-        <button type="button" class="overview-icon-btn repair-import-btn excel-icon-btn" id="importRepairSheetBtnOverview" title="Încarcă fișă remedieri" aria-label="Încarcă fișă remedieri">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        </button>
-        <button type="button" class="overview-icon-btn excel-icon-btn" id="exportExcelBtn" title="Raport Excel" aria-label="Raport Excel">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        </button>
+        <div id="reactOverviewQuickFilters" style="display:contents;"></div>
       </div>
       <div class="overview-quick-filters" data-year-panel="tickets">
-        <div class="overview-popover-wrap">
-          <button type="button" class="overview-icon-btn" id="ticketsFilterToggleBtn" aria-label="Filtre">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-          </button>
-          <div class="filter-popover" id="ticketsFilterPopover">
-            <div class="sheet-grid popover-yearmonth">
-              <div class="ctrl-field">
-                <label for="yearFilterSelectTicketsMobile">An</label>
-                <select id="yearFilterSelectTicketsMobile"></select>
-              </div>
-              <div class="ctrl-field">
-                <label for="monthFilterSelectTicketsMobile">Lună</label>
-                <select id="monthFilterSelectTicketsMobile"></select>
-              </div>
-            </div>
-            <div class="sheet-mini-calendar popover-daygrid" id="ticketsMiniCalendar">
-              <div class="mini-cal-header">
-                <button type="button" id="ticketsMiniCalPrevBtn" aria-label="Luna anterioară">‹</button>
-                <button type="button" class="mini-cal-month-label" id="ticketsMiniCalLabel">—</button>
-                <button type="button" id="ticketsMiniCalNextBtn" aria-label="Luna următoare">›</button>
-              </div>
-              <div class="mini-cal-weekdays"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
-              <div class="mini-cal-grid" id="ticketsMiniCalGrid"></div>
-              <button type="button" class="mini-cal-clear-btn" id="ticketsMiniCalClearBtn">Toate zilele</button>
-            </div>
-            <div class="sheet-filter-status">
-              <label>Stare listă</label>
-              <div class="chips" id="ticketStatusChipsMobile"></div>
-            </div>
-            <div class="popover-saved-views">
-              <label>Vizualizări salvate</label>
-              <div class="saved-views-chips" id="ticketsSavedViewsWrap"></div>
-              <button type="button" class="save-view-btn" id="ticketsSaveViewBtn">+ Salvează vizualizarea curentă</button>
-            </div>
-          </div>
-        </div>
-        <button type="button" class="overview-icon-btn add-btn" id="addTicketBtn" data-requires-write="tickets" title="Adaugă sesizare" aria-label="Adaugă sesizare">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
-        <div class="overview-search-wrap" id="ticketSearchWrap">
-          <button type="button" class="overview-icon-btn" id="searchToggleBtn" aria-label="Căutare">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
-          <input type="search" id="ticketSearchBox" placeholder="Caută adresă, nume, telefon, nr. sesizare…">
-        </div>
-        <span class="overview-quick-filters-count" id="resultCountMobile">0 tichete</span>
-        <span class="filter-status-note" id="ticketsFilterNoteMobile"></span>
+        <div id="reactTicketsQuickFilters" style="display:contents;"></div>
         <input type="file" id="repairSheetInput" accept=".xlsx,.xls,.csv" style="display:none;">
-        <button type="button" class="overview-icon-btn repair-import-btn excel-icon-btn" id="importRepairSheetBtn" title="Încarcă fișă remedieri" aria-label="Încarcă fișă remedieri">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        </button>
       </div>
       <div class="overview-year-bar admin-tabs-row-year" data-year-panel="projects">
         <label for="projectYearFilterSelectDesktop">An:</label>
@@ -480,89 +377,8 @@
         <section class="lps-section" data-lps-section="learning"><div class="lps-section-head"><div><h3>Huddle și învățare</h3><p>Notează discuția scurtă de teren. Analizează PPC și motivele de variație în fiecare săptămână.</p></div></div><div class="lps-variance-breakdown" id="lpsVarianceBreakdown"></div><form class="lps-form" id="lpsHuddleForm"><div class="lps-form-grid"><div class="ctrl-field"><label>Data huddle</label><input name="huddle_date" type="date" required></div><div class="ctrl-field"><label>Facilitator</label><input name="facilitator" placeholder="Nume"></div><div class="ctrl-field full"><label>Blocaje și decizii</label><input name="notes" placeholder="Ce trebuie rezolvat înainte de următoarea întâlnire?"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Salvează huddle</button></div></form><div class="lps-list" id="lpsHuddleList"></div></section>
       </div>
     </div>
-    <div class="admin-panel active" id="panel-overview">
-      <div class="priority-grid">
-        <button type="button" class="priority-card" id="prioActiveCard">
-          <span class="k">● Active</span>
-          <div class="num" id="prioActiveCount">0</div>
-          <div class="sub">Sesizări încă nesoluționate</div>
-        </button>
-        <button type="button" class="priority-card warn" id="prioAgingCard">
-          <span class="k">⚠ Peste 7 zile</span>
-          <div class="num" id="prioAgingCount">0</div>
-          <div class="sub">Active de prea mult timp</div>
-        </button>
-        <button type="button" class="priority-card" id="prioFuncCard">
-          <span class="k">● Defecte</span>
-          <div class="num" id="prioFuncCount">0</div>
-          <div class="sub">Sesizări active, fără pericol iminent</div>
-        </button>
-        <button type="button" class="priority-card danger" id="prioAccidentCard">
-          <span class="k">⛔ Accidente</span>
-          <div class="num" id="prioAccidentCount">0</div>
-          <div class="sub">Urgențe active — pericol iminent</div>
-        </button>
-        <button type="button" class="priority-card done" id="prioSolvedCard">
-          <span class="k">✓ Soluționate</span>
-          <div class="num" id="prioSolvedCount">0</div>
-          <div class="sub">Sesizări soluționate, cu sau fără raport</div>
-        </button>
-      </div>
-
-      <span id="ticketAddFormHome" style="display:none;"></span>
-      <div class="overview-year-bar">
-        <label for="yearFilterSelect">An:</label>
-        <select id="yearFilterSelect"></select>
-        <label for="monthFilterSelect">Lună:</label>
-        <select id="monthFilterSelect"></select>
-        <span class="year-warning" id="yearWarningOverview">⚠ Nu e anul curent</span>
-      </div>
-      <div class="overview-section">
-        <div class="active-narrow-filter" id="overviewNarrowFilter">
-          <span id="overviewNarrowFilterLabel"></span>
-          <button type="button" id="clearOverviewNarrowFilterBtn">✕ Elimină acest filtru</button>
-        </div>
-        <div class="overview-table-wrap">
-          <table class="overview-table" id="overviewTable">
-            <colgroup>
-              <col class="col-num"><col class="col-date"><col class="col-type">
-              <col class="col-name"><col class="col-phone"><col class="col-address">
-              <col class="col-status"><col class="col-resolved"><col class="col-duration">
-            </colgroup>
-            <thead>
-              <tr>
-                <th>Nr. sesizare</th>
-                <th>Data sesizării</th>
-                <th>Tip sesizare</th>
-                <th>Nume reclamant</th>
-                <th>Telefon</th>
-                <th>Adresă identificare loc defect</th>
-                <th>Stare sesizare</th>
-                <th>Data soluționării</th>
-                <th>Timp de soluționare</th>
-              </tr>
-            </thead>
-            <tbody id="overviewTableBody"></tbody>
-          </table>
-        </div>
-        <div class="overview-cards-mobile" id="overviewCardsMobile"></div>
-        <div class="archive-bar" id="overviewShareBar">
-          <span id="overviewShareCount">0 selectate</span>
-          <button class="btn" id="overviewShareClearBtn" type="button">Anulează selecția</button>
-          <button class="btn btn-primary" id="overviewShareSendBtn" type="button">Trimite selectate</button>
-        </div>
-        <div class="overview-sidebar">
-          <div class="chart-card">
-            <h4>Sesizări pe an</h4>
-            <canvas id="ticketVolumeChart"></canvas>
-          </div>
-          <div class="chart-card">
-            <h4>Timp mediu de rezolvare</h4>
-            <canvas id="resolutionTimeChart"></canvas>
-            <div class="chart-stat" id="avgResolutionStat"></div>
-          </div>
-        </div>
-      </div>
+    <div class="admin-panel" id="panel-overview">
+      <div id="reactOverviewRoot"></div>
     </div>
 
     <div class="admin-panel" id="panel-workorders">
@@ -632,90 +448,7 @@
     </div>
 
     <div class="admin-panel" id="panel-tickets">
-      <div class="toolbar">
-        <div style="display:flex; align-items:center; gap:14px;">
-          <div class="result-count" id="resultCount"></div>
-          <span class="filter-status-note" id="ticketsFilterNoteDesktop"></span>
-        </div>
-      </div>
-      <div class="project-form" id="ticketAddForm" style="display:none;">
-        <div class="pf-grid">
-          <div class="ctrl-field-stack">
-            <div class="ctrl-field">
-              <label>Tip sesizare</label>
-              <select id="tf-type">
-                <option value="Sesizare functionala">Defect</option>
-                <option value="Anunt accident">Accident</option>
-              </select>
-            </div>
-            <div class="ctrl-field">
-              <label>Nume reclamant</label>
-              <input type="text" id="tf-name" placeholder="ex: Ion Popescu">
-            </div>
-          </div>
-          <div class="ctrl-field-stack">
-            <div class="ctrl-field resolved-date-field">
-              <label>Data sesizării</label>
-              <input type="date" id="tf-date">
-            </div>
-            <div class="ctrl-field resolved-date-field">
-              <label>Data soluționării (opțional)</label>
-              <input type="date" id="tf-resolved-date">
-            </div>
-            <div class="ctrl-field" id="tf-resolved-by-field" style="display:none;">
-              <label>Soluționat de</label>
-              <input type="text" id="tf-resolved-by" placeholder="ex: Bogdan Vlas">
-            </div>
-          </div>
-          <div class="ctrl-field">
-            <label>Telefon</label>
-            <input type="text" id="tf-phone" placeholder="ex: 0740123456">
-          </div>
-          <div class="ctrl-field">
-            <label>Email (opțional)</label>
-            <input type="email" id="tf-email" placeholder="ex: nume@exemplu.ro">
-          </div>
-          <div class="ctrl-field">
-            <label>Adresă identificare loc defect</label>
-            <input type="text" id="tf-address" placeholder="ex: Str. Gh. Doja nr. 4">
-          </div>
-          <div class="ctrl-field">
-            <label>Descriere (opțional)</label>
-            <input type="text" id="tf-description" placeholder="Detalii despre sesizare">
-          </div>
-        </div>
-        <div class="pf-actions">
-          <button class="btn" id="tfCancelBtn" type="button">Anulează</button>
-          <button class="btn btn-primary" id="tfSaveBtn" type="button">Salvează sesizarea</button>
-        </div>
-      </div>
-      <div class="excel-preview" id="repairSheetPreview" style="display:none;">
-        <p class="excel-preview-note" id="repairSheetPreviewNote">Previzualizare — verificați rândurile înainte de a confirma.</p>
-        <div class="excel-preview-table-wrap"><table class="excel-preview-table" id="repairSheetPreviewTable"></table></div>
-        <div class="pf-actions">
-          <button class="btn" id="repairSheetCancelBtn" type="button">Anulează</button>
-          <button class="btn btn-primary" id="repairSheetConfirmBtn" type="button">Confirmă și salvează</button>
-        </div>
-      </div>
-      <div class="active-narrow-filter" id="activeNarrowFilter">
-        <span id="activeNarrowFilterLabel"></span>
-        <button type="button" id="clearNarrowFilterBtn">✕ Elimină acest filtru</button>
-      </div>
-      <div class="archive-bar" id="archiveBar">
-        <span id="selectionCount">0 selectate</span>
-        <button class="btn" id="clearSelectionBtn" type="button">Anulează selecția</button>
-        <button class="btn" id="editSelectedBtn" type="button">Editează</button>
-        <button class="btn" id="markDuplicatesSelectedBtn" type="button">Marchează ca duplicate</button>
-        <button class="btn btn-primary" id="archiveSelectedBtn" type="button">Arhivează selectate</button>
-      </div>
-      <div class="ticket-list" id="ticketList"></div>
-      <datalist id="resolution-suggestions">
-        <option value="Bec înlocuit">
-        <option value="Stâlp înlocuit">
-        <option value="Cablu reparat">
-        <option value="Fotocelulă înlocuită">
-        <option value="Siguranță înlocuită">
-      </datalist>
+      <div id="reactTicketsRoot"></div>
     </div>
 
     <div class="admin-panel" id="panel-projects">
@@ -1974,26 +1707,6 @@
   </div>
 </div>
 
-<div class="mobile-sheet" id="duplicateLinkSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="duplicateLinkSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div>
-        <h3 id="duplicateLinkSheetTitle">Marchează duplicat</h3>
-        <p id="duplicateLinkSheetHint">Caută sesizarea originală (nr. tichet sau adresă) — cea pe care o ții. Bifează și altele de pe același caz dacă mai sunt.</p>
-      </div>
-      <button type="button" class="sheet-close" id="duplicateLinkCloseBtn" aria-label="Închide">×</button>
-    </div>
-    <input type="search" id="duplicateLinkSearchBox" class="duplicate-link-search" placeholder="Nr. tichet sau adresă… (desparte prin virgulă pentru mai multe)">
-    <div class="duplicate-link-results" id="duplicateLinkResults"></div>
-    <div class="duplicate-link-extra-count" id="duplicateLinkExtraCount" style="display:none;"></div>
-    <div class="sheet-actions">
-      <button type="button" class="btn" id="duplicateLinkCancelBtn">Anulează</button>
-      <button type="button" class="btn btn-primary" id="duplicateLinkConfirmBtn" style="display:none;" disabled>Confirmă</button>
-    </div>
-  </div>
-</div>
 
 <div class="onboarding-overlay" id="onboardingTour" hidden>
   <div class="onboarding-spotlight" id="onboardingSpotlight"></div>
@@ -2015,17 +1728,17 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="assets/js/data-services.js?v=20261019a"></script>
-<script src="assets/js/admin-core.js?v=20261019b"></script>
+<script src="assets/js/admin-core.js?v=20261019c"></script>
 <!-- Built from admin-react/ (source: admin-react/src/mount.tsx) — do not
      hand-edit this file, rebuild it instead:
        cd admin-react && npx vite build --config vite.mount.config.ts
      then copy dist-mount/admin-react-status.js here. -->
-<script src="assets/js/admin-react-status.js?v=20261019b"></script>
+<script src="assets/js/admin-react-status.js?v=20261019c"></script>
 <script>
-  // Mounts Stare sistem's four React panels plus Acasă, reusing the
-  // page's own already-created Supabase client (supabaseClient, from
-  // admin-core.js's shared top-level scope) rather than a second one.
-  // Safe to do
+  // Mounts Stare sistem's four React panels plus Acasă and Sesizări
+  // (Tickets), reusing the page's own already-created Supabase client
+  // (supabaseClient, from admin-core.js's shared top-level scope)
+  // rather than a second one. Safe to do
   // immediately at load, regardless of login state — each component
   // starts with sessionEmail=null and updates itself reactively once
   // supabaseClient's own auth listener resolves a real session; the
@@ -2043,11 +1756,27 @@
     if (auditEl) window.AdminReactStatus.mountAuditLog(auditEl, supabaseClient);
     if (rolesEl) window.AdminReactStatus.mountRoles(rolesEl, supabaseClient);
     if (homeEl) window.AdminReactStatus.mountHome(homeEl, supabaseClient);
+
+    var overviewRootEl = document.getElementById('reactOverviewRoot');
+    var overviewYearBarEl = document.getElementById('reactOverviewYearBar');
+    var overviewQuickFiltersEl = document.getElementById('reactOverviewQuickFilters');
+    var ticketsYearBarEl = document.getElementById('reactTicketsYearBar');
+    var ticketsQuickFiltersEl = document.getElementById('reactTicketsQuickFilters');
+    var ticketsRootEl = document.getElementById('reactTicketsRoot');
+    if (overviewRootEl && overviewYearBarEl && overviewQuickFiltersEl && ticketsYearBarEl && ticketsQuickFiltersEl && ticketsRootEl) {
+      window.AdminReactStatus.mountTickets(overviewRootEl, {
+        overviewYearBar: overviewYearBarEl,
+        overviewQuickFilters: overviewQuickFiltersEl,
+        ticketsYearBar: ticketsYearBarEl,
+        ticketsQuickFilters: ticketsQuickFiltersEl,
+        ticketsPanelRoot: ticketsRootEl,
+      }, supabaseClient);
+    }
   })();
 </script>
 <script src="assets/js/features/system-status.js?v=20261019b"></script>
-<script src="assets/js/features/lps.js?v=20261019b"></script>
-<script src="assets/js/features/tickets.js?v=20261019a"></script>
+<script src="assets/js/features/lps.js?v=20261019c"></script>
+<script src="assets/js/features/tickets.js?v=20261019c"></script>
 <script src="assets/js/features/projects.js?v=20261019a"></script>
 <script src="assets/js/features/work-orders.js?v=20261019b"></script>
 <script src="assets/js/features/erp.js?v=20261019a"></script>

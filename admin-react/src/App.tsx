@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSupabase } from './lib/supabaseContext';
 import { useGlobalTelemetry } from './features/status/useGlobalTelemetry';
 import { StatusDashboard } from './features/status/StatusDashboard';
@@ -6,16 +7,70 @@ import { AutoImprove } from './features/status/AutoImprove';
 import { AuditLog } from './features/status/AuditLog';
 import { Roles } from './features/status/Roles';
 import { HomePage } from './features/home/HomePage';
+import { TicketsRoot, type TicketsMountTargets } from './features/tickets/TicketsRoot';
 
-type StatusTab = 'home' | 'status' | 'status-improve' | 'status-audit' | 'status-roles';
+type StatusTab = 'home' | 'overview' | 'tickets-functional' | 'status' | 'status-improve' | 'status-audit' | 'status-roles';
 
 const TABS: { key: StatusTab; label: string }[] = [
   { key: 'home', label: 'Acasă' },
+  { key: 'overview', label: 'Sesizări — Overview' },
+  { key: 'tickets-functional', label: 'Sesizări — Listă' },
   { key: 'status', label: 'Stare sistem' },
   { key: 'status-improve', label: 'Auto-îmbunătățire' },
   { key: 'status-audit', label: 'Jurnal de activitate' },
   { key: 'status-roles', label: 'Roluri' },
 ];
+
+// Standalone-only: TicketsRoot portals into real DOM containers shaped
+// like admin-3.html's topbar slots (see TicketsRoot.tsx) -- this stub
+// provides those containers for isolated dev testing, and dispatches
+// the same admin:tabchange event lps.js dispatches for real, so
+// Tickets' own view-tracking (Overview vs. the ticket list, which
+// triggers a silent refresh on switch) behaves the same way here.
+function TicketsStandaloneStub({ sessionEmail, activeTab }: { sessionEmail: string | null; activeTab: StatusTab }) {
+  const overviewYearBar = useRef<HTMLDivElement>(null);
+  const overviewQuickFilters = useRef<HTMLDivElement>(null);
+  const ticketsYearBar = useRef<HTMLDivElement>(null);
+  const ticketsQuickFilters = useRef<HTMLDivElement>(null);
+  const ticketsPanelRoot = useRef<HTMLDivElement>(null);
+  const overviewPanelRoot = useRef<HTMLDivElement>(null);
+  const [targets, setTargets] = useState<TicketsMountTargets | null>(null);
+
+  useEffect(() => {
+    if (overviewYearBar.current && overviewQuickFilters.current && ticketsYearBar.current && ticketsQuickFilters.current && ticketsPanelRoot.current) {
+      setTargets({
+        overviewYearBar: overviewYearBar.current,
+        overviewQuickFilters: overviewQuickFilters.current,
+        ticketsYearBar: ticketsYearBar.current,
+        ticketsQuickFilters: ticketsQuickFilters.current,
+        ticketsPanelRoot: ticketsPanelRoot.current,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('admin:tabchange', { detail: activeTab }));
+  }, [activeTab]);
+
+  return (
+    <>
+      <div ref={overviewYearBar} style={{ display: activeTab === 'overview' ? 'flex' : 'none' }} />
+      <div ref={overviewQuickFilters} style={{ display: activeTab === 'overview' ? 'flex' : 'none' }} />
+      <div ref={ticketsYearBar} style={{ display: activeTab === 'tickets-functional' ? 'flex' : 'none' }} />
+      <div ref={ticketsQuickFilters} style={{ display: activeTab === 'tickets-functional' ? 'flex' : 'none' }} />
+      <div ref={overviewPanelRoot} style={{ display: activeTab === 'overview' ? 'block' : 'none' }} />
+      <div ref={ticketsPanelRoot} style={{ display: activeTab === 'tickets-functional' ? 'block' : 'none' }} />
+      {targets && overviewPanelRoot.current && <TicketsRootMounter sessionEmail={sessionEmail} targets={targets} anchor={overviewPanelRoot.current} />}
+    </>
+  );
+}
+
+// TicketsRoot's own OverviewPanel renders as a direct child (same
+// contract as the real mount: it lands wherever the tree itself is
+// rendered) -- portal it into the dedicated overviewPanelRoot div.
+function TicketsRootMounter({ sessionEmail, targets, anchor }: { sessionEmail: string | null; targets: TicketsMountTargets; anchor: HTMLElement }) {
+  return createPortal(<TicketsRoot sessionEmail={sessionEmail} targets={targets} />, anchor);
+}
 
 function LoginScreen({ onLoggedIn }: { onLoggedIn: () => void }) {
   const supabase = useSupabase();
@@ -130,6 +185,7 @@ export default function App() {
           </div>
           <div className="page-body">
             {activeTab === 'home' && <HomePage sessionEmail={sessionEmail} onNavigate={() => {}} />}
+            <TicketsStandaloneStub sessionEmail={sessionEmail} activeTab={activeTab} />
             {activeTab === 'status' && <StatusDashboard sessionEmail={sessionEmail} />}
             {activeTab === 'status-improve' && <AutoImprove />}
             {activeTab === 'status-audit' && <AuditLog />}

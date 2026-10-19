@@ -5,13 +5,25 @@ section at a time, mounted into the existing page rather than run as a
 separate app. See the migration tracker doc (linked from the main
 conversation) for the full feature-parity checklist and progress.
 
-**Status**: two sections done — Stare sistem (System status: dashboard,
-auto-îmbunătățire, jurnal de activitate, roluri) and Acasă (Home: clock,
+**Status**: three sections done — Stare sistem (System status: dashboard,
+auto-îmbunătățire, jurnal de activitate, roluri), Acasă (Home: clock,
 mini-calendar with full recurring-event CRUD, personal to-do widget,
-role-gated nav grid) — **both mounted into admin-3.html**, replacing
-their old hand-written panels. Desktop only for now; mobile is
-deliberately deferred. See the migration tracker doc for what's next
-(Sesizări/Tickets).
+role-gated nav grid), and the **core** of Sesizări/Tickets (Prezentare
+generală + the ticket list: listing/filtering, create/edit with draft
+protection, status workflow, duplicate detection/linking, charts,
+push tie-ins for manually-added tickets) — **all mounted into
+admin-3.html**, replacing their old hand-written panels. Desktop only
+for now; mobile is deliberately deferred.
+
+**Tickets' Excel import/export (Raport Excel + the repair-sheet
+import) is its own deferred follow-up round** — it's ~1700 lines of
+workbook-generation/parsing logic in `assets/js/features/excel.js` on
+its own, comparable in size to everything else in Tickets combined.
+The Excel toolbar icons are hidden in the mounted version until that
+round ships; `excel.js` itself is untouched and dormant (its own
+button-click wiring is guarded and finds nothing to attach to), so it
+causes no errors, but it's not reachable either. See the migration
+tracker doc for the full breakdown.
 
 ## Stack
 
@@ -117,6 +129,31 @@ src/
     CalendarDaySheet.tsx, CalendarEventFormSheet.tsx, RecurrenceSheet.tsx
     TodoWidget.tsx
     HomePage.tsx               "Acasă" panel -- composes all of the above
+  features/tickets/
+    types.ts, ticketUtils.ts   Ticket model + pure filtering/sorting/date
+                                 logic, ported 1:1 from tickets.js/admin-core.js
+    useTicketsStore.ts         the central hook -- tickets array, every
+                                 filter/selection/editing piece of state,
+                                 mutations (save/archive/restore/duplicate/
+                                 create), notifications, goToTicket, and
+                                 the window.allTickets/goToTicket/
+                                 goToTicketByNumber bridges search.js/
+                                 admin-core.js still call into
+    TicketsContext.tsx         React context wrapping the store -- lets
+                                 5 separate mount points (2 topbar slots x
+                                 2 tabs + the ticket-list panel) share one
+                                 tree via portals (see TicketsRoot.tsx)
+    useSavedFilterViews.ts, useShareTickets.ts
+    FilterPopover.tsx, MiniDayCalendar.tsx, SearchToggle.tsx,
+    TopbarControls.tsx          shared Filtre-popover/search/year-month
+                                 widgets, used by both Overview and Sesizări
+    PriorityCards.tsx, OverviewCharts.tsx, OverviewTable.tsx
+    OverviewPanel.tsx           "Prezentare generală" panel
+    TicketCard.tsx, TicketsPanel.tsx, TicketArchiveBar.tsx
+    TicketAddForm.tsx, DuplicateLinkSheet.tsx
+    TicketsRoot.tsx             composes all of the above across its 5
+                                 portal targets -- see mount.tsx's
+                                 mountTickets/TicketsAppRoot
   App.tsx     standalone-only: login gate + god-role check + tab switcher
   main.tsx    standalone entry (index.html)
   mount.tsx   mounted entry (admin-3.html) -- exposes window.AdminReactStatus
@@ -137,16 +174,27 @@ src/
   comment -- it used to hold both Stare sistem and the Acasă code that
   happened to share the same file). Keep doing the same cleanup for
   future sections.
-- Acasă's nav grid still needs to reach into vanilla land for cross-tab
-  navigation, since Sesizări/Proiecte/ERP/HR/Docs/Stare-sistem-as-a-
-  *destination* aren't all React yet. Rather than the React bundle
-  reaching into vanilla's module-scope variables by bare identifier
-  (which would technically work — classic `<script>` tags share one
-  global lexical environment on this page — but is fragile and
-  undocumented), the contract is explicit: `window.openAdminTab` (an
-  ordinary top-level `function` declaration, already a real `window`
-  property) for plain tab switches, and a small purpose-built
-  `window.goHomeToTicketsOverview` (see its own comment in
-  admin-core.js) for the one case for that needs a vanilla filter reset
-  first. Same pattern `window.currentAdminTab` already used — update or
-  remove these bridges as each destination section itself moves to React.
+- Acasă's nav grid, and anything else still reaching into vanilla land
+  for cross-tab navigation (Proiecte/ERP/HR/Docs/Stare-sistem-as-a-
+  *destination* aren't all React yet), goes through `window.openAdminTab`
+  (an ordinary top-level `function` declaration in lps.js, already a
+  real `window` property) rather than the React bundle reaching into
+  vanilla's module-scope variables by bare identifier (which would
+  technically work — classic `<script>` tags share one global lexical
+  environment on this page — but is fragile and undocumented).
+- The reverse direction (vanilla still calling INTO ticket data/behavior
+  that's now React's) uses the same explicit-`window.*`-property
+  contract: `window.allTickets` (kept live via a `useEffect` in
+  useTicketsStore, read by search.js's smart-search indexing and
+  admin-core.js's push-notification-tap handler), `window.goToTicket`
+  (same two callers' navigation), and `window.goToTicketByNumber`
+  (admin-core.js's service-worker message listener). lps.js's
+  `openAdminTab` also dispatches a plain `admin:tabchange` CustomEvent
+  on every tab switch — `useTicketsStore` listens for it to track which
+  of the two Sesizări sub-tabs (Defecte/Accidente) is showing and to
+  silently refresh on switch, the same way `refreshAllAdminData()`
+  used to for every other still-vanilla tab.
+- Update or remove these bridges as each destination/source section
+  itself moves to React — e.g. once Proiecte is rewritten, Acasă's
+  "Proiecte" nav button and `window.openAdminTab('projects-home')`
+  can likely be replaced with a direct React-to-React call.
