@@ -1,19 +1,19 @@
 import { useEffect, useRef } from 'react';
-import { supabase } from '../../lib/supabaseClient';
+import { useSupabase } from '../../lib/supabaseContext';
 
 // Ported from system-status.js's "Auto-îmbunătățire" collectors: real JS
 // errors, UI friction signals (rage clicks, heavy typing), feature-click
 // tallies, and tab dwell time. All best-effort -- logging must never
 // itself break the app.
 //
-// Simplification for this standalone pilot: the original tags every
-// signal with `currentAdminTab` (whichever of ~20 tabs is open in the
-// full shell). This pilot only has one page, so everything is tagged
-// "status" for now -- once mounted inside admin-3.html alongside the
-// real tab router, this should read the shell's actual current tab
-// instead of the fixed string below.
-const PILOT_TAB_LABEL = 'status';
-
+// IMPORTANT: this installs app-WIDE listeners (window.onerror,
+// console.error, click/keydown/blur on `document`). Once mounted inside
+// admin-3.html, the equivalent vanilla listeners in system-status.js must
+// be removed first, or every error/click gets logged twice.
+//
+// `getCurrentTab` lets the mounted version tag signals with the real
+// current tab (reading the shell's own `currentAdminTab` global) instead
+// of a fixed label -- defaults to a fixed "status" for the standalone pilot.
 const ERROR_LOG_DEDUPE_WINDOW_MS = 30000;
 const RAGE_CLICK_WINDOW_MS = 700;
 const RAGE_CLICK_THRESHOLD = 3;
@@ -26,9 +26,12 @@ function frictionElementLabel(el: Element | null): string {
   return (label || el.tagName).slice(0, 60);
 }
 
-export function useGlobalTelemetry(sessionEmail: string | null) {
+export function useGlobalTelemetry(sessionEmail: string | null, getCurrentTab: () => string = () => 'status') {
+  const supabase = useSupabase();
   const sessionEmailRef = useRef(sessionEmail);
   sessionEmailRef.current = sessionEmail;
+  const getCurrentTabRef = useRef(getCurrentTab);
+  getCurrentTabRef.current = getCurrentTab;
 
   useEffect(() => {
     const recentErrorSignatures = new Map<string, number>();
@@ -42,7 +45,7 @@ export function useGlobalTelemetry(sessionEmail: string | null) {
         await supabase.from('app_error_log').insert({
           message: sig,
           stack: stack ? String(stack).slice(0, 4000) : null,
-          tab: PILOT_TAB_LABEL,
+          tab: getCurrentTabRef.current(),
           user_email: sessionEmailRef.current,
         });
       } catch {
@@ -77,7 +80,7 @@ export function useGlobalTelemetry(sessionEmail: string | null) {
       try {
         await supabase.from('app_interaction_signals').insert({
           signal_type: signalType,
-          tab: PILOT_TAB_LABEL,
+          tab: getCurrentTabRef.current(),
           target_label: targetLabel,
           user_email: sessionEmailRef.current,
           meta: meta || {},
@@ -96,7 +99,7 @@ export function useGlobalTelemetry(sessionEmail: string | null) {
       if (!target) return;
       const sig = frictionElementLabel(target);
       const now = Date.now();
-      const tallyKey = `${PILOT_TAB_LABEL}|${sig}`;
+      const tallyKey = `${getCurrentTabRef.current()}|${sig}`;
       featureClickTally.set(tallyKey, (featureClickTally.get(tallyKey) || 0) + 1);
       const rec = rageClickTracker.get(sig);
       if (rec && now - rec.firstTs < RAGE_CLICK_WINDOW_MS) {
@@ -135,7 +138,7 @@ export function useGlobalTelemetry(sessionEmail: string | null) {
     }
     const flushInterval = setInterval(flushFeatureClickTally, FEATURE_CLICK_FLUSH_MS);
 
-    const tabEnteredAt = Date.now();
+    let tabEnteredAt = Date.now();
     async function logPageView(tab: string, durationSeconds: number) {
       try {
         await supabase.from('app_page_views').insert({ tab, duration_seconds: Math.round(durationSeconds), user_email: sessionEmailRef.current });
@@ -146,7 +149,8 @@ export function useGlobalTelemetry(sessionEmail: string | null) {
     const onBeforeUnload = () => {
       flushFeatureClickTally();
       const seconds = (Date.now() - tabEnteredAt) / 1000;
-      if (seconds >= 2) logPageView(PILOT_TAB_LABEL, seconds);
+      if (seconds >= 2) logPageView(getCurrentTabRef.current(), seconds);
+      tabEnteredAt = Date.now();
     };
     window.addEventListener('beforeunload', onBeforeUnload);
 
@@ -183,5 +187,6 @@ export function useGlobalTelemetry(sessionEmail: string | null) {
       document.removeEventListener('keydown', onKeydown);
       document.removeEventListener('blur', onBlur, true);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]);
 }

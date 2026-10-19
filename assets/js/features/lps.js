@@ -886,9 +886,6 @@
     // explicit renderTickets()).
     if (tabKey === 'tickets-functional') setTicketTypeFilter('functional', { skipRender: true });
     else if (tabKey === 'tickets-accident') setTicketTypeFilter('accident', { skipRender: true });
-    else if (tabKey === 'status' || tabKey === 'status-improve') loadSystemStatus();
-    else if (tabKey === 'status-audit') loadAuditLog();
-    else if (tabKey === 'status-roles') loadStaffRolesTab();
     else if (tabKey === 'workorders') loadWorkOrders();
     else if (tabKey === 'equipment' || tabKey === 'machines' || tabKey === 'machines-fuel-report' || tabKey === 'materials' || tabKey === 'products' || tabKey === 'erp-home') loadEquipment();
     else if (tabKey === 'projects-home') renderProjectsHomeStats();

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../lib/supabaseClient';
+import { useSupabase } from '../../lib/supabaseContext';
 import { formatLogTimeRO } from '../../lib/format';
 
 const PROJECT_ENTITY_TYPES = ['project', 'backlog', 'lookahead'] as const;
@@ -24,6 +24,7 @@ interface EntityLogRow {
 }
 
 export function AuditLog() {
+  const supabase = useSupabase();
   const [rows, setRows] = useState<EntityLogRow[]>([]);
   const [titles, setTitles] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState('all');

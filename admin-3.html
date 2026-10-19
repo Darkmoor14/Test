@@ -1158,204 +1158,23 @@
       </div>
     </div>
 
+    <!-- Stare sistem's four sub-tabs are React components (see
+         admin-react/ for source), mounted below by assets/js/admin-react-status.js
+         into these empty containers — not hand-written markup any more. -->
     <div class="admin-panel" id="panel-status">
-      <div class="status-panel-head">
-        <div><div class="home-eyebrow">Monitorizare</div><h2>Stare sistem</h2></div>
-        <button type="button" class="status-info-btn" id="statusHistoryBtn" aria-label="Istoric verificări (ultimele 48h)" title="Istoric verificări (ultimele 48h)">i</button>
-      </div>
-      <div class="status-grid">
-        <div class="status-card" id="statusCardDb">
-          <div class="status-card-head">
-            <span class="status-dot" id="statusDotDb"></span>
-            <h4>Bază de date</h4>
-          </div>
-          <div class="status-card-body">
-            <div class="status-stat" id="statusDbLatency">—</div>
-            <div class="status-stat-label">Timp de răspuns</div>
-          </div>
-          <canvas class="status-chart" id="statusDbChart" height="60"></canvas>
-        </div>
-
-        <div class="status-card" id="statusCardAuth">
-          <div class="status-card-head">
-            <span class="status-dot" id="statusDotAuth"></span>
-            <h4>Autentificare</h4>
-          </div>
-          <div class="status-card-body">
-            <div class="status-stat" id="statusAuthState">—</div>
-            <div class="status-stat-label" id="statusAuthLabel">Sesiune</div>
-          </div>
-        </div>
-
-        <div class="status-card" id="statusCardFunctions">
-          <div class="status-card-head">
-            <span class="status-dot" id="statusDotFunctions"></span>
-            <h4>Funcții Edge</h4>
-          </div>
-          <div class="status-card-body">
-            <div class="status-stat" id="statusFunctionsLatency">—</div>
-            <div class="status-stat-label">status-ping — timp de răspuns</div>
-          </div>
-          <ul class="status-function-list" id="statusFunctionsList"></ul>
-        </div>
-
-        <div class="status-card" id="statusCardCron">
-          <div class="status-card-head">
-            <span class="status-dot" id="statusDotCron"></span>
-            <h4>Memento-uri calendar</h4>
-          </div>
-          <div class="status-card-body">
-            <div class="status-stat" id="statusCronState">—</div>
-            <div class="status-stat-label">Job programat (la fiecare minut)</div>
-          </div>
-          <canvas class="status-chart" id="statusCronChart" height="60"></canvas>
-        </div>
-
-        <div class="status-card" id="statusCardPush">
-          <div class="status-card-head">
-            <span class="status-dot" id="statusDotPush"></span>
-            <h4>Notificări push</h4>
-          </div>
-          <div class="status-card-body">
-            <div class="status-stat" id="statusPushState">—</div>
-            <div class="status-stat-label" id="statusPushLabel">Permisiune browser</div>
-          </div>
-          <button type="button" class="btn status-push-enable-btn" id="statusPushEnableBtn" style="display:none;">Activează notificările</button>
-        </div>
-
-        <div class="status-card status-card-wide" id="statusCardCounts">
-          <div class="status-card-head">
-            <h4>Date în platformă</h4>
-          </div>
-          <canvas class="status-chart status-chart-tall" id="statusCountsChart" height="140"></canvas>
-        </div>
-      </div>
-      <div class="status-refresh-row">
-        <span id="statusLastChecked"></span>
-        <button type="button" class="btn" id="statusRefreshBtn">Reîmprospătează</button>
-      </div>
-      <p class="status-note">Memoria/CPU-ul serverului nu pot fi verificate în siguranță din browser (necesită un token de administrare Supabase care nu ar trebui expus aici) — pentru acele metrici, vezi dashboard-ul Supabase direct.</p>
+      <div id="reactStatusDashboardRoot"></div>
     </div>
 
     <div class="admin-panel" id="panel-status-improve">
-      <div class="status-panel-head">
-        <div><div class="home-eyebrow">Auto-îmbunătățire</div><h2>Auto-îmbunătățire</h2></div>
-      </div>
-      <div class="status-grid">
-        <div class="status-card status-card-wide" id="statusCardErrors">
-          <div class="status-card-head">
-            <h4>Jurnal erori</h4>
-            <div class="status-card-head-actions">
-              <button type="button" class="btn status-card-head-btn" id="statusDownloadErrorsBtn">Descarcă JSON</button>
-              <button type="button" class="btn status-card-head-btn" id="statusClearErrorsBtn">Golește</button>
-            </div>
-          </div>
-          <div class="status-history-list" id="statusErrorList"></div>
-        </div>
-
-        <div class="status-card status-card-wide" id="statusCardFriction">
-          <div class="status-card-head">
-            <h4>Sugestii de îmbunătățire</h4>
-            <div class="status-card-head-actions">
-              <button type="button" class="btn status-card-head-btn" id="statusDownloadFrictionBtn">Descarcă JSON</button>
-            </div>
-          </div>
-          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Detectate automat din clicuri repetate pe același buton (semn de frustrare) și câmpuri unde se scrie mult de mână (candidați pentru o listă/completare automată în loc de text liber).</p>
-          <div class="status-history-list" id="statusFrictionList"></div>
-        </div>
-
-        <div class="status-card status-card-wide" id="statusCardWorkflow">
-          <div class="status-card-head">
-            <h4>Workflow — cum se folosește platforma</h4>
-            <div class="status-card-head-actions">
-              <button type="button" class="btn status-card-head-btn" id="statusDownloadWorkflowBtn">Descarcă JSON</button>
-            </div>
-          </div>
-          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Timp petrecut pe fiecare pagină și acțiunile cele mai folosite, ca să se știe unde chiar contează efortul de îmbunătățire.</p>
-          <h5 class="status-subhead">Timp petrecut pe pagini (ultimele 30 de zile)</h5>
-          <div class="status-history-list" id="statusTimeByTabList"></div>
-          <h5 class="status-subhead">Acțiuni cele mai folosite</h5>
-          <div class="status-history-list" id="statusTopActionsList"></div>
-        </div>
-
-        <div class="status-card status-card-wide" id="statusCardSearches">
-          <div class="status-card-head">
-            <h4>Ce caută oamenii</h4>
-            <div class="status-card-head-actions">
-              <button type="button" class="btn status-card-head-btn" id="statusDownloadSearchesBtn">Descarcă JSON</button>
-            </div>
-          </div>
-          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Întrebările puse în căutarea de pe Acasă — inclusiv cele fără răspuns găsit, care arată ce lipsește din date.</p>
-          <div class="status-history-list" id="statusSearchesList"></div>
-        </div>
-
-        <div class="status-card status-card-wide" id="statusCardChangelog">
-          <div class="status-card-head">
-            <h4>Istoric actualizări</h4>
-          </div>
-          <div class="status-history-list" id="statusChangelogList"></div>
-        </div>
-      </div>
+      <div id="reactStatusImproveRoot"></div>
     </div>
 
     <div class="admin-panel" id="panel-status-audit">
-      <div class="status-panel-head">
-        <div><div class="home-eyebrow">Jurnal de activitate</div><h2>Jurnal de activitate</h2></div>
-      </div>
-      <div class="status-grid">
-        <div class="status-card status-card-wide" id="statusCardAuditLog">
-          <div class="status-card-head">
-            <h4>Activitate recentă</h4>
-            <div class="status-card-head-actions">
-              <select id="auditLogCategoryFilter">
-                <option value="all">Toate categoriile</option>
-                <option value="project">Proiecte publice</option>
-                <option value="backlog">Avarii rețele</option>
-                <option value="lookahead">LPS Look-ahead</option>
-                <option value="echipament">Echipamente</option>
-                <option value="masina">Parc Auto</option>
-                <option value="material">Materiale</option>
-                <option value="produs">Produse</option>
-              </select>
-            </div>
-          </div>
-          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Schimbările de stare și notițele adăugate pe proiecte publice, avarii de rețea, elemente Look-ahead din LPS și inventarul Resurse și inventar (echipamente, mașini, materiale, produse) — toate, într-un singur fir cronologic ("stare schimbată din Activ în Soluționat de X, pe data de…").</p>
-          <div class="entity-log-list" id="auditLogList" style="max-height:560px;"></div>
-        </div>
-      </div>
+      <div id="reactStatusAuditRoot"></div>
     </div>
 
     <div class="admin-panel" id="panel-status-roles">
-      <div class="status-panel-head">
-        <div><div class="home-eyebrow">Stare sistem</div><h2>Roluri</h2></div>
-        <button type="button" class="btn btn-primary" id="addStaffRoleBtn">+ Adaugă persoană</button>
-      </div>
-      <div class="status-grid">
-        <div class="status-card status-card-wide">
-          <p class="status-note" style="margin-top:0;margin-bottom:12px;">Fiecare secțiune din bara principală (Sesizări, Proiecte, Resurse, HR) are propriul rol — bifată, persoana are acces complet la secțiune și îi apare iconița pe Acasă; nebifată, secțiunea îi este complet ascunsă. O persoană poate avea orice combinație. „God” e singurul care vede și <strong>Stare sistem</strong>, și are automat acces la tot restul.</p>
-          <div class="overview-table-wrap">
-            <table class="overview-table" id="staffRolesTable">
-              <colgroup>
-                <col style="width:22%"><col style="width:11%"><col style="width:11%"><col style="width:10%">
-                <col style="width:8%"><col style="width:8%"><col style="width:12%"><col style="width:18%">
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>Email</th>
-                  <th>Sesizări</th>
-                  <th>Proiecte</th>
-                  <th>Resurse</th>
-                  <th>HR</th>
-                  <th>God</th>
-                  <th>Notificări</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="staffRolesTableBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+      <div id="reactStatusRolesRoot"></div>
     </div>
 
     <div class="admin-panel" id="panel-docs">
@@ -1639,25 +1458,6 @@
     </div>
 
       </div>
-    </div>
-  </div>
-</div>
-
-<div class="mobile-sheet" id="statusHistorySheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="statusHistorySheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="statusHistorySheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div>
-        <h3 id="statusHistorySheetTitle">Istoric verificări — ultimele 48h</h3>
-        <p>Fiecare verificare (automată, la fiecare 5 minute cât timp pagina rămâne deschisă, sau manuală) e înregistrată aici — ca să poți vedea ce s-a întâmplat chiar dacă n-ai fost pe pagină atunci. Necesită să lași o filă din admin-2 deschisă undeva ca să prindă ce se întâmplă între vizite.</p>
-      </div>
-      <button type="button" class="sheet-close" data-close-sheet="statusHistorySheet" aria-label="Închide">×</button>
-    </div>
-    <div class="status-history-list" id="statusHistoryList"></div>
-    <div class="sheet-actions">
-      <button type="button" class="btn" id="statusHistoryDownloadBtn">Descarcă JSON</button>
-      <button type="button" class="btn" id="statusHistoryClearBtn">Golește istoricul</button>
     </div>
   </div>
 </div>
@@ -2123,66 +1923,6 @@
   </div>
 </div>
 
-<div class="mobile-sheet" id="staffRoleFormSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="staffRoleFormSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="staffRoleFormSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div><h3 id="staffRoleFormSheetTitle">Adaugă persoană</h3></div>
-      <button type="button" class="sheet-close" data-close-sheet="staffRoleFormSheet" aria-label="Închide">×</button>
-    </div>
-    <div class="ctrl-field">
-      <label>Email</label>
-      <input type="email" id="srf-email" placeholder="ex: nume@insta-grup.ro">
-    </div>
-    <div class="ctrl-field">
-      <label>Parolă (pentru autentificare)</label>
-      <div class="sheet-grid" style="grid-template-columns:1fr auto;gap:8px;">
-        <input type="text" id="srf-password" placeholder="ex: parola generată sau aleasă">
-        <button class="btn" type="button" id="srfGeneratePasswordBtn">Generează</button>
-      </div>
-      <p class="status-note" style="margin:6px 0 0;">Creează direct contul de autentificare — persoana se poate loga imediat cu acest email și parolă, fără să mai fie nevoie să intri în Supabase. Transmite-i parola separat (telefon, în persoană etc.).</p>
-    </div>
-    <div class="sheet-filter-status">
-      <label>Roluri</label>
-      <div class="chips">
-        <label class="recur-radio"><input type="checkbox" id="srf-role-tickets"> Sesizări</label>
-        <label class="recur-radio"><input type="checkbox" id="srf-role-proiecte"> Proiecte</label>
-        <label class="recur-radio"><input type="checkbox" id="srf-role-erp"> Resurse</label>
-        <label class="recur-radio"><input type="checkbox" id="srf-role-hr"> HR</label>
-        <label class="recur-radio"><input type="checkbox" id="srf-role-god"> God</label>
-      </div>
-    </div>
-    <div class="sheet-actions">
-      <button class="btn" type="button" data-close-sheet="staffRoleFormSheet">Anulează</button>
-      <button class="btn btn-primary" id="srfSaveBtn" type="button">Adaugă</button>
-    </div>
-  </div>
-</div>
-
-<div class="mobile-sheet" id="staffPasswordResetSheet" aria-hidden="true">
-  <div class="mobile-sheet-backdrop" data-close-sheet="staffPasswordResetSheet"></div>
-  <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="staffPasswordResetSheetTitle">
-    <div class="sheet-handle"></div>
-    <div class="sheet-head">
-      <div><h3 id="staffPasswordResetSheetTitle">Schimbă parola</h3></div>
-      <button type="button" class="sheet-close" data-close-sheet="staffPasswordResetSheet" aria-label="Închide">×</button>
-    </div>
-    <input type="hidden" id="spr-email">
-    <div class="ctrl-field">
-      <label>Parolă nouă</label>
-      <div class="sheet-grid" style="grid-template-columns:1fr auto;gap:8px;">
-        <input type="text" id="spr-password" placeholder="ex: parola generată sau aleasă">
-        <button class="btn" type="button" id="sprGeneratePasswordBtn">Generează</button>
-      </div>
-    </div>
-    <div class="sheet-actions">
-      <button class="btn" type="button" data-close-sheet="staffPasswordResetSheet">Anulează</button>
-      <button class="btn btn-primary" id="sprSaveBtn" type="button">Salvează</button>
-    </div>
-  </div>
-</div>
-
 <div class="mobile-sheet" id="hrEmployeeFormSheet" aria-hidden="true">
   <div class="mobile-sheet-backdrop" data-close-sheet="hrEmployeeFormSheet"></div>
   <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="hrEmployeeFormSheetTitle">
@@ -2489,6 +2229,32 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="assets/js/data-services.js?v=20261019a"></script>
 <script src="assets/js/admin-core.js?v=20261019a"></script>
+<!-- Built from admin-react/ (source: admin-react/src/mount.tsx) — do not
+     hand-edit this file, rebuild it instead:
+       cd admin-react && npx vite build --config vite.mount.config.ts
+     then copy dist-mount/admin-react-status.js here. -->
+<script src="assets/js/admin-react-status.js?v=20261019a"></script>
+<script>
+  // Mounts Stare sistem's four React panels, reusing the page's own
+  // already-created Supabase client (supabaseClient, from admin-core.js's
+  // shared top-level scope) rather than a second one. Safe to do
+  // immediately at load, regardless of login state — each component
+  // starts with sessionEmail=null and updates itself reactively once
+  // supabaseClient's own auth listener resolves a real session; the
+  // surrounding .admin-panel's own active/hidden CSS class (and the
+  // rail/category-panel's role-based hiding) is what actually controls
+  // whether anyone ever sees these before then.
+  (function(){
+    var dashboardEl = document.getElementById('reactStatusDashboardRoot');
+    var improveEl = document.getElementById('reactStatusImproveRoot');
+    var auditEl = document.getElementById('reactStatusAuditRoot');
+    var rolesEl = document.getElementById('reactStatusRolesRoot');
+    if (dashboardEl) window.AdminReactStatus.mountDashboard(dashboardEl, supabaseClient);
+    if (improveEl) window.AdminReactStatus.mountAutoImprove(improveEl, supabaseClient);
+    if (auditEl) window.AdminReactStatus.mountAuditLog(auditEl, supabaseClient);
+    if (rolesEl) window.AdminReactStatus.mountRoles(rolesEl, supabaseClient);
+  })();
+</script>
 <script src="assets/js/features/system-status.js?v=20261019a"></script>
 <script src="assets/js/features/lps.js?v=20261019a"></script>
 <script src="assets/js/features/tickets.js?v=20261019a"></script>

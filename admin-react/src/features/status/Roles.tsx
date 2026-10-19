@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabaseClient';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { useSupabase } from '../../lib/supabaseContext';
 
 const STAFF_ROLE_KEYS = ['tickets', 'proiecte', 'erp', 'hr', 'god'] as const;
 type RoleKey = (typeof STAFF_ROLE_KEYS)[number];
@@ -12,7 +13,7 @@ function generateStaffPassword(): string {
   return out;
 }
 
-async function setStaffAuthPassword(email: string, password: string): Promise<boolean> {
+async function setStaffAuthPassword(supabase: SupabaseClient, email: string, password: string): Promise<boolean> {
   try {
     const { data, error } = await supabase.functions.invoke('staff-auth-admin', { body: { email, password } });
     if (error || !data || (data as { error?: string }).error) {
@@ -27,6 +28,7 @@ async function setStaffAuthPassword(email: string, password: string): Promise<bo
 }
 
 export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
+  const supabase = useSupabase();
   const [rolesByEmail, setRolesByEmail] = useState<Map<string, Set<RoleKey>>>(new Map());
   const [notifiedEmails, setNotifiedEmails] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -229,7 +231,7 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
                     if (addRoles.size === 0) { alert('Selectați cel puțin un rol.'); return; }
                     if (rolesByEmail.has(email)) { alert('Această persoană are deja un rol — editează-i rolurile direct din tabel.'); return; }
                     setAddSaving(true);
-                    const authOk = await setStaffAuthPassword(email, addPassword);
+                    const authOk = await setStaffAuthPassword(supabase, email, addPassword);
                     if (!authOk) { setAddSaving(false); return; }
                     const { error } = await supabase.from('staff_roles').insert([...addRoles].map((role) => ({ email, role })));
                     setAddSaving(false);
@@ -269,7 +271,7 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
                   onClick={async () => {
                     if (!resetPassword || resetPassword.length < 6) { alert('Parola trebuie să aibă cel puțin 6 caractere.'); return; }
                     setResetSaving(true);
-                    const ok = await setStaffAuthPassword(resetEmail, resetPassword);
+                    const ok = await setStaffAuthPassword(supabase, resetEmail, resetPassword);
                     setResetSaving(false);
                     if (!ok) return;
                     setResetOpen(false);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { supabase } from '../../lib/supabaseClient';
+import { useSupabase } from '../../lib/supabaseContext';
 import { useMaybeLogStatusEvent } from './useStatusHistory';
 
 export type DotState = 'ok' | 'bad' | 'checking' | null;
@@ -48,6 +48,7 @@ const PUSH_PERMISSION_LABEL: Record<string, string> = {
 };
 
 export function useStatusChecks(sessionEmail: string | null) {
+  const supabase = useSupabase();
   const [state, setState] = useState<StatusState>(initialState);
   const dbHistoryRef = useRef<(number | null)[]>([]);
   const maybeLog = useMaybeLogStatusEvent();
@@ -68,7 +69,7 @@ export function useStatusChecks(sessionEmail: string | null) {
     }));
     maybeLog('db', !error, error ? `Interogare eșuată: ${error.message || 'eroare necunoscută'}` : `Răspuns în ${elapsed} ms`);
     return !error;
-  }, [maybeLog]);
+  }, [maybeLog, supabase]);
 
   const checkAuth = useCallback(async () => {
     setState((s) => ({ ...s, auth: { ...s.auth, dot: 'checking' } }));
@@ -83,7 +84,7 @@ export function useStatusChecks(sessionEmail: string | null) {
       },
     }));
     maybeLog('auth', hasSession, hasSession ? `Sesiune activă — ${sessionEmail || 'utilizator necunoscut'}` : 'Nicio sesiune activă');
-  }, [maybeLog, sessionEmail]);
+  }, [maybeLog, sessionEmail, supabase]);
 
   const checkFunctions = useCallback(async () => {
     setState((s) => ({ ...s, functions: { ...s.functions, dot: 'checking' } }));
@@ -110,7 +111,7 @@ export function useStatusChecks(sessionEmail: string | null) {
     }));
     maybeLog('functions', ok, ok ? `status-ping a răspuns în ${elapsed} ms` : `status-ping a eșuat: ${errDetail || 'eroare necunoscută'}`);
     return ok;
-  }, [maybeLog]);
+  }, [maybeLog, supabase]);
 
   const checkPush = useCallback(
     (deviceCount: number) => {
@@ -176,7 +177,7 @@ export function useStatusChecks(sessionEmail: string | null) {
       },
     }));
     checkPush(counts.push_subscriptions || 0);
-  }, [checkPush, maybeLog]);
+  }, [checkPush, maybeLog, supabase]);
 
   const loadSystemStatus = useCallback(async () => {
     await Promise.all([checkDb(), checkAuth(), checkFunctions(), checkSystem()]);

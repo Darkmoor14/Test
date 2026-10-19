@@ -9,11 +9,11 @@ function StatusDot({ state }: { state: 'ok' | 'bad' | 'checking' | null }) {
   return <span className={`status-dot${state ? ` ${state}` : ''}`} />;
 }
 
-export function StatusDashboard({ sessionEmail }: { sessionEmail: string | null }) {
+export function StatusDashboard({ sessionEmail, landingPage }: { sessionEmail: string | null; landingPage?: string }) {
   const { state, loadSystemStatus, checkSystem } = useStatusChecks(sessionEmail);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [enabling, setEnabling] = useState(false);
-  const subscribeToPush = useSubscribeToPush(sessionEmail);
+  const subscribeToPush = useSubscribeToPush(sessionEmail, landingPage);
 
   const dbChartData = {
     labels: state.db.history.map((_, i) => i + 1),

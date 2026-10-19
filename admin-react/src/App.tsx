@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from './lib/supabaseClient';
+import { useSupabase } from './lib/supabaseContext';
 import { useGlobalTelemetry } from './features/status/useGlobalTelemetry';
 import { StatusDashboard } from './features/status/StatusDashboard';
 import { AutoImprove } from './features/status/AutoImprove';
@@ -16,6 +16,7 @@ const TABS: { key: StatusTab; label: string }[] = [
 ];
 
 function LoginScreen({ onLoggedIn }: { onLoggedIn: () => void }) {
+  const supabase = useSupabase();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -65,6 +66,7 @@ function NotGodScreen({ email }: { email: string }) {
 }
 
 export default function App() {
+  const supabase = useSupabase();
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [isGod, setIsGod] = useState<boolean | null>(null);
   const [activeTab, setActiveTab] = useState<StatusTab>('status');
@@ -79,7 +81,7 @@ export default function App() {
       setSessionEmail(session?.user.email ?? null);
     });
     return () => sub.subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     if (!sessionEmail) { setIsGod(null); return; }
@@ -89,7 +91,7 @@ export default function App() {
       .eq('email', sessionEmail)
       .eq('role', 'god')
       .then(({ data }) => setIsGod(!!data && data.length > 0));
-  }, [sessionEmail]);
+  }, [sessionEmail, supabase]);
 
   if (!sessionEmail) return <LoginScreen onLoggedIn={() => {}} />;
   if (isGod === null) return null;

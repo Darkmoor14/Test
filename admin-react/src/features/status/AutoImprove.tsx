@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabaseClient';
+import { useSupabase } from '../../lib/supabaseContext';
 import { downloadJson, formatLogTimeRO } from '../../lib/format';
 
 interface ErrorLogRow {
@@ -41,6 +41,7 @@ const APP_CHANGELOG = [
 ];
 
 export function AutoImprove() {
+  const supabase = useSupabase();
   const [errors, setErrors] = useState<ErrorLogRow[]>([]);
   const [friction, setFriction] = useState<FrictionRow[]>([]);
   const [pageViews, setPageViews] = useState<PageViewRow[]>([]);
