@@ -69,29 +69,31 @@ export function EntityLogSheet({ current, onClose, sessionEmail }: { current: En
     <div className="mobile-sheet show" aria-hidden="false">
       <div className="mobile-sheet-backdrop" onClick={onClose} />
       <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="entityLogSheetTitle">
-        <div className="sheet-handle" />
-        <div className="sheet-head">
-          <div><h3 id="entityLogSheetTitle">Istoric — {current.title}</h3></div>
-          <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
-        </div>
-        <div className="entity-log-list">
-          {loading ? (
-            <p className="status-history-empty">Se încarcă…</p>
-          ) : rows.length === 0 ? (
-            <p className="status-history-empty">Niciun eveniment încă.</p>
-          ) : rows.map((row) => (
-            <div key={row.id} className={`entity-log-item ${row.kind}`}>
-              <span className="entity-log-time">{formatLogTimeRO(row.created_at)}</span>
-              <div>
-                <div className="entity-log-text">{row.text}</div>
-                {row.user_email && <div className="entity-log-author">{row.user_email}</div>}
+        <div className="mobile-sheet-panel-scroll">
+          <div className="sheet-handle" />
+          <div className="sheet-head">
+            <div><h3 id="entityLogSheetTitle">Istoric — {current.title}</h3></div>
+            <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
+          </div>
+          <div className="entity-log-list">
+            {loading ? (
+              <p className="status-history-empty">Se încarcă…</p>
+            ) : rows.length === 0 ? (
+              <p className="status-history-empty">Niciun eveniment încă.</p>
+            ) : rows.map((row) => (
+              <div key={row.id} className={`entity-log-item ${row.kind}`}>
+                <span className="entity-log-time">{formatLogTimeRO(row.created_at)}</span>
+                <div>
+                  <div className="entity-log-text">{row.text}</div>
+                  {row.user_email && <div className="entity-log-author">{row.user_email}</div>}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-        <div className="entity-log-add">
-          <textarea rows={2} placeholder="Adaugă o notiță…" value={noteText} onChange={(e) => setNoteText(e.target.value)} />
-          <button type="button" className="btn btn-primary" disabled={saving} onClick={addNote}>Adaugă notiță</button>
+            ))}
+          </div>
+          <div className="entity-log-add">
+            <textarea rows={2} placeholder="Adaugă o notiță…" value={noteText} onChange={(e) => setNoteText(e.target.value)} />
+            <button type="button" className="btn btn-primary" disabled={saving} onClick={addNote}>Adaugă notiță</button>
+          </div>
         </div>
       </div>
     </div>

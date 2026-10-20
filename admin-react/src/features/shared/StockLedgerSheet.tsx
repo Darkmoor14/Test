@@ -44,28 +44,30 @@ export function StockLedgerSheet({ current, onClose }: { current: StockLedgerShe
     <div className="mobile-sheet show" aria-hidden="false">
       <div className="mobile-sheet-backdrop" onClick={onClose} />
       <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="stockLedgerSheetTitle">
-        <div className="sheet-handle" />
-        <div className="sheet-head">
-          <div><h3 id="stockLedgerSheetTitle">Jurnal stoc — {current.itemName}</h3></div>
-          <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
-        </div>
-        <div className="entity-log-list">
-          {loading ? (
-            <p className="status-history-empty">Se încarcă…</p>
-          ) : rows.length === 0 ? (
-            <p className="status-history-empty">Nicio mișcare de stoc încă.</p>
-          ) : rows.map((row) => {
-            const sign = Number(row.change_qty) > 0 ? '+' : '';
-            return (
-              <div key={row.id} className="entity-log-item">
-                <span className="entity-log-time">{formatLogTimeRO(row.created_at)}</span>
-                <div>
-                  <div className="entity-log-text">{sign}{row.change_qty} (rămas: {row.resulting_qty}) — {row.reason}</div>
-                  {row.user_email && <div className="entity-log-author">{row.user_email}</div>}
+        <div className="mobile-sheet-panel-scroll">
+          <div className="sheet-handle" />
+          <div className="sheet-head">
+            <div><h3 id="stockLedgerSheetTitle">Jurnal stoc — {current.itemName}</h3></div>
+            <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
+          </div>
+          <div className="entity-log-list">
+            {loading ? (
+              <p className="status-history-empty">Se încarcă…</p>
+            ) : rows.length === 0 ? (
+              <p className="status-history-empty">Nicio mișcare de stoc încă.</p>
+            ) : rows.map((row) => {
+              const sign = Number(row.change_qty) > 0 ? '+' : '';
+              return (
+                <div key={row.id} className="entity-log-item">
+                  <span className="entity-log-time">{formatLogTimeRO(row.created_at)}</span>
+                  <div>
+                    <div className="entity-log-text">{sign}{row.change_qty} (rămas: {row.resulting_qty}) — {row.reason}</div>
+                    {row.user_email && <div className="entity-log-author">{row.user_email}</div>}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

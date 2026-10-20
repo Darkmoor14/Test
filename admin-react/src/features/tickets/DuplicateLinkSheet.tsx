@@ -79,61 +79,63 @@ export function DuplicateLinkSheet() {
     <div className="mobile-sheet show" aria-hidden="false">
       <div className="mobile-sheet-backdrop" onClick={close} />
       <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="duplicateLinkSheetTitle">
-        <div className="sheet-handle" />
-        <div className="sheet-head">
-          <div>
-            <h3 id="duplicateLinkSheetTitle">{isAnchorMode ? 'Leagă duplicate' : 'Marchează ca duplicate'}</h3>
-            <p>
-              {isAnchorMode
-                ? `Bifează sesizările duplicate ale ${anchorTicket ? anchorTicket.ticket_number : 'acesteia'}, apoi apasă Confirmă.`
-                : 'Apasă "Alege" pe cea originală — cea pe care o ții. Nu e niciuna dintre cele bifate? Caută alta (nr. tichet sau adresă).'}
-            </p>
-          </div>
-          <button type="button" className="sheet-close" aria-label="Închide" onClick={close}>×</button>
-        </div>
-        <input
-          type="search" className="duplicate-link-search" autoFocus
-          placeholder="Nr. tichet sau adresă… (desparte prin virgulă pentru mai multe)"
-          value={query} onChange={(e) => setQuery(e.target.value)}
-        />
-        <div className="duplicate-link-results">
-          {matches.length === 0 ? (
-            <div className="no-results">{query.trim() ? 'Nicio sesizare găsită.' : 'Scrie pentru a căuta…'}</div>
-          ) : matches.map((t) => isAnchorMode ? (
-            <div key={t.id} className={`duplicate-link-result-item${checkedIds.has(t.id) ? ' checked' : ''}`} onClick={() => toggleChecked(t.id)}>
-              <label className="duplicate-link-result-checkwrap" onClick={(e) => e.stopPropagation()}>
-                <input type="checkbox" className="duplicate-link-result-check" checked={checkedIds.has(t.id)} onChange={() => toggleChecked(t.id)} aria-label="Bifează ca duplicat" />
-              </label>
-              <span className="duplicate-link-result-pickbtn">
-                <span className="duplicate-link-result-num">{t.ticket_number || '—'}</span>
-                <span className="duplicate-link-result-address">{t.address || '—'}</span>
-              </span>
+        <div className="mobile-sheet-panel-scroll">
+          <div className="sheet-handle" />
+          <div className="sheet-head">
+            <div>
+              <h3 id="duplicateLinkSheetTitle">{isAnchorMode ? 'Leagă duplicate' : 'Marchează ca duplicate'}</h3>
+              <p>
+                {isAnchorMode
+                  ? `Bifează sesizările duplicate ale ${anchorTicket ? anchorTicket.ticket_number : 'acesteia'}, apoi apasă Confirmă.`
+                  : 'Apasă "Alege" pe cea originală — cea pe care o ții. Nu e niciuna dintre cele bifate? Caută alta (nr. tichet sau adresă).'}
+              </p>
             </div>
-          ) : (
-            <div key={t.id} className={`duplicate-link-result-item${checkedIds.has(t.id) ? ' checked' : ''}`}>
-              <label className="duplicate-link-result-checkwrap">
-                <input type="checkbox" className="duplicate-link-result-check" checked={checkedIds.has(t.id)} onChange={() => toggleChecked(t.id)} aria-label="Bifează ca duplicat suplimentar" />
-              </label>
-              <button type="button" className="duplicate-link-result-pickbtn" onClick={() => finalizePick(t.id)}>
-                <span className="duplicate-link-result-num">{t.ticket_number || '—'}</span>
-                <span className="duplicate-link-result-address">{t.address || '—'}</span>
-                <span className="duplicate-link-result-pick">Alege</span>
-              </button>
-            </div>
-          ))}
-        </div>
-        {!isAnchorMode && checkedIds.size > 0 && (
-          <div className="duplicate-link-extra-count">
-            {checkedIds.size === 1
-              ? '1 sesizare bifată — apasă pe cea originală ca să le legi pe amândouă.'
-              : `${checkedIds.size} sesizări bifate — apasă pe cea originală ca să le legi pe toate.`}
+            <button type="button" className="sheet-close" aria-label="Închide" onClick={close}>×</button>
           </div>
-        )}
-        <div className="sheet-actions">
-          <button type="button" className="btn" onClick={close}>Anulează</button>
-          {isAnchorMode && (
-            <button type="button" className="btn btn-primary" disabled={checkedIds.size === 0 || busy} onClick={handleAnchorConfirm}>Confirmă</button>
+          <input
+            type="search" className="duplicate-link-search" autoFocus
+            placeholder="Nr. tichet sau adresă… (desparte prin virgulă pentru mai multe)"
+            value={query} onChange={(e) => setQuery(e.target.value)}
+          />
+          <div className="duplicate-link-results">
+            {matches.length === 0 ? (
+              <div className="no-results">{query.trim() ? 'Nicio sesizare găsită.' : 'Scrie pentru a căuta…'}</div>
+            ) : matches.map((t) => isAnchorMode ? (
+              <div key={t.id} className={`duplicate-link-result-item${checkedIds.has(t.id) ? ' checked' : ''}`} onClick={() => toggleChecked(t.id)}>
+                <label className="duplicate-link-result-checkwrap" onClick={(e) => e.stopPropagation()}>
+                  <input type="checkbox" className="duplicate-link-result-check" checked={checkedIds.has(t.id)} onChange={() => toggleChecked(t.id)} aria-label="Bifează ca duplicat" />
+                </label>
+                <span className="duplicate-link-result-pickbtn">
+                  <span className="duplicate-link-result-num">{t.ticket_number || '—'}</span>
+                  <span className="duplicate-link-result-address">{t.address || '—'}</span>
+                </span>
+              </div>
+            ) : (
+              <div key={t.id} className={`duplicate-link-result-item${checkedIds.has(t.id) ? ' checked' : ''}`}>
+                <label className="duplicate-link-result-checkwrap">
+                  <input type="checkbox" className="duplicate-link-result-check" checked={checkedIds.has(t.id)} onChange={() => toggleChecked(t.id)} aria-label="Bifează ca duplicat suplimentar" />
+                </label>
+                <button type="button" className="duplicate-link-result-pickbtn" onClick={() => finalizePick(t.id)}>
+                  <span className="duplicate-link-result-num">{t.ticket_number || '—'}</span>
+                  <span className="duplicate-link-result-address">{t.address || '—'}</span>
+                  <span className="duplicate-link-result-pick">Alege</span>
+                </button>
+              </div>
+            ))}
+          </div>
+          {!isAnchorMode && checkedIds.size > 0 && (
+            <div className="duplicate-link-extra-count">
+              {checkedIds.size === 1
+                ? '1 sesizare bifată — apasă pe cea originală ca să le legi pe amândouă.'
+                : `${checkedIds.size} sesizări bifate — apasă pe cea originală ca să le legi pe toate.`}
+            </div>
           )}
+          <div className="sheet-actions">
+            <button type="button" className="btn" onClick={close}>Anulează</button>
+            {isAnchorMode && (
+              <button type="button" className="btn btn-primary" disabled={checkedIds.size === 0 || busy} onClick={handleAnchorConfirm}>Confirmă</button>
+            )}
+          </div>
         </div>
       </div>
     </div>

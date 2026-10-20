@@ -62,29 +62,31 @@ export function ChecklistSheet({ current, onClose }: { current: ChecklistSheetSt
     <div className="mobile-sheet show" aria-hidden="false">
       <div className="mobile-sheet-backdrop" onClick={onClose} />
       <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="checklistSheetTitle">
-        <div className="sheet-handle" />
-        <div className="sheet-head">
-          <div><h3 id="checklistSheetTitle">Listă de verificare{items.length ? ` (${doneCount}/${items.length})` : ''}</h3></div>
-          <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
-        </div>
-        <div className="checklist-items">
-          {items.length === 0 ? (
-            <p className="status-history-empty">Nicio verificare adăugată încă.</p>
-          ) : items.map((item, i) => (
-            <div key={i} className={`checklist-item${item.done ? ' done' : ''}`}>
-              <input type="checkbox" checked={item.done} onChange={() => toggle(i)} />
-              <span className="checklist-item-text">{item.text}</span>
-              <button type="button" className="checklist-item-remove" aria-label="Șterge" onClick={() => remove(i)}>×</button>
-            </div>
-          ))}
-        </div>
-        <div className="checklist-add">
-          <input
-            type="text" placeholder="Element nou…" value={newItemText}
-            onChange={(e) => setNewItemText(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
-          />
-          <button type="button" className="btn" onClick={add}>+ Adaugă</button>
+        <div className="mobile-sheet-panel-scroll">
+          <div className="sheet-handle" />
+          <div className="sheet-head">
+            <div><h3 id="checklistSheetTitle">Listă de verificare{items.length ? ` (${doneCount}/${items.length})` : ''}</h3></div>
+            <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
+          </div>
+          <div className="checklist-items">
+            {items.length === 0 ? (
+              <p className="status-history-empty">Nicio verificare adăugată încă.</p>
+            ) : items.map((item, i) => (
+              <div key={i} className={`checklist-item${item.done ? ' done' : ''}`}>
+                <input type="checkbox" checked={item.done} onChange={() => toggle(i)} />
+                <span className="checklist-item-text">{item.text}</span>
+                <button type="button" className="checklist-item-remove" aria-label="Șterge" onClick={() => remove(i)}>×</button>
+              </div>
+            ))}
+          </div>
+          <div className="checklist-add">
+            <input
+              type="text" placeholder="Element nou…" value={newItemText}
+              onChange={(e) => setNewItemText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+            />
+            <button type="button" className="btn" onClick={add}>+ Adaugă</button>
+          </div>
         </div>
       </div>
     </div>

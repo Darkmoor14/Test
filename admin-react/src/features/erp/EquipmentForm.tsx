@@ -54,66 +54,68 @@ export function EquipmentForm() {
     <div className="mobile-sheet show" aria-hidden="false">
       <div className="mobile-sheet-backdrop" onClick={store.closeForm} />
       <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="erpItemFormSheetTitle">
-        <div className="sheet-handle" />
-        <div className="sheet-head">
-          <div><h3 id="erpItemFormSheetTitle">{(store.editingItem ? 'Editează ' : 'Adaugă ') + ERP_ITEM_FORM_TITLE[erpCategory]}</h3></div>
-          <button type="button" className="sheet-close" aria-label="Închide" onClick={store.closeForm}>×</button>
-        </div>
-        <div className="pf-grid">
-          <div className="ctrl-field">
-            <label>Denumire</label>
-            <input type="text" placeholder="ex: Buldoexcavator JCB 3CX" value={name} onChange={(e) => setName(e.target.value)} />
+        <div className="mobile-sheet-panel-scroll">
+          <div className="sheet-handle" />
+          <div className="sheet-head">
+            <div><h3 id="erpItemFormSheetTitle">{(store.editingItem ? 'Editează ' : 'Adaugă ') + ERP_ITEM_FORM_TITLE[erpCategory]}</h3></div>
+            <button type="button" className="sheet-close" aria-label="Închide" onClick={store.closeForm}>×</button>
           </div>
-          <div className="ctrl-field">
-            <label>Categorie</label>
-            <select value={erpCategory} onChange={(e) => setErpCategory(e.target.value as NonVehicleCategory)}>
-              <option value="echipament">Echipament (se rezervă pe perioadă)</option>
-              <option value="material">Material (consumabil — se scade din stoc)</option>
-              <option value="produs">Produs (produs finit — se scade din stoc)</option>
-            </select>
-          </div>
-          <div className="ctrl-field">
-            <label>Subcategorie</label>
-            <input type="text" placeholder="ex: Utilaj greu / Material electric" value={category} onChange={(e) => setCategory(e.target.value)} />
-          </div>
-          {isStockTracked && (
+          <div className="pf-grid">
             <div className="ctrl-field">
-              <label>Cantitate</label>
-              <input type="number" min={0} step={1} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+              <label>Denumire</label>
+              <input type="text" placeholder="ex: Buldoexcavator JCB 3CX" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
-          )}
-          {isStockTracked && (
             <div className="ctrl-field">
-              <label>Unitate</label>
-              <input type="text" placeholder="ex: buc, kg, m" value={unit} onChange={(e) => setUnit(e.target.value)} />
+              <label>Categorie</label>
+              <select value={erpCategory} onChange={(e) => setErpCategory(e.target.value as NonVehicleCategory)}>
+                <option value="echipament">Echipament (se rezervă pe perioadă)</option>
+                <option value="material">Material (consumabil — se scade din stoc)</option>
+                <option value="produs">Produs (produs finit — se scade din stoc)</option>
+              </select>
             </div>
-          )}
-          {isStockTracked && (
             <div className="ctrl-field">
-              <label>Prag reaprovizionare</label>
-              <input type="number" min={0} step={1} placeholder="ex: 50 (opțional)" value={reorderThreshold} onChange={(e) => setReorderThreshold(e.target.value)} />
+              <label>Subcategorie</label>
+              <input type="text" placeholder="ex: Utilaj greu / Material electric" value={category} onChange={(e) => setCategory(e.target.value)} />
             </div>
-          )}
-          <div className="ctrl-field">
-            <label>Nr. serie / inventar</label>
-            <input type="text" placeholder="ex: SN-4471" value={serial} onChange={(e) => setSerial(e.target.value)} />
+            {isStockTracked && (
+              <div className="ctrl-field">
+                <label>Cantitate</label>
+                <input type="number" min={0} step={1} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+              </div>
+            )}
+            {isStockTracked && (
+              <div className="ctrl-field">
+                <label>Unitate</label>
+                <input type="text" placeholder="ex: buc, kg, m" value={unit} onChange={(e) => setUnit(e.target.value)} />
+              </div>
+            )}
+            {isStockTracked && (
+              <div className="ctrl-field">
+                <label>Prag reaprovizionare</label>
+                <input type="number" min={0} step={1} placeholder="ex: 50 (opțional)" value={reorderThreshold} onChange={(e) => setReorderThreshold(e.target.value)} />
+              </div>
+            )}
+            <div className="ctrl-field">
+              <label>Nr. serie / inventar</label>
+              <input type="text" placeholder="ex: SN-4471" value={serial} onChange={(e) => setSerial(e.target.value)} />
+            </div>
+            <div className="ctrl-field">
+              <label>Locație curentă</label>
+              <input type="text" placeholder="ex: Depozit central / Șantier Str. X" value={location} onChange={(e) => setLocation(e.target.value)} />
+            </div>
+            <div className="ctrl-field">
+              <label>Alocat la</label>
+              <input type="text" placeholder="ex: Echipa 2 / Ionel Ghiurchi" value={assigned} onChange={(e) => setAssigned(e.target.value)} />
+            </div>
+            <div className="ctrl-field" style={{ gridColumn: '1/-1' }}>
+              <label>Notițe</label>
+              <input type="text" placeholder="Detalii suplimentare" value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </div>
           </div>
-          <div className="ctrl-field">
-            <label>Locație curentă</label>
-            <input type="text" placeholder="ex: Depozit central / Șantier Str. X" value={location} onChange={(e) => setLocation(e.target.value)} />
+          <div className="sheet-actions">
+            <button className="btn" type="button" onClick={store.closeForm}>Anulează</button>
+            <button className="btn btn-primary" type="button" disabled={saving} onClick={handleSave}>Salvează</button>
           </div>
-          <div className="ctrl-field">
-            <label>Alocat la</label>
-            <input type="text" placeholder="ex: Echipa 2 / Ionel Ghiurchi" value={assigned} onChange={(e) => setAssigned(e.target.value)} />
-          </div>
-          <div className="ctrl-field" style={{ gridColumn: '1/-1' }}>
-            <label>Notițe</label>
-            <input type="text" placeholder="Detalii suplimentare" value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
-        </div>
-        <div className="sheet-actions">
-          <button className="btn" type="button" onClick={store.closeForm}>Anulează</button>
-          <button className="btn btn-primary" type="button" disabled={saving} onClick={handleSave}>Salvează</button>
         </div>
       </div>
     </div>

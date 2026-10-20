@@ -66,15 +66,18 @@ export function OverviewTable({ sessionEmail }: { sessionEmail: string | null })
   if (ordered.length === 0) {
     return (
       <div className="overview-table-wrap">
-        <table className="overview-table">
-          <tbody><tr><td className="overview-empty">Nicio sesizare de afișat.</td></tr></tbody>
-        </table>
+        <div className="overview-table-scroll">
+          <table className="overview-table">
+            <tbody><tr><td className="overview-empty">Nicio sesizare de afișat.</td></tr></tbody>
+          </table>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="overview-table-wrap">
+      <div className="overview-table-scroll">
       <table className="overview-table">
         <colgroup>
           <col className="col-num" /><col className="col-date" /><col className="col-type" />
@@ -131,6 +134,7 @@ export function OverviewTable({ sessionEmail }: { sessionEmail: string | null })
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

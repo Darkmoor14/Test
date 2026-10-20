@@ -21,16 +21,18 @@ export function CalendarDaySheet({
     <div className="mobile-sheet show" aria-hidden="false">
       <div className="mobile-sheet-backdrop" onClick={onClose} />
       <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="calendarDaySheetTitle">
-        <div className="sheet-handle" />
-        <div className="sheet-head">
-          <div><h3 id="calendarDaySheetTitle">{title}</h3></div>
-          <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
-        </div>
-        <div className="calendar-day-events">
-          <EventListOrEmpty events={events} now={new Date()} onEventClick={onEventClick} emptyLabel="Nicio programare în această zi." />
-        </div>
-        <div className="sheet-actions">
-          <button type="button" className="btn btn-primary" onClick={onAddEvent}>+ Eveniment nou</button>
+        <div className="mobile-sheet-panel-scroll">
+          <div className="sheet-handle" />
+          <div className="sheet-head">
+            <div><h3 id="calendarDaySheetTitle">{title}</h3></div>
+            <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
+          </div>
+          <div className="calendar-day-events">
+            <EventListOrEmpty events={events} now={new Date()} onEventClick={onEventClick} emptyLabel="Nicio programare în această zi." />
+          </div>
+          <div className="sheet-actions">
+            <button type="button" className="btn btn-primary" onClick={onAddEvent}>+ Eveniment nou</button>
+          </div>
         </div>
       </div>
     </div>

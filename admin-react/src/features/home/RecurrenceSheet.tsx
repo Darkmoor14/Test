@@ -79,59 +79,61 @@ export function RecurrenceSheet({
     <div className="mobile-sheet show" aria-hidden="false">
       <div className="mobile-sheet-backdrop" onClick={onClose} />
       <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="recurrenceSheetTitle">
-        <div className="sheet-handle" />
-        <div className="sheet-head">
-          <div><h3 id="recurrenceSheetTitle">Recurență eveniment</h3></div>
-          <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
-        </div>
-        <div className="recur-section">
-          <label className="recur-section-label">Model de recurență</label>
-          <div className="recur-freq-row">
-            {(['daily', 'weekly', 'monthly', 'yearly'] as RecurrenceFreq[]).map((f) => (
-              <label key={f} className="recur-radio">
-                <input type="radio" name="recur-freq" checked={freq === f} onChange={() => setFreq(f)} />
-                {f === 'daily' ? 'Zilnic' : f === 'weekly' ? 'Săptămânal' : f === 'monthly' ? 'Lunar' : 'Anual'}
-              </label>
-            ))}
+        <div className="mobile-sheet-panel-scroll">
+          <div className="sheet-handle" />
+          <div className="sheet-head">
+            <div><h3 id="recurrenceSheetTitle">Recurență eveniment</h3></div>
+            <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
           </div>
-          <div className="recur-interval-row">
-            <span>Repetă la fiecare</span>
-            <input type="number" min={1} value={interval} onChange={(e) => setInterval_(Number(e.target.value) || 1)} />
-            <span>{intervalUnit}</span>
-          </div>
-          {freq === 'weekly' && (
-            <div className="recur-weekdays-row">
-              {WEEKDAYS.map((wd) => (
-                <label key={wd.value} className="recur-checkbox">
-                  <input type="checkbox" checked={weekdays.has(wd.value)} onChange={() => toggleWeekday(wd.value)} />
-                  {wd.label}
+          <div className="recur-section">
+            <label className="recur-section-label">Model de recurență</label>
+            <div className="recur-freq-row">
+              {(['daily', 'weekly', 'monthly', 'yearly'] as RecurrenceFreq[]).map((f) => (
+                <label key={f} className="recur-radio">
+                  <input type="radio" name="recur-freq" checked={freq === f} onChange={() => setFreq(f)} />
+                  {f === 'daily' ? 'Zilnic' : f === 'weekly' ? 'Săptămânal' : f === 'monthly' ? 'Lunar' : 'Anual'}
                 </label>
               ))}
             </div>
-          )}
-        </div>
-        <div className="recur-section">
-          <label className="recur-section-label">Interval de recurență</label>
-          <div className="ctrl-field">
-            <label>Start</label>
-            <input type="date" value={eventDateKey} disabled readOnly />
+            <div className="recur-interval-row">
+              <span>Repetă la fiecare</span>
+              <input type="number" min={1} value={interval} onChange={(e) => setInterval_(Number(e.target.value) || 1)} />
+              <span>{intervalUnit}</span>
+            </div>
+            {freq === 'weekly' && (
+              <div className="recur-weekdays-row">
+                {WEEKDAYS.map((wd) => (
+                  <label key={wd.value} className="recur-checkbox">
+                    <input type="checkbox" checked={weekdays.has(wd.value)} onChange={() => toggleWeekday(wd.value)} />
+                    {wd.label}
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
-          <label className="recur-radio-row">
-            <input type="radio" name="recur-end" checked={endType === 'date'} onChange={() => setEndType('date')} /> Se termină la{' '}
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-          </label>
-          <label className="recur-radio-row">
-            <input type="radio" name="recur-end" checked={endType === 'count'} onChange={() => setEndType('count')} /> Se termină după{' '}
-            <input type="number" min={1} value={count} onChange={(e) => setCount(Number(e.target.value) || 1)} /> apariții
-          </label>
-          <label className="recur-radio-row">
-            <input type="radio" name="recur-end" checked={endType === 'never'} onChange={() => setEndType('never')} /> Fără dată de final
-          </label>
-        </div>
-        <div className="sheet-actions">
-          <button type="button" className="btn" onClick={onRemove}>Elimină recurența</button>
-          <button type="button" className="btn" onClick={onClose}>Anulează</button>
-          <button type="button" className="btn btn-primary" onClick={handleOk}>OK</button>
+          <div className="recur-section">
+            <label className="recur-section-label">Interval de recurență</label>
+            <div className="ctrl-field">
+              <label>Start</label>
+              <input type="date" value={eventDateKey} disabled readOnly />
+            </div>
+            <label className="recur-radio-row">
+              <input type="radio" name="recur-end" checked={endType === 'date'} onChange={() => setEndType('date')} /> Se termină la{' '}
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </label>
+            <label className="recur-radio-row">
+              <input type="radio" name="recur-end" checked={endType === 'count'} onChange={() => setEndType('count')} /> Se termină după{' '}
+              <input type="number" min={1} value={count} onChange={(e) => setCount(Number(e.target.value) || 1)} /> apariții
+            </label>
+            <label className="recur-radio-row">
+              <input type="radio" name="recur-end" checked={endType === 'never'} onChange={() => setEndType('never')} /> Fără dată de final
+            </label>
+          </div>
+          <div className="sheet-actions">
+            <button type="button" className="btn" onClick={onRemove}>Elimină recurența</button>
+            <button type="button" className="btn" onClick={onClose}>Anulează</button>
+            <button type="button" className="btn btn-primary" onClick={handleOk}>OK</button>
+          </div>
         </div>
       </div>
     </div>
