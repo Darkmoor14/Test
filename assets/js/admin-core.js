@@ -45,6 +45,24 @@
   const logoutBtn = document.getElementById('logoutBtn');
   const userTag = document.getElementById('userTag');
 
+  // dateKey/formatLogTimeRO — small shared date-formatting helpers used
+  // across several still-vanilla feature files by bare identifier
+  // (erp.js's document-expiry/service-countdown math, hr.js's
+  // pontaj/concediu forms and home stats, search.js's smart search).
+  // Both used to live here too, alongside the Acasă clock/calendar code
+  // that got rewritten in React first — that rewrite deleted them from
+  // this file without checking whether anything ELSE still needed them,
+  // which it did. Restored here (not duplicated per-file) since this is
+  // the one file every feature file is guaranteed to load after.
+  function dateKey(d){
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  function formatLogTimeRO(iso){
+    const d = new Date(iso);
+    const pad2 = (n) => String(n).padStart(2, '0');
+    return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  }
+
   /* ============================================================
      PUSH NOTIFICATIONS — this is what makes admin.html behave like
      a real app with real notifications once installed to a phone's
