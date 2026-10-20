@@ -173,7 +173,7 @@ export function CalendarEventFormSheet({
 
   return (
     <>
-      <div className="mobile-sheet show" aria-hidden="false">
+      <div id="calendarEventFormSheet" className="mobile-sheet show" aria-hidden="false">
         <div className="mobile-sheet-backdrop" onClick={onClose} />
         <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="calendarEventFormSheetTitle">
           <div className="mobile-sheet-panel-scroll">

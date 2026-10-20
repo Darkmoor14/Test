@@ -76,7 +76,7 @@ export function RecurrenceSheet({
   };
 
   return (
-    <div className="mobile-sheet show" aria-hidden="false">
+    <div id="recurrenceSheet" className="mobile-sheet show" aria-hidden="false">
       <div className="mobile-sheet-backdrop" onClick={onClose} />
       <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="recurrenceSheetTitle">
         <div className="mobile-sheet-panel-scroll">

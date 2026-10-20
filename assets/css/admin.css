@@ -892,38 +892,35 @@
   .docs-pdf-box strong{display:block;font-size:13.5px;color:var(--ink-900);margin-bottom:4px;}
   .docs-pdf-box p{margin:0;font-size:13px;color:var(--ink-600);max-width:480px;}
   .docs-pdf-download{flex-shrink:0;white-space:nowrap;}
-  /* The day-detail/add-event sheets are small by nature (one card's
-     worth of content) — full-width edge-to-edge bottom sheets, the
-     same pattern used for the much bigger Filtre/report sheets, look
-     oversized for them, especially on a wide desktop screen. Smaller
-     fields/spacing throughout, and a compact centered pop-up instead
-     of a full-width bottom sheet once there's room for one. */
-  #calendarDaySheet .ctrl-field,
-  #calendarEventFormSheet .ctrl-field{min-width:0;}
-  #calendarEventFormSheet .ctrl-field{margin-bottom:12px;}
-  #calendarEventFormSheet .ctrl-field label{font-size:10px;margin-bottom:4px;}
-  #calendarEventFormSheet .ctrl-field input,
-  #calendarEventFormSheet .ctrl-field select{
-    font-size:12.5px;padding:7px 9px;height:34px;
-  }
-  #calendarEventFormSheet .sheet-grid{grid-template-columns:1fr;gap:0;}
-  #calendarDaySheet .sheet-head h3,
-  #calendarEventFormSheet .sheet-head h3{font-size:16px;}
+  /* The day-detail sheet is small by nature (one card's worth of
+     content) — a full-width edge-to-edge bottom sheet, the same
+     pattern used for the much bigger Filtre/report sheets, looks
+     oversized for it, especially on a wide desktop screen. A compact
+     centered pop-up instead, once there's room for one. The event
+     form (title/date/time/recurrence/reminder/location/description/
+     attendees) is closer to vehicleFormSheet's weight, so it shares
+     that wider bucket below instead of this narrow one. */
+  #calendarDaySheet .sheet-head h3{font-size:16px;}
   #calendarDaySheet .calendar-day-event{padding:9px 10px;}
   @media(min-width:901px){
-    #calendarDaySheet .mobile-sheet-panel,
-    #calendarEventFormSheet .mobile-sheet-panel{
+    #calendarDaySheet .mobile-sheet-panel{
       position:fixed;top:50%;left:50%;right:auto;bottom:auto;
       transform:translate(-50%,-50%);
       width:340px;max-width:calc(100vw - 40px);
       border-radius:14px;max-height:82vh;
       box-shadow:0 20px 60px rgba(20,24,29,0.28);
     }
-    #calendarDaySheet .mobile-sheet-panel-scroll,
-    #calendarEventFormSheet .mobile-sheet-panel-scroll{padding:18px 20px;}
-    #calendarDaySheet .sheet-handle,
-    #calendarEventFormSheet .sheet-handle{display:none;}
+    #calendarDaySheet .mobile-sheet-panel-scroll{padding:18px 20px;}
+    #calendarDaySheet .sheet-handle{display:none;}
   }
+  #calendarEventFormSheet .ctrl-field{min-width:0;margin-bottom:12px;}
+  #calendarEventFormSheet .ctrl-field label{font-size:10px;margin-bottom:4px;}
+  #calendarEventFormSheet .ctrl-field input,
+  #calendarEventFormSheet .ctrl-field select{
+    font-size:12.5px;padding:7px 9px;height:34px;
+  }
+  #calendarEventFormSheet .sheet-grid{grid-template-columns:1fr;gap:0;}
+  #calendarEventFormSheet .sheet-head h3{font-size:16px;}
   /* Same reasoning as the calendar sheets above — vehicleFormSheet (one
      merged form: identity + documents) inherited the full-width
      bottom-sheet sizing built for the much larger generic
@@ -978,7 +975,8 @@
   @media(min-width:901px){
     #vehicleFormSheet .mobile-sheet-panel,
     #vehicleFuelLogFormSheet .mobile-sheet-panel,
-    #serviceDueSheet .mobile-sheet-panel{
+    #serviceDueSheet .mobile-sheet-panel,
+    #calendarEventFormSheet .mobile-sheet-panel{
       position:fixed;top:50%;left:50%;right:auto;bottom:auto;
       transform:translate(-50%,-50%);
       width:460px;max-width:calc(100vw - 40px);
@@ -987,10 +985,12 @@
     }
     #vehicleFormSheet .mobile-sheet-panel-scroll,
     #vehicleFuelLogFormSheet .mobile-sheet-panel-scroll,
-    #serviceDueSheet .mobile-sheet-panel-scroll{padding:18px 20px;}
+    #serviceDueSheet .mobile-sheet-panel-scroll,
+    #calendarEventFormSheet .mobile-sheet-panel-scroll{padding:18px 20px;}
     #vehicleFormSheet .sheet-handle,
     #vehicleFuelLogFormSheet .sheet-handle,
-    #serviceDueSheet .sheet-handle{display:none;}
+    #serviceDueSheet .sheet-handle,
+    #calendarEventFormSheet .sheet-handle{display:none;}
   }
   /* Same reasoning again, this time for every "Raport Excel" step
      sheet — Sesizări's own (report type / repair scope / year / month)
@@ -1002,7 +1002,8 @@
   @media(min-width:901px){
     #reportTypeSheet .mobile-sheet-panel,
     #repairScopeSheet .mobile-sheet-panel,
-    #reportYearSheet .mobile-sheet-panel{
+    #reportYearSheet .mobile-sheet-panel,
+    #recurrenceSheet .mobile-sheet-panel{
       position:fixed;top:50%;left:50%;right:auto;bottom:auto;
       transform:translate(-50%,-50%);
       width:420px;max-width:calc(100vw - 40px);
@@ -1020,11 +1021,13 @@
     #reportTypeSheet .mobile-sheet-panel-scroll,
     #repairScopeSheet .mobile-sheet-panel-scroll,
     #reportYearSheet .mobile-sheet-panel-scroll,
+    #recurrenceSheet .mobile-sheet-panel-scroll,
     #reportMonthSheet .mobile-sheet-panel-scroll,
     #fuelReportExportFilterSheet .mobile-sheet-panel-scroll{padding:18px 20px;}
     #reportTypeSheet .sheet-handle,
     #repairScopeSheet .sheet-handle,
     #reportYearSheet .sheet-handle,
+    #recurrenceSheet .sheet-handle,
     #reportMonthSheet .sheet-handle,
     #fuelReportExportFilterSheet .sheet-handle{display:none;}
   }
