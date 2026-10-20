@@ -88,6 +88,36 @@ export function getDuplicatesOf(tickets: Ticket[], ticketId: string): Ticket[] {
   return tickets.filter((t) => t.duplicate_of === ticketId);
 }
 
+export type TicketSource = 'public' | 'autosesizare' | 'politia-locala' | 'biroul-energetic';
+export const TICKET_SOURCE_LABELS: Record<TicketSource, string> = {
+  public: 'Public',
+  autosesizare: 'Autosesizare',
+  'politia-locala': 'Poliția locală',
+  'biroul-energetic': 'Biroul energetic',
+};
+
+// Same diacritics-insensitive matching as excel.js's isWhitelistedReporterName
+// (normalizeRomanianText/isWhitelistedReporterName) -- these three
+// institutional reporter-name patterns are the only ones ever singled
+// out anywhere in the app (also the public-site name whitelist); every
+// other ticket counts as an ordinary public report.
+function normalizeRomanianText(value: string | null | undefined): string {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[ăâ]/g, 'a')
+    .replace(/î/g, 'i')
+    .replace(/[șş]/g, 's')
+    .replace(/[țţ]/g, 't');
+}
+
+export function classifyTicketSource(t: Ticket): TicketSource {
+  const normalized = normalizeRomanianText(t.name);
+  if (normalized.includes('politia') && normalized.includes('locala')) return 'politia-locala';
+  if (normalized.includes('birou') && normalized.includes('energetic')) return 'biroul-energetic';
+  if (normalized.includes('autosesizare')) return 'autosesizare';
+  return 'public';
+}
+
 export function getCanonicalTicket(tickets: Ticket[], t: Ticket | null | undefined): Ticket | null {
   if (!t || !t.duplicate_of) return null;
   return tickets.find((x) => x.id === t.duplicate_of) || null;

@@ -732,6 +732,7 @@
     overview: 'Prezentare generală',
     'tickets-functional': 'Sesizări funcționale',
     'tickets-accident': 'Sesizări accidente',
+    reports: 'Rapoarte',
     'projects-home': 'Proiecte',
     projects: 'Proiecte publice',
     backlog: 'Avarii rețele',
@@ -759,7 +760,7 @@
   // lives under the HR rail icon now (a dropdown inside it, not its
   // own icon) — see the sidebar markup and applyRolePermissionsToUI.
   const TAB_CATEGORY = {
-    overview: 'tickets', 'tickets-functional': 'tickets', 'tickets-accident': 'tickets',
+    overview: 'tickets', 'tickets-functional': 'tickets', 'tickets-accident': 'tickets', reports: 'tickets',
     'projects-home': 'projects', projects: 'projects', backlog: 'projects', lps: 'projects', workorders: 'projects',
     'erp-home': 'erp', equipment: 'erp', machines: 'erp', 'machines-fuel-report': 'erp', materials: 'erp', products: 'erp',
     'hr-home': 'hr', 'hr-employees': 'hr', 'hr-worktime': 'hr', 'hr-vacation': 'hr', docs: 'hr',
@@ -857,7 +858,7 @@
     // don't carry, e.g. "Echipamente", "Angajați").
     const REDUNDANT_TITLE_TABS = {
       overview: true, 'projects-home': true, 'erp-home': true, 'hr-home': true, status: true,
-      'tickets-functional': true, 'tickets-accident': true,
+      'tickets-functional': true, 'tickets-accident': true, reports: true,
     };
     const topbarTitleEl = document.getElementById('topbarTitle');
     if (topbarTitleEl) topbarTitleEl.textContent = tabKey === 'home' ? 'Acasă' : (REDUNDANT_TITLE_TABS[tabKey] ? '' : (BREADCRUMB_TABS[tabKey] || ''));

@@ -2,7 +2,6 @@ import { useTickets } from './TicketsContext';
 import { useShareTickets } from './useShareTickets';
 import { PriorityCards } from './PriorityCards';
 import { OverviewCardsMobile, OverviewNarrowFilterBanner, OverviewTable } from './OverviewTable';
-import { OverviewCharts } from './OverviewCharts';
 import { TicketAddForm } from './TicketAddForm';
 
 function OverviewShareBar() {
@@ -53,7 +52,6 @@ export function OverviewPanel({ sessionEmail }: { sessionEmail: string | null })
         <OverviewTable sessionEmail={sessionEmail} />
         <OverviewCardsMobile />
         <OverviewShareBar />
-        <OverviewCharts />
       </div>
     </>
   );

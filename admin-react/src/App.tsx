@@ -9,12 +9,13 @@ import { Roles } from './features/status/Roles';
 import { HomePage } from './features/home/HomePage';
 import { TicketsRoot, type TicketsMountTargets } from './features/tickets/TicketsRoot';
 
-type StatusTab = 'home' | 'overview' | 'tickets-functional' | 'status' | 'status-improve' | 'status-audit' | 'status-roles';
+type StatusTab = 'home' | 'overview' | 'tickets-functional' | 'reports' | 'status' | 'status-improve' | 'status-audit' | 'status-roles';
 
 const TABS: { key: StatusTab; label: string }[] = [
   { key: 'home', label: 'Acasă' },
   { key: 'overview', label: 'Sesizări — Overview' },
   { key: 'tickets-functional', label: 'Sesizări — Listă' },
+  { key: 'reports', label: 'Sesizări — Rapoarte' },
   { key: 'status', label: 'Stare sistem' },
   { key: 'status-improve', label: 'Auto-îmbunătățire' },
   { key: 'status-audit', label: 'Jurnal de activitate' },
@@ -33,17 +34,19 @@ function TicketsStandaloneStub({ sessionEmail, activeTab }: { sessionEmail: stri
   const ticketsYearBar = useRef<HTMLDivElement>(null);
   const ticketsQuickFilters = useRef<HTMLDivElement>(null);
   const ticketsPanelRoot = useRef<HTMLDivElement>(null);
+  const reportsPanelRoot = useRef<HTMLDivElement>(null);
   const overviewPanelRoot = useRef<HTMLDivElement>(null);
   const [targets, setTargets] = useState<TicketsMountTargets | null>(null);
 
   useEffect(() => {
-    if (overviewYearBar.current && overviewQuickFilters.current && ticketsYearBar.current && ticketsQuickFilters.current && ticketsPanelRoot.current) {
+    if (overviewYearBar.current && overviewQuickFilters.current && ticketsYearBar.current && ticketsQuickFilters.current && ticketsPanelRoot.current && reportsPanelRoot.current) {
       setTargets({
         overviewYearBar: overviewYearBar.current,
         overviewQuickFilters: overviewQuickFilters.current,
         ticketsYearBar: ticketsYearBar.current,
         ticketsQuickFilters: ticketsQuickFilters.current,
         ticketsPanelRoot: ticketsPanelRoot.current,
+        reportsPanelRoot: reportsPanelRoot.current,
       });
     }
   }, []);
@@ -60,6 +63,7 @@ function TicketsStandaloneStub({ sessionEmail, activeTab }: { sessionEmail: stri
       <div ref={ticketsQuickFilters} style={{ display: activeTab === 'tickets-functional' ? 'flex' : 'none' }} />
       <div ref={overviewPanelRoot} style={{ display: activeTab === 'overview' ? 'block' : 'none' }} />
       <div ref={ticketsPanelRoot} style={{ display: activeTab === 'tickets-functional' ? 'block' : 'none' }} />
+      <div ref={reportsPanelRoot} style={{ display: activeTab === 'reports' ? 'block' : 'none' }} />
       {targets && overviewPanelRoot.current && <TicketsRootMounter sessionEmail={sessionEmail} targets={targets} anchor={overviewPanelRoot.current} />}
     </>
   );

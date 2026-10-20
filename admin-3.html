@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/admin.css?v=20261020c">
+<link rel="stylesheet" href="assets/css/admin.css?v=20261020d">
 </head>
 <body>
 
@@ -96,6 +96,7 @@
           <button type="button" class="admin-tab category-topbar-item" data-tab="overview">Prezentare generală</button>
           <button type="button" class="admin-tab category-topbar-item" data-tab="tickets-functional">Sesizări funcționale</button>
           <button type="button" class="admin-tab category-topbar-item" data-tab="tickets-accident">Sesizări accidente</button>
+          <button type="button" class="admin-tab category-topbar-item" data-tab="reports">Rapoarte</button>
         </div>
 
         <div class="category-topbar" id="categoryTopbarProjects" data-category-topbar="projects">
@@ -294,6 +295,10 @@
 
     <div class="admin-panel" id="panel-tickets">
       <div id="reactTicketsRoot"></div>
+    </div>
+
+    <div class="admin-panel" id="panel-reports">
+      <div id="reactReportsRoot"></div>
     </div>
 
     <div class="admin-panel" id="panel-projects">
@@ -1317,7 +1322,7 @@
      hand-edit this file, rebuild it instead:
        cd admin-react && npx vite build --config vite.mount.config.ts
      then copy dist-mount/admin-react-status.js here. -->
-<script src="assets/js/admin-react-status.js?v=20261020e"></script>
+<script src="assets/js/admin-react-status.js?v=20261020f"></script>
 <script>
   // Mounts Stare sistem's four React panels plus Acasă and Sesizări
   // (Tickets), reusing the page's own already-created Supabase client
@@ -1347,13 +1352,15 @@
     var ticketsYearBarEl = document.getElementById('reactTicketsYearBar');
     var ticketsQuickFiltersEl = document.getElementById('reactTicketsQuickFilters');
     var ticketsRootEl = document.getElementById('reactTicketsRoot');
-    if (overviewRootEl && overviewYearBarEl && overviewQuickFiltersEl && ticketsYearBarEl && ticketsQuickFiltersEl && ticketsRootEl) {
+    var reportsRootEl = document.getElementById('reactReportsRoot');
+    if (overviewRootEl && overviewYearBarEl && overviewQuickFiltersEl && ticketsYearBarEl && ticketsQuickFiltersEl && ticketsRootEl && reportsRootEl) {
       window.AdminReactStatus.mountTickets(overviewRootEl, {
         overviewYearBar: overviewYearBarEl,
         overviewQuickFilters: overviewQuickFiltersEl,
         ticketsYearBar: ticketsYearBarEl,
         ticketsQuickFilters: ticketsQuickFiltersEl,
         ticketsPanelRoot: ticketsRootEl,
+        reportsPanelRoot: reportsRootEl,
       }, supabaseClient);
     }
 
@@ -1394,7 +1401,7 @@
   })();
 </script>
 <script src="assets/js/features/system-status.js?v=20261019b"></script>
-<script src="assets/js/features/lps.js?v=20261020c"></script>
+<script src="assets/js/features/lps.js?v=20261020d"></script>
 <script src="assets/js/features/tickets.js?v=20261019d"></script>
 <!-- projects.js and work-orders.js are gone: Proiecte publice, Avarii
      rețele, and Programe lucrări are now admin-react/'s features/projects/

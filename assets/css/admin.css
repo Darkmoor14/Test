@@ -1416,11 +1416,16 @@
     100%{box-shadow:0 0 0 3px transparent;}
   }
   .ticket-card.jump-highlight{animation:ticket-jump-highlight 1.8s ease-out;}
-  .overview-sidebar{display:flex;flex-direction:row;gap:16px;}
-  .overview-sidebar .chart-card{flex:1;}
+  /* Rapoarte (Sesizări's own reports tab) -- a grid rather than
+     overview-sidebar's single sideways row, since this page has
+     nothing else sharing the row with it and room for more than 2
+     cards. Each card still reuses .chart-card/.chart-stat, same look
+     the old sidebar charts had. */
+  .reports-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:16px;}
+  .reports-grid-note{grid-column:1/-1;font-size:12.5px;color:var(--ink-600);background:var(--paper-050);border:1px solid var(--line);border-radius:4px;padding:10px 14px;}
   .chart-card{border:1px solid var(--line-strong);border-radius:4px;padding:16px;background:var(--paper-000);}
   .chart-card h4{font-size:12.5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.03em;color:var(--ink-600);margin-bottom:14px;font-weight:500;}
-  .chart-card canvas{max-height:170px;}
+  .chart-card canvas{max-height:220px;}
   .chart-stat{font-family:var(--mono);font-size:20px;color:var(--copper-600);text-align:center;margin-top:10px;}
   /* ===== MOBILE/TABLET TICKET CARDS =====
      Not a CSS reflow of the desktop table — a genuinely different
@@ -1493,9 +1498,9 @@
   @media(max-width:900px){
     .overview-table-wrap{display:none;}
     .overview-cards-mobile{display:flex;}
-    .overview-sidebar{display:none;}
     .overview-section{gap:14px;}
     .priority-grid{margin-bottom:18px;}
+    .reports-grid{grid-template-columns:1fr;}
   }
   .admin-panel.active{display:block;}
 
