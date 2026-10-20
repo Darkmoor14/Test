@@ -857,14 +857,15 @@
     // Echipamente/Parc Auto/Materiale/Produse tabs are the same case:
     // each one's category-topbar button already reads that exact label,
     // highlighted, right there -- the title repeating it added nothing.
-    // A tab still keeps its own title when it genuinely isn't shown
-    // anywhere in the visible topbar row, e.g. "Raport lunar consum"
-    // (machines-fuel-report), reachable only through Parc Auto's own
-    // dropdown, or "Angajați"/"Pontaj"/"Concediu" under HR.
+    // "Raport lunar consum" (machines-fuel-report) is blank too even
+    // though it's reached through Parc Auto's own dropdown rather than
+    // a plain topbar tab -- no title anywhere in Resurse now, for a
+    // consistent "only Acasă gets one" rule rather than a case-by-case
+    // judgment call on whether a given tab's label shows up elsewhere.
     const REDUNDANT_TITLE_TABS = {
       overview: true, 'projects-home': true, 'erp-home': true, 'hr-home': true, status: true,
       'tickets-functional': true, 'tickets-accident': true, reports: true,
-      equipment: true, machines: true, materials: true, products: true,
+      equipment: true, machines: true, materials: true, products: true, 'machines-fuel-report': true,
     };
     const topbarTitleEl = document.getElementById('topbarTitle');
     if (topbarTitleEl) topbarTitleEl.textContent = tabKey === 'home' ? 'Acasă' : (REDUNDANT_TITLE_TABS[tabKey] ? '' : (BREADCRUMB_TABS[tabKey] || ''));
