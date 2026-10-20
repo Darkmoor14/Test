@@ -163,11 +163,14 @@
      .rail is a fixed-width icon strip that never collapses (it's the
      top-level "which area of the app" switcher — Acasă is a direct
      destination, the rest are categories). Each category's own sub-nav
-     used to live in a second sidebar (.category-panel) next to .rail;
-     every category now gets its own horizontal .category-topbar row
-     instead, placed above .page-body (see setActiveCategory in
-     lps.js, which toggles .active on whichever one matches the
-     current category — at most one is ever visible at a time). */
+     used to live in a second sidebar (.category-panel) next to .rail,
+     then its own horizontal row above .page-body; it now lives inside
+     .topbar itself, sharing the row with the (now mostly blank, see
+     openAdminTab in lps.js) title and the topbar-actions icons, so the
+     page body starts right under one single header row instead of two
+     stacked ones (see setActiveCategory in lps.js, which toggles
+     .active on whichever one matches the current category — at most
+     one is ever visible at a time). */
   .app-shell{display:flex;align-items:stretch;min-height:100vh;}
   .rail{
     width:60px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;
@@ -280,18 +283,15 @@
   .docs-nav-subgroup{display:none;flex-direction:column;gap:2px;}
   .docs-nav-subgroup.open{display:flex;}
 
-  /* Every category's sub-nav lives in its own horizontal bar here,
-     above .page-body, instead of a second sidebar (see
+  /* Every category's sub-nav lives inside .topbar itself now (see
      setActiveCategory in lps.js, which toggles .active on whichever
      one matches the current rail category — at most one is ever
-     visible). Most rows are flat; Resurse și inventar's Parc Auto and
-     HR's Documentație have real nesting underneath, so their trigger
-     item (.category-topbar-dropdown) opens a floating menu instead of
-     a sixth plain button. */
-  .category-topbar{
-    display:none;align-items:center;gap:2px;flex-wrap:wrap;
-    padding:10px 28px;border-bottom:1px solid var(--line);background:var(--paper-000);
-  }
+     visible, sharing .topbar's own padding/border/background rather
+     than carrying its own). Most rows are flat; Resurse și inventar's
+     Parc Auto and HR's Documentație have real nesting underneath, so
+     their trigger item (.category-topbar-dropdown) opens a floating
+     menu instead of a sixth plain button. */
+  .category-topbar{display:none;align-items:center;gap:2px;flex-wrap:wrap;}
   .category-topbar.active{display:flex;}
   .category-topbar-item{
     padding:8px 14px;border-radius:8px;border:none;background:none;
@@ -325,12 +325,18 @@
 
   .main{flex:1;min-width:0;display:flex;flex-direction:column;}
   .topbar{
-    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
     padding:14px 28px;border-bottom:1px solid var(--line);background:var(--paper-000);
     position:sticky;top:0;z-index:20;
   }
   .topbar-title{font-family:var(--display);font-weight:700;font-size:18px;color:var(--ink-900);flex-shrink:0;}
-  .topbar-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  /* Pushed to the row's end with margin-left:auto instead of the
+     .topbar parent using justify-content:space-between, since the
+     title and however many .category-topbar items come before it are
+     no longer a single, always-present block (the title is blank
+     whenever a .category-topbar is showing, see lps.js) -- auto margin
+     keeps this flush right regardless of which of those are visible. */
+  .topbar-actions{margin-left:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
   .page-body{flex:1;padding:24px 28px;min-width:0;}
   @media(max-width:900px){
     .rail{display:none;}
