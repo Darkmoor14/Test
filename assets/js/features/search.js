@@ -65,8 +65,12 @@
     // JCB 3CX" for "unde e excavatorul") — so this picks whichever
     // entry has the most of its title's tokens present in the query
     // at all (not a strict majority), tie-broken by how much of the
-    // title that covers.
-    let best = null, bestHits = 0, bestRatio = 0;
+    // title that covers. Returns every entry still tied for the top
+    // score, not just the first one found — two different items that
+    // happen to share a name (or tie exactly some other way) used to
+    // silently collapse into whichever one the index iterated to
+    // first, making the second one invisible to search entirely.
+    let bestHits = 0, bestRatio = 0, ties = [];
     index.forEach(entry => {
       const titleTokens = searchTokens(entry.searchText || entry.title);
       if (!titleTokens.length) return;
@@ -75,10 +79,12 @@
       if (hits === 0) return;
       const ratio = hits / titleTokens.length;
       if (hits > bestHits || (hits === bestHits && ratio > bestRatio)) {
-        best = entry; bestHits = hits; bestRatio = ratio;
+        bestHits = hits; bestRatio = ratio; ties = [entry];
+      } else if (hits === bestHits && ratio === bestRatio) {
+        ties.push(entry);
       }
     });
-    return best;
+    return ties;
   }
   // Used only when findBestIndexMatch found literally nothing — catches
   // typos ("excavatr") via a shared-prefix match instead of requiring
@@ -245,8 +251,20 @@
     }
 
     // 2) Item-specific questions across every collection.
-    const match = findBestIndexMatch(q, index);
-    if (match) return Object.assign(describeMatch(match, q), { suggestions: [], targetType: match.collection === 'tickets' ? 'ticket' : match.collection === 'erp_masina' ? 'vehicle' : null, targetId: match.id });
+    const matches = findBestIndexMatch(q, index);
+    if (matches.length === 1) {
+      const match = matches[0];
+      return Object.assign(describeMatch(match, q), { suggestions: [], targetType: match.collection === 'tickets' ? 'ticket' : match.collection === 'erp_masina' ? 'vehicle' : null, targetId: match.id });
+    }
+    if (matches.length > 1) {
+      // A genuine tie between two or more different items (most often:
+      // same name, different entity) — let the person pick instead of
+      // silently answering for just one and hiding the rest.
+      return {
+        text: `Am găsit ${matches.length} rezultate pentru „${raw.trim()}” — alege unul:`,
+        tab: null, matched: false, suggestions: matches.slice(0, 6), suggestQuery: q,
+      };
+    }
 
     // 3) Nothing matched at all — offer close-but-not-exact suggestions
     // (typo tolerance via shared-prefix scoring) instead of a flat "no".

@@ -153,6 +153,31 @@
   function hasExpiredDocs(eq){
     return expiredDocNames(eq).length > 0;
   }
+  // Field-level diff for the activity journal -- "Mașina a fost
+  // actualizată" said *that* an edit happened, never *what* changed, so
+  // every save looked identical whether it was one typo fix or a full
+  // rewrite of the vehicle's record.
+  const VEHICLE_EDIT_FIELD_LABELS = {
+    name: 'Titlu', category: 'Categorie', plate_number: 'Număr înmatriculare',
+    serial_number: 'Serie șasiu', assigned_to: 'Alocat cui', notes: 'Note',
+    itp_expires_on: 'ITP', insurance_expires_on: 'Asigurare',
+    parking_ticket_expires_on: 'Tichete parcare', vignette_expires_on: 'Rovinietă',
+    transport_license_expires_on: 'Licență transport', tachograph_expires_on: 'Tahograf',
+    fuel_rated_consumption_km: 'Consum normat (km)', fuel_rated_consumption_hours: 'Consum normat (ore)',
+    fuel_tank_capacity_l: 'Capacitate rezervor', fuel_initial_km: 'Km inițial',
+    fuel_initial_hours: 'Ore inițiale', fuel_service_interval_km: 'Interval revizie (km)',
+    fuel_service_interval_hours: 'Interval revizie (ore)',
+  };
+  function describeVehicleFieldChanges(before, after){
+    const changes = [];
+    Object.keys(VEHICLE_EDIT_FIELD_LABELS).forEach(key => {
+      const oldVal = before[key], newVal = after[key];
+      const oldNorm = (oldVal === null || oldVal === undefined || oldVal === '') ? '—' : String(oldVal);
+      const newNorm = (newVal === null || newVal === undefined || newVal === '') ? '—' : String(newVal);
+      if (oldNorm !== newNorm) changes.push(`${VEHICLE_EDIT_FIELD_LABELS[key]}: ${oldNorm} → ${newNorm}`);
+    });
+    return changes.join('; ');
+  }
   function expiredDocNames(eq){
     if (eq.erp_category !== 'masina') return [];
     const today = dateKey(new Date());
@@ -1093,9 +1118,11 @@
         name, category: subcat, plate_number: plate,
         serial_number: chassis || null, assigned_to: assigned || null, notes: notes || null,
       }, docsPayload, fuelPayload);
+      const original = allEquipment.find(v => v.id === id);
       const { error } = await AppDataServices.erp.saveVehicle(supabaseClient, payload, id);
       if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
-      logEntityActivity('masina', id, 'Mașina a fost actualizată.');
+      const changeSummary = original ? describeVehicleFieldChanges(original, payload) : '';
+      logEntityActivity('masina', id, changeSummary ? `Mașina a fost actualizată — ${changeSummary}.` : 'Mașina a fost actualizată (fără modificări de câmp).');
       setSheetOpen('vehicleFormSheet', false);
       showToast('Mașina a fost actualizată.');
       loadEquipment();

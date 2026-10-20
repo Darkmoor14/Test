@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
 import { createLogEntityActivity } from '../shared/entityLogClient';
 import type { EquipmentItem, NonVehicleCategory, ResourceAssignment } from './types';
-import { EQUIPMENT_STATUS_CYCLE } from './erpUtils';
+import { describeFieldChanges, EQUIPMENT_FIELD_LABELS, EQUIPMENT_STATUS_CYCLE } from './erpUtils';
 
 declare global {
   interface Window {
@@ -93,7 +93,12 @@ export function useErpStore(sessionEmail: string | null) {
       if (isStockTracked && originalQuantity !== null && quantity !== originalQuantity) {
         logStockLedger(id, values.name, quantity - originalQuantity, quantity, 'Editare manuală');
       }
-      logEntityActivity(values.erp_category, id, `„${values.name}” a fost actualizat.`);
+      const changeSummary = editingItem ? describeFieldChanges(editingItem as unknown as Record<string, unknown>, payload, EQUIPMENT_FIELD_LABELS) : '';
+      logEntityActivity(
+        values.erp_category,
+        id,
+        changeSummary ? `„${values.name}” a fost actualizat — ${changeSummary}.` : `„${values.name}” a fost actualizat (fără modificări de câmp).`,
+      );
     } else {
       const { data, error } = await supabase.from('equipment_inventory').insert(payload).select();
       if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return false; }
@@ -105,14 +110,14 @@ export function useErpStore(sessionEmail: string | null) {
     setFormOpen(false);
     await reloadEquipment();
     return true;
-  }, [supabase, logEntityActivity, logStockLedger, reloadEquipment]);
+  }, [supabase, editingItem, logEntityActivity, logStockLedger, reloadEquipment]);
 
   const cycleStatus = useCallback(async (eq: EquipmentItem) => {
     const erpCategory = eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material');
     const nextStatus = EQUIPMENT_STATUS_CYCLE[eq.status] || 'Disponibil';
     const { error } = await supabase.from('equipment_inventory').update({ status: nextStatus }).eq('id', eq.id);
     if (error) { console.error(error); alert('Eroare la actualizare. Încercați din nou.'); return; }
-    logEntityActivity(erpCategory, eq.id, `Stare schimbată în „${nextStatus}”.`);
+    logEntityActivity(erpCategory, eq.id, `Stare schimbată: „${eq.status}” → „${nextStatus}”.`);
     await reloadEquipment();
   }, [supabase, logEntityActivity, reloadEquipment]);
 
