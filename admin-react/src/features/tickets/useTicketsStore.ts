@@ -5,8 +5,8 @@ import type {
   StatusFilterKey, Ticket, TypeOnlyFilterKey,
 } from './types';
 import {
-  AGING_THRESHOLD_DAYS, getEffectiveMonthYear, isAwaitingReport, matchesMonth, matchesSearch, matchesYear,
-  parseTicketDate, ticketMatchesStatusFilter,
+  AGING_THRESHOLD_DAYS, getCanonicalTicket, getEffectiveMonthYear, isAwaitingReport, isDuplicateTicket,
+  matchesMonth, matchesSearch, matchesYear, parseTicketDate, sortTicketsByNumber, ticketMatchesStatusFilter,
 } from './ticketUtils';
 
 declare global {
@@ -18,6 +18,10 @@ declare global {
     openAdminTab?: (tabKey: string) => void;
     ticketYearFilter?: string;
     loadTickets?: () => Promise<void>;
+    getEffectiveMonthYear?: (t: Ticket) => { year: number | null; month: number | null };
+    isDuplicateTicket?: (t: Ticket | null | undefined) => boolean;
+    sortTicketsByNumber?: (tickets: Ticket[]) => Ticket[];
+    getCanonicalTicket?: (t: Ticket | null | undefined) => Ticket | null;
   }
 }
 
@@ -186,8 +190,18 @@ export function useTicketsStore(sessionEmail: string | null) {
     setTypeOnlyFilter(null);
   }, []);
 
+  // A priority card's own condition (status === 'Terminat' for
+  // "Soluționate", status !== 'Terminat' for the other four) already
+  // fully determines which status(es) it shows -- so it also resets
+  // the Filtre popover's status chip to 'all', not just the card
+  // itself. Leaving that chip on whatever it last was (its own default
+  // is 'active') meant e.g. clicking "Soluționate" while it was still
+  // on 'active' combined into status !== 'Terminat' AND status ===
+  // 'Terminat', an impossible intersection -- the card looked broken,
+  // always showing zero rows, regardless of which one was clicked.
   const applyOverviewCardFilter = useCallback((filterKey: OverviewCardFilterKey) => {
     setOverviewCardFilter(filterKey);
+    setOverviewStatusFilter('all');
   }, []);
   const clearOverviewCardFilter = useCallback(() => setOverviewCardFilter(null), []);
 
@@ -419,16 +433,23 @@ export function useTicketsStore(sessionEmail: string | null) {
     return () => { if (window.goToTicketByNumber === goToTicketByNumber) delete window.goToTicketByNumber; };
   }, [goToTicketByNumber]);
 
-  // Four more explicit window.* bridges, same pattern: search.js's smart-
+  // Eight more explicit window.* bridges, same pattern: search.js's smart-
   // search/command palette still calls bare `allTickets` (indexing
   // tickets by number/name/phone/address/email/description) and bare
   // `goToTicket(id)` (its "Vezi" result button); excel.js's Excel export
-  // still reads bare `allTickets` and `ticketYearFilter` (to default the
-  // yearly report to whatever year is currently selected) and calls bare
-  // `loadTickets()` once a repair-sheet import is confirmed and saved,
-  // to refresh the list with the new resolution notes -- all classic-
-  // script globals, same contract tickets.js's own vanilla copies used
-  // to provide. Kept in sync on every relevant change.
+  // and repair-sheet import still read bare `allTickets` and
+  // `ticketYearFilter` (to default the yearly report to whatever year is
+  // currently selected), call bare `loadTickets()` once a repair-sheet
+  // import is confirmed and saved (to refresh the list with the new
+  // resolution notes), and call bare `getEffectiveMonthYear`/
+  // `isDuplicateTicket`/`sortTicketsByNumber`/`getCanonicalTicket` while
+  // building the yearly report and matching uploaded rows to tickets --
+  // all classic-script globals, same contract tickets.js's own vanilla
+  // copies used to provide. Kept in sync on every relevant change.
+  // getCanonicalTicket's own vanilla copy took just the ticket (closing
+  // over the shared `allTickets` global directly) rather than this
+  // module's two-arg version (tickets array + ticket) -- same thing,
+  // just wrapped to match the one-arg call shape excel.js still expects.
   useEffect(() => {
     window.allTickets = tickets;
     return () => { if (window.allTickets === tickets) delete window.allTickets; };
@@ -445,6 +466,23 @@ export function useTicketsStore(sessionEmail: string | null) {
     window.loadTickets = reload;
     return () => { if (window.loadTickets === reload) delete window.loadTickets; };
   }, [reload]);
+  useEffect(() => {
+    window.getEffectiveMonthYear = getEffectiveMonthYear;
+    return () => { if (window.getEffectiveMonthYear === getEffectiveMonthYear) delete window.getEffectiveMonthYear; };
+  }, []);
+  useEffect(() => {
+    window.isDuplicateTicket = isDuplicateTicket;
+    return () => { if (window.isDuplicateTicket === isDuplicateTicket) delete window.isDuplicateTicket; };
+  }, []);
+  useEffect(() => {
+    window.sortTicketsByNumber = sortTicketsByNumber;
+    return () => { if (window.sortTicketsByNumber === sortTicketsByNumber) delete window.sortTicketsByNumber; };
+  }, []);
+  const getCanonicalTicketBound = useCallback((t: Ticket | null | undefined) => getCanonicalTicket(tickets, t), [tickets]);
+  useEffect(() => {
+    window.getCanonicalTicket = getCanonicalTicketBound;
+    return () => { if (window.getCanonicalTicket === getCanonicalTicketBound) delete window.getCanonicalTicket; };
+  }, [getCanonicalTicketBound]);
 
   useEffect(() => {
     if (pendingTicketUrlParamHandled.current || loading || tickets.length === 0) return;

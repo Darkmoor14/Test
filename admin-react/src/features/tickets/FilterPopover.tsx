@@ -8,14 +8,14 @@ export interface ChipDef<K extends string> { key: K; label: string; }
 export function FilterPopover<K extends string>({
   scope, sessionEmail,
   year, setYear, yearTouched, month, setMonth, monthTouched, availableYears, showDateFilters = true,
-  status, setStatus, chipDefs, defaultStatus,
+  status, setStatus, chipDefs, defaultStatus, widenStatus,
   day, setDay, noteClassName,
 }: {
   scope: string; sessionEmail: string | null;
   year: string; setYear: (v: string) => void; yearTouched: boolean;
   month: string; setMonth: (v: string) => void; monthTouched: boolean;
   availableYears: number[]; showDateFilters?: boolean;
-  status: K; setStatus: (v: K) => void; chipDefs: ChipDef<K>[]; defaultStatus: K;
+  status: K; setStatus: (v: K) => void; chipDefs: ChipDef<K>[]; defaultStatus: K; widenStatus?: K;
   day: number | null; setDay: (v: number | null) => void;
   noteClassName?: string;
 }) {
@@ -100,7 +100,24 @@ export function FilterPopover<K extends string>({
             </div>
           )}
           {showDateFilters && (
-            <MiniDayCalendar year={year} month={month} day={day} setYear={setYear} setMonth={setMonth} setDay={setDay} onPicked={() => {}} />
+            <MiniDayCalendar
+              year={year} month={month} day={day} setYear={setYear} setMonth={setMonth}
+              setDay={(d) => {
+                // Picking an actual day is as strong a narrowing action as
+                // starting a search (see SearchToggle's own widenStatus) --
+                // without also widening the status chip, a day pick made
+                // while still on the default "Active"/"Ongoing" chip
+                // silently combined with it (day X AND still-active),
+                // which excluded any ticket from that day already marked
+                // Terminat and just showed "Nicio sesizare" with nothing
+                // on screen explaining why. Clearing the day (d === null,
+                // via "Toate zilele" or the month label) doesn't widen --
+                // only an actual pick does.
+                if (d !== null && widenStatus !== undefined) setStatus(widenStatus);
+                setDay(d);
+              }}
+              onPicked={() => {}}
+            />
           )}
           <div className="sheet-filter-status">
             <label>Stare listă</label>

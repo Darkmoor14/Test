@@ -1177,6 +1177,16 @@
         { header: 'curatat corp iluminat', label: 'Curățat corp iluminat' },
       ]},
   ];
+  // Header-cell normalization for the repair-sheet import -- broader
+  // than normalizeRomanianText's own Romanian-specific diacritic
+  // mapping (NFD-decomposes and strips ANY combining mark), since
+  // field teams' own spreadsheets use whatever header text/punctuation
+  // they're used to typing, not just Romanian diacritics.
+  function normalizeHeader(h){
+    return String(h || '').toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '') // strip diacritics
+      .trim();
+  }
   const REPAIR_TICKET_HEADERS = ['nr. tichet', 'nr tichet', 'numar tichet', 'nr tichet.', 'ticket'];
   const REPAIR_STREET_HEADERS = ['strada si nr.', 'strada si nr', 'strada', 'adresa'];
   const REPAIR_OBS_HEADERS = ['observatii', 'observatii.', 'obs'];

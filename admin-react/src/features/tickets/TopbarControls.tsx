@@ -57,7 +57,7 @@ export function OverviewQuickFiltersInner({ sessionEmail }: { sessionEmail: stri
         year={store.ticketYearFilter} setYear={store.setTicketYearFilter} yearTouched={store.ticketYearFilterTouched}
         month={store.ticketMonthFilter} setMonth={store.setTicketMonthFilter} monthTouched={store.ticketMonthFilterTouched}
         availableYears={store.availableYears}
-        status={store.overviewStatusFilter} setStatus={store.setOverviewStatusFilter} chipDefs={OVERVIEW_CHIP_DEFS} defaultStatus="active"
+        status={store.overviewStatusFilter} setStatus={store.setOverviewStatusFilter} chipDefs={OVERVIEW_CHIP_DEFS} defaultStatus="active" widenStatus="all"
         day={store.overviewDayFilter} setDay={store.setOverviewDayFilter}
         noteClassName="filter-status-note filter-status-note-overview"
       />
@@ -95,7 +95,7 @@ export function TicketsQuickFiltersInner({ sessionEmail }: { sessionEmail: strin
         year={store.ticketYearFilter} setYear={store.setTicketYearFilter} yearTouched={store.ticketYearFilterTouched}
         month={store.ticketMonthFilter} setMonth={store.setTicketMonthFilter} monthTouched={store.ticketMonthFilterTouched}
         availableYears={store.availableYears}
-        status={store.activeFilter} setStatus={store.setTicketFilter} chipDefs={SESIZARI_CHIP_DEFS} defaultStatus="Ongoing"
+        status={store.activeFilter} setStatus={store.setTicketFilter} chipDefs={SESIZARI_CHIP_DEFS} defaultStatus="Ongoing" widenStatus="Toate"
         day={store.overviewDayFilter} setDay={store.setOverviewDayFilter}
         noteClassName="filter-status-note"
       />
