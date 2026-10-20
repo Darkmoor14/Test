@@ -992,6 +992,42 @@
     #vehicleFuelLogFormSheet .sheet-handle,
     #serviceDueSheet .sheet-handle{display:none;}
   }
+  /* Same reasoning again, this time for every "Raport Excel" step
+     sheet — Sesizări's own (report type / repair scope / year / month)
+     and Resurse's Parc Auto one (fuel report's vehicle filter): a
+     handful of options or a month grid, not the sprawling form the
+     full-width bottom-sheet sizing was built for. Centered desktop
+     pop-ups, consistent with the vehicle sheets above, instead of each
+     one picking its own look. */
+  @media(min-width:901px){
+    #reportTypeSheet .mobile-sheet-panel,
+    #repairScopeSheet .mobile-sheet-panel,
+    #reportYearSheet .mobile-sheet-panel{
+      position:fixed;top:50%;left:50%;right:auto;bottom:auto;
+      transform:translate(-50%,-50%);
+      width:420px;max-width:calc(100vw - 40px);
+      border-radius:14px;max-height:82vh;
+      box-shadow:0 20px 60px rgba(20,24,29,0.28);
+    }
+    #reportMonthSheet .mobile-sheet-panel,
+    #fuelReportExportFilterSheet .mobile-sheet-panel{
+      position:fixed;top:50%;left:50%;right:auto;bottom:auto;
+      transform:translate(-50%,-50%);
+      width:460px;max-width:calc(100vw - 40px);
+      border-radius:14px;max-height:86vh;
+      box-shadow:0 20px 60px rgba(20,24,29,0.28);
+    }
+    #reportTypeSheet .mobile-sheet-panel-scroll,
+    #repairScopeSheet .mobile-sheet-panel-scroll,
+    #reportYearSheet .mobile-sheet-panel-scroll,
+    #reportMonthSheet .mobile-sheet-panel-scroll,
+    #fuelReportExportFilterSheet .mobile-sheet-panel-scroll{padding:18px 20px;}
+    #reportTypeSheet .sheet-handle,
+    #repairScopeSheet .sheet-handle,
+    #reportYearSheet .sheet-handle,
+    #reportMonthSheet .sheet-handle,
+    #fuelReportExportFilterSheet .sheet-handle{display:none;}
+  }
   .home-todo-card{
     background:var(--paper-000);border:1px solid var(--line-strong);border-radius:9px;
     padding:22px;

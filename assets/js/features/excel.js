@@ -1003,7 +1003,11 @@
   async function handleExcelExport(triggerButton){
     const btn = triggerButton || document.getElementById('exportExcelBtn');
     if (!btn) return;
-    const originalText = btn.textContent;
+    // Icon-only button -- disabling it is feedback enough (.btn:disabled
+    // dims it), same reasoning as exportRepairTemplate's own comment
+    // below: swapping btn.textContent for loading text and restoring it
+    // afterwards reads back as '' on an <svg>-only button, permanently
+    // losing the icon instead of restoring it.
     btn.disabled = true;
     try {
       const reportType = await openReportTypeSelection();
@@ -1028,7 +1032,6 @@
       } else {
         year = Number(ticketYearFilter);
       }
-      btn.textContent = 'Se generează...';
       const monthSelection = await openReportMonthSelection(year);
       if (monthSelection === null) return;
 
@@ -1079,7 +1082,6 @@
       alert('Eroare la generarea raportului Excel: ' + (err && err.message ? err.message : 'motiv necunoscut'));
     } finally {
       btn.disabled = false;
-      btn.textContent = originalText;
     }
   }
 
