@@ -843,6 +843,27 @@
       }
     }
     const panelId = panelIdForTab(tabKey);
+    // Browser back/forward support — each real tab switch becomes its
+    // own history entry, so pressing back steps back through
+    // Sesizări → Prezentare generală → (wherever you were before
+    // admin) one at a time, instead of the very first back-press
+    // leaving the admin page entirely, which is what happened before
+    // this existed. fromPopState=true means this call is already a
+    // response to the browser's own back/forward button, so it must
+    // not push yet another entry on top of that.
+    //
+    // Pushed here, before any of the state-restoration/self-heal logic
+    // below (e.g. Parc Auto's own subcategory restore) runs its own
+    // history.replaceState — that call always mutates whatever the
+    // CURRENT top history entry is, so if it ran before this pushState,
+    // it silently overwrote the entry belonging to the tab being left
+    // instead of the new one just pushed for tabKey. That's what made
+    // the browser's back button from deep in Parc Auto (or anywhere
+    // else landing through a self-heal) jump somewhere that was never
+    // actually visited, instead of back to the real previous tab.
+    if (!fromPopState && tabKey !== currentAdminTab) {
+      history.pushState({ adminTab: tabKey }, '', '#' + tabKey);
+    }
     const isHome = tabKey === 'home' && isReportFocusedView();
     dash.classList.toggle('home-active', isHome);
     document.documentElement.classList.toggle('home-active', isHome);
@@ -972,17 +993,6 @@
     // initializes projectsFilter to 'Ongoing' every mount, so there's
     // no stuck-filter state to reset here.
 
-    // Browser back/forward support — each real tab switch becomes its
-    // own history entry, so pressing back steps back through
-    // Sesizări → Prezentare generală → (wherever you were before
-    // admin) one at a time, instead of the very first back-press
-    // leaving the admin page entirely, which is what happened before
-    // this existed. fromPopState=true means this call is already a
-    // response to the browser's own back/forward button, so it must
-    // not push yet another entry on top of that.
-    if (!fromPopState && tabKey !== currentAdminTab) {
-      history.pushState({ adminTab: tabKey }, '', '#' + tabKey);
-    }
     // Refresh whenever actually moving to a different tab — someone
     // else may have closed a ticket or added a project while this tab
     // sat open on a different view. Not gated on fromPopState: using
