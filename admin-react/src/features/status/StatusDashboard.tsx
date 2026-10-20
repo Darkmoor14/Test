@@ -156,6 +156,18 @@ export function StatusDashboard({ sessionEmail, landingPage }: { sessionEmail: s
           )}
         </div>
 
+        <div className="status-card">
+          <div className="status-card-head">
+            <StatusDot state={state.backup.dot} />
+            <h4>Backup local</h4>
+          </div>
+          <div className="status-card-body">
+            <div className="status-stat">{state.backup.stateLabel}</div>
+            <div className="status-stat-label">{state.backup.subLabel || 'pg_dump zilnic, pe calculatorul local'}</div>
+          </div>
+          <div className="status-stat-label">{state.backup.sizeLabel}</div>
+        </div>
+
         <div className="status-card status-card-wide">
           <div className="status-card-head">
             <h4>Date în platformă</h4>

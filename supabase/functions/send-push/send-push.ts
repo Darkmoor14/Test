@@ -257,6 +257,26 @@ async function resolveNotificationContent(
     const payload = await req.json();
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+    if (payload.type === "backup" && payload.backup_run_id) {
+      // The daily local pg_dump backup (run outside this platform) failed
+      // -- see notify_backup_failure() and report_backup_status(). God
+      // accounts only, same as the error-log alert above.
+      const { data, error } = await admin
+        .from("backup_runs")
+        .select("file_size_bytes, dump_filename")
+        .eq("id", payload.backup_run_id)
+        .single();
+      if (error || !data) return new Response("backup run row not found", { status: 404 });
+
+      const sizeKb = Math.round(Number(data.file_size_bytes || 0) / 1024);
+      return {
+        title: "Backup local eșuat",
+        body: `${data.dump_filename || "backup"} — ${sizeKb} KB${sizeKb === 0 ? " (gol)" : ""}`,
+        url: "admin-3.html",
+        recipientFilter: "god",
+      };
+    }
+
     if (payload.type === "error" && payload.error_log_id) {
       // A new, distinct client-side error was logged (see
       // notify_new_error_log() and logAppError() in system-status.js)

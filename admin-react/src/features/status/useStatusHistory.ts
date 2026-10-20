@@ -11,7 +11,7 @@ const STATUS_HISTORY_KEY = 'systemStatusHistoryV1';
 const STATUS_HISTORY_MAX_AGE_MS = 48 * 60 * 60 * 1000;
 const STATUS_HISTORY_HEARTBEAT_MS = 60 * 60 * 1000;
 
-export type StatusCheckKey = 'db' | 'auth' | 'functions' | 'cron' | 'push';
+export type StatusCheckKey = 'db' | 'auth' | 'functions' | 'cron' | 'push' | 'backup';
 
 export const STATUS_CHECK_LABELS: Record<StatusCheckKey, string> = {
   db: 'Bază de date',
@@ -19,6 +19,7 @@ export const STATUS_CHECK_LABELS: Record<StatusCheckKey, string> = {
   functions: 'Funcții Edge',
   cron: 'Memento-uri calendar',
   push: 'Notificări push',
+  backup: 'Backup local',
 };
 
 export interface StatusHistoryEntry {

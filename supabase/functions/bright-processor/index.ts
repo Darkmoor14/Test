@@ -10,6 +10,7 @@
 //   - "contact"        -> office@insta-grup.ro
 //   - "report_needed"  -> vlasbogdan@insta-grup.ro
 //   - "error"          -> vlasbogdan@insta-grup.ro
+//   - "backup"         -> vlasbogdan@insta-grup.ro
 //
 // WHO CAN CALL THIS (security fix — see supabase/sql/README.md):
 // this function used to accept any request carrying just the public
@@ -114,6 +115,24 @@ async function loadTrustedPayloadFromTrigger(req: Request): Promise<Record<strin
     };
   }
 
+  if (body.type === "backup" && body.backup_run_id) {
+    const { data, error } = await admin
+      .from("backup_runs")
+      .select("success, file_size_bytes, dump_filename, error_message, host, created_at")
+      .eq("id", body.backup_run_id)
+      .single();
+    if (error || !data) return new Response("backup run row not found", { status: 404 });
+    return {
+      type: "backup",
+      success: data.success,
+      file_size_bytes: data.file_size_bytes ?? 0,
+      dump_filename: data.dump_filename || "-",
+      error_message: data.error_message || "-",
+      host: data.host || "-",
+      created_at: data.created_at,
+    };
+  }
+
   return new Response("unrecognized notification request", { status: 400 });
 }
 
@@ -160,7 +179,7 @@ Deno.serve(async (req) => {
 
     const { type } = body as { type?: string };
 
-    if (type !== "ticket" && type !== "contact" && type !== "report_needed" && type !== "error") {
+    if (type !== "ticket" && type !== "contact" && type !== "report_needed" && type !== "error" && type !== "backup") {
       return new Response(
         JSON.stringify({ error: "Invalid type" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -230,6 +249,23 @@ Deno.serve(async (req) => {
         <p><strong>Stack:</strong></p>
         <pre style="white-space:pre-wrap;font-size:12px;">${stack}</pre>
         <p>Detalii complete și istoricul erorilor: Stare sistem → Auto-îmbunătățire.</p>
+      `;
+    } else if (type === "backup") {
+      // The daily local pg_dump backup (run outside this platform, on
+      // Bogdan's own machine — see report_backup_status() and
+      // notify_backup_failure()) reported a failed run: an empty/missing
+      // dump file, or pg_dump itself erroring out (e.g. a bad password).
+      const { file_size_bytes, dump_filename, error_message, host, created_at } = body as Record<string, string | number>;
+      const sizeKb = Math.round(Number(file_size_bytes || 0) / 1024);
+      to = "vlasbogdan@insta-grup.ro";
+      subject = `Backup local eșuat — ${dump_filename}`;
+      html = `
+        <h2>Backup local eșuat: ${dump_filename}</h2>
+        <p><strong>Dimensiune fișier:</strong> ${sizeKb} KB${sizeKb === 0 ? ' (gol)' : ''}</p>
+        <p><strong>Mașină:</strong> ${host}</p>
+        <p><strong>Data/ora:</strong> ${created_at}</p>
+        <p><strong>Detalii:</strong> ${error_message}</p>
+        <p>Backup-ul de azi de pe calculatorul local nu a reușit — vezi backup.log pe mașina respectivă pentru traseul complet, sau Stare sistem → Backup local pentru istoricul rulărilor.</p>
       `;
     } else {
       // type === "report_needed" — a ticket was just closed (status

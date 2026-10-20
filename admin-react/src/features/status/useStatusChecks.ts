@@ -27,6 +27,7 @@ export interface StatusState {
     push_subscriptions: number;
   };
   push: { dot: DotState; stateLabel: string; subLabel: string; deviceCount: number; showEnableButton: boolean };
+  backup: { dot: DotState; stateLabel: string; subLabel: string; sizeLabel: string };
   lastCheckedLabel: string;
 }
 
@@ -37,8 +38,13 @@ const initialState: StatusState = {
   cron: { dot: null, stateLabel: '—', runs: [] },
   counts: { tickets: 0, current_projects: 0, backlog_projects: 0, calendar_events: 0, push_subscriptions: 0 },
   push: { dot: null, stateLabel: '—', subLabel: '', deviceCount: 0, showEnableButton: false },
+  backup: { dot: null, stateLabel: '—', subLabel: '', sizeLabel: '—' },
   lastCheckedLabel: '',
 };
+
+// Daily run at ~noon -- 30h is generous slack for a late run before this
+// flags "no recent run" even though nothing has actually failed yet.
+const BACKUP_STALE_MS = 30 * 60 * 60 * 1000;
 
 const PUSH_PERMISSION_LABEL: Record<string, string> = {
   granted: 'Permise',
@@ -179,15 +185,59 @@ export function useStatusChecks(sessionEmail: string | null) {
     checkPush(counts.push_subscriptions || 0);
   }, [checkPush, maybeLog, supabase]);
 
+  const checkBackup = useCallback(async () => {
+    setState((s) => ({ ...s, backup: { ...s.backup, dot: 'checking' } }));
+    const { data, error } = await supabase
+      .from('backup_runs')
+      .select('success, file_size_bytes, dump_filename, error_message, host, created_at')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      setState((s) => ({ ...s, backup: { dot: 'bad', stateLabel: 'Eroare', subLabel: error.message || 'interogare eșuată', sizeLabel: '—' } }));
+      maybeLog('backup', false, `Interogare backup_runs eșuată: ${error.message || 'necunoscută'}`);
+      return;
+    }
+    const last = data && data[0];
+    if (!last) {
+      setState((s) => ({ ...s, backup: { dot: 'bad', stateLabel: 'Nicio rulare încă', subLabel: 'Scriptul local nu a raportat niciodată', sizeLabel: '—' } }));
+      maybeLog('backup', false, 'Nicio rulare de backup raportată încă');
+      return;
+    }
+
+    const ts = new Date(last.created_at);
+    const stale = Date.now() - ts.getTime() > BACKUP_STALE_MS;
+    const ok = !!last.success && !stale;
+    const dateLabel = ts.toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const sizeLabel = `${(Number(last.file_size_bytes || 0) / (1024 * 1024)).toFixed(2)} MB`;
+    const stateLabel = stale ? 'Nicio rulare recentă' : last.success ? 'Reușit' : 'Eșuat';
+    const subLabel = stale
+      ? `Ultima rulare: ${dateLabel}`
+      : last.success
+        ? `${dateLabel}${last.host ? ` — ${last.host}` : ''}`
+        : `${dateLabel} — ${last.error_message || 'eroare necunoscută'}`;
+
+    setState((s) => ({ ...s, backup: { dot: ok ? 'ok' : 'bad', stateLabel, subLabel, sizeLabel } }));
+    maybeLog(
+      'backup',
+      ok,
+      stale
+        ? `Nicio rulare de backup în ultimele 30h (ultima: ${dateLabel})`
+        : last.success
+          ? `Backup reușit (${sizeLabel}) — ${dateLabel}`
+          : `Backup eșuat — ${last.error_message || 'necunoscută'}`,
+    );
+  }, [maybeLog, supabase]);
+
   const loadSystemStatus = useCallback(async () => {
-    await Promise.all([checkDb(), checkAuth(), checkFunctions(), checkSystem()]);
+    await Promise.all([checkDb(), checkAuth(), checkFunctions(), checkSystem(), checkBackup()]);
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     setState((s) => ({
       ...s,
       lastCheckedLabel: `Ultima verificare: ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`,
     }));
-  }, [checkAuth, checkDb, checkFunctions, checkSystem]);
+  }, [checkAuth, checkBackup, checkDb, checkFunctions, checkSystem]);
 
   useEffect(() => {
     loadSystemStatus();
