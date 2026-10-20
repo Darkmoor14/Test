@@ -753,7 +753,6 @@
      that ships to the browser; that's what Supabase's own dashboard
      is for. */
   .status-panel-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;}
-  .status-panel-head h2{margin:6px 0 0;}
   .status-info-btn{
     width:30px;height:30px;flex-shrink:0;border-radius:50%;
     border:1px solid var(--line-strong);background:var(--paper-000);color:var(--ink-600);

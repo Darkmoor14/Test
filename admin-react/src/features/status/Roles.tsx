@@ -92,7 +92,7 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
     <>
       <div className="status-panel-head">
         <div>
-          <div className="home-eyebrow">Stare sistem</div>
+          <div className="home-eyebrow">Roluri</div>
           <h2>Roluri</h2>
         </div>
         <button
