@@ -89,7 +89,7 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
   const emails = [...rolesByEmail.keys()].sort((a, b) => a.localeCompare(b));
 
   return (
-    <div className="admin-panel active">
+    <>
       <div className="status-panel-head">
         <div>
           <div className="home-eyebrow">Stare sistem</div>
@@ -284,6 +284,6 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

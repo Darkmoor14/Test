@@ -16,7 +16,7 @@ export function TicketsPanel({ sessionEmail }: { sessionEmail: string | null }) 
   void MONTH_FILTER_NAMES;
 
   return (
-    <div className="admin-panel active">
+    <>
       <div className="toolbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div className="result-count">{filtered.length} din {store.tickets.length} tichete</div>
@@ -33,6 +33,6 @@ export function TicketsPanel({ sessionEmail }: { sessionEmail: string | null }) 
           filtered.map((t) => <TicketCard key={t.id} t={t} sessionEmail={sessionEmail} />)
         )}
       </div>
-    </div>
+    </>
   );
 }

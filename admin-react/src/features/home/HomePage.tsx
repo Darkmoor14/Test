@@ -38,7 +38,7 @@ export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | 
   };
 
   return (
-    <div className="admin-panel active" id="panel-home">
+    <>
       <div className="home-start-grid">
         <div className="home-clock-card">
           <HomeClock />
@@ -77,6 +77,6 @@ export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | 
         onSave={saveEvent}
         onDelete={deleteEvent}
       />
-    </div>
+    </>
   );
 }

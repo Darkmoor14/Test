@@ -58,7 +58,7 @@ export function StatusDashboard({ sessionEmail, landingPage }: { sessionEmail: s
   };
 
   return (
-    <div className="admin-panel active">
+    <>
       <div className="status-panel-head">
         <div>
           <div className="home-eyebrow">Monitorizare</div>
@@ -187,6 +187,6 @@ export function StatusDashboard({ sessionEmail, landingPage }: { sessionEmail: s
         Memoria/CPU-ul serverului nu pot fi verificate în siguranță din browser (necesită un token de administrare Supabase care nu ar trebui expus aici) — pentru acele metrici, vezi dashboard-ul Supabase direct.
       </p>
       <StatusHistorySheet open={historyOpen} onClose={() => setHistoryOpen(false)} />
-    </div>
+    </>
   );
 }

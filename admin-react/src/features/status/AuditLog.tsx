@@ -86,7 +86,7 @@ export function AuditLog() {
   }, [rows, filter]);
 
   return (
-    <div className="admin-panel active">
+    <>
       <div className="status-panel-head">
         <div>
           <div className="home-eyebrow">Jurnal de activitate</div>
@@ -134,6 +134,6 @@ export function AuditLog() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -44,7 +44,7 @@ function InlineYearMonthBar() {
 export function OverviewPanel({ sessionEmail }: { sessionEmail: string | null }) {
   const store = useTickets();
   return (
-    <div className="admin-panel active">
+    <>
       <PriorityCards />
       {store.addFormOpen && store.activeView === 'overview' && <TicketAddForm />}
       <InlineYearMonthBar />
@@ -55,6 +55,6 @@ export function OverviewPanel({ sessionEmail }: { sessionEmail: string | null })
         <OverviewShareBar />
         <OverviewCharts />
       </div>
-    </div>
+    </>
   );
 }

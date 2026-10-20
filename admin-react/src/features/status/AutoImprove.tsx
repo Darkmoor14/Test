@@ -111,7 +111,7 @@ export function AutoImprove() {
   })();
 
   return (
-    <div className="admin-panel active">
+    <>
       <div className="status-panel-head">
         <div>
           <div className="home-eyebrow">Auto-îmbunătățire</div>
@@ -297,6 +297,6 @@ export function AutoImprove() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
