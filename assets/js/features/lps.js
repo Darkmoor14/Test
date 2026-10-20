@@ -853,12 +853,18 @@
     // same "Sesizări funcționale"/"Sesizări accidente" text) would
     // otherwise repeat, word for word, the label already shown by the
     // active rail icon + the active category-topbar item right below it
-    // -- pure duplication, so it's left blank here. Every other tab
-    // keeps its own title (it adds real info the rail/category-topbar
-    // don't carry, e.g. "Echipamente", "Angajați").
+    // -- pure duplication, so it's left blank here. Resurse's own
+    // Echipamente/Parc Auto/Materiale/Produse tabs are the same case:
+    // each one's category-topbar button already reads that exact label,
+    // highlighted, right there -- the title repeating it added nothing.
+    // A tab still keeps its own title when it genuinely isn't shown
+    // anywhere in the visible topbar row, e.g. "Raport lunar consum"
+    // (machines-fuel-report), reachable only through Parc Auto's own
+    // dropdown, or "Angajați"/"Pontaj"/"Concediu" under HR.
     const REDUNDANT_TITLE_TABS = {
       overview: true, 'projects-home': true, 'erp-home': true, 'hr-home': true, status: true,
       'tickets-functional': true, 'tickets-accident': true, reports: true,
+      equipment: true, machines: true, materials: true, products: true,
     };
     const topbarTitleEl = document.getElementById('topbarTitle');
     if (topbarTitleEl) topbarTitleEl.textContent = tabKey === 'home' ? 'Acasă' : (REDUNDANT_TITLE_TABS[tabKey] ? '' : (BREADCRUMB_TABS[tabKey] || ''));

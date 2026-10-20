@@ -2,10 +2,10 @@ import { useErp } from './ErpContext';
 import { EquipmentRow } from './EquipmentRow';
 import type { NonVehicleCategory } from './types';
 
-const CATEGORY_META: Record<NonVehicleCategory, { addLabel: string; emptyMsg: string; unit: string }> = {
-  echipament: { addLabel: '+ Adaugă echipament', emptyMsg: 'Niciun echipament înregistrat.', unit: 'elemente' },
-  material: { addLabel: '+ Adaugă material', emptyMsg: 'Niciun material înregistrat.', unit: 'elemente' },
-  produs: { addLabel: '+ Adaugă produs', emptyMsg: 'Niciun produs înregistrat.', unit: 'elemente' },
+const CATEGORY_META: Record<NonVehicleCategory, { emptyMsg: string }> = {
+  echipament: { emptyMsg: 'Niciun echipament înregistrat.' },
+  material: { emptyMsg: 'Niciun material înregistrat.' },
+  produs: { emptyMsg: 'Niciun produs înregistrat.' },
 };
 
 export function CategoryPanel({ category }: { category: NonVehicleCategory }) {
@@ -18,7 +18,6 @@ export function CategoryPanel({ category }: { category: NonVehicleCategory }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div className="result-count">{items.length} {items.length === 1 ? 'element' : 'elemente'}</div>
         </div>
-        <button type="button" className="btn btn-primary" data-requires-write="erp" onClick={() => store.openForm(null, category)}>{meta.addLabel}</button>
       </div>
       <div className="backlog-list">
         {items.length === 0 ? (
