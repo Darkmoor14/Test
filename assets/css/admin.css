@@ -1452,6 +1452,7 @@
     100%{box-shadow:0 0 0 3px transparent;}
   }
   .ticket-card.jump-highlight{animation:ticket-jump-highlight 1.8s ease-out;}
+  .backlog-row.jump-highlight{animation:ticket-jump-highlight 1.8s ease-out;}
   /* Rapoarte (Sesizări's own reports tab) -- a grid rather than
      overview-sidebar's single sideways row, since this page has
      nothing else sharing the row with it and room for more than 2

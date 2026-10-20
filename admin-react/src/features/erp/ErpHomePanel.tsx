@@ -1,11 +1,29 @@
 import { useErp } from './ErpContext';
 import { expiredDocNames, hasExpiredDocs, isLowStock } from './erpUtils';
+import type { EquipmentItem } from './types';
 
 declare global {
-  interface Window { openAdminTab?: (tabKey: string) => void; }
+  interface Window {
+    openAdminTab?: (tabKey: string) => void;
+    goToVehicle?: (eq: EquipmentItem) => void;
+  }
 }
 function goToTab(tab: string) {
   window.openAdminTab?.(tab);
+}
+// Mirrors goToVehicle (erp.js, still vanilla for Parc Auto): switch to
+// the item's own tab, then scroll to and highlight its row there — a
+// click on an alert goes straight to the item, not just the tab.
+function goToItem(eq: EquipmentItem, tab: string) {
+  window.openAdminTab?.(tab);
+  requestAnimationFrame(() => {
+    const row = document.getElementById('equipment-row-' + eq.id);
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      row.classList.add('jump-highlight');
+      setTimeout(() => row.classList.remove('jump-highlight'), 1800);
+    }
+  });
 }
 
 export function ErpHomePanel() {
@@ -48,7 +66,7 @@ export function ErpHomePanel() {
           <h3 className="status-subhead">Alerte stoc și revizii</h3>
           <div className="status-history-list">
             {lowStockItems.map((eq) => (
-              <div key={eq.id} className="status-history-item" onClick={() => goToTab(eq.erp_category === 'produs' ? 'products' : 'materials')}>
+              <div key={eq.id} className="status-history-item" onClick={() => goToItem(eq, eq.erp_category === 'produs' ? 'products' : 'materials')}>
                 <span className="status-history-time">{eq.erp_category === 'produs' ? 'PRODUS' : 'MATERIAL'}</span>
                 <span className="status-history-dot" />
                 <div>
@@ -58,7 +76,7 @@ export function ErpHomePanel() {
               </div>
             ))}
             {expiredDocsItems.map((eq) => (
-              <div key={eq.id} className="status-history-item" onClick={() => goToTab('machines')}>
+              <div key={eq.id} className="status-history-item" onClick={() => window.goToVehicle?.(eq)}>
                 <span className="status-history-time">MAȘINĂ</span>
                 <span className="status-history-dot" />
                 <div>

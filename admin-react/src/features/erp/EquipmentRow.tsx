@@ -18,7 +18,7 @@ export function EquipmentRow({ eq }: { eq: EquipmentItem }) {
   }
 
   return (
-    <div className={`backlog-row${eq.status === 'Indisponibil' ? ' done' : ''}`}>
+    <div id={`equipment-row-${eq.id}`} className={`backlog-row${eq.status === 'Indisponibil' ? ' done' : ''}`}>
       <div className="backlog-main">
         <div className="backlog-title-line">
           <span className="backlog-title">{eq.name}</span>
