@@ -936,8 +936,15 @@
       // never reaches it — without this, whichever subcategory was last
       // open (or the "Toate" default) stayed lit in red after navigating
       // away, including to "Raport lunar consum" (same subgroup, but
-      // not itself a subcategory of "machines").
+      // not itself a subcategory of "machines"). Same for the trigger's
+      // own label/highlight (see setMachinesSubcatFilter in erp.js) —
+      // it only flips away from "Parc Auto" through that function, which
+      // this navigation away from "machines" never calls.
       document.querySelectorAll('.erp-machines-subcat-btn').forEach(btn => btn.classList.remove('active'));
+      const erpMachinesToggleLabel = document.getElementById('erpMachinesToggleLabel');
+      const erpMachinesToggleBtn = document.querySelector('[data-erp-toggle="machines"]');
+      if (erpMachinesToggleLabel) erpMachinesToggleLabel.textContent = 'Parc Auto';
+      if (erpMachinesToggleBtn) erpMachinesToggleBtn.classList.remove('active');
     }
     // Documentație's nested dropdown under HR (see the sidebar markup)
     // auto-opens whenever landing on any docs-group tab, same as Parc
