@@ -96,19 +96,16 @@
     // it (see lps.js), so which subcategory is open was otherwise only
     // ever visible for the instant it stayed open — same information,
     // but on the trigger button itself: its own label flips from "Parc
-    // Auto" to the subcategory's name, highlighted red the same way an
-    // active tab is, so it stays visible on screen regardless of
-    // whether the dropdown is open. "Toate" (Prezentare generală) is
-    // the baseline, not a subcategory of its own, so it's the one value
-    // that keeps the trigger reading "Parc Auto".
+    // Auto" to whichever dropdown item is active (including "Prezentare
+    // generală" itself), highlighted red the same way an active tab is,
+    // so it stays visible on screen regardless of whether the dropdown
+    // is open.
     const erpMachinesToggleLabel = document.getElementById('erpMachinesToggleLabel');
     const erpMachinesToggleBtn = document.querySelector('[data-erp-toggle="machines"]');
     if (erpMachinesToggleLabel) {
-      erpMachinesToggleLabel.textContent = VEHICLE_SUBCAT_LABEL[machinesSidebarKey] || 'Parc Auto';
+      erpMachinesToggleLabel.textContent = machinesSidebarKey === 'Toate' ? 'Prezentare generală' : (VEHICLE_SUBCAT_LABEL[machinesSidebarKey] || 'Parc Auto');
     }
-    if (erpMachinesToggleBtn) {
-      erpMachinesToggleBtn.classList.toggle('active', machinesSidebarKey !== 'Toate');
-    }
+    if (erpMachinesToggleBtn) erpMachinesToggleBtn.classList.add('active');
     renderEquipment();
     // Encodes which subcategory is open as a second hash segment
     // (#machines/masina_mica) -- replaceState, not pushState, so

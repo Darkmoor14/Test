@@ -931,15 +931,25 @@
       const restoreSubcat = (typeof initialHashMachinesSubcat !== 'undefined' && initialHashMachinesSubcat) || 'Toate';
       setMachinesSubcatFilter(restoreSubcat, { sidebarKey: restoreSubcat });
     }
-    if (tabKey !== 'machines') {
+    if (tabKey === 'machines-fuel-report') {
+      // "Raport lunar consum" shares Parc Auto's dropdown subgroup but
+      // isn't itself a .erp-machines-subcat-btn (it's a plain .admin-tab
+      // further down the same list) -- setMachinesSubcatFilter never
+      // runs for it, so the trigger's label/highlight (see its own
+      // comment in erp.js) is set directly here instead.
+      document.querySelectorAll('.erp-machines-subcat-btn').forEach(btn => btn.classList.remove('active'));
+      const erpMachinesToggleLabel = document.getElementById('erpMachinesToggleLabel');
+      const erpMachinesToggleBtn = document.querySelector('[data-erp-toggle="machines"]');
+      if (erpMachinesToggleLabel) erpMachinesToggleLabel.textContent = 'Raport lunar consum';
+      if (erpMachinesToggleBtn) erpMachinesToggleBtn.classList.add('active');
+    } else if (tabKey !== 'machines') {
       // .erp-machines-subcat-btn isn't .admin-tab, so the toggle above
       // never reaches it — without this, whichever subcategory was last
       // open (or the "Toate" default) stayed lit in red after navigating
-      // away, including to "Raport lunar consum" (same subgroup, but
-      // not itself a subcategory of "machines"). Same for the trigger's
-      // own label/highlight (see setMachinesSubcatFilter in erp.js) —
-      // it only flips away from "Parc Auto" through that function, which
-      // this navigation away from "machines" never calls.
+      // away. Same for the trigger's own label/highlight (see
+      // setMachinesSubcatFilter in erp.js) — it only flips away from
+      // "Parc Auto" through that function, which this navigation away
+      // from "machines" never calls.
       document.querySelectorAll('.erp-machines-subcat-btn').forEach(btn => btn.classList.remove('active'));
       const erpMachinesToggleLabel = document.getElementById('erpMachinesToggleLabel');
       const erpMachinesToggleBtn = document.querySelector('[data-erp-toggle="machines"]');
