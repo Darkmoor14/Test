@@ -1421,12 +1421,12 @@
      nothing else sharing the row with it and room for more than 2
      cards. Each card still reuses .chart-card/.chart-stat, same look
      the old sidebar charts had. */
-  .reports-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:16px;}
+  .reports-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(420px, 1fr));gap:20px;}
   .reports-grid-note{grid-column:1/-1;font-size:12.5px;color:var(--ink-600);background:var(--paper-050);border:1px solid var(--line);border-radius:4px;padding:10px 14px;}
-  .chart-card{border:1px solid var(--line-strong);border-radius:4px;padding:16px;background:var(--paper-000);}
-  .chart-card h4{font-size:12.5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.03em;color:var(--ink-600);margin-bottom:14px;font-weight:500;}
-  .chart-card canvas{max-height:220px;}
-  .chart-stat{font-family:var(--mono);font-size:20px;color:var(--copper-600);text-align:center;margin-top:10px;}
+  .chart-card{border:1px solid var(--line-strong);border-radius:4px;padding:22px;background:var(--paper-000);}
+  .chart-card h4{font-size:13px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.03em;color:var(--ink-600);margin-bottom:18px;font-weight:500;}
+  .chart-card canvas{max-height:320px;}
+  .chart-stat{font-family:var(--mono);font-size:20px;color:var(--copper-600);text-align:center;margin-top:14px;}
   /* ===== MOBILE/TABLET TICKET CARDS =====
      Not a CSS reflow of the desktop table — a genuinely different
      layout, purpose-built for someone glancing at a phone in the

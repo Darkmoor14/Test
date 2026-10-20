@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Bar, Pie } from 'react-chartjs-2';
+import { Bar, Line, Pie } from 'react-chartjs-2';
 import '../../lib/chartSetup';
 import { useTickets } from './TicketsContext';
 import {
@@ -31,9 +31,10 @@ export function ReportsPanel() {
     day: null,
   });
 
-  // The two filtered-by-date charts below (everything except the two
-  // trend-over-time ones, which deliberately ignore the filter and
-  // always show the full history) share this same base set.
+  // The filtered-by-date charts below (everything except the three
+  // trend-over-time ones -- the two month-by-month charts and the
+  // weekday one -- which deliberately ignore the filter and always
+  // show the full history) share this same base set.
   const filtered = useMemo(
     () => tickets.filter((t) => !isDuplicateTicket(t) && matchesYear(t, ticketYearFilter) && matchesMonth(t, ticketMonthFilter)),
     [tickets, ticketYearFilter, ticketMonthFilter],
@@ -113,12 +114,30 @@ export function ReportsPanel() {
 
   return (
     <div className="reports-grid">
-      {dateNote && <div className="reports-grid-note">Grafice filtrate pe: {dateNote} (cu excepția celor două de evoluție în timp, de mai jos, care arată mereu tot istoricul)</div>}
+      {dateNote && <div className="reports-grid-note">Grafice filtrate pe: {dateNote} (cu excepția celor de evoluție în timp, de mai jos, care arată mereu tot istoricul)</div>}
 
       <div className="chart-card">
         <h4>Sesizări pe an</h4>
         <Bar
           data={{ labels: volume.labels, datasets: [{ data: volume.data, backgroundColor: '#D11F24', borderRadius: 3 }] }}
+          options={{
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } },
+          }}
+        />
+      </div>
+
+      <div className="chart-card">
+        <h4>Evoluție lunară a sesizărilor</h4>
+        <Line
+          data={{
+            labels: volume.labels,
+            datasets: [{
+              data: volume.data, borderColor: '#D11F24', backgroundColor: 'rgba(209,31,36,0.12)',
+              fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#D11F24',
+            }],
+          }}
           options={{
             responsive: true,
             plugins: { legend: { display: false } },
