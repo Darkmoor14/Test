@@ -38,7 +38,6 @@
   const loginWrap = document.getElementById('loginWrap');
   const dash = document.getElementById('dash');
   const appRail = document.getElementById('appRail');
-  const categoryPanel = document.getElementById('categoryPanel');
   const loginForm = document.getElementById('loginForm');
   const loginError = document.getElementById('loginError');
   const loginBtn = document.getElementById('loginBtn');
@@ -155,14 +154,14 @@
     Object.keys(CATEGORY_TO_MODULE).forEach(category => {
       const granted = god || modulePermission(CATEGORY_TO_MODULE[category]) === 'write';
       const railItem = document.querySelector(`.rail-item[data-category="${category}"]`);
-      const panelSection = document.querySelector(`.category-panel-section[data-category="${category}"]`);
+      const topbar = document.querySelector(`.category-topbar[data-category-topbar="${category}"]`);
       if (railItem) railItem.style.display = granted ? '' : 'none';
-      if (panelSection) panelSection.style.display = granted ? '' : 'none';
+      if (topbar) topbar.style.display = granted ? '' : 'none';
     });
     const statusRailItem = document.querySelector('.rail-item[data-category="status"]');
-    const statusPanelSection = document.querySelector('.category-panel-section[data-category="status"]');
+    const statusTopbar = document.querySelector('.category-topbar[data-category-topbar="status"]');
     if (statusRailItem) statusRailItem.style.display = god ? '' : 'none';
-    if (statusPanelSection) statusPanelSection.style.display = god ? '' : 'none';
+    if (statusTopbar) statusTopbar.style.display = god ? '' : 'none';
     // Acasă's own nav-grid visibility is computed independently inside
     // the React pilot now (see admin-react/'s useStaffRoster +
     // NavGrid.tsx) — it fetches its own roles rather than reading
@@ -528,8 +527,7 @@
   });
 
   /* ============================================================
-     RAIL — category switching (which .category-panel-section shows).
-     The category panel itself always stays open (no collapse).
+     RAIL — category switching (which .category-topbar shows).
      ============================================================ */
   document.querySelectorAll('.rail-item[data-category]').forEach(item => {
     item.addEventListener('click', () => {
@@ -633,9 +631,9 @@
       text: 'De aici treci între zonele mari ale platformei — Sesizări, Proiecte, Resurse și inventar, HR și Stare sistem. Rămâne mereu vizibilă, pe orice pagină.',
     },
     {
-      selector: '.category-panel',
+      selector: '.category-topbar.active',
       title: 'Submeniul',
-      text: 'Fiecare zonă își arată aici paginile proprii. De exemplu, sub „Proiecte” găsești Proiecte publice, Avarii rețele, Proiecte LPS și Programe lucrări.',
+      text: 'Fiecare zonă își arată aici, sus, paginile proprii. De exemplu, sub „Proiecte” găsești Proiecte publice, Avarii rețele, Proiecte LPS și Programe lucrări.',
       beforeShow(){ onboardingSavedCategory = TAB_CATEGORY[currentAdminTab] || 'home'; setActiveCategory('projects'); },
       afterHide(){ setActiveCategory(onboardingSavedCategory); },
     },

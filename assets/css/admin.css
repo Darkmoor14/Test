@@ -159,23 +159,22 @@
   .dash{display:none;}
   .dash.show{display:block;}
 
-  /* ===== APP SHELL (rail + category panel + topbar + page body) =====
-     Two sidebars: .rail is a fixed-width icon strip that never
-     collapses (it's the top-level "which area of the app" switcher —
-     Acasă is a direct destination, the rest are categories); each
-     category owns one .category-panel-section, shown/hidden by JS
-     based on the rail's selected data-category. .category-panel itself
-     collapses (width -> 0) independently of the rail. */
+  /* ===== APP SHELL (rail + topbar + page body) =====
+     .rail is a fixed-width icon strip that never collapses (it's the
+     top-level "which area of the app" switcher — Acasă is a direct
+     destination, the rest are categories). Each category's own sub-nav
+     used to live in a second sidebar (.category-panel) next to .rail;
+     every category now gets its own horizontal .category-topbar row
+     instead, placed above .page-body (see setActiveCategory in
+     lps.js, which toggles .active on whichever one matches the
+     current category — at most one is ever visible at a time). */
   .app-shell{display:flex;align-items:stretch;min-height:100vh;}
   .rail{
     width:60px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;
     background:var(--paper-050);border-right:1px solid var(--line);
     position:sticky;top:0;height:100vh;overflow:visible;padding:12px 0;
-    /* Above .category-panel: that panel is a later sibling with the
-       same (auto) stacking level, so without this it painted over the
-       account menu's popup (which overflows the rail to the right)
-       on every tab except Home, where the panel collapses to width 0
-       and happened to not be in the way. */
+    /* The account menu's popup overflows the rail to the right, so the
+       rail needs to paint above whatever sits next to it (.main). */
     z-index:10;
   }
   .rail-items{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;}
@@ -243,20 +242,11 @@
   .sidebar-logout-btn:hover{background:var(--copper-050);}
   .sidebar-logout-btn svg{width:16px;height:16px;flex-shrink:0;}
 
-  .category-panel{
-    width:230px;flex-shrink:0;background:var(--paper-000);border-right:1px solid var(--line);
-    position:sticky;top:0;height:100vh;overflow-y:auto;overflow-x:hidden;
-    transition:width .18s ease,opacity .15s ease;
-  }
-  .category-panel.empty{width:0;opacity:0;border-right:none;}
-  .category-panel-head{padding:18px 16px 8px;min-height:20px;}
-  .category-panel-title{font-family:var(--display);font-weight:700;font-size:15px;color:var(--ink-900);white-space:nowrap;}
-  .category-panel-nav{
-    padding:4px 10px 16px;display:block;height:auto;max-width:none;margin:0;
-    align-items:stretch;justify-content:flex-start;
-  }
-  .category-panel-section{display:none;flex-direction:column;gap:2px;}
-  .category-panel-section.active{display:flex;}
+  /* .category-panel-item is now purely a MENU ITEM look (block, full
+     width, padding, hover/active state) — reused for every dropdown's
+     items below (Parc Auto's subcategories, Documentație's groups).
+     The sidebar .aside that originally owned this class is gone; only
+     the button look survives. */
   .category-panel-item{
     display:block;width:100%;padding:9px 12px;border-radius:8px;border:none;background:none;
     color:var(--ink-700);font-family:var(--body);font-size:13.5px;font-weight:500;text-align:left;cursor:pointer;
@@ -264,39 +254,40 @@
   }
   .category-panel-item:hover{background:var(--paper-100);color:var(--ink-900);}
   .category-panel-item.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;}
-  /* .admin-tab is also used on several sidebar items purely so the
-     existing generic .admin-tab click handler picks them up — but its
-     own look (monospace, lighter ink-400, wider padding, bottom
+  /* .admin-tab is also used on several of these menu items purely so
+     the existing generic .admin-tab click handler picks them up — but
+     its own look (monospace, lighter ink-400, wider padding, bottom
      border) was built for the old horizontal tab strip
-     (.admin-tabs-row), not the sidebar. Both classes have equal CSS
-     specificity, so whichever rule happens to be declared later in
+     (.admin-tabs-row), not a dropdown menu. Both classes have equal
+     CSS specificity, so whichever rule happens to be declared later in
      the stylesheet silently won — this reasserts .category-panel-item's
-     own look so every sidebar item matches regardless of that. */
+     own look so every menu item matches regardless of that. */
   .category-panel-item.admin-tab{
     font-family:var(--body);font-size:13.5px;font-weight:500;color:var(--ink-700);
     padding:9px 12px;border-bottom:none;margin-bottom:0;
   }
   .category-panel-item.admin-tab:hover{background:var(--paper-100);color:var(--ink-900);}
   .category-panel-item.admin-tab.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;border-bottom-color:transparent;}
-  /* Documentație's own sidebar nav — same look as the rest of the
-     category-panel, plus a collapsible group for Proiecte's four
-     sub-sections (the one case so far with a real nested structure). */
+  /* Documentație's and Parc Auto's own dropdown menus — the base
+     open/close mechanics (same .docs-nav-toggle/.docs-nav-subgroup
+     classes the old sidebar version used, see setActiveCategory's
+     comment in lps.js); positioned as a floating panel below its
+     trigger in .category-topbar below, since a topbar has nowhere to
+     grow an inline expansion into. */
   .docs-nav-toggle{display:flex;align-items:center;justify-content:space-between;gap:6px;}
   .docs-nav-toggle svg{flex-shrink:0;transition:transform .15s ease;}
   .docs-nav-toggle.open svg{transform:rotate(90deg);}
-  .docs-nav-subgroup{display:none;flex-direction:column;gap:2px;padding-left:12px;}
+  .docs-nav-subgroup{display:none;flex-direction:column;gap:2px;}
   .docs-nav-subgroup.open{display:flex;}
-  /* Sub-items keep the same size/weight/color as their parent — only
-     the indent (padding-left on .docs-nav-subgroup) marks them as
-     nested. A smaller font here was the one remaining visible
-     inconsistency across the sidebar after the .admin-tab fix above. */
 
-  /* Proiecte's sub-nav, horizontal instead of the second sidebar (see
-     the comment on setActiveCategory in lps.js) — one row of plain
-     buttons today since Proiecte's own sub-items are flat; a category
-     with real nesting underneath (like Resurse și inventar's Parc Auto)
-     would need its own dropdown-capable item if this ever extends
-     there. */
+  /* Every category's sub-nav lives in its own horizontal bar here,
+     above .page-body, instead of a second sidebar (see
+     setActiveCategory in lps.js, which toggles .active on whichever
+     one matches the current rail category — at most one is ever
+     visible). Most rows are flat; Resurse și inventar's Parc Auto and
+     HR's Documentație have real nesting underneath, so their trigger
+     item (.category-topbar-dropdown) opens a floating menu instead of
+     a sixth plain button. */
   .category-topbar{
     display:none;align-items:center;gap:2px;flex-wrap:wrap;
     padding:10px 28px;border-bottom:1px solid var(--line);background:var(--paper-000);
@@ -316,6 +307,21 @@
   }
   .category-topbar-item.admin-tab:hover{background:var(--paper-100);color:var(--ink-900);}
   .category-topbar-item.admin-tab.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;border-bottom-color:transparent;}
+  /* Dropdown-capable topbar item (Parc Auto, Documentație): the
+     trigger is a normal .category-topbar-item, its menu floats below
+     it. .category-topbar-subdropdown nests one level deeper
+     (Documentație → Proiecte) and flies its own menu out to the right
+     instead, so it doesn't open underneath (and get clipped by) its
+     already-floating parent menu. */
+  .category-topbar-dropdown{position:relative;}
+  .category-topbar .docs-nav-subgroup{
+    position:absolute;top:calc(100% + 4px);left:0;z-index:40;min-width:220px;
+    padding:6px;margin:0;background:var(--paper-000);border:1px solid var(--line);
+    border-radius:10px;box-shadow:0 8px 24px rgba(20,24,29,.14);
+  }
+  .category-topbar-subdropdown{position:relative;}
+  .category-topbar-subdropdown .docs-nav-toggle{padding:9px 12px;}
+  .category-topbar-subdropdown .docs-nav-subgroup{top:0;left:calc(100% + 4px);}
 
   .main{flex:1;min-width:0;display:flex;flex-direction:column;}
   .topbar{
@@ -328,7 +334,6 @@
   .page-body{flex:1;padding:24px 28px;min-width:0;}
   @media(max-width:900px){
     .rail{display:none;}
-    .category-panel{display:none;}
     .category-topbar.active{display:none;}
     .topbar{padding:14px 16px;}
     .page-body{padding:16px;}
@@ -1637,7 +1642,7 @@
      window.print() and removed on the afterprint event. */
   @media print{
     body.print-calendar-only .rail,
-    body.print-calendar-only .category-panel,
+    body.print-calendar-only .category-topbar,
     body.print-calendar-only .topbar,
     body.print-calendar-only .toolbar,
     body.print-calendar-only .project-form,

@@ -768,36 +768,29 @@
   const CATEGORY_DEFAULT_TAB = {
     tickets: 'overview', projects: 'projects-home', erp: 'erp-home', hr: 'hr-home', status: 'status',
   };
-  const CATEGORY_TITLES = {
-    tickets: 'Sesizări', erp: 'Resurse și inventar', hr: 'HR', status: 'Stare sistem',
-  };
   function setActiveCategory(category){
     document.querySelectorAll('.rail-item[data-category]').forEach(item => {
       item.classList.toggle('active', item.dataset.category === category);
     });
-    document.querySelectorAll('.category-panel-section').forEach(sec => {
-      sec.classList.toggle('active', sec.dataset.category === category);
-    });
-    // Proiecte's sub-nav lives in a horizontal bar above the page body
-    // instead of the second sidebar (see .category-topbar in admin-3.html)
-    // — the only category reshuffled like this so far, see the
-    // conversation that asked for it before rolling the same treatment
-    // out to any other section.
+    // Every category's sub-nav lives in its own horizontal bar above
+    // the page body (see .category-topbar in admin-3.html) instead of
+    // a second sidebar — at most one is ever .active at a time. Acasă
+    // isn't a category with sub-items, so none matches and the whole
+    // row area simply collapses to nothing for it.
     document.querySelectorAll('.category-topbar[data-category-topbar]').forEach(bar => {
       bar.classList.toggle('active', bar.dataset.categoryTopbar === category);
     });
-    const titleEl = document.getElementById('categoryPanelTitle');
-    if (titleEl) titleEl.textContent = CATEGORY_TITLES[category] || '';
-    // Acasă isn't a category with sub-items — nothing to show in the
-    // second sidebar there, so it collapses itself rather than
-    // sitting empty (Proiecte collapses it too now, for the same
-    // reason — its sub-nav moved to the topbar above). This is
-    // independent of the user's own manual collapse toggle (a
-    // different class), which still applies again
-    // as soon as a real category is picked.
-    const catPanel = document.getElementById('categoryPanel');
-    if (catPanel) catPanel.classList.toggle('empty', !CATEGORY_TITLES[category]);
   }
+  // Closes any open dropdown (Parc Auto, Documentație, and its own
+  // nested Proiecte flyout) when clicking anywhere outside it — a
+  // floating menu left open after clicking elsewhere on the page would
+  // otherwise just sit there, unlike the old sidebar's inline expand,
+  // which had nothing else nearby to visually clash with.
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.category-topbar-dropdown, .category-topbar-subdropdown')) return;
+    document.querySelectorAll('.category-topbar .docs-nav-toggle.open').forEach(btn => btn.classList.remove('open'));
+    document.querySelectorAll('.category-topbar .docs-nav-subgroup.open').forEach(sg => sg.classList.remove('open'));
+  });
   function renderBreadcrumb(tabKey){
     const bc = document.getElementById('navBreadcrumb');
     if (!bc || !isReportFocusedView()) return;

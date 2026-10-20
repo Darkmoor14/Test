@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/admin.css?v=20261019a">
+<link rel="stylesheet" href="assets/css/admin.css?v=20261020a">
 </head>
 <body>
 
@@ -88,68 +88,6 @@
       </div>
     </aside>
 
-    <aside class="category-panel" id="categoryPanel">
-      <div class="category-panel-head">
-        <span class="category-panel-title" id="categoryPanelTitle">Sesizări</span>
-      </div>
-      <nav class="category-panel-nav">
-        <div class="category-panel-section" data-category="tickets">
-          <button type="button" class="admin-tab category-panel-item" data-tab="overview">Prezentare generală</button>
-          <button type="button" class="admin-tab category-panel-item" data-tab="tickets-functional">Defecte</button>
-          <button type="button" class="admin-tab category-panel-item" data-tab="tickets-accident">Accidente</button>
-        </div>
-        <div class="category-panel-section" data-category="erp">
-          <button type="button" class="admin-tab category-panel-item" data-tab="erp-home">Home</button>
-          <button type="button" class="admin-tab category-panel-item" data-tab="equipment">Echipamente</button>
-          <button type="button" class="category-panel-item docs-nav-toggle" data-erp-toggle="machines">
-            <span>Parc Auto</span>
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-          <div class="docs-nav-subgroup" data-erp-subgroup="machines">
-            <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="Toate">Prezentare generală</button>
-            <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="masina_mica">Mașină mică</button>
-            <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="autoutilitara">Autoutilitară</button>
-            <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="camion">Camion</button>
-            <button type="button" class="category-panel-item docs-nav-subitem erp-machines-subcat-btn" data-subcat="utilaj">Utilaj</button>
-            <button type="button" class="admin-tab category-panel-item docs-nav-subitem" data-tab="machines-fuel-report">Raport lunar consum</button>
-          </div>
-          <button type="button" class="admin-tab category-panel-item" data-tab="materials">Materiale</button>
-          <button type="button" class="admin-tab category-panel-item" data-tab="products">Produse</button>
-        </div>
-        <div class="category-panel-section" data-category="hr">
-          <button type="button" class="admin-tab category-panel-item" data-tab="hr-home">Home</button>
-          <button type="button" class="admin-tab category-panel-item" data-tab="hr-employees">Angajați</button>
-          <button type="button" class="admin-tab category-panel-item" data-tab="hr-worktime">Pontaj</button>
-          <button type="button" class="admin-tab category-panel-item" data-tab="hr-vacation">Concediu</button>
-          <button type="button" class="category-panel-item docs-nav-toggle" data-hr-toggle="docs">
-            <span>Documentație</span>
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-          <div class="docs-nav-subgroup" data-hr-subgroup="docs">
-            <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem active" data-docs-group="home">Home</button>
-            <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="tickets">Sesizări</button>
-            <button type="button" class="category-panel-item docs-nav-toggle docs-nav-subitem" data-docs-toggle="projects">
-              <span>Proiecte</span>
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-            <div class="docs-nav-subgroup" data-docs-subgroup="projects">
-              <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-projects">Proiecte publice</button>
-              <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-backlog">Avarii rețele</button>
-              <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-lps">Proiecte LPS</button>
-              <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="docs-workorders">Programe lucrări</button>
-            </div>
-            <button type="button" class="category-panel-item docs-nav-group-btn docs-nav-subitem" data-docs-group="erp">Resurse și inventar</button>
-          </div>
-        </div>
-        <div class="category-panel-section" data-category="status">
-          <button type="button" class="admin-tab category-panel-item" data-tab="status">Stare sistem</button>
-          <button type="button" class="admin-tab category-panel-item" data-tab="status-improve">Auto-îmbunătățire</button>
-          <button type="button" class="admin-tab category-panel-item" data-tab="status-audit">Jurnal de activitate</button>
-          <button type="button" class="admin-tab category-panel-item" data-tab="status-roles">Roluri</button>
-        </div>
-      </nav>
-    </aside>
-
     <div class="main">
       <div class="topbar">
         <span class="topbar-title" id="topbarTitle">Acasă</span>
@@ -185,12 +123,76 @@
         </div>
       </div>
 
+      <div class="category-topbar" id="categoryTopbarTickets" data-category-topbar="tickets">
+        <button type="button" class="admin-tab category-topbar-item" data-tab="overview">Prezentare generală</button>
+        <button type="button" class="admin-tab category-topbar-item" data-tab="tickets-functional">Defecte</button>
+        <button type="button" class="admin-tab category-topbar-item" data-tab="tickets-accident">Accidente</button>
+      </div>
+
       <div class="category-topbar" id="categoryTopbarProjects" data-category-topbar="projects">
         <button type="button" class="admin-tab category-topbar-item" data-tab="projects-home">Home</button>
         <button type="button" class="admin-tab category-topbar-item" data-tab="projects">Proiecte publice</button>
         <button type="button" class="admin-tab category-topbar-item" data-tab="backlog">Avarii rețele</button>
         <button type="button" class="admin-tab category-topbar-item" data-tab="lps">Proiecte LPS</button>
         <button type="button" class="admin-tab category-topbar-item" data-tab="workorders">Programe lucrări</button>
+      </div>
+
+      <div class="category-topbar" id="categoryTopbarErp" data-category-topbar="erp">
+        <button type="button" class="admin-tab category-topbar-item" data-tab="erp-home">Home</button>
+        <button type="button" class="admin-tab category-topbar-item" data-tab="equipment">Echipamente</button>
+        <div class="category-topbar-dropdown">
+          <button type="button" class="category-topbar-item docs-nav-toggle" data-erp-toggle="machines">
+            <span>Parc Auto</span>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <div class="docs-nav-subgroup" data-erp-subgroup="machines">
+            <button type="button" class="category-panel-item erp-machines-subcat-btn" data-subcat="Toate">Prezentare generală</button>
+            <button type="button" class="category-panel-item erp-machines-subcat-btn" data-subcat="masina_mica">Mașină mică</button>
+            <button type="button" class="category-panel-item erp-machines-subcat-btn" data-subcat="autoutilitara">Autoutilitară</button>
+            <button type="button" class="category-panel-item erp-machines-subcat-btn" data-subcat="camion">Camion</button>
+            <button type="button" class="category-panel-item erp-machines-subcat-btn" data-subcat="utilaj">Utilaj</button>
+            <button type="button" class="admin-tab category-panel-item" data-tab="machines-fuel-report">Raport lunar consum</button>
+          </div>
+        </div>
+        <button type="button" class="admin-tab category-topbar-item" data-tab="materials">Materiale</button>
+        <button type="button" class="admin-tab category-topbar-item" data-tab="products">Produse</button>
+      </div>
+
+      <div class="category-topbar" id="categoryTopbarHr" data-category-topbar="hr">
+        <button type="button" class="admin-tab category-topbar-item" data-tab="hr-home">Home</button>
+        <button type="button" class="admin-tab category-topbar-item" data-tab="hr-employees">Angajați</button>
+        <button type="button" class="admin-tab category-topbar-item" data-tab="hr-worktime">Pontaj</button>
+        <button type="button" class="admin-tab category-topbar-item" data-tab="hr-vacation">Concediu</button>
+        <div class="category-topbar-dropdown">
+          <button type="button" class="category-topbar-item docs-nav-toggle" data-hr-toggle="docs">
+            <span>Documentație</span>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <div class="docs-nav-subgroup" data-hr-subgroup="docs">
+            <button type="button" class="category-panel-item docs-nav-group-btn active" data-docs-group="home">Home</button>
+            <button type="button" class="category-panel-item docs-nav-group-btn" data-docs-group="tickets">Sesizări</button>
+            <div class="category-topbar-subdropdown">
+              <button type="button" class="category-panel-item docs-nav-toggle" data-docs-toggle="projects">
+                <span>Proiecte</span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+              <div class="docs-nav-subgroup" data-docs-subgroup="projects">
+                <button type="button" class="category-panel-item docs-nav-group-btn" data-docs-group="docs-projects">Proiecte publice</button>
+                <button type="button" class="category-panel-item docs-nav-group-btn" data-docs-group="docs-backlog">Avarii rețele</button>
+                <button type="button" class="category-panel-item docs-nav-group-btn" data-docs-group="docs-lps">Proiecte LPS</button>
+                <button type="button" class="category-panel-item docs-nav-group-btn" data-docs-group="docs-workorders">Programe lucrări</button>
+              </div>
+            </div>
+            <button type="button" class="category-panel-item docs-nav-group-btn" data-docs-group="erp">Resurse și inventar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="category-topbar" id="categoryTopbarStatus" data-category-topbar="status">
+        <button type="button" class="admin-tab category-topbar-item" data-tab="status">Stare sistem</button>
+        <button type="button" class="admin-tab category-topbar-item" data-tab="status-improve">Auto-îmbunătățire</button>
+        <button type="button" class="admin-tab category-topbar-item" data-tab="status-audit">Jurnal de activitate</button>
+        <button type="button" class="admin-tab category-topbar-item" data-tab="status-roles">Roluri</button>
       </div>
 
       <div class="page-body">
@@ -1291,7 +1293,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="assets/js/data-services.js?v=20261019a"></script>
-<script src="assets/js/admin-core.js?v=20261019e"></script>
+<script src="assets/js/admin-core.js?v=20261020a"></script>
 <!-- Built from admin-react/ (source: admin-react/src/mount.tsx) — do not
      hand-edit this file, rebuild it instead:
        cd admin-react && npx vite build --config vite.mount.config.ts
@@ -1373,7 +1375,7 @@
   })();
 </script>
 <script src="assets/js/features/system-status.js?v=20261019b"></script>
-<script src="assets/js/features/lps.js?v=20261019d"></script>
+<script src="assets/js/features/lps.js?v=20261020a"></script>
 <script src="assets/js/features/tickets.js?v=20261019d"></script>
 <!-- projects.js and work-orders.js are gone: Proiecte publice, Avarii
      rețele, and Programe lucrări are now admin-react/'s features/projects/
