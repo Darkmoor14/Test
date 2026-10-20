@@ -94,8 +94,8 @@
 
         <div class="category-topbar" id="categoryTopbarTickets" data-category-topbar="tickets">
           <button type="button" class="admin-tab category-topbar-item" data-tab="overview">Prezentare generală</button>
-          <button type="button" class="admin-tab category-topbar-item" data-tab="tickets-functional">Defecte</button>
-          <button type="button" class="admin-tab category-topbar-item" data-tab="tickets-accident">Accidente</button>
+          <button type="button" class="admin-tab category-topbar-item" data-tab="tickets-functional">Sesizări funcționale</button>
+          <button type="button" class="admin-tab category-topbar-item" data-tab="tickets-accident">Sesizări accidente</button>
         </div>
 
         <div class="category-topbar" id="categoryTopbarProjects" data-category-topbar="projects">
@@ -197,6 +197,24 @@
       </div>
 
       <div class="page-body">
+
+    <!-- Entirely vanilla-owned (excel.js toggles its visibility by id,
+         builds/reads its rows itself) -- the repair-sheet upload flow has
+         no React involvement, same as the export flow's own report-type/
+         scope/year/month sheets further down this file. Lives here,
+         outside any single .admin-panel, because its two triggers sit on
+         two DIFFERENT panels (Prezentare generală's own icon, and
+         Sesizări funcționale/accidente's) that are never both active at
+         once -- whichever one you clicked from, this still needs to be
+         visible. -->
+    <div class="excel-preview" id="repairSheetPreview" style="display:none;">
+      <p class="excel-preview-note" id="repairSheetPreviewNote">Previzualizare — verificați rândurile înainte de a confirma.</p>
+      <div class="excel-preview-table-wrap"><table class="excel-preview-table" id="repairSheetPreviewTable"></table></div>
+      <div class="pf-actions">
+        <button class="btn" id="repairSheetCancelBtn" type="button">Anulează</button>
+        <button class="btn btn-primary" id="repairSheetConfirmBtn" type="button">Confirmă și salvează</button>
+      </div>
+    </div>
 
     <div class="admin-panel" id="panel-home">
       <div id="reactHomeRoot"></div>
@@ -1299,7 +1317,7 @@
      hand-edit this file, rebuild it instead:
        cd admin-react && npx vite build --config vite.mount.config.ts
      then copy dist-mount/admin-react-status.js here. -->
-<script src="assets/js/admin-react-status.js?v=20261020c"></script>
+<script src="assets/js/admin-react-status.js?v=20261020e"></script>
 <script>
   // Mounts Stare sistem's four React panels plus Acasă and Sesizări
   // (Tickets), reusing the page's own already-created Supabase client
@@ -1376,7 +1394,7 @@
   })();
 </script>
 <script src="assets/js/features/system-status.js?v=20261019b"></script>
-<script src="assets/js/features/lps.js?v=20261020b"></script>
+<script src="assets/js/features/lps.js?v=20261020c"></script>
 <script src="assets/js/features/tickets.js?v=20261019d"></script>
 <!-- projects.js and work-orders.js are gone: Proiecte publice, Avarii
      rețele, and Programe lucrări are now admin-react/'s features/projects/

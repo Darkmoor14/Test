@@ -847,14 +847,20 @@
     document.documentElement.classList.toggle('home-active', isHome);
     renderBreadcrumb(tabKey);
     // Each category's own landing tab (overview/projects-home/erp-home/
-    // hr-home/status) would otherwise repeat, word for word, the label
-    // already shown by the active rail icon + the active category-topbar
-    // item right below it -- pure duplication, so it's left blank here.
-    // Every other tab keeps its own title (it adds real info the rail/
-    // category-topbar don't carry, e.g. "Echipamente", "Angajați").
-    const CATEGORY_HOME_TABS = { overview: true, 'projects-home': true, 'erp-home': true, 'hr-home': true, status: true };
+    // hr-home/status), plus Sesizări's two sub-tabs (tickets-functional/
+    // tickets-accident, now that their category-topbar buttons read the
+    // same "Sesizări funcționale"/"Sesizări accidente" text) would
+    // otherwise repeat, word for word, the label already shown by the
+    // active rail icon + the active category-topbar item right below it
+    // -- pure duplication, so it's left blank here. Every other tab
+    // keeps its own title (it adds real info the rail/category-topbar
+    // don't carry, e.g. "Echipamente", "Angajați").
+    const REDUNDANT_TITLE_TABS = {
+      overview: true, 'projects-home': true, 'erp-home': true, 'hr-home': true, status: true,
+      'tickets-functional': true, 'tickets-accident': true,
+    };
     const topbarTitleEl = document.getElementById('topbarTitle');
-    if (topbarTitleEl) topbarTitleEl.textContent = tabKey === 'home' ? 'Acasă' : (CATEGORY_HOME_TABS[tabKey] ? '' : (BREADCRUMB_TABS[tabKey] || ''));
+    if (topbarTitleEl) topbarTitleEl.textContent = tabKey === 'home' ? 'Acasă' : (REDUNDANT_TITLE_TABS[tabKey] ? '' : (BREADCRUMB_TABS[tabKey] || ''));
     setActiveCategory(TAB_CATEGORY[tabKey] || null);
     document.querySelectorAll('.admin-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.tab === tabKey);

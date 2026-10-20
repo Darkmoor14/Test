@@ -1,4 +1,5 @@
 import { createRoot, type Root } from 'react-dom/client';
+import { flushSync } from 'react-dom';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { SupabaseProvider } from './lib/supabaseContext';
 import { useGlobalTelemetry } from './features/status/useGlobalTelemetry';
@@ -188,7 +189,18 @@ window.AdminReactStatus = {
     getRoot(el).render(<HomeRoot client={client} />);
   },
   mountTickets(overviewPanelRootEl, targets, client) {
-    getRoot(overviewPanelRootEl).render(<TicketsAppRoot client={client} targets={targets} />);
+    // flushSync, not a plain .render() like every other mount call here --
+    // excel.js's export/repair-sheet-import button wiring runs as a LATER
+    // top-level <script> on the very same page load and queries these
+    // portaled buttons (exportExcelBtn, importRepairSheetBtn,
+    // importRepairSheetBtnOverview) by id the moment it loads. React 18's
+    // createRoot().render() schedules its initial commit rather than
+    // applying it synchronously, so without this, excel.js's query would
+    // run before the buttons exist and silently skip wiring them (its
+    // `if (btn) …` guards fail quietly, no error) -- flushSync forces
+    // this one render to commit before admin-3.html's mount script (and
+    // so excel.js right after it) continues.
+    flushSync(() => { getRoot(overviewPanelRootEl).render(<TicketsAppRoot client={client} targets={targets} />); });
   },
   mountProjects(projectsHomeRootEl, targets, client) {
     getRoot(projectsHomeRootEl).render(<ProjectsAppRoot client={client} targets={targets} />);

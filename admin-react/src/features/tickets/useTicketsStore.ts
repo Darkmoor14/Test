@@ -16,6 +16,8 @@ declare global {
     allTickets?: Ticket[];
     goToTicket?: (ticketId: string) => void;
     openAdminTab?: (tabKey: string) => void;
+    ticketYearFilter?: string;
+    loadTickets?: () => Promise<void>;
   }
 }
 
@@ -417,12 +419,16 @@ export function useTicketsStore(sessionEmail: string | null) {
     return () => { if (window.goToTicketByNumber === goToTicketByNumber) delete window.goToTicketByNumber; };
   }, [goToTicketByNumber]);
 
-  // Two more explicit window.* bridges, same pattern: search.js's smart-
+  // Four more explicit window.* bridges, same pattern: search.js's smart-
   // search/command palette still calls bare `allTickets` (indexing
   // tickets by number/name/phone/address/email/description) and bare
-  // `goToTicket(id)` (its "Vezi" result button) -- both classic-script
-  // globals, same contract tickets.js's own vanilla copies used to
-  // provide. Kept in sync on every tickets/goToTicket change.
+  // `goToTicket(id)` (its "Vezi" result button); excel.js's Excel export
+  // still reads bare `allTickets` and `ticketYearFilter` (to default the
+  // yearly report to whatever year is currently selected) and calls bare
+  // `loadTickets()` once a repair-sheet import is confirmed and saved,
+  // to refresh the list with the new resolution notes -- all classic-
+  // script globals, same contract tickets.js's own vanilla copies used
+  // to provide. Kept in sync on every relevant change.
   useEffect(() => {
     window.allTickets = tickets;
     return () => { if (window.allTickets === tickets) delete window.allTickets; };
@@ -431,6 +437,14 @@ export function useTicketsStore(sessionEmail: string | null) {
     window.goToTicket = goToTicket;
     return () => { if (window.goToTicket === goToTicket) delete window.goToTicket; };
   }, [goToTicket]);
+  useEffect(() => {
+    window.ticketYearFilter = ticketYearFilter;
+    return () => { if (window.ticketYearFilter === ticketYearFilter) delete window.ticketYearFilter; };
+  }, [ticketYearFilter]);
+  useEffect(() => {
+    window.loadTickets = reload;
+    return () => { if (window.loadTickets === reload) delete window.loadTickets; };
+  }, [reload]);
 
   useEffect(() => {
     if (pendingTicketUrlParamHandled.current || loading || tickets.length === 0) return;
