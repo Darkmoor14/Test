@@ -11,6 +11,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<!-- PostHog (cookieless analytics -- no cookies, no persistent visitor ID; see Politica de cookie-uri) -->
+<script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],Object.defineProperty(u,"toString",{configurable:!0,enumerable:!0,writable:!0,value:function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e}}),Object.defineProperty(u.people,"toString",{configurable:!0,enumerable:!0,writable:!0,value:function(){return u.toString(1)+".people (stub)"}}),o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagResult isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    posthog.init('phc_tJvkUZkAcMtDtgRABokWvHUXeJEuzp5ep4RDHmZKHpno', {
+        api_host: 'https://eu.i.posthog.com',
+        defaults: '2026-05-30',
+        cookieless_mode: 'always',
+        person_profiles: 'never',
+    })
+</script>
 <style>
   :root{
     --ink-900:#14181D; --ink-700:#2B333B; --ink-600:#525C66; --ink-400:#8A939C;
@@ -606,9 +616,9 @@
     <div class="modal-body">
       <p class="legal-ro-note" data-i18n="legal_ro_only_note" style="font-style:italic;color:var(--ink-900);margin-bottom:18px;">Acest document este disponibil oficial doar în limba română.</p>
       <h4>Ce stocăm</h4>
-      <p>Site-ul www.insta-grup.ro <strong>nu folosește cookie-uri de marketing, publicitate sau urmărire</strong>. Reținem local, în browser, doar preferința dumneavoastră de limbă (RO/EN/HU) și, exclusiv pe pagina de administrare folosită de personalul INSTA GRUP, sesiunea de autentificare tehnică furnizată de furnizorul nostru de infrastructură. Ambele sunt strict necesare pentru funcționarea site-ului.</p>
+      <p>Site-ul www.insta-grup.ro folosește un instrument de analiză a traficului (PostHog), configurat să nu salveze niciun cookie și să nu rețină niciun identificator al dumneavoastră de la o vizită la alta — exclusiv pentru a înțelege, în ansamblu, traficul site-ului. Reținem local, în browser, doar preferința dumneavoastră de limbă (RO/EN/HU) și, exclusiv pe pagina de administrare folosită de personalul INSTA GRUP, sesiunea de autentificare tehnică furnizată de furnizorul nostru de infrastructură. Toate cele de mai sus sunt strict necesare sau nu implică stocarea vreunui cookie pe dispozitivul dumneavoastră.</p>
       <h4>Resurse de la terți</h4>
-      <p>Pentru afișare corectă, încărcăm fonturi de la Google Fonts și o bibliotecă tehnică de la furnizorul nostru de infrastructură. Acestea pot primi adresa IP ca parte tehnică a livrării resursei, dar nu sunt folosite pentru urmărire sau publicitate.</p>
+      <p>Pentru afișare corectă și pentru analiza anonimă a traficului, încărcăm fonturi de la Google Fonts, o bibliotecă tehnică de la furnizorul nostru de infrastructură și instrumentul de analiză PostHog. Acestea pot primi adresa IP ca parte tehnică a livrării resursei; PostHog este configurat să nu stocheze niciun cookie pe dispozitivul dumneavoastră, iar niciunul dintre aceste servicii nu este folosit pentru publicitate.</p>
       <p>Pentru textul complet al Politicii de cookie-uri, vă rugăm consultați pagina principală a site-ului.</p>
       <h4>Suport</h4>
       <p>Pentru orice întrebări, vă rugăm să ne contactați la <a href="mailto:office@insta-grup.ro">office@insta-grup.ro</a> sau la 0265 253997.</p>
@@ -755,6 +765,7 @@
       enquiryMsg.className = 'form-msg success';
       enquiryMsg.textContent = t('ef_success');
       enquiryForm.reset();
+      if (window.posthog) posthog.capture('contact_form_submitted', { page: 'produse' });
     }
     if (window.turnstile) turnstile.reset('#enquiryCaptcha');
     enquirySubmitBtn.disabled = false;
@@ -776,7 +787,7 @@
     const banner = document.createElement('div');
     banner.className = 'cookie-banner';
     banner.innerHTML = `
-      <p data-i18n="cookie_banner_text">Folosim doar cookie-uri și stocare locală strict necesare pentru funcționarea site-ului (preferința de limbă, conectarea echipei) — fără cookie-uri de marketing sau urmărire.</p>
+      <p data-i18n="cookie_banner_text">Folosim cookie-uri și stocare locală strict necesare pentru funcționarea site-ului, plus un instrument de analiză a traficului configurat să nu salveze niciun cookie pe dispozitivul dumneavoastră.</p>
       <div class="cookie-banner-actions">
         <a href="#" onclick="openModal('cookieModal'); return false;" data-i18n="cookie_banner_link">Politica de cookie-uri</a>
         <button type="button" class="cookie-banner-accept" data-i18n="cookie_banner_accept">Am înțeles</button>

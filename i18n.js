@@ -235,7 +235,7 @@ ro: {
   legal_ro_only_note: "Acest document este disponibil oficial doar în limba română.",
 
   // Cookie consent banner
-  cookie_banner_text: "Folosim doar cookie-uri și stocare locală strict necesare pentru funcționarea site-ului (preferința de limbă, conectarea echipei) — fără cookie-uri de marketing sau urmărire.",
+  cookie_banner_text: "Folosim cookie-uri și stocare locală strict necesare pentru funcționarea site-ului, plus un instrument de analiză a traficului configurat să nu salveze niciun cookie pe dispozitivul dumneavoastră.",
   cookie_banner_link: "Politica de cookie-uri",
   cookie_banner_accept: "Am înțeles",
 
@@ -471,7 +471,7 @@ en: {
   legal_ro_only_note: "This document is officially available in Romanian only.",
 
   // Cookie consent banner
-  cookie_banner_text: "We only use cookies and local storage that are strictly necessary for the site to work (language preference, staff login) — no marketing or tracking cookies.",
+  cookie_banner_text: "We use strictly necessary cookies and local storage for the site to work, plus a traffic-analytics tool configured to never store any cookie on your device.",
   cookie_banner_link: "Cookie Policy",
   cookie_banner_accept: "Got it",
 
@@ -704,7 +704,7 @@ hu: {
   legal_ro_only_note: "Ez a dokumentum hivatalosan csak román nyelven érhető el.",
 
   // Cookie consent banner
-  cookie_banner_text: "Csak a weboldal működéséhez feltétlenül szükséges cookie-kat és helyi tárolást használunk (nyelvi beállítás, munkatársi bejelentkezés) — marketing vagy nyomkövető cookie-k nélkül.",
+  cookie_banner_text: "A weboldal működéséhez feltétlenül szükséges cookie-kat és helyi tárolást használunk, valamint egy forgalomelemző eszközt, amely nem tárol cookie-t az Ön eszközén.",
   cookie_banner_link: "Cookie-szabályzat",
   cookie_banner_accept: "Rendben",
 

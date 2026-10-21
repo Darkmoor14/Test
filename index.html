@@ -11,6 +11,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<!-- PostHog (cookieless analytics -- no cookies, no persistent visitor ID; see Politica de cookie-uri) -->
+<script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],Object.defineProperty(u,"toString",{configurable:!0,enumerable:!0,writable:!0,value:function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e}}),Object.defineProperty(u.people,"toString",{configurable:!0,enumerable:!0,writable:!0,value:function(){return u.toString(1)+".people (stub)"}}),o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagResult isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    posthog.init('phc_tJvkUZkAcMtDtgRABokWvHUXeJEuzp5ep4RDHmZKHpno', {
+        api_host: 'https://eu.i.posthog.com',
+        defaults: '2026-05-30',
+        cookieless_mode: 'always',
+        person_profiles: 'never',
+    })
+</script>
 <style>
   :root{
     --ink-900:#14181D;
@@ -1079,7 +1089,7 @@
       <p class="legal-ro-note" data-i18n="legal_ro_only_note" style="font-style:italic;color:var(--ink-900);margin-bottom:18px;">Acest document este disponibil oficial doar în limba română.</p>
       <h4>1. Ce sunt cookie-urile și stocarea locală</h4>
       <p>1.1 Cookie-urile sunt fișiere text de mici dimensiuni salvate de browser pe dispozitivul dumneavoastră. „Stocarea locală" (localStorage) este un mecanism similar, oferit de browser, prin care un site poate reține informații pe dispozitivul dumneavoastră între vizite, fără a le trimite automat către alte servere la fiecare cerere, spre deosebire de cookie-urile clasice.</p>
-      <p>1.2 Site-ul www.insta-grup.ro <strong>nu folosește cookie-uri sau instrumente de marketing, publicitate sau urmărire a comportamentului</strong> (de exemplu Google Analytics, Facebook Pixel sau similare). Nu construim profiluri ale vizitatorilor și nu partajăm date de navigare cu terți în scopuri publicitare.</p>
+      <p>1.2 Site-ul www.insta-grup.ro folosește un instrument de analiză a traficului (PostHog), configurat în regim strict anonim: nu salvează niciun cookie și nu reține niciun identificator al dumneavoastră de la o vizită la alta — fiecare sesiune este tratată independent, exclusiv pentru a înțelege, în ansamblu, ce pagini sunt vizitate și dacă formularele de pe site funcționează corect. Nu folosim acest instrument în scopuri de marketing sau publicitate, nu construim profiluri ale vizitatorilor și nu partajăm date de navigare cu terți în scopuri publicitare.</p>
 
       <h4>2. Ce stocăm efectiv pe dispozitivul dumneavoastră și de ce</h4>
       <p>2.1 <strong>Preferința de limbă</strong> — atunci când alegeți RO / EN / HU din antetul site-ului, această alegere este reținută în stocarea locală a browserului, pentru a nu fi nevoie să o selectați la fiecare vizită. Nu este partajată cu niciun terț.</p>
@@ -1087,7 +1097,7 @@
       <p>2.3 Ambele categorii de mai sus se încadrează în categoria „strict necesare / funcționale" și nu necesită consimțământul prealabil al vizitatorului conform legislației aplicabile, însă le prezentăm aici pentru transparență deplină.</p>
 
       <h4>3. Resurse de la terți</h4>
-      <p>3.1 Pentru afișarea corectă a site-ului, încărcăm fonturi de la Google Fonts (fonts.googleapis.com, fonts.gstatic.com) și biblioteca tehnică Supabase (livrată printr-o rețea de distribuție de conținut). Aceste servicii pot primi adresa dumneavoastră IP ca parte tehnică normală a livrării resurselor solicitate de browser, însă nu sunt folosite de INSTA GRUP pentru urmărire sau publicitate.</p>
+      <p>3.1 Pentru afișarea corectă a site-ului și pentru analiza anonimă a traficului, încărcăm fonturi de la Google Fonts (fonts.googleapis.com, fonts.gstatic.com), biblioteca tehnică Supabase (livrată printr-o rețea de distribuție de conținut) și instrumentul de analiză PostHog (găzduit în Uniunea Europeană). Aceste servicii pot primi adresa dumneavoastră IP ca parte tehnică normală a livrării resurselor solicitate de browser; PostHog este configurat să nu stocheze niciun cookie sau identificator persistent pe dispozitivul dumneavoastră, iar niciunul dintre aceste servicii nu este folosit de INSTA GRUP pentru publicitate.</p>
       <p>3.2 Vă recomandăm să consultați politicile de confidențialitate ale acestor furnizori pentru mai multe detalii despre modul în care aceștia procesează datele tehnice de livrare.</p>
 
       <h4>4. Cum puteți controla stocarea locală</h4>
@@ -1096,7 +1106,7 @@
       <h4>5. Contact</h4>
       <p>5.1 Pentru întrebări legate de această politică, ne puteți contacta la <a href="mailto:office@insta-grup.ro">office@insta-grup.ro</a> sau la numărul de telefon 0265 253997. Pentru detalii privind prelucrarea datelor cu caracter personal, consultați Nota de informare privind protecția datelor cu caracter personal (GDPR) afișată pe site.</p>
 
-      <div class="modal-foot">Prezenta Politică de cookie-uri a fost actualizată în data de 08.2026.</div>
+      <div class="modal-foot">Prezenta Politică de cookie-uri a fost actualizată în data de 10.2026.</div>
     </div>
   </div>
 </div>
@@ -1568,6 +1578,7 @@
       contactMsg.className = 'form-msg success';
       contactMsg.textContent = t('cf_success');
       contactForm.reset();
+      if (window.posthog) posthog.capture('contact_form_submitted', { page: 'index' });
     }
     if (window.turnstile) turnstile.reset('#contactCaptcha');
     contactSubmitBtn.disabled = false;
@@ -1590,7 +1601,7 @@
     const banner = document.createElement('div');
     banner.className = 'cookie-banner';
     banner.innerHTML = `
-      <p data-i18n="cookie_banner_text">Folosim doar cookie-uri și stocare locală strict necesare pentru funcționarea site-ului (preferința de limbă, conectarea echipei) — fără cookie-uri de marketing sau urmărire.</p>
+      <p data-i18n="cookie_banner_text">Folosim cookie-uri și stocare locală strict necesare pentru funcționarea site-ului, plus un instrument de analiză a traficului configurat să nu salveze niciun cookie pe dispozitivul dumneavoastră.</p>
       <div class="cookie-banner-actions">
         <a href="#" onclick="openModal('cookieModal'); return false;" data-i18n="cookie_banner_link">Politica de cookie-uri</a>
         <button type="button" class="cookie-banner-accept" data-i18n="cookie_banner_accept">Am înțeles</button>
