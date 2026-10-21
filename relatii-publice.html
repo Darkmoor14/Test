@@ -210,6 +210,16 @@
   .section-head h2{font-size:clamp(28px,3.4vw,42px);color:var(--ink-900);margin-bottom:12px;}
   .section-head p{color:var(--ink-900);font-size:17.5px;}
 
+  /* ===== PUBLIC NOTICE (temporary outage/work announcements) ===== */
+  .important-notice-outer{padding:28px 0 0;}
+  .public-notice{
+    background:var(--signal-red-bg);border:1px solid rgba(181,80,47,0.3);border-radius:3px;
+    padding:20px 24px;display:flex;gap:16px;align-items:flex-start;
+  }
+  .public-notice svg{width:24px;height:24px;color:var(--signal-red);flex-shrink:0;margin-top:2px;}
+  .public-notice .pn-title{font-family:var(--display);font-weight:600;font-size:16px;margin-bottom:6px;color:var(--signal-red);}
+  .public-notice p{font-size:15px;color:var(--ink-900);line-height:1.6;margin:0;}
+
   /* ===== CURRENT PROJECTS ("Proiecte de modernizare") ===== */
   .current-grid{
     display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
@@ -396,25 +406,22 @@
     <h1 data-i18n="rp_hero_h1">Lucrări de modernizare și sesizări de iluminat public</h1>
     <p data-i18n="rp_hero_lede">O privire publică asupra proiectelor de modernizare aflate în derulare și a sesizărilor de iluminat public transmise prin site — actualizate periodic de echipa noastră.</p>
     <div class="hero-jumplinks">
-      <a href="#proiecte-modernizare" data-i18n="current_h2">Ce facem acum</a>
       <a href="#sesizari-iluminat" data-i18n="public_h1">Situația sesizărilor curente</a>
     </div>
   </div>
 </section>
 
-<section class="section-block" id="proiecte-modernizare">
+<div class="important-notice-outer">
   <div class="wrap">
-    <div class="section-head">
-      <div class="eyebrow" data-i18n="current_eyebrow">Lucrări în derulare</div>
-      <h2 data-i18n="current_h2">Ce facem acum</h2>
-      <p data-i18n="current_lede">O privire asupra proiectelor aflate în desfășurare în acest moment, actualizată periodic de echipa noastră.</p>
+    <div class="public-notice">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 1 21h22L12 2z"/><path d="M12 9v5M12 17h.01"/></svg>
+      <div>
+        <div class="pn-title">Anunț important!</div>
+        <p>Avarie de iluminat public în cartierul Dâmbu Pietros, ca urmare a unor lucrări la rețeaua de apă.<br>Sunt afectate zona străzilor: Str. Ciucaș, Str. Ceahlău, și străzile adiacente. Se lucrează la remedierea defecțiunilor.<br>Vă mulțumim pentru înțelegere.</p>
+      </div>
     </div>
-    <div class="current-grid" id="currentGrid">
-      <!-- Populated by JS from the public current_projects view -->
-    </div>
-    <div class="current-empty" id="currentEmpty" style="display:none;" data-i18n="current_empty">Momentan nu sunt proiecte active afișate.</div>
   </div>
-</section>
+</div>
 
 <section class="section-block alt" id="sesizari-iluminat">
   <div class="wrap">
