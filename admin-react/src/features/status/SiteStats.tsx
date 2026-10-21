@@ -5,8 +5,8 @@ import { useSiteStats } from './useSiteStats';
 // Shortens a path like "/relatii-publice.html" down to "relatii-publice"
 // for the top-pages chart's labels -- the .html and leading slash add
 // nothing a staff member reading the chart needs.
-function shortPath(path: string): string {
-  return path.replace(/^\//, '').replace(/\.html$/, '') || 'acasă';
+function shortPath(path: unknown): string {
+  return String(path ?? '').replace(/^\//, '').replace(/\.html$/, '') || 'acasă';
 }
 
 export function SiteStats() {

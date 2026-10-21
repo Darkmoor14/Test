@@ -39,7 +39,10 @@ type TrendSeriesResult = {
   data: number[];
   days: string[];
   label: string;
-  breakdown_value?: string;
+  // The query API returns this as an array (e.g. ["/raportare.html"])
+  // even for a single breakdown property, not a plain string -- see
+  // breakdownValueToPath() below.
+  breakdown_value?: string | number | boolean | null | Array<string | number | boolean | null>;
   action?: { math?: string; name?: string };
 };
 
@@ -73,6 +76,12 @@ async function runTrendsQuery(
 
 function sum(data: number[]): number {
   return data.reduce((a, b) => a + b, 0);
+}
+
+function breakdownValueToPath(value: TrendSeriesResult["breakdown_value"]): string {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw === null || raw === undefined || raw === "") return "(necunoscut)";
+  return String(raw);
 }
 
 Deno.serve(async (req) => {
@@ -137,7 +146,7 @@ Deno.serve(async (req) => {
     const uniqueSeries = pageviewResults.find((r) => r.action?.math === "dau");
 
     const topPages = topPagesResults
-      .map((r) => ({ path: r.breakdown_value || "(necunoscut)", count: sum(r.data || []) }))
+      .map((r) => ({ path: breakdownValueToPath(r.breakdown_value), count: sum(r.data || []) }))
       .filter((p) => p.count > 0)
       .sort((a, b) => b.count - a.count)
       .slice(0, 8);
