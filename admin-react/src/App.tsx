@@ -5,11 +5,12 @@ import { useGlobalTelemetry } from './features/status/useGlobalTelemetry';
 import { StatusDashboard } from './features/status/StatusDashboard';
 import { AutoImprove } from './features/status/AutoImprove';
 import { AuditLog } from './features/status/AuditLog';
+import { SiteStats } from './features/status/SiteStats';
 import { Roles } from './features/status/Roles';
 import { HomePage } from './features/home/HomePage';
 import { TicketsRoot, type TicketsMountTargets } from './features/tickets/TicketsRoot';
 
-type StatusTab = 'home' | 'overview' | 'tickets-functional' | 'reports' | 'status' | 'status-improve' | 'status-audit' | 'status-roles';
+type StatusTab = 'home' | 'overview' | 'tickets-functional' | 'reports' | 'status' | 'status-improve' | 'status-audit' | 'status-stats' | 'status-roles';
 
 const TABS: { key: StatusTab; label: string }[] = [
   { key: 'home', label: 'Acasă' },
@@ -19,6 +20,7 @@ const TABS: { key: StatusTab; label: string }[] = [
   { key: 'status', label: 'Stare sistem' },
   { key: 'status-improve', label: 'Auto-îmbunătățire' },
   { key: 'status-audit', label: 'Jurnal de activitate' },
+  { key: 'status-stats', label: 'Statistici site' },
   { key: 'status-roles', label: 'Roluri' },
 ];
 
@@ -193,6 +195,7 @@ export default function App() {
             {activeTab === 'status' && <StatusDashboard sessionEmail={sessionEmail} />}
             {activeTab === 'status-improve' && <AutoImprove />}
             {activeTab === 'status-audit' && <AuditLog />}
+            {activeTab === 'status-stats' && <SiteStats />}
             {activeTab === 'status-roles' && <Roles sessionEmail={sessionEmail} />}
           </div>
         </div>

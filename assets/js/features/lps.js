@@ -751,6 +751,7 @@
     status: 'Stare sistem',
     'status-improve': 'Auto-îmbunătățire',
     'status-audit': 'Jurnal de activitate',
+    'status-stats': 'Statistici site',
     'status-roles': 'Roluri',
     docs: 'Documentație',
   };
@@ -764,7 +765,7 @@
     'projects-home': 'projects', projects: 'projects', backlog: 'projects', lps: 'projects', workorders: 'projects',
     'erp-home': 'erp', equipment: 'erp', machines: 'erp', 'machines-fuel-report': 'erp', materials: 'erp', products: 'erp',
     'hr-home': 'hr', 'hr-employees': 'hr', 'hr-worktime': 'hr', 'hr-vacation': 'hr', docs: 'hr',
-    status: 'status', 'status-improve': 'status', 'status-audit': 'status', 'status-roles': 'status',
+    status: 'status', 'status-improve': 'status', 'status-audit': 'status', 'status-stats': 'status', 'status-roles': 'status',
   };
   const CATEGORY_DEFAULT_TAB = {
     tickets: 'overview', projects: 'projects-home', erp: 'erp-home', hr: 'hr-home', status: 'status',
@@ -824,7 +825,7 @@
     });
   }
 
-  const STATUS_TABS = ['status', 'status-improve', 'status-audit', 'status-roles'];
+  const STATUS_TABS = ['status', 'status-improve', 'status-audit', 'status-stats', 'status-roles'];
   function openAdminTab(tabKey, fromPopState){
     // Stare sistem's nav is hidden for anyone but 'god' (see
     // applyRolePermissionsToUI), but the tab itself is still reachable
@@ -887,7 +888,7 @@
       overview: true, 'projects-home': true, 'erp-home': true, 'hr-home': true, status: true,
       'tickets-functional': true, 'tickets-accident': true, reports: true,
       equipment: true, machines: true, materials: true, products: true, 'machines-fuel-report': true,
-      'status-improve': true, 'status-audit': true, 'status-roles': true,
+      'status-improve': true, 'status-audit': true, 'status-stats': true, 'status-roles': true,
     };
     const topbarTitleEl = document.getElementById('topbarTitle');
     if (topbarTitleEl) topbarTitleEl.textContent = tabKey === 'home' ? 'Acasă' : (REDUNDANT_TITLE_TABS[tabKey] ? '' : (BREADCRUMB_TABS[tabKey] || ''));

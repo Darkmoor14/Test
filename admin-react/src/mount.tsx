@@ -6,6 +6,7 @@ import { useGlobalTelemetry } from './features/status/useGlobalTelemetry';
 import { StatusDashboard } from './features/status/StatusDashboard';
 import { AutoImprove } from './features/status/AutoImprove';
 import { AuditLog } from './features/status/AuditLog';
+import { SiteStats } from './features/status/SiteStats';
 import { Roles } from './features/status/Roles';
 import { HomePage } from './features/home/HomePage';
 import type { HomeNavKey } from './features/home/NavGrid';
@@ -30,6 +31,7 @@ declare global {
       mountDashboard: (el: HTMLElement, client: SupabaseClient) => void;
       mountAutoImprove: (el: HTMLElement, client: SupabaseClient) => void;
       mountAuditLog: (el: HTMLElement, client: SupabaseClient) => void;
+      mountSiteStats: (el: HTMLElement, client: SupabaseClient) => void;
       mountRoles: (el: HTMLElement, client: SupabaseClient) => void;
       mountHome: (el: HTMLElement, client: SupabaseClient) => void;
       mountTickets: (overviewPanelRootEl: HTMLElement, targets: TicketsMountTargets, client: SupabaseClient) => void;
@@ -108,6 +110,14 @@ function AuditLogRoot({ client }: { client: SupabaseClient }) {
   );
 }
 
+function SiteStatsRoot({ client }: { client: SupabaseClient }) {
+  return (
+    <SupabaseProvider client={client}>
+      <SiteStats />
+    </SupabaseProvider>
+  );
+}
+
 function RolesRoot({ client }: { client: SupabaseClient }) {
   const sessionEmail = useSessionEmail(client);
   return (
@@ -181,6 +191,9 @@ window.AdminReactStatus = {
   },
   mountAuditLog(el, client) {
     getRoot(el).render(<AuditLogRoot client={client} />);
+  },
+  mountSiteStats(el, client) {
+    getRoot(el).render(<SiteStatsRoot client={client} />);
   },
   mountRoles(el, client) {
     getRoot(el).render(<RolesRoot client={client} />);
