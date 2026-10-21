@@ -297,6 +297,15 @@
   .emergency-note .en-num{font-family:var(--mono);font-size:19px;color:var(--ink-900);margin-top:6px;}
   .emergency-note p{font-size:13px;color:var(--ink-900);}
 
+  /* ===== PUBLIC NOTICE (temporary outage/work announcements) ===== */
+  .public-notice{
+    background:var(--signal-red-bg);border:1px solid rgba(181,80,47,0.3);border-radius:3px;
+    padding:18px 20px;margin-bottom:24px;display:flex;gap:14px;align-items:flex-start;
+  }
+  .public-notice svg{width:20px;height:20px;color:var(--signal-red);flex-shrink:0;margin-top:2px;}
+  .public-notice .pn-title{font-weight:600;font-size:14.5px;margin-bottom:4px;color:var(--signal-red);}
+  .public-notice p{font-size:13.5px;color:var(--ink-900);line-height:1.6;margin:0;}
+
   .report-actions{display:flex;gap:14px;margin-top:8px;justify-content:space-between;align-items:center;}
   .back-link{font-family:var(--mono);font-size:13px;color:var(--ink-900);cursor:pointer;transition:color .2s;}
   .back-link:hover{color:var(--copper-600);}
@@ -423,6 +432,14 @@
       <div class="eyebrow" data-i18n="report_eyebrow">Sesizări iluminat public</div>
       <h2 data-i18n="report_h2">Raportează o problemă</h2>
       <p data-i18n="report_lede">Sesizați un defect sau un accident/urgență la rețeaua de iluminat public. Fiecare sesizare primește un număr de înregistrare.</p>
+    </div>
+
+    <div class="public-notice">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 1 21h22L12 2z"/><path d="M12 9v5M12 17h.01"/></svg>
+      <div>
+        <div class="pn-title">Anunț important!</div>
+        <p>Avarie de iluminat public în cartierul Dâmbu Pietros, ca urmare a unor lucrări la rețeaua de apă.<br>Sunt afectate zona străzilor: Str. Ciucaș, Str. Ceahlău, și străzile adiacente. Se lucrează la remedierea defecțiunilor.<br>Vă mulțumim pentru înțelegere.</p>
+      </div>
     </div>
 
     <div class="report-shell">
