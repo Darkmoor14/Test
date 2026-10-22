@@ -1003,7 +1003,10 @@
     #reportTypeSheet .mobile-sheet-panel,
     #repairScopeSheet .mobile-sheet-panel,
     #reportYearSheet .mobile-sheet-panel,
-    #recurrenceSheet .mobile-sheet-panel{
+    #recurrenceSheet .mobile-sheet-panel,
+    #hrEmployeeFormSheet .mobile-sheet-panel,
+    #hrWorktimeFormSheet .mobile-sheet-panel,
+    #hrVacationFormSheet .mobile-sheet-panel{
       position:fixed;top:50%;left:50%;right:auto;bottom:auto;
       transform:translate(-50%,-50%);
       width:420px;max-width:calc(100vw - 40px);
@@ -1022,12 +1025,18 @@
     #repairScopeSheet .mobile-sheet-panel-scroll,
     #reportYearSheet .mobile-sheet-panel-scroll,
     #recurrenceSheet .mobile-sheet-panel-scroll,
+    #hrEmployeeFormSheet .mobile-sheet-panel-scroll,
+    #hrWorktimeFormSheet .mobile-sheet-panel-scroll,
+    #hrVacationFormSheet .mobile-sheet-panel-scroll,
     #reportMonthSheet .mobile-sheet-panel-scroll,
     #fuelReportExportFilterSheet .mobile-sheet-panel-scroll{padding:18px 20px;}
     #reportTypeSheet .sheet-handle,
     #repairScopeSheet .sheet-handle,
     #reportYearSheet .sheet-handle,
     #recurrenceSheet .sheet-handle,
+    #hrEmployeeFormSheet .sheet-handle,
+    #hrWorktimeFormSheet .sheet-handle,
+    #hrVacationFormSheet .sheet-handle,
     #reportMonthSheet .sheet-handle,
     #fuelReportExportFilterSheet .sheet-handle{display:none;}
   }

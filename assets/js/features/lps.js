@@ -889,6 +889,7 @@
       'tickets-functional': true, 'tickets-accident': true, reports: true,
       equipment: true, machines: true, materials: true, products: true, 'machines-fuel-report': true,
       'status-improve': true, 'status-audit': true, 'status-stats': true, 'status-roles': true,
+      'hr-employees': true, 'hr-worktime': true, 'hr-vacation': true,
     };
     const topbarTitleEl = document.getElementById('topbarTitle');
     if (topbarTitleEl) topbarTitleEl.textContent = tabKey === 'home' ? 'Acasă' : (REDUNDANT_TITLE_TABS[tabKey] ? '' : (BREADCRUMB_TABS[tabKey] || ''));
