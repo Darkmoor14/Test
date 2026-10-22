@@ -1557,7 +1557,7 @@
     background:var(--paper-050);border:1px solid var(--line-strong);border-radius:5px;
     padding:22px 24px;margin-top:16px;
   }
-  .pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;}
+  .pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 20px;}
   /* Stacks two ctrl-field children vertically inside a single pf-grid
      cell — used to keep "Data soluționării" directly under "Data
      sesizării" rather than letting it flow into the next grid cell
@@ -2010,7 +2010,7 @@
     font-size:18px;color:var(--ink-600);flex-shrink:0;
   }
   .sheet-grid{
-    display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;
+    display:grid;grid-template-columns:1fr 1fr;gap:20px 16px;
   }
   .sheet-actions{
     display:flex;gap:10px;justify-content:flex-end;margin-top:18px;
@@ -2255,13 +2255,14 @@
     color:var(--ink-700);padding:8px 10px;border-radius:2px;font-family:var(--body);font-size:12.5px;
   }
   .ctrl-field{flex:1;min-width:160px;}
-  .ctrl-field label{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-600);display:block;margin-bottom:10px;}
+  .ctrl-field label{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-600);display:block;margin-bottom:6px;}
   /* A .ctrl-field sitting on its own (not inside .sheet-grid/.pf-grid,
-     which already space their rows via their own grid gap) had zero
-     margin below it, so it butted straight up against whatever came
-     next -- e.g. the "Angajat" dropdown in the HR vacation form sitting
-     flush against the "De la/Până la" row beneath it. */
-  .mobile-sheet-panel-scroll > .ctrl-field{margin-bottom:14px;}
+     which already space their rows via their own grid row-gap below)
+     had zero margin below it, so it butted straight up against
+     whatever came next -- e.g. the "Angajat" dropdown in the HR
+     vacation form sitting flush against the "De la/Până la" row
+     beneath it. */
+  .mobile-sheet-panel-scroll > .ctrl-field{margin-bottom:20px;}
   .ctrl-field input, .ctrl-field select{
     width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:3px;
     font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-900);
