@@ -145,12 +145,41 @@
       </tr>
     `).join('');
   }
+  // Ore lucrate/Ore suplimentare are no longer typed in -- they're
+  // derived from the clock-in/clock-out times, with anything past a
+  // standard 8h shift counted as overtime.
+  const HR_STANDARD_SHIFT_HOURS = 8;
+  function calcWorkedHours(start, end){
+    if (!start || !end) return null;
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    const diffMin = (eh * 60 + em) - (sh * 60 + sm);
+    if (diffMin <= 0) return null;
+    return Math.round((diffMin / 60) * 100) / 100;
+  }
+  function minutesToTime(totalMinutes){
+    const h = Math.floor(totalMinutes / 60) % 24;
+    const m = Math.round(totalMinutes % 60);
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
   function openHrWorktimeForm(entry){
     document.getElementById('hrWf-id').value = entry ? entry.id : '';
     document.getElementById('hrWf-employee').value = entry ? entry.employee_id : (allHrEmployees[0] ? allHrEmployees[0].id : '');
     document.getElementById('hrWf-date').value = entry ? entry.work_date : dateKey(new Date());
-    document.getElementById('hrWf-hours').value = entry ? entry.hours_worked : 8;
-    document.getElementById('hrWf-extra-hours').value = entry ? entry.extra_hours : 0;
+    if (entry && entry.start_time && entry.end_time) {
+      document.getElementById('hrWf-start-time').value = entry.start_time.slice(0, 5);
+      document.getElementById('hrWf-end-time').value = entry.end_time.slice(0, 5);
+    } else if (entry) {
+      // Older entry recorded before clock-in/out existed -- back into a
+      // plausible time range from its stored hours so the total still
+      // matches what was there, rather than silently losing it.
+      const legacyTotal = (entry.hours_worked || 0) + (entry.extra_hours || 0);
+      document.getElementById('hrWf-start-time').value = '08:00';
+      document.getElementById('hrWf-end-time').value = minutesToTime(8 * 60 + legacyTotal * 60);
+    } else {
+      document.getElementById('hrWf-start-time').value = '08:00';
+      document.getElementById('hrWf-end-time').value = '16:00';
+    }
     document.getElementById('hrWf-notes').value = entry ? (entry.notes || '') : '';
     const titleEl = document.getElementById('hrWorktimeFormSheetTitle');
     if (titleEl) titleEl.textContent = entry ? 'Editează pontaj' : 'Adaugă pontaj';
@@ -168,10 +197,14 @@
     if (!employee_id) { alert('Alegeți un angajat.'); return; }
     const work_date = document.getElementById('hrWf-date').value;
     if (!work_date) { alert('Completați data.'); return; }
-    const hours_worked = parseFloat(document.getElementById('hrWf-hours').value) || 0;
-    const extra_hours = parseFloat(document.getElementById('hrWf-extra-hours').value) || 0;
+    const start_time = document.getElementById('hrWf-start-time').value;
+    const end_time = document.getElementById('hrWf-end-time').value;
+    const totalHours = calcWorkedHours(start_time, end_time);
+    if (totalHours === null) { alert('Ora de sfârșit trebuie să fie după ora de început.'); return; }
+    const hours_worked = Math.min(totalHours, HR_STANDARD_SHIFT_HOURS);
+    const extra_hours = Math.round(Math.max(0, totalHours - HR_STANDARD_SHIFT_HOURS) * 100) / 100;
     const notes = document.getElementById('hrWf-notes').value.trim() || null;
-    const payload = { employee_id, work_date, hours_worked, extra_hours, notes };
+    const payload = { employee_id, work_date, start_time, end_time, hours_worked, extra_hours, notes };
     if (id) {
       const { error } = await supabaseClient.from('hr_worktime_entries').update(payload).eq('id', id);
       if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
