@@ -220,13 +220,31 @@
       </tr>
     `).join('');
   }
+  // Inclusive day count between two YYYY-MM-DD date-input values (same
+  // start/end = 1 day off), so "Zile folosite" no longer needs to be
+  // typed in by hand -- it's always exactly what De la/Până la imply.
+  function calcVacationDays(start, end){
+    if (!start || !end) return null;
+    const s = new Date(start + 'T00:00:00');
+    const e = new Date(end + 'T00:00:00');
+    const diff = Math.round((e - s) / 86400000);
+    return diff >= 0 ? diff + 1 : null;
+  }
+  function updateHrVfDays(){
+    const days = calcVacationDays(document.getElementById('hrVf-start').value, document.getElementById('hrVf-end').value);
+    document.getElementById('hrVf-days').value = days !== null ? days : '';
+  }
+  const hrVfStartInput = document.getElementById('hrVf-start');
+  if (hrVfStartInput) hrVfStartInput.addEventListener('change', updateHrVfDays);
+  const hrVfEndInput = document.getElementById('hrVf-end');
+  if (hrVfEndInput) hrVfEndInput.addEventListener('change', updateHrVfDays);
   function openHrVacationForm(entry){
     document.getElementById('hrVf-id').value = entry ? entry.id : '';
     document.getElementById('hrVf-employee').value = entry ? entry.employee_id : (allHrEmployees[0] ? allHrEmployees[0].id : '');
     document.getElementById('hrVf-start').value = entry ? entry.start_date : dateKey(new Date());
     document.getElementById('hrVf-end').value = entry ? entry.end_date : dateKey(new Date());
-    document.getElementById('hrVf-days').value = entry ? entry.days_used : '';
     document.getElementById('hrVf-notes').value = entry ? (entry.notes || '') : '';
+    updateHrVfDays();
     const titleEl = document.getElementById('hrVacationFormSheetTitle');
     if (titleEl) titleEl.textContent = entry ? 'Editează concediu' : 'Adaugă concediu';
     setSheetOpen('hrVacationFormSheet', true);
@@ -245,9 +263,7 @@
     const end_date = document.getElementById('hrVf-end').value;
     if (!start_date || !end_date) { alert('Completați perioada.'); return; }
     if (end_date < start_date) { alert('Data de sfârșit nu poate fi înainte de data de început.'); return; }
-    const daysRaw = document.getElementById('hrVf-days').value;
-    const days_used = daysRaw !== '' ? parseFloat(daysRaw) : null;
-    if (!days_used || days_used <= 0) { alert('Completați numărul de zile folosite.'); return; }
+    const days_used = calcVacationDays(start_date, end_date);
     const notes = document.getElementById('hrVf-notes').value.trim() || null;
     const payload = { employee_id, start_date, end_date, days_used, notes };
     if (id) {
