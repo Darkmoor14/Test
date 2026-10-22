@@ -2294,8 +2294,6 @@
     display:flex;align-items:center;
   }
   .ctrl-field input:focus, .ctrl-field select:focus, .ctrl-field textarea:focus{border-color:var(--copper-500);background:var(--paper-000);}
-  .ctrl-field input[readonly]{background:var(--paper-100);color:var(--ink-600);cursor:default;}
-  .ctrl-field input[readonly]:focus{border-color:var(--line-strong);background:var(--paper-100);}
   .save-status{font-family:var(--mono);font-size:11.5px;color:var(--signal-green);margin-left:8px;opacity:0;transition:opacity .2s;}
   .save-status.show{opacity:1;}
   .no-results{padding:60px 0;text-align:center;color:var(--ink-400);font-size:14.5px;}

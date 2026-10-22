@@ -263,21 +263,12 @@
     const diff = Math.round((e - s) / 86400000);
     return diff >= 0 ? diff + 1 : null;
   }
-  function updateHrVfDays(){
-    const days = calcVacationDays(document.getElementById('hrVf-start').value, document.getElementById('hrVf-end').value);
-    document.getElementById('hrVf-days').value = days !== null ? days : '';
-  }
-  const hrVfStartInput = document.getElementById('hrVf-start');
-  if (hrVfStartInput) hrVfStartInput.addEventListener('change', updateHrVfDays);
-  const hrVfEndInput = document.getElementById('hrVf-end');
-  if (hrVfEndInput) hrVfEndInput.addEventListener('change', updateHrVfDays);
   function openHrVacationForm(entry){
     document.getElementById('hrVf-id').value = entry ? entry.id : '';
     document.getElementById('hrVf-employee').value = entry ? entry.employee_id : (allHrEmployees[0] ? allHrEmployees[0].id : '');
     document.getElementById('hrVf-start').value = entry ? entry.start_date : dateKey(new Date());
     document.getElementById('hrVf-end').value = entry ? entry.end_date : dateKey(new Date());
     document.getElementById('hrVf-notes').value = entry ? (entry.notes || '') : '';
-    updateHrVfDays();
     const titleEl = document.getElementById('hrVacationFormSheetTitle');
     if (titleEl) titleEl.textContent = entry ? 'Editează concediu' : 'Adaugă concediu';
     setSheetOpen('hrVacationFormSheet', true);
