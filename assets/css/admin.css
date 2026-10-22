@@ -2256,13 +2256,16 @@
   }
   .ctrl-field{flex:1;min-width:160px;}
   .ctrl-field label{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-600);display:block;margin-bottom:6px;}
-  /* A .ctrl-field sitting on its own (not inside .sheet-grid/.pf-grid,
-     which already space their rows via their own grid row-gap below)
-     had zero margin below it, so it butted straight up against
-     whatever came next -- e.g. the "Angajat" dropdown in the HR
-     vacation form sitting flush against the "De la/Până la" row
-     beneath it. */
-  .mobile-sheet-panel-scroll > .ctrl-field{margin-bottom:20px;}
+  /* A .ctrl-field/.sheet-grid/.pf-grid sitting directly in a sheet's
+     scroll area had zero margin below it -- the grids' own row-gap
+     only spaces rows *within* themselves, not the gap to whatever
+     comes after. So a standalone field (e.g. HR vacation's "Angajat"
+     dropdown) butted straight up against the row beneath it, and the
+     "De la/Până la" .sheet-grid butted straight up against the
+     Notițe field after it. */
+  .mobile-sheet-panel-scroll > .ctrl-field,
+  .mobile-sheet-panel-scroll > .sheet-grid,
+  .mobile-sheet-panel-scroll > .pf-grid{margin-bottom:20px;}
   .ctrl-field input, .ctrl-field select{
     width:100%;border:1px solid var(--line-strong);border-radius:3px;
     font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-900);
