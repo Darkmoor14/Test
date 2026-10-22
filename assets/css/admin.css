@@ -2264,10 +2264,18 @@
      beneath it. */
   .mobile-sheet-panel-scroll > .ctrl-field{margin-bottom:20px;}
   .ctrl-field input, .ctrl-field select{
-    width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:3px;
+    width:100%;border:1px solid var(--line-strong);border-radius:3px;
     font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-900);
     line-height:1.3;height:38px;box-sizing:border-box;
   }
+  /* IBM Plex Sans's own vertical metrics leave single-line <input>s
+     sitting a couple px low (more empty room above the text than
+     below -- measured directly off a screenshot, not eyeballed: an
+     even 9px/9px padding rendered as a 13px/10px gap). <select>
+     doesn't show this -- browsers position its own text differently
+     -- so only input gets the asymmetric correction. */
+  .ctrl-field input{padding:8px 11px 10px;}
+  .ctrl-field select{padding:9px 11px;}
   /* "Ce s-a făcut" grows downward as its text wraps onto more lines
      (see the .autogrow JS below), rather than staying a fixed single
      line and either cutting text off or forcing horizontal scroll
