@@ -203,7 +203,15 @@ export function useTicketsStore(sessionEmail: string | null) {
     setOverviewCardFilter(filterKey);
     setOverviewStatusFilter('all');
   }, []);
-  const clearOverviewCardFilter = useCallback(() => setOverviewCardFilter(null), []);
+  // Undoes both halves of applyOverviewCardFilter above -- clearing
+  // just overviewCardFilter and leaving overviewStatusFilter on the
+  // 'all' a card click had forced it to meant removing a card filter
+  // showed literally every ticket (Terminat included) instead of
+  // going back to the normal default view.
+  const clearOverviewCardFilter = useCallback(() => {
+    setOverviewCardFilter(null);
+    setOverviewStatusFilter('active');
+  }, []);
 
   // ---- selection / editing ----
   const toggleSelected = useCallback((id: string, checked: boolean) => {
