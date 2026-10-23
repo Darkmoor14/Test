@@ -146,17 +146,22 @@ export function matchesSearch(t: Ticket, query: string): boolean {
 }
 
 // getEffectiveMonthYear's "still-open pins to the current month" rule
-// only matters for the default, unfiltered ("all") view -- that's what
-// keeps an old-but-unresolved ticket from vanishing off the dashboard.
-// Explicitly picking a specific year/month is deliberate historical
-// browsing ("what happened in Septembrie") and has to honor the real
-// submission date for every ticket, open or resolved -- otherwise an
-// open ticket could only ever show up under whatever today's year/month
-// happens to be, and picking any other month for an active-only card
-// (Active/Accidente/...) would be structurally guaranteed to show
-// nothing, no matter what was actually submitted that month.
+// keeps an old-but-unresolved ticket from vanishing off whatever counts
+// as "this month" -- whether that's the default, unfiltered ("all")
+// view or the real current month explicitly picked from the calendar.
+// Picking any OTHER (past or future) month is deliberate historical
+// browsing ("what happened in Septembrie", back in, say, October) and
+// has to honor the real submission date instead -- otherwise an open
+// ticket could only ever show up under today's actual year/month, and
+// browsing any other month for an active-only card (Active/Accidente/
+// ...) would be structurally guaranteed to show nothing, no matter
+// what was actually submitted that month.
 export function matchesYear(t: Ticket, yearFilter: string): boolean {
   if (yearFilter === 'all') return true;
+  if (String(yearFilter) === String(new Date().getFullYear())) {
+    const { year } = getEffectiveMonthYear(t);
+    return year !== null && String(year) === String(yearFilter);
+  }
   if (!t.submitted_on) return false;
   const d = parseTicketDate(t.submitted_on);
   return !isNaN(d.getTime()) && String(d.getFullYear()) === String(yearFilter);
@@ -164,6 +169,10 @@ export function matchesYear(t: Ticket, yearFilter: string): boolean {
 
 export function matchesMonth(t: Ticket, monthFilter: string): boolean {
   if (monthFilter === 'all') return true;
+  if (String(monthFilter) === String(new Date().getMonth() + 1)) {
+    const { month } = getEffectiveMonthYear(t);
+    return month !== null && String(month) === String(monthFilter);
+  }
   if (!t.submitted_on) return false;
   const d = parseTicketDate(t.submitted_on);
   return !isNaN(d.getTime()) && String(d.getMonth() + 1) === String(monthFilter);

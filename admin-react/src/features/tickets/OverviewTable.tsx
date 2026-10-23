@@ -27,16 +27,27 @@ function useOverviewVisibleTickets(): Ticket[] {
       visible = visible.filter((t) => t.status === 'Terminat');
     } else if (store.overviewCardFilter === 'awaiting_report') {
       visible = visible.filter((t) => isAwaitingReport(t));
-    } else if (store.overviewCardFilter) {
+    } else if (store.overviewCardFilter === 'active') {
       visible = visible.filter((t) => t.status !== 'Terminat');
-      if (store.overviewCardFilter === 'aging') {
-        visible = visible.filter((t) => {
-          if (!t.submitted_on) return false;
-          const daysOpen = (Date.now() - parseTicketDate(t.submitted_on).getTime()) / 86400000;
-          return daysOpen > AGING_THRESHOLD_DAYS;
-        });
-      } else if (store.overviewCardFilter === 'functional') visible = visible.filter((t) => t.type !== 'Anunt accident');
-      else if (store.overviewCardFilter === 'accident') visible = visible.filter((t) => t.type === 'Anunt accident');
+    } else if (store.overviewCardFilter === 'aging') {
+      // "Peste 7 zile" is specifically about a ticket still being open
+      // -- unlike Defecte/Accidente below, there's no sensible
+      // "resolved and aging" reading, so this always stays active-only
+      // regardless of whether a specific month is being browsed.
+      visible = visible.filter((t) => {
+        if (t.status === 'Terminat' || !t.submitted_on) return false;
+        const daysOpen = (Date.now() - parseTicketDate(t.submitted_on).getTime()) / 86400000;
+        return daysOpen > AGING_THRESHOLD_DAYS;
+      });
+    } else if (store.overviewCardFilter === 'functional' || store.overviewCardFilter === 'accident') {
+      // Defecte/Accidente answer "what needs attention right now" by
+      // default, so they stay active-only -- but once a specific
+      // month/year is picked, that's historical browsing ("what
+      // accidents happened in Septembrie"), and a ticket that's since
+      // been solved is still part of that history.
+      const isDateNarrowed = store.ticketYearFilter !== 'all' || store.ticketMonthFilter !== 'all';
+      if (!isDateNarrowed) visible = visible.filter((t) => t.status !== 'Terminat');
+      visible = visible.filter((t) => (store.overviewCardFilter === 'accident') === (t.type === 'Anunt accident'));
     }
     return [...visible].sort((a, b) => (b.ticket_number || '').localeCompare(a.ticket_number || '', undefined, { numeric: true }));
   }, [store.tickets, store.overviewSearchQuery, store.ticketYearFilter, store.ticketMonthFilter, store.overviewDayFilter, store.overviewStatusFilter, store.overviewCardFilter]);
