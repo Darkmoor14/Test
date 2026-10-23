@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
 import { createLogEntityActivity } from '../shared/entityLogClient';
-import { saveChecklist as persistChecklist } from '../../lib/dataServices';
+import { projectData, saveChecklist as persistChecklist } from '../../lib/dataServices';
 import type { BacklogProject, BacklogFilterKey, Project, ProjectsFilterKey, WorkOrder } from './types';
 import { calcProjectStatus, getProjectStatusFilterKey, matchesProjectSearch, matchesProjectYear } from './projectUtils';
 import type { ProjectStatusKey } from './types';
@@ -36,7 +36,7 @@ export function useProjectsStore(sessionEmail: string | null) {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
   const reloadProjects = useCallback(async () => {
-    const { data, error } = await supabase.from('current_projects').select('*').order('start_date', { ascending: true });
+    const { data, error } = await projectData.listProjects(supabase);
     if (error) { console.error(error); setProjectsLoading(false); return; }
     setProjects((data as Project[]) || []);
     setProjectsLoading(false);
@@ -76,9 +76,7 @@ export function useProjectsStore(sessionEmail: string | null) {
   const closeProjectForm = useCallback(() => setProjectFormOpen(false), []);
 
   const saveProject = useCallback(async (payload: Omit<Project, 'id' | 'checklist' | 'archived' | 'archived_at'>, id: string | null) => {
-    const { error } = id
-      ? await supabase.from('current_projects').update(payload).eq('id', id)
-      : await supabase.from('current_projects').insert(payload);
+    const { error } = await projectData.saveProject(supabase, id, payload);
     if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return false; }
     showToast(id ? 'Proiectul a fost actualizat.' : 'Proiectul a fost adăugat.');
     setProjectFormOpen(false);
@@ -88,13 +86,13 @@ export function useProjectsStore(sessionEmail: string | null) {
 
   const deleteProject = useCallback(async (p: Project) => {
     if (!confirm(`Ștergeți proiectul "${p.title}"? Această acțiune este permanentă.`)) return;
-    const { error } = await supabase.from('current_projects').delete().eq('id', p.id);
+    const { error } = await projectData.deleteProject(supabase, p.id);
     if (error) { console.error(error); alert('Eroare la ștergere.'); return; }
     await reloadProjects();
   }, [supabase, reloadProjects]);
 
   const restoreProject = useCallback(async (p: Project) => {
-    const { error } = await supabase.from('current_projects').update({ archived: false, archived_at: null }).eq('id', p.id);
+    const { error } = await projectData.updateProject(supabase, p.id, { archived: false, archived_at: null });
     if (error) { console.error(error); alert('Eroare la dezarhivare. Încercați din nou.'); return; }
     logEntityActivity('project', p.id, 'Proiectul a fost dezarhivat.');
     await reloadProjects();
@@ -104,7 +102,7 @@ export function useProjectsStore(sessionEmail: string | null) {
     if (projectSelectedIds.size === 0) return;
     if (!confirm(`Arhivați ${projectSelectedIds.size} proiecte? Nu vor mai apărea pe pagina publică, dar rămân salvate și pot fi restaurate oricând.`)) return;
     const ids = Array.from(projectSelectedIds);
-    const { error } = await supabase.from('current_projects').update({ archived: true, archived_at: new Date().toISOString() }).in('id', ids);
+    const { error } = await projectData.updateProjects(supabase, ids, { archived: true, archived_at: new Date().toISOString() });
     if (error) { console.error(error); alert('Eroare la arhivare. Încercați din nou.'); return; }
     ids.forEach((id) => logEntityActivity('project', id, 'Proiectul a fost arhivat.'));
     setProjectSelectedIds(new Set());
@@ -142,7 +140,7 @@ export function useProjectsStore(sessionEmail: string | null) {
   const [editingBacklog, setEditingBacklog] = useState<BacklogProject | null>(null);
 
   const reloadBacklog = useCallback(async () => {
-    const { data, error } = await supabase.from('backlog_projects').select('*').order('start_date', { ascending: true });
+    const { data, error } = await projectData.listBacklog(supabase);
     if (error) { console.error(error); setBacklogLoading(false); return; }
     setBacklogProjects((data as BacklogProject[]) || []);
     setBacklogLoading(false);
@@ -165,9 +163,7 @@ export function useProjectsStore(sessionEmail: string | null) {
   const closeBacklogForm = useCallback(() => setBacklogFormOpen(false), []);
 
   const saveBacklog = useCallback(async (payload: { title: string; address: string; employee_name: string | null; start_date: string; description: string | null }, id: string | null) => {
-    const { error } = id
-      ? await supabase.from('backlog_projects').update(payload).eq('id', id)
-      : await supabase.from('backlog_projects').insert(payload);
+    const { error } = await projectData.saveBacklog(supabase, id, payload);
     if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return false; }
     showToast(id ? 'Lucrarea a fost actualizată.' : 'Lucrarea a fost adăugată.');
     setBacklogFormOpen(false);
@@ -180,7 +176,7 @@ export function useProjectsStore(sessionEmail: string | null) {
     const nextStatus = isDone ? 'Ongoing' : 'Terminat';
     const question = isDone ? `Reactivați lucrarea "${p.title}"?` : `Marcați lucrarea "${p.title}" ca soluționată? Va fi mutată în tab-ul „Soluționate”.`;
     if (!confirm(question)) return;
-    const { error } = await supabase.from('backlog_projects').update({ status: nextStatus, resolved_on: isDone ? null : new Date().toISOString() }).eq('id', p.id);
+    const { error } = await projectData.updateBacklog(supabase, p.id, { status: nextStatus, resolved_on: isDone ? null : new Date().toISOString() });
     if (error) { console.error(error); alert('Eroare la actualizarea lucrării. Încercați din nou.'); return; }
     logEntityActivity('backlog', p.id, isDone ? 'Lucrarea a fost reactivată.' : 'Lucrarea a fost marcată ca soluționată.');
     await reloadBacklog();
@@ -206,7 +202,7 @@ export function useProjectsStore(sessionEmail: string | null) {
   const [workOrderFormDefaultDate, setWorkOrderFormDefaultDate] = useState<string | null>(null);
 
   const reloadWorkOrders = useCallback(async () => {
-    const { data, error } = await supabase.from('work_orders').select('*').order('scheduled_date', { ascending: true });
+    const { data, error } = await projectData.listWorkOrders(supabase);
     if (error) { console.error(error); setWorkOrdersLoading(false); return; }
     setWorkOrders((data as WorkOrder[]) || []);
     setWorkOrdersLoading(false);
@@ -243,9 +239,7 @@ export function useProjectsStore(sessionEmail: string | null) {
   const closeWorkOrderForm = useCallback(() => setWorkOrderFormOpen(false), []);
 
   const saveWorkOrder = useCallback(async (payload: Omit<WorkOrder, 'id' | 'status'>, id: string | null) => {
-    const { error } = id
-      ? await supabase.from('work_orders').update(payload).eq('id', id)
-      : await supabase.from('work_orders').insert(payload);
+    const { error } = await projectData.saveWorkOrder(supabase, id, payload);
     if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return false; }
     showToast(id ? 'Programarea a fost actualizată.' : 'Programarea a fost adăugată.');
     setWorkOrderFormOpen(false);
@@ -255,14 +249,14 @@ export function useProjectsStore(sessionEmail: string | null) {
 
   const markWorkOrderDone = useCallback(async (w: WorkOrder) => {
     if (!confirm(`Marcați „${w.title}” ca finalizată?`)) return;
-    const { error } = await supabase.from('work_orders').update({ status: 'Finalizat' }).eq('id', w.id);
+    const { error } = await projectData.updateWorkOrder(supabase, w.id, { status: 'Finalizat' });
     if (error) { console.error(error); alert('Eroare la actualizare. Încercați din nou.'); return; }
     await reloadWorkOrders();
   }, [supabase, reloadWorkOrders]);
 
   const deleteWorkOrder = useCallback(async (w: WorkOrder) => {
     if (!confirm(`Ștergeți definitiv programarea „${w.title}”?`)) return;
-    const { error } = await supabase.from('work_orders').delete().eq('id', w.id);
+    const { error } = await projectData.deleteWorkOrder(supabase, w.id);
     if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
     await reloadWorkOrders();
   }, [supabase, reloadWorkOrders]);

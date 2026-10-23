@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
+import { ticketData } from '../../lib/dataServices';
 import type {
   ActiveTypeFilterKey, OverviewCardFilterKey, OverviewReturnState, OverviewStatusFilterKey,
   StatusFilterKey, Ticket, TypeOnlyFilterKey,
@@ -106,7 +107,7 @@ export function useTicketsStore(sessionEmail: string | null) {
   const pendingTicketUrlParamHandled = useRef(false);
 
   const reload = useCallback(async () => {
-    const { data, error } = await supabase.from('tickets').select('*').order('submitted_on', { ascending: false });
+    const { data, error } = await ticketData.list(supabase);
     if (error) {
       console.error('loadTickets failed:', error);
       setLoading(false);
@@ -287,7 +288,7 @@ export function useTicketsStore(sessionEmail: string | null) {
 
   // ---- mutations ----
   const saveTicketCard = useCallback(async (t: Ticket, payload: Record<string, unknown>, opts: { wasAwaitingReport: boolean; isNowAwaitingReport: boolean; resolver: string; addressVal: string }) => {
-    const { error } = await supabase.from('tickets').update(payload).eq('id', t.id);
+    const { error } = await ticketData.update(supabase, t.id, payload);
     if (error) {
       console.error(error);
       alert('Eroare la salvare. Încercați din nou.');
@@ -311,7 +312,7 @@ export function useTicketsStore(sessionEmail: string | null) {
   }, [supabase, clearDraft, sendNotification, reload]);
 
   const restoreTicket = useCallback(async (ticketId: string) => {
-    const { error } = await supabase.from('tickets').update({ archived: false, archived_at: null }).eq('id', ticketId);
+    const { error } = await ticketData.update(supabase, ticketId, { archived: false, archived_at: null });
     if (error) { console.error(error); alert('Eroare la dezarhivare. Încercați din nou.'); return false; }
     await reload();
     return true;
@@ -335,14 +336,14 @@ export function useTicketsStore(sessionEmail: string | null) {
       ? `Arhivați ${idsToArchive.size} tichete? (${selectedIds.size} selectate + ${addedCount} incluse automat ca să nu se rupă un grup de duplicate.) Nu vor mai apărea pe pagina publică de sesizări, dar rămân salvate și pot fi restaurate oricând.`
       : `Arhivați ${selectedIds.size} tichete? Nu vor mai apărea pe pagina publică de sesizări, dar rămân salvate și pot fi restaurate oricând.`;
     if (!confirm(confirmMsg)) return;
-    const { error } = await supabase.from('tickets').update({ archived: true, archived_at: new Date().toISOString() }).in('id', Array.from(idsToArchive));
+    const { error } = await ticketData.updateMany(supabase, Array.from(idsToArchive), { archived: true, archived_at: new Date().toISOString() });
     if (error) { console.error(error); alert('Eroare la arhivare. Încercați din nou.'); return; }
     setSelectedIds(new Set());
     await reload();
   }, [supabase, selectedIds, tickets, reload]);
 
   const markDuplicates = useCallback(async (canonicalId: string, duplicateIds: string[]) => {
-    return supabase.from('tickets').update({ duplicate_of: canonicalId }).in('id', duplicateIds);
+    return ticketData.updateMany(supabase, duplicateIds, { duplicate_of: canonicalId });
   }, [supabase]);
 
   const unmarkDuplicate = useCallback(async (ticketId: string) => {
@@ -351,14 +352,14 @@ export function useTicketsStore(sessionEmail: string | null) {
     const restoredStatus = ticket ? (ticket.pre_duplicate_status || 'Ongoing') : 'Ongoing';
     const payload: Record<string, unknown> = { duplicate_of: null };
     if (restoredStatus !== 'Terminat') { payload.archived = false; payload.archived_at = null; }
-    const { error } = await supabase.from('tickets').update(payload).eq('id', ticketId);
+    const { error } = await ticketData.update(supabase, ticketId, payload);
     if (error) { console.error(error); alert('Eroare la anularea duplicatului. Încercați din nou.'); return; }
     showToast('Legătura de duplicat a fost anulată.');
     await reload();
   }, [supabase, tickets, reload]);
 
   const createTicket = useCallback(async (input: { type: string; name: string; phone: string; email: string; address: string; description: string; dateVal: string; resolvedDateVal: string; resolvedByVal: string }) => {
-    const { data: ticketNumber, error } = await supabase.rpc('create_ticket', {
+    const { data: ticketNumber, error } = await ticketData.create(supabase, {
       p_type: input.type, p_name: input.name, p_phone: input.phone,
       p_email: input.email || null, p_address: input.address, p_description: input.description || null,
     });
@@ -382,7 +383,7 @@ export function useTicketsStore(sessionEmail: string | null) {
         updatePayload.status = 'Terminat';
         if (input.resolvedByVal) updatePayload.resolved_by = input.resolvedByVal;
       }
-      const { error: dateError } = await supabase.from('tickets').update(updatePayload).eq('ticket_number', ticketNumber);
+      const { error: dateError } = await ticketData.updateByNumber(supabase, ticketNumber as string, updatePayload);
       if (dateError) console.error(dateError);
     }
     if (input.resolvedDateVal) {

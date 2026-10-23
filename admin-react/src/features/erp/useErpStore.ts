@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
 import { createLogEntityActivity } from '../shared/entityLogClient';
+import { erpData } from '../../lib/dataServices';
 import type { EquipmentItem, NonVehicleCategory, ResourceAssignment } from './types';
 import { describeFieldChanges, EQUIPMENT_FIELD_LABELS, EQUIPMENT_STATUS_CYCLE } from './erpUtils';
 
@@ -32,7 +33,7 @@ export function useErpStore(sessionEmail: string | null) {
 
   const logStockLedger = useCallback(async (itemId: string, itemName: string, changeQty: number, resultingQty: number, reason: string) => {
     try {
-      await supabase.from('stock_ledger').insert({ item_id: itemId, item_name: itemName, change_qty: changeQty, resulting_qty: resultingQty, reason, user_email: sessionEmail || null });
+      await erpData.addStockLedgerEntry(supabase, { item_id: itemId, item_name: itemName, change_qty: changeQty, resulting_qty: resultingQty, reason, user_email: sessionEmail || null });
     } catch {
       // best effort -- never block the stock change it's describing
     }
@@ -52,8 +53,8 @@ export function useErpStore(sessionEmail: string | null) {
 
   const reloadEquipment = useCallback(async () => {
     const [eqResult, assignResult] = await Promise.all([
-      supabase.from('equipment_inventory').select('*').order('name', { ascending: true }),
-      supabase.from('lps_resource_assignments').select('*'),
+      erpData.listInventory(supabase),
+      erpData.listAssignments(supabase),
     ]);
     if (eqResult.error) { console.error(eqResult.error); setEquipmentLoading(false); return; }
     setEquipment((eqResult.data as EquipmentItem[]) || []);
@@ -99,7 +100,7 @@ export function useErpStore(sessionEmail: string | null) {
       notes: values.notes.trim() || null,
     };
     if (id) {
-      const { error } = await supabase.from('equipment_inventory').update(payload).eq('id', id);
+      const { error } = await erpData.updateInventory(supabase, id, payload);
       if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return false; }
       if (isStockTracked && originalQuantity !== null && quantity !== originalQuantity) {
         logStockLedger(id, values.name, quantity - originalQuantity, quantity, 'Editare manuală');
@@ -111,7 +112,7 @@ export function useErpStore(sessionEmail: string | null) {
         changeSummary ? `„${values.name}” a fost actualizat — ${changeSummary}.` : `„${values.name}” a fost actualizat (fără modificări de câmp).`,
       );
     } else {
-      const { data, error } = await supabase.from('equipment_inventory').insert(payload).select();
+      const { data, error } = await erpData.insertInventory(supabase, payload);
       if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return false; }
       const inserted = data?.[0];
       if (inserted) logEntityActivity(values.erp_category, inserted.id, `„${values.name}” a fost adăugat.`);
@@ -126,7 +127,7 @@ export function useErpStore(sessionEmail: string | null) {
   const cycleStatus = useCallback(async (eq: EquipmentItem) => {
     const erpCategory = eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material');
     const nextStatus = EQUIPMENT_STATUS_CYCLE[eq.status] || 'Disponibil';
-    const { error } = await supabase.from('equipment_inventory').update({ status: nextStatus }).eq('id', eq.id);
+    const { error } = await erpData.updateInventory(supabase, eq.id, { status: nextStatus });
     if (error) { console.error(error); alert('Eroare la actualizare. Încercați din nou.'); return; }
     logEntityActivity(erpCategory, eq.id, `Stare schimbată: „${eq.status}” → „${nextStatus}”.`);
     await reloadEquipment();
@@ -134,7 +135,7 @@ export function useErpStore(sessionEmail: string | null) {
 
   const deleteItem = useCallback(async (eq: EquipmentItem) => {
     if (!confirm(`Ștergeți definitiv „${eq.name}” din inventar?`)) return;
-    const { error } = await supabase.from('equipment_inventory').delete().eq('id', eq.id);
+    const { error } = await erpData.deleteInventory(supabase, eq.id);
     if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
     const erpCategory = eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material');
     logEntityActivity(erpCategory, eq.id, `„${eq.name}” a fost șters din inventar.`);

@@ -18,11 +18,6 @@ Applied on `claude/brave-albattani-xwyg14` after a user-perspective review.
 - `npm run lint` completed with existing React lint warnings; it reported no fatal lint errors.
 - Supabase verification confirmed `anon` cannot SELECT from `public.tickets`, can SELECT from `public.public_tickets`, the raw anonymous SELECT policy is absent, and the public view returns 134 rows with columns `id`, `ticket_number`, `type`, `address`, `status`, `submitted_on`, `resolved_on`, and `public_name`.
 
-## Still outstanding
+## Follow-up
 
-- The public view intentionally runs with owner privileges so it can provide a sanitized projection without granting anonymous access to the underlying personal fields. Supabase’s security-definer-view advisor therefore still reports it; the new view definition documents this boundary and grants the anonymous role SELECT only.
-- Database calls across the rest of the dashboard are not yet fully centralized; this change introduces a shared service boundary for checklist writes, while other feature stores still contain their own Supabase queries.
-- The React migration README still marks Excel import/export, the LPS rewrite, Parc Auto, and mobile parity as deferred work.
-- The dashboard bundle has no automated deployment build step yet; it must be rebuilt and committed when mounted React sources change.
-
-No authenticated browser end-to-end session was available, so interactive flows were validated by code review and build checks rather than live UI operation.
+See [follow-up.md](./follow-up.md) for the subsequent public-view security change and the verified state of the Excel, LPS, Parc Auto, and mobile workflows.
