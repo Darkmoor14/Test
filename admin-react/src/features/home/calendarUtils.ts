@@ -117,6 +117,31 @@ export function buildOccurrenceEvent(event: CalendarEvent, occurrenceDate: Date)
   return { ...event, start_time: start.toISOString(), end_time: end ? end.toISOString() : null, is_recurring_occurrence: true };
 }
 
+// Same recurrence-aware matching as eventsOnDate, but for an entire
+// visible grid (e.g. a full month view's 5-6 weeks) in one pass rather
+// than calling eventsOnDate per cell, which would re-walk every
+// recurring series once per day shown instead of once total.
+export function eventsByDateInRange(calendarEvents: CalendarEvent[], rangeStart: Date, rangeEnd: Date): Map<string, CalendarEvent[]> {
+  const map = new Map<string, CalendarEvent[]>();
+  const push = (key: string, e: CalendarEvent) => {
+    const arr = map.get(key);
+    if (arr) arr.push(e); else map.set(key, [e]);
+  };
+  for (const e of calendarEvents) {
+    if (!e.start_time) continue;
+    if (e.recurrence_freq) {
+      for (const d of getRecurrenceOccurrenceDates(e, rangeStart, rangeEnd)) {
+        push(dateKey(d), buildOccurrenceEvent(e, d));
+      }
+    } else {
+      const d = new Date(e.start_time);
+      if (d >= rangeStart && d <= rangeEnd) push(dateKey(d), e);
+    }
+  }
+  for (const arr of map.values()) arr.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+  return map;
+}
+
 export function eventsOnDate(calendarEvents: CalendarEvent[], dateKeyStr: string): CalendarEvent[] {
   const [y, m, d] = dateKeyStr.split('-').map(Number);
   const targetDate = new Date(y, m - 1, d);

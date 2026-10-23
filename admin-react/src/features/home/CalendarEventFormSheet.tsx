@@ -26,6 +26,13 @@ function buildStartTimeOptions(): string[] {
 }
 const START_TIME_OPTIONS = buildStartTimeOptions();
 
+type EventFormTab = 'details' | 'recurrence' | 'attendees';
+const TABS: { key: EventFormTab; label: string }[] = [
+  { key: 'details', label: 'Detalii' },
+  { key: 'recurrence', label: 'Repetare & Memento' },
+  { key: 'attendees', label: 'Participanți' },
+];
+
 export function CalendarEventFormSheet({
   open, event, defaultDateKey, allStaffEmails, onClose, onSave, onDelete,
 }: {
@@ -53,9 +60,11 @@ export function CalendarEventFormSheet({
   const [pendingRecurrence, setPendingRecurrence] = useState<RecurrencePattern | null>(null);
   const [recurrenceSheetOpen, setRecurrenceSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<EventFormTab>('details');
 
   useEffect(() => {
     if (!open) return;
+    setActiveTab('details');
     setTitle(event ? event.title : '');
     setAllDay(event ? !!event.all_day : false);
     const start = event ? new Date(event.start_time) : null;
@@ -182,97 +191,118 @@ export function CalendarEventFormSheet({
               <div><h3 id="calendarEventFormSheetTitle">{event ? 'Editează eveniment' : 'Eveniment nou'}</h3></div>
               <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
             </div>
-            <div className="ctrl-field">
-              <label>Titlu</label>
-              <input type="text" placeholder="ex: Întâlnire șantier" autoComplete="off" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <div className="cef-tabs">
+              {TABS.map((t) => (
+                <button
+                  key={t.key} type="button"
+                  className={`cef-tab${activeTab === t.key ? ' active' : ''}`}
+                  onClick={() => setActiveTab(t.key)}
+                >
+                  {t.label}
+                </button>
+              ))}
             </div>
-            <label className="cef-allday-field">
-              <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} /> Toată ziua
-            </label>
-            <div className="sheet-grid">
+            {activeTab === 'details' && (
+              <>
+                <div className="ctrl-field">
+                  <label>Titlu</label>
+                  <input type="text" placeholder="ex: Întâlnire șantier" autoComplete="off" value={title} onChange={(e) => setTitle(e.target.value)} />
+                </div>
+                <label className="cef-allday-field">
+                  <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} /> Toată ziua
+                </label>
+                <div className="sheet-grid">
+                  <div className="ctrl-field">
+                    <label>Data</label>
+                    <input type="date" value={dateVal} onChange={(e) => setDateVal(e.target.value)} />
+                  </div>
+                  {!allDay && (
+                    <div className="ctrl-field">
+                      <label>Ora început</label>
+                      <div className="cef-time-row">
+                        <select hidden={startPrecise} value={startSelectValue} onChange={(e) => setStartSelectValue(e.target.value)}>
+                          {START_TIME_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                        <button
+                          type="button"
+                          className={`cef-time-edit-btn${startPrecise ? ' active' : ''}`}
+                          title="Editează o oră exactă"
+                          aria-label="Editează o oră exactă"
+                          onClick={() => {
+                            const willBePrecise = !startPrecise;
+                            if (willBePrecise && !startPreciseValue) setStartPreciseValue(startSelectValue);
+                            setStartPrecise(willBePrecise);
+                          }}
+                        >
+                          🕐
+                        </button>
+                        <input type="time" className="cef-time-precise" hidden={!startPrecise} value={startPreciseValue} onChange={(e) => setStartPreciseValue(e.target.value)} />
+                      </div>
+                    </div>
+                  )}
+                  {!allDay && (
+                    <div className="ctrl-field">
+                      <label>Ora sfârșit</label>
+                      <div className="cef-time-row">
+                        <select hidden={endPrecise} value={endDurationValue} onChange={(e) => setEndDurationValue(e.target.value)}>
+                          {END_DURATION_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                        <button
+                          type="button"
+                          className={`cef-time-edit-btn${endPrecise ? ' active' : ''}`}
+                          title="Editează o oră exactă"
+                          aria-label="Editează o oră exactă"
+                          onClick={() => {
+                            const willBePrecise = !endPrecise;
+                            if (willBePrecise && !endPreciseValue) setEndPreciseValue(getEndValue() || '');
+                            setEndPrecise(willBePrecise);
+                          }}
+                        >
+                          🕐
+                        </button>
+                        <input type="time" className="cef-time-precise" hidden={!endPrecise} value={endPreciseValue} onChange={(e) => setEndPreciseValue(e.target.value)} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="ctrl-field">
+                  <label>Locație (opțional)</label>
+                  <input type="text" placeholder="ex: Str. Gh. Doja nr. 4" autoComplete="off" value={location} onChange={(e) => setLocation(e.target.value)} />
+                </div>
+                <div className="ctrl-field">
+                  <label>Descriere (opțional)</label>
+                  <input type="text" placeholder="Detalii" autoComplete="off" value={description} onChange={(e) => setDescription(e.target.value)} />
+                </div>
+              </>
+            )}
+            {activeTab === 'recurrence' && (
+              <>
+                <div className="ctrl-field">
+                  <button type="button" className={`btn cef-recur-btn${pendingRecurrence ? ' active' : ''}`} onClick={() => setRecurrenceSheetOpen(true)}>
+                    {describeRecurrence(pendingRecurrence)}
+                  </button>
+                </div>
+                <div className="ctrl-field">
+                  <label>Memento</label>
+                  <select value={reminder} onChange={(e) => setReminder(e.target.value)}>
+                    {REMINDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+              </>
+            )}
+            {activeTab === 'attendees' && (
               <div className="ctrl-field">
-                <label>Data</label>
-                <input type="date" value={dateVal} onChange={(e) => setDateVal(e.target.value)} />
-              </div>
-              {!allDay && (
-                <div className="ctrl-field">
-                  <label>Ora început</label>
-                  <div className="cef-time-row">
-                    <select hidden={startPrecise} value={startSelectValue} onChange={(e) => setStartSelectValue(e.target.value)}>
-                      {START_TIME_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                    <button
-                      type="button"
-                      className={`cef-time-edit-btn${startPrecise ? ' active' : ''}`}
-                      title="Editează o oră exactă"
-                      aria-label="Editează o oră exactă"
-                      onClick={() => {
-                        const willBePrecise = !startPrecise;
-                        if (willBePrecise && !startPreciseValue) setStartPreciseValue(startSelectValue);
-                        setStartPrecise(willBePrecise);
-                      }}
-                    >
-                      🕐
-                    </button>
-                    <input type="time" className="cef-time-precise" hidden={!startPrecise} value={startPreciseValue} onChange={(e) => setStartPreciseValue(e.target.value)} />
-                  </div>
+                <label>Alocat cui (opțional)</label>
+                <div className="cef-attendees-list">
+                  {allStaffEmails.length ? allStaffEmails.map((email) => (
+                    <label key={email} className="cef-attendee-item">
+                      <input type="checkbox" checked={attendees.has(email)} onChange={() => toggleAttendee(email)} /> {email}
+                    </label>
+                  )) : <span className="cef-attendees-empty">Lista de conturi nu s-a încărcat încă.</span>}
                 </div>
-              )}
-              {!allDay && (
-                <div className="ctrl-field">
-                  <label>Ora sfârșit</label>
-                  <div className="cef-time-row">
-                    <select hidden={endPrecise} value={endDurationValue} onChange={(e) => setEndDurationValue(e.target.value)}>
-                      {END_DURATION_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                    <button
-                      type="button"
-                      className={`cef-time-edit-btn${endPrecise ? ' active' : ''}`}
-                      title="Editează o oră exactă"
-                      aria-label="Editează o oră exactă"
-                      onClick={() => {
-                        const willBePrecise = !endPrecise;
-                        if (willBePrecise && !endPreciseValue) setEndPreciseValue(getEndValue() || '');
-                        setEndPrecise(willBePrecise);
-                      }}
-                    >
-                      🕐
-                    </button>
-                    <input type="time" className="cef-time-precise" hidden={!endPrecise} value={endPreciseValue} onChange={(e) => setEndPreciseValue(e.target.value)} />
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="ctrl-field">
-              <button type="button" className={`btn cef-recur-btn${pendingRecurrence ? ' active' : ''}`} onClick={() => setRecurrenceSheetOpen(true)}>
-                {describeRecurrence(pendingRecurrence)}
-              </button>
-            </div>
-            <div className="ctrl-field">
-              <label>Memento</label>
-              <select value={reminder} onChange={(e) => setReminder(e.target.value)}>
-                {REMINDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div className="ctrl-field">
-              <label>Locație (opțional)</label>
-              <input type="text" placeholder="ex: Str. Gh. Doja nr. 4" autoComplete="off" value={location} onChange={(e) => setLocation(e.target.value)} />
-            </div>
-            <div className="ctrl-field">
-              <label>Descriere (opțional)</label>
-              <input type="text" placeholder="Detalii" autoComplete="off" value={description} onChange={(e) => setDescription(e.target.value)} />
-            </div>
-            <div className="ctrl-field">
-              <label>Alocat cui (opțional)</label>
-              <div className="cef-attendees-list">
-                {allStaffEmails.length ? allStaffEmails.map((email) => (
-                  <label key={email} className="cef-attendee-item">
-                    <input type="checkbox" checked={attendees.has(email)} onChange={() => toggleAttendee(email)} /> {email}
-                  </label>
-                )) : <span className="cef-attendees-empty">Lista de conturi nu s-a încărcat încă.</span>}
+                <p className="cef-attendees-hint">Lăsat gol → vizibil pentru toată lumea pe Acasă. Bifat → apare doar în „De făcut" al persoanelor alese.</p>
               </div>
-              <p className="cef-attendees-hint">Lăsat gol → vizibil pentru toată lumea pe Acasă. Bifat → apare doar în „De făcut" al persoanelor alese.</p>
-            </div>
+            )}
             <div className="sheet-actions cef-actions">
               {event && <button type="button" className="btn" onClick={handleDelete}>Șterge</button>}
               <button type="button" className="btn btn-primary" disabled={saving} onClick={handleSave}>Salvează</button>

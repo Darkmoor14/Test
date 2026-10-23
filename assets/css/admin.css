@@ -678,6 +678,11 @@
   }
   .home-mini-cal-day-dot{width:3.5px;height:3.5px;border-radius:50%;background:var(--copper-500);flex-shrink:0;}
   .home-mini-cal-day.today .home-mini-cal-day-dot{background:#fff;}
+  .home-mini-cal-expand-link{
+    display:block;width:100%;margin-top:10px;padding:0;border:none;background:none;
+    font:inherit;font-size:11.5px;color:var(--copper-600);cursor:pointer;text-align:left;
+  }
+  .home-mini-cal-expand-link:hover{text-decoration:underline;}
   .home-cal-today{
     margin-top:14px;padding-top:14px;border-top:1px solid var(--line);
     text-align:left;font-size:12px;color:var(--ink-600);
@@ -699,6 +704,18 @@
   .calendar-day-event-title{font-weight:600;color:var(--ink-900);margin-bottom:2px;}
   .calendar-day-event-meta{font-size:12px;color:var(--ink-600);}
   .calendar-day-events-empty{color:var(--ink-400);font-size:13px;padding:8px 0;}
+  /* Cal.com-style tab bar (Basics/Setup/Advanced) ported as Detalii /
+     Repetare & Memento / Participanți — an underline-tab bar rather than
+     the pill-shaped .chip, since these gate the whole form body instead
+     of toggling a filter. */
+  .cef-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;}
+  .cef-tab{
+    font:inherit;font-size:12.5px;color:var(--ink-600);background:none;border:none;
+    padding:9px 6px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+    transition:color .15s,border-color .15s;
+  }
+  .cef-tab:hover{color:var(--copper-600);}
+  .cef-tab.active{color:var(--copper-600);border-bottom-color:var(--copper-500);font-weight:600;}
   .cef-allday-field{
     display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-700);
     margin:4px 0 16px;cursor:pointer;
@@ -1021,6 +1038,18 @@
       border-radius:14px;max-height:86vh;
       box-shadow:0 20px 60px rgba(20,24,29,0.28);
     }
+    /* A real month grid needs far more than the 460px bucket above —
+       its own wide centered popup instead of a new size tier shared
+       with the small single-form sheets. */
+    #homeFullMonthSheet .mobile-sheet-panel{
+      position:fixed;top:50%;left:50%;right:auto;bottom:auto;
+      transform:translate(-50%,-50%);
+      width:900px;max-width:calc(100vw - 40px);
+      border-radius:14px;max-height:88vh;
+      box-shadow:0 20px 60px rgba(20,24,29,0.28);
+    }
+    #homeFullMonthSheet .mobile-sheet-panel-scroll{padding:18px 20px;}
+    #homeFullMonthSheet .sheet-handle{display:none;}
     #reportTypeSheet .mobile-sheet-panel-scroll,
     #repairScopeSheet .mobile-sheet-panel-scroll,
     #reportYearSheet .mobile-sheet-panel-scroll,
@@ -1715,6 +1744,56 @@
     body.print-calendar-only .wo-calendar{border:none;margin:0;}
     body.print-calendar-only .wo-cal-day{min-height:90px;}
     body.print-calendar-only .wo-cal-day-chips{display:flex !important;}
+  }
+
+  /* ===== ACASĂ — full month calendar (modal, opened from MiniCalendar's
+     "vezi luna completă" link) ===== A sibling of .wo-calendar sized for
+     calendar_events rather than work orders — plain copper-accented event
+     chips instead of status-colored ones, since there's no status concept
+     here. Lives inside a #homeFullMonthSheet .mobile-sheet-panel, which
+     gets its own wide desktop bucket below (the existing buckets top out
+     at 460px, far too narrow for a real month grid). */
+  .home-full-cal-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .home-full-cal-month{font-family:var(--display);font-weight:700;font-size:16px;color:var(--ink-900);text-transform:capitalize;min-width:150px;}
+  .home-full-cal-nav{
+    width:30px;height:30px;border-radius:7px;border:1px solid var(--line-strong);background:var(--paper-000);
+    color:var(--ink-600);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:15px;
+  }
+  .home-full-cal-nav:hover{border-color:var(--copper-500);color:var(--copper-600);}
+  .home-full-cal-head .btn{margin-left:auto;}
+  .home-full-cal-weekdays{
+    display:grid;grid-template-columns:repeat(7,1fr);
+    padding:0 6px 8px;
+  }
+  .home-full-cal-weekdays span{
+    text-align:center;font-family:var(--mono);font-size:11px;font-weight:600;
+    color:var(--ink-400);text-transform:uppercase;
+  }
+  .home-full-cal-grid{
+    display:grid;grid-template-columns:repeat(7,1fr);background:var(--line);gap:1px;
+    border:1px solid var(--line);border-radius:6px;overflow:hidden;
+  }
+  .home-full-cal-day{
+    background:var(--paper-000);min-height:92px;padding:6px;display:flex;flex-direction:column;gap:4px;
+    cursor:pointer;align-items:stretch;text-align:left;border:none;font:inherit;
+  }
+  .home-full-cal-day:hover{background:var(--paper-100);}
+  .home-full-cal-day.outside{background:var(--paper-050);}
+  .home-full-cal-day.outside .home-full-cal-day-num{color:var(--ink-300);}
+  .home-full-cal-day-num{
+    font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--ink-700);
+    width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0;
+  }
+  .home-full-cal-day.today .home-full-cal-day-num{background:var(--copper-500);color:#fff;}
+  .home-full-cal-day-chips{display:flex;flex-direction:column;gap:3px;overflow:hidden;}
+  .home-full-cal-chip{
+    font-size:11px;padding:2px 6px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    background:var(--copper-050);color:var(--copper-600);border-left:3px solid var(--copper-500);
+  }
+  .home-full-cal-chip-more{font-size:10.5px;color:var(--ink-400);padding:0 6px;}
+  @media(max-width:900px){
+    .home-full-cal-day{min-height:68px;}
+    .home-full-cal-day-chips{display:none;}
   }
 
   .excel-preview{

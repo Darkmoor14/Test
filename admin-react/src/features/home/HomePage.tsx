@@ -5,6 +5,7 @@ import { useStaffRoster } from './useStaffRoster';
 import { useReminders } from './useReminders';
 import { HomeClock } from './HomeClock';
 import { MiniCalendar } from './MiniCalendar';
+import { FullMonthCalendar } from './FullMonthCalendar';
 import { EventListOrEmpty } from './EventCard';
 import { CalendarDaySheet } from './CalendarDaySheet';
 import { CalendarEventFormSheet } from './CalendarEventFormSheet';
@@ -21,10 +22,15 @@ export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | 
   const [formOpen, setFormOpen] = useState(false);
   const [formEvent, setFormEvent] = useState<CalendarEvent | null>(null);
   const [formDefaultDate, setFormDefaultDate] = useState<string>(dateKey(new Date()));
+  const [fullMonthOpen, setFullMonthOpen] = useState(false);
 
   const openDay = (key: string) => { setSelectedDay(key); setDaySheetOpen(true); };
   const openNewEvent = (defaultDate: string) => { setFormEvent(null); setFormDefaultDate(defaultDate); setFormOpen(true); };
   const openEditEvent = (e: CalendarEvent) => { setFormEvent(e); setFormDefaultDate(dateKey(new Date(e.start_time))); setFormOpen(true); };
+
+  const openDayFromFullMonth = (key: string) => { setFullMonthOpen(false); openDay(key); };
+  const openEditEventFromFullMonth = (e: CalendarEvent) => { setFullMonthOpen(false); openEditEvent(e); };
+  const openNewEventFromFullMonth = (defaultDate: string) => { setFullMonthOpen(false); openNewEvent(defaultDate); };
 
   const todayEvents = eventsOnDate(events, dateKey(new Date()));
 
@@ -43,6 +49,7 @@ export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | 
         <div className="home-clock-card">
           <HomeClock />
           <MiniCalendar calendarEvents={events} onDayClick={openDay} />
+          <button type="button" className="home-mini-cal-expand-link" onClick={() => setFullMonthOpen(true)}>Vezi luna completă →</button>
           <div className="home-cal-today">
             <span className="k">Astăzi</span>
             <div className="calendar-day-events">
@@ -76,6 +83,14 @@ export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | 
         onClose={() => setFormOpen(false)}
         onSave={saveEvent}
         onDelete={deleteEvent}
+      />
+      <FullMonthCalendar
+        open={fullMonthOpen}
+        calendarEvents={events}
+        onClose={() => setFullMonthOpen(false)}
+        onDayClick={openDayFromFullMonth}
+        onEventClick={openEditEventFromFullMonth}
+        onAddEvent={openNewEventFromFullMonth}
       />
     </>
   );
