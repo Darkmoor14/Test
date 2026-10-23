@@ -1,9 +1,8 @@
 # admin-react
 
-React + TypeScript rewrite of `admin-3.html`, built incrementally — one
-section at a time, mounted into the existing page rather than run as a
-separate app. See the migration tracker doc (linked from the main
-conversation) for the full feature-parity checklist and progress.
+React + TypeScript modules mounted into `admin-3.html` alongside the
+remaining vanilla modules. This is a gradual migration, not a separate
+replacement dashboard.
 
 **Status**: four sections done — Stare sistem (System status: dashboard,
 auto-îmbunătățire, jurnal de activitate, roluri), Acasă (Home: clock,
@@ -14,33 +13,19 @@ protection, status workflow, duplicate detection/linking, charts,
 push tie-ins for manually-added tickets), and the **core** of
 Proiecte+Resurse (Proiecte publice, Avarii rețele, Programe lucrări
 with its calendar, Proiecte → Home, Echipamente/Materiale/Produse,
-ERP → Home, and the shared Istoric/Listă de verificare/Jurnal stoc
-sheets used across all of the above plus still-vanilla LPS/Parc Auto)
-— **all mounted into admin-3.html**, replacing their old hand-written
-panels. Desktop only for now; mobile is deliberately deferred.
+ERP → Home, and shared Istoric/Listă de verificare/Jurnal stoc sheets.
+The ticket repair-sheet upload and report export remain active through
+the existing Excel module. Parc Auto and its fuel report also remain
+active through the existing vehicle module. The LPS workspace is still
+vanilla and intentionally private to its owner; its planning data is
+stored in that browser. Bulk-importing public projects from Excel is not
+currently available. The dashboard has responsive styles, but it still
+needs authenticated visual testing at phone and tablet sizes.
 
-**Three follow-up rounds are deliberately deferred, same reasoning
-each time — a sub-feature whose own size rivals everything else in
-its section combined:**
-- **Tickets' Excel import/export** (Raport Excel + the repair-sheet
-  import) — ~1700 lines in `assets/js/features/excel.js`.
-- **Proiecte LPS** (Last Planner System: Gantt chart, PPC/variance
-  calculations, 7 sub-tabs) — stays entirely vanilla (`lps.js`,
-  `panel-lps`), not touched this round beyond the bare minimum
-  (`openAdminTab`'s tab-switch plumbing) needed to keep it working
-  alongside the new React panels.
-- **Parc Auto + Raport lunar consum** (vehicle fleet: fuel/service/
-  document-expiry tracking, dual-unit km/hours math) — stays vanilla
-  in `erp.js`; only the document-expiry alert logic was ported
-  (duplicated, not shared) so ERP → Home's alert banner still works.
-  Proiecte publice's own "Importă din Excel" bulk-add is a smaller,
-  separately-deferred piece (see the migration tracker doc).
-
-Each deferred feature's toolbar entry points are hidden/removed from
-the mounted markup; the underlying vanilla code (where it still
-exists) is left dormant rather than deleted — its own guarded
-`if (btn) btn.addEventListener(...)` wiring just finds nothing and
-no-ops. See the migration tracker doc for the full breakdown.
+Core React ticket, project/backlog/work-order, and ERP inventory
+queries/mutations now use shared functions in `src/lib/dataServices.ts`.
+Status, calendar, HR, LPS, Parc Auto, and other legacy modules still
+contain direct database calls; the shared data layer is partial.
 
 ## Stack
 
@@ -291,12 +276,8 @@ src/
   `window.openEntityLogSheet`/`openChecklistSheet`/`openStockLedgerSheet`
   (set by `SharedSheetsRoot`, called bare by LPS's still-vanilla
   look-ahead items exactly as before).
-- Unlike Tickets, Proiecte/ERP's React stores do **not** yet listen for
-  `admin:tabchange` to silently refresh on tab entry — they fetch once
-  on login (`sessionEmail` becoming non-null) and after their own
-  mutations, which was judged good enough for this round given lower
-  concurrent-editing pressure than Sesizări. Worth adding later if it
-  turns out to matter in practice.
+- Tickets, Projects, and ERP stores listen for `admin:tabchange` and
+  refresh shared data when users return to those sections.
 - `projects.js` and `work-orders.js` were deleted outright rather than
   trimmed like `tickets.js` was — unlike tickets.js (which also held
   genuinely shared bootstrap: login/session, the shared Filtre-popover/

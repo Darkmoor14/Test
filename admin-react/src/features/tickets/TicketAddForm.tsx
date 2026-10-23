@@ -47,6 +47,7 @@ export function TicketAddForm() {
     });
     setSaving(false);
     if (!result.ok) { alert('Eroare la salvare. Încercați din nou.'); return; }
+    if (result.warning) alert(result.warning);
     setType('Sesizare functionala'); setDate(''); setResolvedDate(''); setResolvedBy('');
     setName(''); setPhone(''); setEmail(''); setAddress(''); setDescription('');
     close();

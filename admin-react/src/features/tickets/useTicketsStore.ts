@@ -375,6 +375,7 @@ export function useTicketsStore(sessionEmail: string | null) {
     sendNotification(notifyPayload);
     if (!input.resolvedDateVal) sendPushNotification({ ticket_number: ticketNumber as string, address: input.address });
 
+    let dateUpdateWarning: string | null = null;
     if (input.dateVal || input.resolvedDateVal) {
       const updatePayload: Record<string, unknown> = {};
       if (input.dateVal) updatePayload.submitted_on = new Date(`${input.dateVal}T${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`).toISOString();
@@ -384,17 +385,20 @@ export function useTicketsStore(sessionEmail: string | null) {
         if (input.resolvedByVal) updatePayload.resolved_by = input.resolvedByVal;
       }
       const { error: dateError } = await ticketData.updateByNumber(supabase, ticketNumber as string, updatePayload);
-      if (dateError) console.error(dateError);
+      if (dateError) {
+        console.error('Ticket was created but its dates could not be saved:', dateError);
+        dateUpdateWarning = `Sesizarea ${ticketNumber} a fost creată, dar data sau starea nu s-a putut salva. Verificați sesizarea înainte să continuați.`;
+      }
     }
-    if (input.resolvedDateVal) {
+    if (input.resolvedDateVal && !dateUpdateWarning) {
       sendNotification({
         type: 'report_needed', to: 'vlasbogdan@insta-grup.ro', ticket_number: ticketNumber, address: input.address,
         closed_by: input.resolvedByVal || '(nespecificat)', closed_on: new Date(`${input.resolvedDateVal}T00:00`).toLocaleDateString('ro-RO'),
       });
     }
-    showToast(`Sesizarea ${ticketNumber} a fost creată.`);
+    showToast(dateUpdateWarning ? `Sesizarea ${ticketNumber} a fost creată; verificați datele.` : `Sesizarea ${ticketNumber} a fost creată.`);
     await reload();
-    return { ok: true as const, ticketNumber: ticketNumber as string };
+    return { ok: true as const, ticketNumber: ticketNumber as string, warning: dateUpdateWarning };
   }, [supabase, sendNotification, sendPushNotification, reload]);
 
   // ---- goToTicket / deep-link ----

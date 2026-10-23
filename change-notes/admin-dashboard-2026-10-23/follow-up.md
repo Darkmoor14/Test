@@ -6,6 +6,8 @@
 - Restored an explicit anonymous RLS policy for non-archived rows. Raw ticket contact fields (`name`, `phone`, and `email`) and free-text descriptions remain inaccessible to anonymous clients.
 - Kept the existing Excel repair-sheet workflow intact. Both dashboard entry points are wired to the same preview-and-confirm importer; the separate report export remains in the overview toolbar.
 - Moved the React ticket, project/backlog/work-order, and ERP inventory queries and mutations behind shared functions in `admin-react/src/lib/dataServices.ts`. Rebuilt the mounted bundle and bumped its cache key.
+- Fixed partial success handling when a manually created ticket's optional submission/resolution dates fail to persist. The form now reports that the ticket exists, avoids implying the resolution status saved, and skips the resolved-ticket notification until the operator verifies it.
+- Rewrote the React migration README's stale status: Excel controls are present, LPS and Parc Auto remain active vanilla workflows, and Projects/ERP do refresh on tab entry.
 
 ## Supabase verification
 
