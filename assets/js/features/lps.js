@@ -890,6 +890,14 @@
       equipment: true, machines: true, materials: true, products: true, 'machines-fuel-report': true,
       'status-improve': true, 'status-audit': true, 'status-stats': true, 'status-roles': true,
       'hr-employees': true, 'hr-worktime': true, 'hr-vacation': true,
+      // 'projects' and 'backlog' were the only two tabs with a topbar
+      // icon cluster (+/search/filter) missing from here -- without
+      // blanking the title, "Proiecte publice"/"Avarii rețele" showed
+      // twice (once as the big heading, once as the highlighted tab)
+      // and the combined width wrapped the icon row onto a second
+      // line, pushing all the content down ~80-100px further than
+      // every other tab in the app.
+      projects: true, backlog: true,
     };
     const topbarTitleEl = document.getElementById('topbarTitle');
     if (topbarTitleEl) topbarTitleEl.textContent = tabKey === 'home' ? 'Acasă' : (REDUNDANT_TITLE_TABS[tabKey] ? '' : (BREADCRUMB_TABS[tabKey] || ''));
