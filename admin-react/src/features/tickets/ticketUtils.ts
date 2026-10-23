@@ -145,6 +145,29 @@ export function matchesSearch(t: Ticket, query: string): boolean {
   return haystack.includes(query);
 }
 
+function isCurrentYearFilter(yearFilter: string): boolean {
+  return yearFilter === String(new Date().getFullYear());
+}
+function isCurrentMonthFilter(monthFilter: string): boolean {
+  return monthFilter === String(new Date().getMonth() + 1);
+}
+
+// The single source of truth for "is this deliberate historical
+// browsing" -- true the moment a year or month is picked that isn't
+// 'all' and isn't the real current one. matchesYear/matchesMonth below
+// use the per-field versions of this same question to decide whether
+// to honor getEffectiveMonthYear's pinning or a ticket's real
+// submission date; useTicketsStore's derived overviewStatusFilter uses
+// this combined form to decide whether solved tickets should be
+// visible too. Keeping both reads behind one function is the point --
+// two independent copies of "is this historical" are two things that
+// can quietly drift out of sync with each other.
+export function isHistoricalDateFilter(yearFilter: string, monthFilter: string): boolean {
+  const yearIsHistorical = yearFilter !== 'all' && !isCurrentYearFilter(yearFilter);
+  const monthIsHistorical = monthFilter !== 'all' && !isCurrentMonthFilter(monthFilter);
+  return yearIsHistorical || monthIsHistorical;
+}
+
 // getEffectiveMonthYear's "still-open pins to the current month" rule
 // keeps an old-but-unresolved ticket from vanishing off whatever counts
 // as "this month" -- whether that's the default, unfiltered ("all")
@@ -158,7 +181,7 @@ export function matchesSearch(t: Ticket, query: string): boolean {
 // what was actually submitted that month.
 export function matchesYear(t: Ticket, yearFilter: string): boolean {
   if (yearFilter === 'all') return true;
-  if (String(yearFilter) === String(new Date().getFullYear())) {
+  if (isCurrentYearFilter(yearFilter)) {
     const { year } = getEffectiveMonthYear(t);
     return year !== null && String(year) === String(yearFilter);
   }
@@ -169,7 +192,7 @@ export function matchesYear(t: Ticket, yearFilter: string): boolean {
 
 export function matchesMonth(t: Ticket, monthFilter: string): boolean {
   if (monthFilter === 'all') return true;
-  if (String(monthFilter) === String(new Date().getMonth() + 1)) {
+  if (isCurrentMonthFilter(monthFilter)) {
     const { month } = getEffectiveMonthYear(t);
     return month !== null && String(month) === String(monthFilter);
   }

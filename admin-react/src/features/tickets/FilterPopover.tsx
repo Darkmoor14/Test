@@ -15,14 +15,14 @@ export function FilterPopover<K extends string>({
   year: string; setYear: (v: string) => void; yearTouched: boolean;
   month: string; setMonth: (v: string) => void; monthTouched: boolean;
   availableYears: number[]; showDateFilters?: boolean;
-  // chipDefs omitted entirely -- e.g. Overview, where the priority
-  // cards are the status filter -- means this popover only ever
-  // covers date (year/month/day): status still flows through for the
-  // day-pick/search widening side effect (see widenStatus below), but
-  // it no longer renders its own chip row or counts toward "is this
-  // popover showing a non-default filter", so it can't produce a
-  // second, redundant note next to the cards' own one.
-  status: K; setStatus: (v: K) => void; chipDefs?: ChipDef<K>[]; defaultStatus: K; widenStatus?: K;
+  // status/setStatus/defaultStatus/chipDefs/widenStatus all omitted
+  // together for Overview -- where the priority cards own status, and
+  // overviewStatusFilter is derived rather than stored, so there's
+  // nothing left for this popover to read, write or widen. It then
+  // only covers date (year/month/day): no chip row, and status never
+  // counts toward "is this popover showing a non-default filter", so
+  // it can't produce a second, redundant note next to the cards' own.
+  status?: K; setStatus?: (v: K) => void; chipDefs?: ChipDef<K>[]; defaultStatus?: K; widenStatus?: K;
   day: number | null; setDay: (v: number | null) => void;
   noteClassName?: string; icon?: 'funnel' | 'calendar';
 }) {
@@ -64,7 +64,7 @@ export function FilterPopover<K extends string>({
   };
 
   const resetFilter = () => {
-    setStatus(defaultStatus);
+    if (setStatus && defaultStatus !== undefined) setStatus(defaultStatus);
     if (showDateFilters) {
       setYear(String(now.getFullYear()));
       setMonth(String(now.getMonth() + 1));
@@ -73,7 +73,7 @@ export function FilterPopover<K extends string>({
   };
 
   const applyView = (v: SavedFilterView) => {
-    setStatus(v.filter_json.status as K);
+    if (setStatus) setStatus(v.filter_json.status as K);
     if (showDateFilters && v.filter_json.year !== undefined && v.filter_json.year !== null) setYear(String(v.filter_json.year));
     if (showDateFilters && v.filter_json.month !== undefined && v.filter_json.month !== null) setMonth(String(v.filter_json.month));
     setDay(v.filter_json.day !== undefined ? (v.filter_json.day ?? null) : null);
@@ -90,11 +90,11 @@ export function FilterPopover<K extends string>({
   // empty list with nothing on screen explaining why. Resetting back to
   // "Toate anii"/"Toate lunile" doesn't widen -- only an actual pick does.
   const narrowingSetYear = (v: string) => {
-    if (v !== 'all' && widenStatus !== undefined) setStatus(widenStatus);
+    if (v !== 'all' && widenStatus !== undefined && setStatus) setStatus(widenStatus);
     setYear(v);
   };
   const narrowingSetMonth = (v: string) => {
-    if (v !== 'all' && widenStatus !== undefined) setStatus(widenStatus);
+    if (v !== 'all' && widenStatus !== undefined && setStatus) setStatus(widenStatus);
     setMonth(v);
   };
 
@@ -141,7 +141,7 @@ export function FilterPopover<K extends string>({
                 // on screen explaining why. Clearing the day (d === null,
                 // via "Toate zilele" or the month label) doesn't widen --
                 // only an actual pick does.
-                if (d !== null && widenStatus !== undefined) setStatus(widenStatus);
+                if (d !== null && widenStatus !== undefined && setStatus) setStatus(widenStatus);
                 setDay(d);
               }}
               onPicked={() => {}}
@@ -152,7 +152,7 @@ export function FilterPopover<K extends string>({
               <label>Stare listă</label>
               <div className="chips">
                 {chipDefs.map((c) => (
-                  <button key={c.key} type="button" className={`chip${c.key === status ? ' active' : ''}`} onClick={() => setStatus(c.key)}>{c.label}</button>
+                  <button key={c.key} type="button" className={`chip${c.key === status ? ' active' : ''}`} onClick={() => setStatus?.(c.key)}>{c.label}</button>
                 ))}
               </div>
             </div>
@@ -173,7 +173,7 @@ export function FilterPopover<K extends string>({
               onClick={() => {
                 const name = (prompt('Nume pentru această vizualizare:') || '').trim();
                 if (!name) return;
-                save(name, { status, year: showDateFilters ? year : undefined, month: showDateFilters ? month : undefined, day });
+                save(name, { status: status ?? 'all', year: showDateFilters ? year : undefined, month: showDateFilters ? month : undefined, day });
               }}
             >
               + Salvează vizualizarea curentă

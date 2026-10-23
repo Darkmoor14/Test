@@ -24,8 +24,10 @@ export type OverviewCardFilterKey = 'active' | 'aging' | 'functional' | 'acciden
 export type TypeOnlyFilterKey = 'functional' | 'accident' | null;
 export type ActiveTypeFilterKey = 'Toate' | 'functional' | 'accident';
 
+// status isn't stored here -- it's derived from priority/year/month
+// (see overviewStatusFilter in useTicketsStore.ts), so restoring those
+// three on return already puts it back where it was automatically.
 export interface OverviewReturnState {
-  status: OverviewStatusFilterKey;
   priority: OverviewCardFilterKey;
   year: string;
   month: string;

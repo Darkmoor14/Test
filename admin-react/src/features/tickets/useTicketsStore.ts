@@ -6,7 +6,8 @@ import type {
 } from './types';
 import {
   AGING_THRESHOLD_DAYS, getCanonicalTicket, getEffectiveMonthYear, isAwaitingReport, isDuplicateTicket,
-  matchesMonth, matchesSearch, matchesYear, parseTicketDate, sortTicketsByNumber, ticketMatchesStatusFilter,
+  isHistoricalDateFilter, matchesMonth, matchesSearch, matchesYear, parseTicketDate, sortTicketsByNumber,
+  ticketMatchesStatusFilter,
 } from './ticketUtils';
 
 declare global {
@@ -64,9 +65,30 @@ export function useTicketsStore(sessionEmail: string | null) {
   const [ticketYearFilterInitialized, setTicketYearFilterInitialized] = useState(false);
   const [overviewDayFilter, setOverviewDayFilter] = useState<number | null>(null);
 
-  const [overviewStatusFilter, setOverviewStatusFilter] = useState<OverviewStatusFilterKey>('active');
   const [overviewSearchQuery, setOverviewSearchQuery] = useState('');
   const [overviewCardFilter, setOverviewCardFilter] = useState<OverviewCardFilterKey>(null);
+
+  // Derived, not stored. This used to be its own mutable flag that
+  // applyOverviewCardFilter/clearOverviewCardFilter, the date
+  // popover's day/month/year pick, and SearchToggle's search-start
+  // each independently forced to 'all' and then had to separately
+  // remember how to restore -- four write sites sharing one flag,
+  // each only ever verified against its own scenario, which is why
+  // this kept quietly breaking in a different combination each time
+  // (clearing a card after picking a month, clearing a card on a
+  // completely untouched dashboard, ...). Deriving it fresh from
+  // whichever filters are ACTUALLY active right now removes the need
+  // to remember or restore anything: it's correct by construction for
+  // any combination, including ones nobody explicitly tested for.
+  const overviewStatusFilter = useMemo<OverviewStatusFilterKey>(() => {
+    // A priority card's own condition (see OverviewTable.tsx) fully
+    // decides status by itself -- this has to get out of its way.
+    if (overviewCardFilter) return 'all';
+    if (overviewSearchQuery.trim()) return 'all';
+    if (overviewDayFilter !== null) return 'all';
+    if (isHistoricalDateFilter(ticketYearFilter, ticketMonthFilter)) return 'all';
+    return 'active';
+  }, [overviewCardFilter, overviewSearchQuery, overviewDayFilter, ticketYearFilter, ticketMonthFilter]);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [overviewShareSelectedIds, setOverviewShareSelectedIds] = useState<Set<string>>(new Set());
@@ -190,36 +212,14 @@ export function useTicketsStore(sessionEmail: string | null) {
     setTypeOnlyFilter(null);
   }, []);
 
-  // A priority card's own condition (status === 'Terminat' for
-  // "Soluționate"/"Așteaptă raport", status !== 'Terminat' for the
-  // other four) already fully determines which status(es) it shows --
-  // so it also resets overviewStatusFilter to 'all', not just the card
-  // itself. Leaving that at whatever it last was (its own default is
-  // 'active') meant e.g. clicking "Soluționate" while it was still
-  // 'active' combined into status !== 'Terminat' AND status ===
-  // 'Terminat', an impossible intersection -- the card looked broken,
-  // always showing zero rows, regardless of which one was clicked.
-  //
-  // clearOverviewCardFilter needs to put overviewStatusFilter back to
-  // whatever it genuinely was right before the FIRST card click, not
-  // guess at it from the current year/month filters: ticketYearFilter
-  // defaults to the current year (not 'all') the moment tickets load,
-  // so "a specific year is selected" is true almost all the time even
-  // on a completely untouched dashboard, which made clearing a card
-  // wrongly widen to 'all' there too. A ref captured only on that
-  // first click (switching directly between cards doesn't re-capture
-  // and overwrite it with the 'all' the previous card forced) survives
-  // exactly that distinction without having to re-derive it.
-  const overviewStatusBeforeCardRef = useRef<OverviewStatusFilterKey>('active');
+  // overviewStatusFilter being derived above (not stored) means these
+  // only ever need to touch overviewCardFilter itself now -- status
+  // automatically falls out correct on both ends, nothing to force and
+  // nothing to remember/restore.
   const applyOverviewCardFilter = useCallback((filterKey: OverviewCardFilterKey) => {
-    if (overviewCardFilter === null) overviewStatusBeforeCardRef.current = overviewStatusFilter;
     setOverviewCardFilter(filterKey);
-    setOverviewStatusFilter('all');
-  }, [overviewCardFilter, overviewStatusFilter]);
-  const clearOverviewCardFilter = useCallback(() => {
-    setOverviewCardFilter(null);
-    setOverviewStatusFilter(overviewStatusBeforeCardRef.current);
   }, []);
+  const clearOverviewCardFilter = useCallback(() => setOverviewCardFilter(null), []);
 
   // ---- selection / editing ----
   const toggleSelected = useCallback((id: string, checked: boolean) => {
@@ -401,7 +401,7 @@ export function useTicketsStore(sessionEmail: string | null) {
     const targetTicket = tickets.find((t) => t.id === ticketId);
     if (!targetTicket) return;
     setOverviewReturnState(activeView === 'overview' ? {
-      status: overviewStatusFilter, priority: overviewCardFilter, year: ticketYearFilter, month: ticketMonthFilter, ticketId,
+      priority: overviewCardFilter, year: ticketYearFilter, month: ticketMonthFilter, ticketId,
     } : null);
     setAgingOnlyFilter(false);
     setTypeOnlyFilter(null);
@@ -418,7 +418,7 @@ export function useTicketsStore(sessionEmail: string | null) {
     setJumpHighlightId(ticketId);
     setPendingScrollToId(ticketId);
     setTimeout(() => setJumpHighlightId((prev) => (prev === ticketId ? null : prev)), 1800);
-  }, [tickets, activeView, overviewStatusFilter, overviewCardFilter, ticketYearFilter, ticketMonthFilter, ticketSearchQuery, activeFilter, setTicketFilter, setTicketYearFilter, setTicketMonthFilter]);
+  }, [tickets, activeView, overviewCardFilter, ticketYearFilter, ticketMonthFilter, ticketSearchQuery, activeFilter, setTicketFilter, setTicketYearFilter, setTicketMonthFilter]);
 
   const returnToOverviewTable = useCallback(() => {
     const state = overviewReturnState;
@@ -430,7 +430,6 @@ export function useTicketsStore(sessionEmail: string | null) {
     setTicketYearFilter(state.year);
     setTicketMonthFilter(state.month);
     setOverviewCardFilter(state.priority);
-    setOverviewStatusFilter(state.status);
     window.openAdminTab?.('overview');
   }, [overviewReturnState, setTicketYearFilter, setTicketMonthFilter]);
 
@@ -517,7 +516,7 @@ export function useTicketsStore(sessionEmail: string | null) {
     ticketYearFilter, setTicketYearFilter, ticketMonthFilter, setTicketMonthFilter,
     ticketYearFilterTouched, ticketMonthFilterTouched,
     overviewDayFilter, setOverviewDayFilter,
-    overviewStatusFilter, setOverviewStatusFilter,
+    overviewStatusFilter,
     overviewSearchQuery, setOverviewSearchQuery,
     overviewCardFilter, applyOverviewCardFilter, clearOverviewCardFilter,
     selectedIds, toggleSelected, clearSelection,

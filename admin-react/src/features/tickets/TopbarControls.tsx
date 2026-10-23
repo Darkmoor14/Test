@@ -52,7 +52,6 @@ export function OverviewQuickFiltersInner({ sessionEmail }: { sessionEmail: stri
         year={store.ticketYearFilter} setYear={store.setTicketYearFilter} yearTouched={store.ticketYearFilterTouched}
         month={store.ticketMonthFilter} setMonth={store.setTicketMonthFilter} monthTouched={store.ticketMonthFilterTouched}
         availableYears={store.availableYears}
-        status={store.overviewStatusFilter} setStatus={store.setOverviewStatusFilter} defaultStatus="active" widenStatus="all"
         day={store.overviewDayFilter} setDay={store.setOverviewDayFilter}
         noteClassName="filter-status-note filter-status-note-overview"
       />
@@ -67,7 +66,6 @@ export function OverviewQuickFiltersInner({ sessionEmail }: { sessionEmail: stri
       </button>
       <SearchToggle
         query={store.overviewSearchQuery} setQuery={store.setOverviewSearchQuery} placeholder="Caută nume, adresă, telefon…"
-        status={store.overviewStatusFilter} setStatus={store.setOverviewStatusFilter} widenStatus="all"
         year={store.ticketYearFilter} setYear={store.setTicketYearFilter}
         month={store.ticketMonthFilter} setMonth={store.setTicketMonthFilter}
         day={store.overviewDayFilter} setDay={store.setOverviewDayFilter}

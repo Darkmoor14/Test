@@ -3,7 +3,8 @@ import { useTickets } from './TicketsContext';
 import { useStaffRoster } from '../home/useStaffRoster';
 import {
   AGING_THRESHOLD_DAYS, calendarDaysBetween, fmtDateOnly, formatDurationDays,
-  getCanonicalTicket, isAwaitingReport, isDuplicateTicket, matchesMonth, matchesSearch, matchesYear, parseTicketDate,
+  getCanonicalTicket, isAwaitingReport, isDuplicateTicket, isHistoricalDateFilter, matchesMonth, matchesSearch,
+  matchesYear, parseTicketDate,
 } from './ticketUtils';
 import type { Ticket } from './types';
 
@@ -45,8 +46,7 @@ function useOverviewVisibleTickets(): Ticket[] {
       // month/year is picked, that's historical browsing ("what
       // accidents happened in Septembrie"), and a ticket that's since
       // been solved is still part of that history.
-      const isDateNarrowed = store.ticketYearFilter !== 'all' || store.ticketMonthFilter !== 'all';
-      if (!isDateNarrowed) visible = visible.filter((t) => t.status !== 'Terminat');
+      if (!isHistoricalDateFilter(store.ticketYearFilter, store.ticketMonthFilter)) visible = visible.filter((t) => t.status !== 'Terminat');
       visible = visible.filter((t) => (store.overviewCardFilter === 'accident') === (t.type === 'Anunt accident'));
     }
     return [...visible].sort((a, b) => (b.ticket_number || '').localeCompare(a.ticket_number || '', undefined, { numeric: true }));
