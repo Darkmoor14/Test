@@ -24,7 +24,11 @@ export interface TicketsMountTargets {
 export function TicketsRoot({ sessionEmail, targets }: { sessionEmail: string | null; targets: TicketsMountTargets }) {
   return (
     <TicketsStoreProvider sessionEmail={sessionEmail}>
-      {createPortal(<YearMonthBarInner />, targets.overviewYearBar)}
+      {/* No overviewYearBar portal here on purpose -- the calendar icon
+          in OverviewQuickFiltersInner is now the only date-filter
+          control for this tab, so the old topbar An/Lună dropdowns
+          (still used by the Sesizări tabs below, via ticketsYearBar)
+          would just be a second, redundant copy of the same picker. */}
       {createPortal(<OverviewQuickFiltersInner sessionEmail={sessionEmail} />, targets.overviewQuickFilters)}
       {createPortal(<YearMonthBarInner />, targets.ticketsYearBar)}
       {createPortal(<TicketsQuickFiltersInner sessionEmail={sessionEmail} />, targets.ticketsQuickFilters)}

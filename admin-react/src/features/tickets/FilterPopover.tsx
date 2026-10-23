@@ -9,15 +9,22 @@ export function FilterPopover<K extends string>({
   scope, sessionEmail,
   year, setYear, yearTouched, month, setMonth, monthTouched, availableYears, showDateFilters = true,
   status, setStatus, chipDefs, defaultStatus, widenStatus,
-  day, setDay, noteClassName,
+  day, setDay, noteClassName, icon = 'funnel',
 }: {
   scope: string; sessionEmail: string | null;
   year: string; setYear: (v: string) => void; yearTouched: boolean;
   month: string; setMonth: (v: string) => void; monthTouched: boolean;
   availableYears: number[]; showDateFilters?: boolean;
-  status: K; setStatus: (v: K) => void; chipDefs: ChipDef<K>[]; defaultStatus: K; widenStatus?: K;
+  // chipDefs omitted entirely -- e.g. Overview, where the priority
+  // cards are the status filter -- means this popover only ever
+  // covers date (year/month/day): status still flows through for the
+  // day-pick/search widening side effect (see widenStatus below), but
+  // it no longer renders its own chip row or counts toward "is this
+  // popover showing a non-default filter", so it can't produce a
+  // second, redundant note next to the cards' own one.
+  status: K; setStatus: (v: K) => void; chipDefs?: ChipDef<K>[]; defaultStatus: K; widenStatus?: K;
   day: number | null; setDay: (v: number | null) => void;
-  noteClassName?: string;
+  noteClassName?: string; icon?: 'funnel' | 'calendar';
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -37,12 +44,12 @@ export function FilterPopover<K extends string>({
   const yearOk = !showDateFilters || !yearTouched || String(year) === String(now.getFullYear());
   const monthOk = !showDateFilters || !monthTouched || String(month) === String(now.getMonth() + 1);
   const dayOk = day === null || day === undefined;
-  const statusOk = status === defaultStatus;
+  const statusOk = !chipDefs || status === defaultStatus;
   const isDefault = statusOk && yearOk && monthOk && dayOk;
 
   const describeFilter = (): string => {
     const parts: string[] = [];
-    if (status !== defaultStatus) {
+    if (chipDefs && status !== defaultStatus) {
       const chip = chipDefs.find((c) => c.key === status);
       if (chip) parts.push(chip.label);
     }
@@ -77,8 +84,12 @@ export function FilterPopover<K extends string>({
   return (
     <>
       <div className="overview-popover-wrap" ref={wrapRef}>
-        <button type="button" className={`overview-icon-btn${!isDefault ? ' active' : ''}`} aria-label="Filtre" onClick={() => setOpen((o) => !o)}>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>
+        <button type="button" className={`overview-icon-btn${!isDefault ? ' active' : ''}`} aria-label={icon === 'calendar' ? 'Filtrează după dată' : 'Filtre'} onClick={() => setOpen((o) => !o)}>
+          {icon === 'calendar' ? (
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+          ) : (
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>
+          )}
         </button>
         <div className={`filter-popover${open ? ' open' : ''}`}>
           {showDateFilters && (
@@ -119,14 +130,16 @@ export function FilterPopover<K extends string>({
               onPicked={() => {}}
             />
           )}
-          <div className="sheet-filter-status">
-            <label>Stare listă</label>
-            <div className="chips">
-              {chipDefs.map((c) => (
-                <button key={c.key} type="button" className={`chip${c.key === status ? ' active' : ''}`} onClick={() => setStatus(c.key)}>{c.label}</button>
-              ))}
+          {chipDefs && (
+            <div className="sheet-filter-status">
+              <label>Stare listă</label>
+              <div className="chips">
+                {chipDefs.map((c) => (
+                  <button key={c.key} type="button" className={`chip${c.key === status ? ' active' : ''}`} onClick={() => setStatus(c.key)}>{c.label}</button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
           <div className="popover-saved-views">
             <label>Vizualizări salvate</label>
             <div className="saved-views-chips">

@@ -2,7 +2,7 @@ import { Fragment, useMemo, useState } from 'react';
 import { useTickets } from './TicketsContext';
 import { useStaffRoster } from '../home/useStaffRoster';
 import {
-  AGING_THRESHOLD_DAYS, OVERVIEW_CARD_FILTER_LABELS, calendarDaysBetween, fmtDateOnly, formatDurationDays,
+  AGING_THRESHOLD_DAYS, calendarDaysBetween, fmtDateOnly, formatDurationDays,
   getCanonicalTicket, isDuplicateTicket, matchesMonth, matchesSearch, matchesYear, parseTicketDate,
 } from './ticketUtils';
 import type { Ticket } from './types';
@@ -38,17 +38,6 @@ function useOverviewVisibleTickets(): Ticket[] {
     }
     return [...visible].sort((a, b) => (b.ticket_number || '').localeCompare(a.ticket_number || '', undefined, { numeric: true }));
   }, [store.tickets, store.overviewSearchQuery, store.ticketYearFilter, store.ticketMonthFilter, store.overviewDayFilter, store.overviewStatusFilter, store.overviewCardFilter]);
-}
-
-export function OverviewNarrowFilterBanner() {
-  const store = useTickets();
-  if (!store.overviewCardFilter) return null;
-  return (
-    <div className="active-narrow-filter show">
-      <span>{OVERVIEW_CARD_FILTER_LABELS[store.overviewCardFilter]}</span>
-      <button type="button" onClick={store.clearOverviewCardFilter}>✕ Elimină acest filtru</button>
-    </div>
-  );
 }
 
 export function OverviewTable({ sessionEmail }: { sessionEmail: string | null }) {

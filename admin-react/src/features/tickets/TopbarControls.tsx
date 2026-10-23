@@ -2,7 +2,8 @@ import { Fragment } from 'react';
 import { useTickets } from './TicketsContext';
 import { FilterPopover, type ChipDef } from './FilterPopover';
 import { SearchToggle } from './SearchToggle';
-import type { OverviewStatusFilterKey, StatusFilterKey } from './types';
+import { OVERVIEW_CARD_FILTER_LABELS } from './ticketUtils';
+import type { StatusFilterKey } from './types';
 
 // NOTE: these components render ONLY the inner content of each topbar
 // slot -- the outer wrapper div (.overview-year-bar[data-year-panel=…],
@@ -17,12 +18,6 @@ const SESIZARI_CHIP_DEFS: ChipDef<StatusFilterKey>[] = [
   { key: 'Terminat', label: 'Soluționate' },
   { key: 'AwaitingReport', label: 'Așteaptă raport' },
   { key: 'Toate', label: 'Toate' },
-];
-const OVERVIEW_CHIP_DEFS: ChipDef<OverviewStatusFilterKey>[] = [
-  { key: 'all', label: 'Toate' },
-  { key: 'active', label: 'Active' },
-  { key: 'awaiting_report', label: 'Așteaptă raport' },
-  { key: 'done', label: 'Soluționate' },
 ];
 
 export function YearMonthBarInner() {
@@ -53,14 +48,20 @@ export function OverviewQuickFiltersInner({ sessionEmail }: { sessionEmail: stri
   return (
     <Fragment>
       <FilterPopover
-        scope="overview" sessionEmail={sessionEmail}
+        scope="overview" sessionEmail={sessionEmail} icon="calendar"
         year={store.ticketYearFilter} setYear={store.setTicketYearFilter} yearTouched={store.ticketYearFilterTouched}
         month={store.ticketMonthFilter} setMonth={store.setTicketMonthFilter} monthTouched={store.ticketMonthFilterTouched}
         availableYears={store.availableYears}
-        status={store.overviewStatusFilter} setStatus={store.setOverviewStatusFilter} chipDefs={OVERVIEW_CHIP_DEFS} defaultStatus="active" widenStatus="all"
+        status={store.overviewStatusFilter} setStatus={store.setOverviewStatusFilter} defaultStatus="active" widenStatus="all"
         day={store.overviewDayFilter} setDay={store.setOverviewDayFilter}
         noteClassName="filter-status-note filter-status-note-overview"
       />
+      {store.overviewCardFilter && (
+        <span className="filter-status-note filter-status-note-overview">
+          {OVERVIEW_CARD_FILTER_LABELS[store.overviewCardFilter]}
+          <button type="button" aria-label="Elimină acest filtru" onClick={store.clearOverviewCardFilter}>×</button>
+        </span>
+      )}
       <button type="button" className="overview-icon-btn add-btn" data-requires-write="tickets" title="Adaugă sesizare" aria-label="Adaugă sesizare" onClick={() => store.setAddFormOpen(true)}>
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
       </button>
