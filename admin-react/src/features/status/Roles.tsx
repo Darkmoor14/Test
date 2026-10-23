@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { useSupabase } from '../../lib/supabaseContext';
 
@@ -42,7 +42,7 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
   const [resetPassword, setResetPassword] = useState('');
   const [resetSaving, setResetSaving] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     const [{ data: roleRows, error }, { data: subRows }] = await Promise.all([
       supabase.from('staff_roles').select('email,role').order('email', { ascending: true }),
@@ -57,9 +57,9 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
     setRolesByEmail(map);
     setNotifiedEmails(new Set((subRows || []).filter((r: { user_email: string | null }) => r.user_email).map((r: { user_email: string }) => r.user_email)));
     setLoading(false);
-  };
+  }, [supabase]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, [load]);
 
   const toggleRole = async (email: string, role: RoleKey, checked: boolean) => {
     const prev = new Map(rolesByEmail);

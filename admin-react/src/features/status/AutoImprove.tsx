@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
 import { downloadJson, formatLogTimeRO } from '../../lib/format';
 
@@ -48,15 +48,15 @@ export function AutoImprove() {
   const [featureClicks, setFeatureClicks] = useState<FeatureClickRow[]>([]);
   const [searches, setSearches] = useState<SearchQueryRow[]>([]);
 
-  const loadErrorLog = async () => {
+  const loadErrorLog = useCallback(async () => {
     const { data } = await supabase.from('app_error_log').select('*').order('created_at', { ascending: false }).limit(50);
     setErrors(data || []);
-  };
-  const loadFriction = async () => {
+  }, [supabase]);
+  const loadFriction = useCallback(async () => {
     const { data } = await supabase.from('app_interaction_signals').select('*').order('created_at', { ascending: false }).limit(300);
     setFriction(data || []);
-  };
-  const loadWorkflow = async () => {
+  }, [supabase]);
+  const loadWorkflow = useCallback(async () => {
     const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const [viewsResult, clicksResult] = await Promise.all([
       supabase.from('app_page_views').select('*').gte('created_at', cutoff).order('created_at', { ascending: false }).limit(2000),
@@ -64,18 +64,18 @@ export function AutoImprove() {
     ]);
     setPageViews(viewsResult.data || []);
     setFeatureClicks(clicksResult.data || []);
-  };
-  const loadSearches = async () => {
+  }, [supabase]);
+  const loadSearches = useCallback(async () => {
     const { data } = await supabase.from('app_interaction_signals').select('*').eq('signal_type', 'search_query').order('created_at', { ascending: false }).limit(100);
     setSearches(data || []);
-  };
+  }, [supabase]);
 
   useEffect(() => {
     loadErrorLog();
     loadFriction();
     loadWorkflow();
     loadSearches();
-  }, []);
+  }, [loadErrorLog, loadFriction, loadWorkflow, loadSearches]);
 
   const frictionGroups = (() => {
     const groups = new Map<string, { signal_type: string; tab: string | null; target_label: string | null; count: number; lastSeen: string; users: Set<string> }>();

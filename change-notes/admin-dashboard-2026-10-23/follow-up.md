@@ -8,6 +8,7 @@
 - Moved the React ticket, project/backlog/work-order, and ERP inventory queries and mutations behind shared functions in `admin-react/src/lib/dataServices.ts`. Rebuilt the mounted bundle and bumped its cache key.
 - Fixed partial success handling when a manually created ticket's optional submission/resolution dates fail to persist. The form now reports that the ticket exists, avoids implying the resolution status saved, and skips the resolved-ticket notification until the operator verifies it.
 - Rewrote the React migration README's stale status: Excel controls are present, LPS and Parc Auto remain active vanilla workflows, and Projects/ERP do refresh on tab entry.
+- Fixed the mobile navigation entry point: the hamburger trigger was missing, and the old drawer omitted ERP, HR, reports, LPS, work orders, and several status pages. The drawer now exposes those destinations and applies the same module permissions as desktop. Removed two obsolete mobile control lookups and fixed React status-screen effect dependencies.
 
 ## Supabase verification
 

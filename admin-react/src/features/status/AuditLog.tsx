@@ -68,7 +68,7 @@ export function AuditLog() {
       setTitles(titleMap);
       setLoading(false);
     })();
-  }, []);
+  }, [supabase]);
 
   const entityTitle = (row: EntityLogRow) => {
     const key = `${row.entity_type}:${row.entity_id}`;

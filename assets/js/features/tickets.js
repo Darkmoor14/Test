@@ -318,11 +318,6 @@
     showLogin();
   }
   logoutBtn.addEventListener('click', performLogout);
-  const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
-  if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', performLogout);
-  const homeIconBtn = document.getElementById('homeIconBtn');
-  if (homeIconBtn) homeIconBtn.addEventListener('click', () => openAdminTab('home'));
-
   // ============================================================
   // ICON ROW + FILTER POPOVER SYSTEM — ported 1:1 from admin.html.
   // Comments trimmed here since the full reasoning already lives

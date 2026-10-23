@@ -90,6 +90,9 @@
 
     <div class="main">
       <div class="topbar">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Deschide meniul" aria-controls="mobileSidebar" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
         <span class="topbar-title" id="topbarTitle">Acasă</span>
 
         <div class="category-topbar" id="categoryTopbarTickets" data-category-topbar="tickets">
@@ -1345,12 +1348,12 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="assets/js/data-services.js?v=20261019a"></script>
-<script src="assets/js/admin-core.js?v=20261020a"></script>
+<script src="assets/js/admin-core.js?v=20261023a"></script>
 <!-- Built from admin-react/ (source: admin-react/src/mount.tsx) — do not
      hand-edit this file, rebuild it instead:
        cd admin-react && npx vite build --config vite.mount.config.ts
      then copy dist-mount/admin-react-status.js here. -->
-<script src="assets/js/admin-react-status.js?v=20261023l"></script>
+<script src="assets/js/admin-react-status.js?v=20261023m"></script>
 <script>
   // Mounts Stare sistem's four React panels plus Acasă and Sesizări
   // (Tickets), reusing the page's own already-created Supabase client
@@ -1438,7 +1441,7 @@
 </script>
 <script src="assets/js/features/system-status.js?v=20261019b"></script>
 <script src="assets/js/features/lps.js?v=20261023a"></script>
-<script src="assets/js/features/tickets.js?v=20261021b"></script>
+<script src="assets/js/features/tickets.js?v=20261023a"></script>
 <!-- projects.js and work-orders.js are gone: Proiecte publice, Avarii
      rețele, and Programe lucrări are now admin-react/'s features/projects/
      (see mountProjects() above) -- nothing in either file was shared
@@ -1469,7 +1472,7 @@
       <span class="mtb-dash"></span>
       <span>Acasă</span>
     </button>
-    <button type="button" class="mobile-tab-btn active" data-tab="overview">
+    <button type="button" class="mobile-tab-btn" data-tab="overview">
       <span class="mtb-dash"></span>
       <span>Prezentare generală</span>
     </button>
@@ -1481,17 +1484,93 @@
       <span class="mtb-dash"></span>
       <span>Sesizări accidente</span>
     </button>
+    <button type="button" class="mobile-tab-btn" data-tab="reports">
+      <span class="mtb-dash"></span>
+      <span>Rapoarte</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="projects-home">
+      <span class="mtb-dash"></span>
+      <span>Proiecte · Home</span>
+    </button>
     <button type="button" class="mobile-tab-btn" data-tab="projects">
       <span class="mtb-dash"></span>
-      <span>Proiecte curente</span>
+      <span>Proiecte publice</span>
     </button>
     <button type="button" class="mobile-tab-btn" data-tab="backlog">
       <span class="mtb-dash"></span>
       <span>Avarii rețele</span>
     </button>
+    <button type="button" class="mobile-tab-btn" data-tab="lps">
+      <span class="mtb-dash"></span>
+      <span>Proiecte LPS</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="workorders">
+      <span class="mtb-dash"></span>
+      <span>Programe lucrări</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="erp-home">
+      <span class="mtb-dash"></span>
+      <span>Resurse · Home</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="equipment">
+      <span class="mtb-dash"></span>
+      <span>Echipamente</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="machines">
+      <span class="mtb-dash"></span>
+      <span>Parc Auto</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="machines-fuel-report">
+      <span class="mtb-dash"></span>
+      <span>Raport lunar consum</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="materials">
+      <span class="mtb-dash"></span>
+      <span>Materiale</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="products">
+      <span class="mtb-dash"></span>
+      <span>Produse</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="hr-home">
+      <span class="mtb-dash"></span>
+      <span>HR · Home</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="hr-employees">
+      <span class="mtb-dash"></span>
+      <span>Angajați</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="hr-worktime">
+      <span class="mtb-dash"></span>
+      <span>Pontaj</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="hr-vacation">
+      <span class="mtb-dash"></span>
+      <span>Concediu</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="docs">
+      <span class="mtb-dash"></span>
+      <span>Documentație</span>
+    </button>
     <button type="button" class="mobile-tab-btn" data-tab="status">
       <span class="mtb-dash"></span>
       <span>Stare sistem</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="status-improve">
+      <span class="mtb-dash"></span>
+      <span>Auto-îmbunătățire</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="status-audit">
+      <span class="mtb-dash"></span>
+      <span>Jurnal de activitate</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="status-stats">
+      <span class="mtb-dash"></span>
+      <span>Statistici site</span>
+    </button>
+    <button type="button" class="mobile-tab-btn" data-tab="status-roles">
+      <span class="mtb-dash"></span>
+      <span>Roluri</span>
     </button>
   </nav>
   <div class="mobile-sidebar-foot">

@@ -166,16 +166,35 @@
     // the React pilot now (see admin-react/'s useStaffRoster +
     // NavGrid.tsx) — it fetches its own roles rather than reading
     // currentUserRoles/isGod()/modulePermission() from here.
-    // Same filtering for the mobile hamburger menu's equivalent links —
-    // it has no erp/hr entries of its own to gate, just tickets/
-    // proiecte/status.
+    // Apply the same module permissions to every destination in the
+    // mobile menu, including the sections that used to be missing there.
     const mobileTabVisibility = {
+      home: true,
       overview: god || modulePermission('tickets') === 'write',
       'tickets-functional': god || modulePermission('tickets') === 'write',
       'tickets-accident': god || modulePermission('tickets') === 'write',
+      reports: god || modulePermission('tickets') === 'write',
+      'projects-home': god || modulePermission('proiecte') === 'write',
       projects: god || modulePermission('proiecte') === 'write',
       backlog: god || modulePermission('proiecte') === 'write',
+      lps: god || modulePermission('proiecte') === 'write',
+      workorders: god || modulePermission('proiecte') === 'write',
+      'erp-home': god || modulePermission('erp') === 'write',
+      equipment: god || modulePermission('erp') === 'write',
+      machines: god || modulePermission('erp') === 'write',
+      'machines-fuel-report': god || modulePermission('erp') === 'write',
+      materials: god || modulePermission('erp') === 'write',
+      products: god || modulePermission('erp') === 'write',
+      'hr-home': god || modulePermission('hr') === 'write',
+      'hr-employees': god || modulePermission('hr') === 'write',
+      'hr-worktime': god || modulePermission('hr') === 'write',
+      'hr-vacation': god || modulePermission('hr') === 'write',
+      docs: god || modulePermission('hr') === 'write',
       status: god,
+      'status-improve': god,
+      'status-audit': god,
+      'status-stats': god,
+      'status-roles': god,
     };
     document.querySelectorAll('.mobile-tab-btn[data-tab]').forEach(btn => {
       if (btn.dataset.tab in mobileTabVisibility) {
@@ -740,5 +759,4 @@
   if (onboardingPrevBtn) onboardingPrevBtn.addEventListener('click', onboardingPrev);
   const onboardingSkipBtn = document.getElementById('onboardingSkipBtn');
   if (onboardingSkipBtn) onboardingSkipBtn.addEventListener('click', endOnboardingTour);
-
 
