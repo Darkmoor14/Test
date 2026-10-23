@@ -1,7 +1,9 @@
--- Let the public status feed obey tickets RLS instead of running with
--- view-owner privileges. Column grants expose only the fields already
--- published by the view; reporter contact details and free text remain
--- inaccessible to anon.
+-- Public pages read tickets through this deliberately limited projection.
+-- The view runs with invoker security so it obeys the same RLS policy and
+-- column grants as a direct anon query, instead of bypassing them with
+-- view-owner privileges. Reporter contact details and free-text
+-- descriptions are never exposed; the reporter name is surfaced only for
+-- whitelisted institutional sources, via a generated public_name column.
 
 alter table public.tickets
   add column if not exists public_name text
