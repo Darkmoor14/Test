@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
+import { saveChecklist, type ChecklistTable } from '../../lib/dataServices';
 
 declare global {
   interface Window {
@@ -28,17 +29,42 @@ export function ChecklistSheet({ current, onClose }: { current: ChecklistSheetSt
   const supabase = useSupabase();
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [newItemText, setNewItemText] = useState('');
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   useEffect(() => {
-    if (current) setItems(current.items);
+    if (current) {
+      setItems(current.items);
+      savingRef.current = false;
+      setSaving(false);
+      setNewItemText('');
+    }
   }, [current]);
 
   if (!current) return null;
 
   const persist = async (next: ChecklistItem[]) => {
+    if (savingRef.current) return false;
+    savingRef.current = true;
+    setSaving(true);
+    let errorMessage = '';
+    try {
+      const result = await saveChecklist(supabase, current.table as ChecklistTable, current.id, next);
+      errorMessage = result.error?.message || '';
+    } catch (err) {
+      errorMessage = err instanceof Error ? err.message : String(err);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+    if (errorMessage) {
+      console.error('Checklist save failed:', errorMessage);
+      alert('Lista nu a fost salvată. Verificați conexiunea și încercați din nou.');
+      return false;
+    }
     setItems(next);
-    await supabase.from(current.table).update({ checklist: next }).eq('id', current.id);
     current.onSaved?.();
+    return true;
   };
 
   const toggle = (i: number) => {
@@ -52,40 +78,40 @@ export function ChecklistSheet({ current, onClose }: { current: ChecklistSheetSt
   const add = () => {
     const text = newItemText.trim();
     if (!text) return;
-    setNewItemText('');
-    persist([...items, { text, done: false }]);
+    void persist([...items, { text, done: false }]).then((saved) => { if (saved) setNewItemText(''); });
   };
 
   const doneCount = items.filter((i) => i.done).length;
 
   return (
     <div className="mobile-sheet show" aria-hidden="false">
-      <div className="mobile-sheet-backdrop" onClick={onClose} />
+      <div className="mobile-sheet-backdrop" onClick={saving ? undefined : onClose} />
       <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="checklistSheetTitle">
         <div className="mobile-sheet-panel-scroll">
           <div className="sheet-handle" />
           <div className="sheet-head">
             <div><h3 id="checklistSheetTitle">Listă de verificare{items.length ? ` (${doneCount}/${items.length})` : ''}</h3></div>
-            <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
+            <button type="button" className="sheet-close" aria-label="Închide" disabled={saving} onClick={onClose}>×</button>
           </div>
           <div className="checklist-items">
             {items.length === 0 ? (
               <p className="status-history-empty">Nicio verificare adăugată încă.</p>
             ) : items.map((item, i) => (
               <div key={i} className={`checklist-item${item.done ? ' done' : ''}`}>
-                <input type="checkbox" checked={item.done} onChange={() => toggle(i)} />
+                <input type="checkbox" disabled={saving} checked={item.done} onChange={() => toggle(i)} />
                 <span className="checklist-item-text">{item.text}</span>
-                <button type="button" className="checklist-item-remove" aria-label="Șterge" onClick={() => remove(i)}>×</button>
+                <button type="button" className="checklist-item-remove" aria-label="Șterge" disabled={saving} onClick={() => remove(i)}>×</button>
               </div>
             ))}
           </div>
           <div className="checklist-add">
             <input
               type="text" placeholder="Element nou…" value={newItemText}
+              disabled={saving}
               onChange={(e) => setNewItemText(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
             />
-            <button type="button" className="btn" onClick={add}>+ Adaugă</button>
+            <button type="button" className="btn" disabled={saving} onClick={add}>+ Adaugă</button>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useProjects } from './ProjectsContext';
+import { dateKey } from './projectUtils';
 
 // internalProjects (Proiecte LPS) is deliberately browser-local storage,
 // not Supabase (see lps.js) -- still fully vanilla/deferred this round,
@@ -26,9 +27,15 @@ export function ProjectsHomePanel() {
   const activeProjects = store.projects.filter((p) => !p.archived).length;
   const activeBacklog = store.backlogProjects.filter((p) => (p.status || 'Ongoing') !== 'Terminat').length;
   const lpsCount = internalProjectsCount();
-  const in14Days = new Date();
-  in14Days.setDate(in14Days.getDate() + 14);
-  const upcomingWorkOrders = store.workOrders.filter((w) => w.status !== 'Finalizat' && w.status !== 'Anulat' && new Date(w.scheduled_date) <= in14Days).length;
+  const today = new Date();
+  const cutoff = new Date(today);
+  cutoff.setDate(cutoff.getDate() + 14);
+  const todayKey = dateKey(today);
+  const cutoffKey = dateKey(cutoff);
+  const upcomingWorkOrders = store.workOrders.filter((w) =>
+    w.status !== 'Finalizat' && w.status !== 'Anulat' &&
+    w.scheduled_date >= todayKey && w.scheduled_date <= cutoffKey,
+  ).length;
 
   return (
     <>

@@ -184,23 +184,23 @@
     document.querySelectorAll('.lps-section').forEach(section => section.classList.toggle('active', section.dataset.lpsSection === lpsActiveView));
 
     const milestoneList = document.getElementById('lpsMilestonesList');
-    milestoneList.innerHTML = data.milestones.length ? data.milestones.map(item => lpsItemHtml('milestones', item, `${item.owner || 'Responsabil nealocat'} · ${lpsDate(item.due_date)}`, item.done ? 'Finalizat' : 'Deschis', item.done ? 'done' : '')).join('') : lpsEmpty('Adaugă reperele care definesc fazele proiectului.');
+    milestoneList.innerHTML = data.milestones.length ? data.milestones.map(item => lpsItemHtml('milestones', item, `${escapeHtml(item.owner || 'Responsabil nealocat')} · ${lpsDate(item.due_date)}`, item.done ? 'Finalizat' : 'Deschis', item.done ? 'done' : '')).join('') : lpsEmpty('Adaugă reperele care definesc fazele proiectului.');
     const pullList = document.getElementById('lpsPullList');
-    pullList.innerHTML = data.pull.length ? data.pull.map(item => lpsItemHtml('pull', item, `${item.from_owner || 'Nespecificat'} → ${item.to_owner || 'Nespecificat'}`, item.done ? 'Predat' : 'De predat', item.done ? 'done' : '', item.condition)).join('') : lpsEmpty('Adaugă predările necesare dintre echipe sau responsabili.');
+    pullList.innerHTML = data.pull.length ? data.pull.map(item => lpsItemHtml('pull', item, `${escapeHtml(item.from_owner || 'Nespecificat')} → ${escapeHtml(item.to_owner || 'Nespecificat')}`, item.done ? 'Predat' : 'De predat', item.done ? 'done' : '', item.condition)).join('') : lpsEmpty('Adaugă predările necesare dintre echipe sau responsabili.');
     const lookaheadList = document.getElementById('lpsLookaheadList');
     lookaheadList.innerHTML = lpsLookaheadItems.length
       ? lpsLookaheadItems.map(item => lpsLookaheadItemHtml(item)).join('')
       : lpsEmpty('Adaugă lucrările care pot începe în următoarele șase săptămâni.');
     const constraintList = document.getElementById('lpsConstraintsList');
     constraintList.innerHTML = data.constraints.length ? data.constraints.map(item => {
-      const meta = `${escapeHtml(item.category)} · ${item.owner || 'Responsabil nealocat'} · termen ${lpsDate(item.due_date)}`;
+      const meta = `${escapeHtml(item.category)} · ${escapeHtml(item.owner || 'Responsabil nealocat')} · termen ${lpsDate(item.due_date)}`;
       const resolve = item.resolved ? '' : '<button type="button" class="btn lps-resolve-btn">Marchează eliminată</button>';
       return lpsItemHtml('constraints', item, meta, item.resolved ? 'Eliminată' : 'Deschisă', item.resolved ? 'done' : 'blocked', item.action, resolve);
     }).join('') : lpsEmpty('Înregistrează un blocaj înainte ca acesta să întârzie lucrarea.');
     const weeklyList = document.getElementById('lpsWeeklyList');
     weeklyList.innerHTML = data.weekly.length ? data.weekly.slice().sort((a, b) => (b.week_start || '').localeCompare(a.week_start || '')).map(item => lpsWeeklyItemHtml(item)).join('') : lpsEmpty('Adaugă promisiuni pentru săptămâna de lucru sau promovează o lucrare pregătită din look-ahead.');
     const huddleList = document.getElementById('lpsHuddleList');
-    huddleList.innerHTML = data.huddles.length ? data.huddles.slice().sort((a, b) => (b.huddle_date || '').localeCompare(a.huddle_date || '')).map(item => lpsItemHtml('huddles', item, `${lpsDate(item.huddle_date)} · ${item.facilitator || 'Facilitator nealocat'}`, 'Huddle', '', item.notes)).join('') : lpsEmpty('Salvează rezultatul următoarei întâlniri scurte de coordonare.');
+    huddleList.innerHTML = data.huddles.length ? data.huddles.slice().sort((a, b) => (b.huddle_date || '').localeCompare(a.huddle_date || '')).map(item => lpsItemHtml('huddles', item, `${lpsDate(item.huddle_date)} · ${escapeHtml(item.facilitator || 'Facilitator nealocat')}`, 'Huddle', '', item.notes)).join('') : lpsEmpty('Salvează rezultatul următoarei întâlniri scurte de coordonare.');
     const weeklyStart = document.querySelector('#lpsWeeklyForm [name="week_start"]');
     if (weeklyStart && !weeklyStart.value) weeklyStart.value = currentWeek;
     renderLpsVarianceBreakdown(data);
@@ -384,7 +384,7 @@
     renderLpsWorkspace();
   }
   function lpsLookaheadItemHtml(item){
-    const meta = `${item.owner || 'Responsabil nealocat'} · ${lpsDate(item.start_date)} → ${lpsDate(item.due_date)}${item.location ? ' · ' + escapeHtml(item.location) : ''}`;
+    const meta = `${escapeHtml(item.owner || 'Responsabil nealocat')} · ${lpsDate(item.start_date)} → ${lpsDate(item.due_date)}${item.location ? ' · ' + escapeHtml(item.location) : ''}`;
     const action = item.ready
       ? '<button type="button" class="btn lps-promote-btn">Promite săptămâna asta</button>'
       : '<button type="button" class="btn lps-make-ready-btn">Marchează pregătită</button>';

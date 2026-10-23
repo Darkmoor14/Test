@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
 import { createLogEntityActivity } from '../shared/entityLogClient';
+import { saveChecklist as persistChecklist } from '../../lib/dataServices';
 import type { BacklogProject, BacklogFilterKey, Project, ProjectsFilterKey, WorkOrder } from './types';
 import { calcProjectStatus, getProjectStatusFilterKey, matchesProjectSearch, matchesProjectYear } from './projectUtils';
 import type { ProjectStatusKey } from './types';
@@ -111,8 +112,10 @@ export function useProjectsStore(sessionEmail: string | null) {
   }, [supabase, projectSelectedIds, reloadProjects, logEntityActivity]);
 
   const saveProjectChecklist = useCallback(async (id: string, items: Project['checklist']) => {
-    await supabase.from('current_projects').update({ checklist: items }).eq('id', id);
+    const { error } = await persistChecklist(supabase, 'current_projects', id, items || []);
+    if (error) { console.error(error); alert('Lista nu a fost salvată. Încercați din nou.'); return false; }
     await reloadProjects();
+    return true;
   }, [supabase, reloadProjects]);
 
   useEffect(() => {
@@ -184,8 +187,10 @@ export function useProjectsStore(sessionEmail: string | null) {
   }, [supabase, reloadBacklog, logEntityActivity]);
 
   const saveBacklogChecklist = useCallback(async (id: string, items: BacklogProject['checklist']) => {
-    await supabase.from('backlog_projects').update({ checklist: items }).eq('id', id);
+    const { error } = await persistChecklist(supabase, 'backlog_projects', id, items || []);
+    if (error) { console.error(error); alert('Lista nu a fost salvată. Încercați din nou.'); return false; }
     await reloadBacklog();
+    return true;
   }, [supabase, reloadBacklog]);
 
   useEffect(() => {
@@ -208,6 +213,27 @@ export function useProjectsStore(sessionEmail: string | null) {
   }, [supabase]);
 
   useEffect(() => { if (sessionEmail) reloadWorkOrders(); }, [sessionEmail, reloadWorkOrders]);
+
+  // Supabase is shared across staff accounts. Refresh when returning to a
+  // module so edits made by another person do not remain invisible until
+  // this user makes a local change or signs in again.
+  useEffect(() => {
+    const onTabChange = (event: Event) => {
+      if (!sessionEmail) return;
+      const tab = (event as CustomEvent<string>).detail;
+      if (tab === 'projects-home') {
+        void Promise.all([reloadProjects(), reloadBacklog(), reloadWorkOrders()]);
+      } else if (tab === 'projects') {
+        void reloadProjects();
+      } else if (tab === 'backlog') {
+        void reloadBacklog();
+      } else if (tab === 'workorders') {
+        void reloadWorkOrders();
+      }
+    };
+    window.addEventListener('admin:tabchange', onTabChange);
+    return () => window.removeEventListener('admin:tabchange', onTabChange);
+  }, [sessionEmail, reloadProjects, reloadBacklog, reloadWorkOrders]);
 
   const openWorkOrderForm = useCallback((w: WorkOrder | null, defaultDate?: string) => {
     setEditingWorkOrder(w);

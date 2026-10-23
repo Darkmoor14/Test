@@ -63,6 +63,17 @@ export function useErpStore(sessionEmail: string | null) {
 
   useEffect(() => { if (sessionEmail) reloadEquipment(); }, [sessionEmail, reloadEquipment]);
 
+  useEffect(() => {
+    const onTabChange = (event: Event) => {
+      const tab = (event as CustomEvent<string>).detail;
+      if (sessionEmail && ['erp-home', 'equipment', 'machines', 'materials', 'products'].includes(tab)) {
+        void reloadEquipment();
+      }
+    };
+    window.addEventListener('admin:tabchange', onTabChange);
+    return () => window.removeEventListener('admin:tabchange', onTabChange);
+  }, [sessionEmail, reloadEquipment]);
+
   const itemsByCategory = useCallback((cat: NonVehicleCategory) => equipment.filter((eq) => (eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material')) === cat), [equipment]);
 
   const openForm = useCallback((eq: EquipmentItem | null, preset?: NonVehicleCategory) => {
