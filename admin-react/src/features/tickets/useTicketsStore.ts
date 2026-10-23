@@ -199,24 +199,27 @@ export function useTicketsStore(sessionEmail: string | null) {
   // 'active' combined into status !== 'Terminat' AND status ===
   // 'Terminat', an impossible intersection -- the card looked broken,
   // always showing zero rows, regardless of which one was clicked.
+  //
+  // clearOverviewCardFilter needs to put overviewStatusFilter back to
+  // whatever it genuinely was right before the FIRST card click, not
+  // guess at it from the current year/month filters: ticketYearFilter
+  // defaults to the current year (not 'all') the moment tickets load,
+  // so "a specific year is selected" is true almost all the time even
+  // on a completely untouched dashboard, which made clearing a card
+  // wrongly widen to 'all' there too. A ref captured only on that
+  // first click (switching directly between cards doesn't re-capture
+  // and overwrite it with the 'all' the previous card forced) survives
+  // exactly that distinction without having to re-derive it.
+  const overviewStatusBeforeCardRef = useRef<OverviewStatusFilterKey>('active');
   const applyOverviewCardFilter = useCallback((filterKey: OverviewCardFilterKey) => {
+    if (overviewCardFilter === null) overviewStatusBeforeCardRef.current = overviewStatusFilter;
     setOverviewCardFilter(filterKey);
     setOverviewStatusFilter('all');
-  }, []);
-  // Undoes applyOverviewCardFilter above. Naively resetting status
-  // straight back to its hardcoded 'active' default broke browsing a
-  // specific month: picking e.g. Septembrie already widens status to
-  // 'all' (see narrowingSetYear/narrowingSetMonth in FilterPopover) so
-  // the month shows everything, open or solved -- clicking a card and
-  // then clearing it would blow that away and snap back to active-only,
-  // which (combined with the card's own type filter already having
-  // narrowed what's visible) looked like the card filter was still
-  // stuck on even after removing it. Restore 'all' instead whenever a
-  // specific month/year is still selected, 'active' only when it's not.
+  }, [overviewCardFilter, overviewStatusFilter]);
   const clearOverviewCardFilter = useCallback(() => {
     setOverviewCardFilter(null);
-    setOverviewStatusFilter(ticketYearFilter !== 'all' || ticketMonthFilter !== 'all' ? 'all' : 'active');
-  }, [ticketYearFilter, ticketMonthFilter]);
+    setOverviewStatusFilter(overviewStatusBeforeCardRef.current);
+  }, []);
 
   // ---- selection / editing ----
   const toggleSelected = useCallback((id: string, checked: boolean) => {
