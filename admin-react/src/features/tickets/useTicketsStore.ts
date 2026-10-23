@@ -203,15 +203,20 @@ export function useTicketsStore(sessionEmail: string | null) {
     setOverviewCardFilter(filterKey);
     setOverviewStatusFilter('all');
   }, []);
-  // Undoes both halves of applyOverviewCardFilter above -- clearing
-  // just overviewCardFilter and leaving overviewStatusFilter on the
-  // 'all' a card click had forced it to meant removing a card filter
-  // showed literally every ticket (Terminat included) instead of
-  // going back to the normal default view.
+  // Undoes applyOverviewCardFilter above. Naively resetting status
+  // straight back to its hardcoded 'active' default broke browsing a
+  // specific month: picking e.g. Septembrie already widens status to
+  // 'all' (see narrowingSetYear/narrowingSetMonth in FilterPopover) so
+  // the month shows everything, open or solved -- clicking a card and
+  // then clearing it would blow that away and snap back to active-only,
+  // which (combined with the card's own type filter already having
+  // narrowed what's visible) looked like the card filter was still
+  // stuck on even after removing it. Restore 'all' instead whenever a
+  // specific month/year is still selected, 'active' only when it's not.
   const clearOverviewCardFilter = useCallback(() => {
     setOverviewCardFilter(null);
-    setOverviewStatusFilter('active');
-  }, []);
+    setOverviewStatusFilter(ticketYearFilter !== 'all' || ticketMonthFilter !== 'all' ? 'all' : 'active');
+  }, [ticketYearFilter, ticketMonthFilter]);
 
   // ---- selection / editing ----
   const toggleSelected = useCallback((id: string, checked: boolean) => {
