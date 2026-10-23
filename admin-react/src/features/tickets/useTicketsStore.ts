@@ -191,12 +191,12 @@ export function useTicketsStore(sessionEmail: string | null) {
   }, []);
 
   // A priority card's own condition (status === 'Terminat' for
-  // "Soluționate", status !== 'Terminat' for the other four) already
-  // fully determines which status(es) it shows -- so it also resets
-  // the Filtre popover's status chip to 'all', not just the card
-  // itself. Leaving that chip on whatever it last was (its own default
-  // is 'active') meant e.g. clicking "Soluționate" while it was still
-  // on 'active' combined into status !== 'Terminat' AND status ===
+  // "Soluționate"/"Așteaptă raport", status !== 'Terminat' for the
+  // other four) already fully determines which status(es) it shows --
+  // so it also resets overviewStatusFilter to 'all', not just the card
+  // itself. Leaving that at whatever it last was (its own default is
+  // 'active') meant e.g. clicking "Soluționate" while it was still
+  // 'active' combined into status !== 'Terminat' AND status ===
   // 'Terminat', an impossible intersection -- the card looked broken,
   // always showing zero rows, regardless of which one was clicked.
   const applyOverviewCardFilter = useCallback((filterKey: OverviewCardFilterKey) => {

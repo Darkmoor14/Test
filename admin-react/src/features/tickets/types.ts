@@ -20,7 +20,7 @@ export interface Ticket {
 
 export type StatusFilterKey = 'Ongoing' | 'Terminat' | 'AwaitingReport' | 'Toate';
 export type OverviewStatusFilterKey = 'all' | 'active' | 'done' | 'awaiting_report';
-export type OverviewCardFilterKey = 'active' | 'aging' | 'functional' | 'accident' | 'solved' | null;
+export type OverviewCardFilterKey = 'active' | 'aging' | 'functional' | 'accident' | 'solved' | 'awaiting_report' | null;
 export type TypeOnlyFilterKey = 'functional' | 'accident' | null;
 export type ActiveTypeFilterKey = 'Toate' | 'functional' | 'accident';
 

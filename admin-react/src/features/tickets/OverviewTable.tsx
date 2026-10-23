@@ -3,7 +3,7 @@ import { useTickets } from './TicketsContext';
 import { useStaffRoster } from '../home/useStaffRoster';
 import {
   AGING_THRESHOLD_DAYS, calendarDaysBetween, fmtDateOnly, formatDurationDays,
-  getCanonicalTicket, isDuplicateTicket, matchesMonth, matchesSearch, matchesYear, parseTicketDate,
+  getCanonicalTicket, isAwaitingReport, isDuplicateTicket, matchesMonth, matchesSearch, matchesYear, parseTicketDate,
 } from './ticketUtils';
 import type { Ticket } from './types';
 
@@ -25,6 +25,8 @@ function useOverviewVisibleTickets(): Ticket[] {
 
     if (store.overviewCardFilter === 'solved') {
       visible = visible.filter((t) => t.status === 'Terminat');
+    } else if (store.overviewCardFilter === 'awaiting_report') {
+      visible = visible.filter((t) => isAwaitingReport(t));
     } else if (store.overviewCardFilter) {
       visible = visible.filter((t) => t.status !== 'Terminat');
       if (store.overviewCardFilter === 'aging') {

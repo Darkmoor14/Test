@@ -188,6 +188,7 @@ export const OVERVIEW_CARD_FILTER_LABELS: Record<Exclude<OverviewCardFilterKey, 
   functional: 'Filtru activ: doar sesizări cu defect',
   accident: 'Filtru activ: doar accidente',
   solved: 'Filtru activ: doar sesizări soluționate',
+  awaiting_report: 'Filtru activ: doar sesizări ce așteaptă raport',
 };
 
 export const MONTH_FILTER_NAMES = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie', 'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie'];

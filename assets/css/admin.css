@@ -1216,7 +1216,7 @@
   }
 
   .priority-grid{
-    display:grid;grid-template-columns:repeat(5,1fr);gap:14px;
+    display:grid;grid-template-columns:repeat(6,1fr);gap:14px;
     margin-bottom:28px;
   }
   /* Home icon/tab only exist for vlasbogdan@ — the start screen (see

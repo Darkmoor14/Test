@@ -81,6 +81,23 @@ export function FilterPopover<K extends string>({
 
   const noteText = isDefault ? '' : describeFilter();
 
+  // Picking an actual year/month is as narrowing an action as picking a
+  // specific day (see setDay's own widening below) or starting a search
+  // (SearchToggle) -- without also widening status, choosing e.g.
+  // "Septembrie" while still on the default "Active" chip silently
+  // combined into "status=active AND month=September", which hid every
+  // September ticket that had since been resolved and just showed an
+  // empty list with nothing on screen explaining why. Resetting back to
+  // "Toate anii"/"Toate lunile" doesn't widen -- only an actual pick does.
+  const narrowingSetYear = (v: string) => {
+    if (v !== 'all' && widenStatus !== undefined) setStatus(widenStatus);
+    setYear(v);
+  };
+  const narrowingSetMonth = (v: string) => {
+    if (v !== 'all' && widenStatus !== undefined) setStatus(widenStatus);
+    setMonth(v);
+  };
+
   return (
     <>
       <div className="overview-popover-wrap" ref={wrapRef}>
@@ -96,14 +113,14 @@ export function FilterPopover<K extends string>({
             <div className="sheet-grid popover-yearmonth">
               <div className="ctrl-field">
                 <label>An</label>
-                <select value={year} onChange={(e) => setYear(e.target.value)}>
+                <select value={year} onChange={(e) => narrowingSetYear(e.target.value)}>
                   <option value="all">Toate anii</option>
                   {availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
                 </select>
               </div>
               <div className="ctrl-field">
                 <label>Lună</label>
-                <select value={month} onChange={(e) => setMonth(e.target.value)}>
+                <select value={month} onChange={(e) => narrowingSetMonth(e.target.value)}>
                   <option value="all">Toate lunile</option>
                   {MONTH_FILTER_NAMES.map((name, i) => <option key={i} value={i + 1}>{name}</option>)}
                 </select>
@@ -112,7 +129,7 @@ export function FilterPopover<K extends string>({
           )}
           {showDateFilters && (
             <MiniDayCalendar
-              year={year} month={month} day={day} setYear={setYear} setMonth={setMonth}
+              year={year} month={month} day={day} setYear={narrowingSetYear} setMonth={narrowingSetMonth}
               setDay={(d) => {
                 // Picking an actual day is as strong a narrowing action as
                 // starting a search (see SearchToggle's own widenStatus) --
