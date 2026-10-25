@@ -704,18 +704,6 @@
   .calendar-day-event-title{font-weight:600;color:var(--ink-900);margin-bottom:2px;}
   .calendar-day-event-meta{font-size:12px;color:var(--ink-600);}
   .calendar-day-events-empty{color:var(--ink-400);font-size:13px;padding:8px 0;}
-  /* Cal.com-style tab bar (Basics/Setup/Advanced) ported as Detalii /
-     Repetare & Memento / Participanți — an underline-tab bar rather than
-     the pill-shaped .chip, since these gate the whole form body instead
-     of toggling a filter. */
-  .cef-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;}
-  .cef-tab{
-    font:inherit;font-size:12.5px;color:var(--ink-600);background:none;border:none;
-    padding:9px 6px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
-    transition:color .15s,border-color .15s;
-  }
-  .cef-tab:hover{color:var(--copper-600);}
-  .cef-tab.active{color:var(--copper-600);border-bottom-color:var(--copper-500);font-weight:600;}
   .cef-allday-field{
     display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-700);
     margin:4px 0 16px;cursor:pointer;
@@ -726,6 +714,25 @@
   .cef-attendee-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-700);cursor:pointer;}
   .cef-attendees-empty{font-size:12.5px;color:var(--ink-400);}
   .cef-attendees-hint{margin:6px 0 0;font-size:11.5px;color:var(--ink-400);}
+  .cef-attendee-add-row{display:flex;gap:8px;margin-top:8px;}
+  .cef-attendee-add-row input{flex:1;min-width:0;}
+  .cef-attendee-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .cef-attendee-tag{
+    display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-700);
+    background:var(--paper-100);border:1px solid var(--line-strong);border-radius:20px;padding:4px 6px 4px 10px;
+  }
+  .cef-attendee-tag button{
+    width:16px;height:16px;border-radius:50%;border:none;background:var(--paper-000);
+    color:var(--ink-600);cursor:pointer;font-size:12px;line-height:1;padding:0;flex-shrink:0;
+  }
+  .cef-attendee-tag button:hover{color:var(--signal-red);}
+  /* Starts/Ends: a date picker plus the same select+precise-toggle time
+     control used elsewhere, side by side on wide screens -- stacked on
+     narrow ones since a date input and a time-row each want real width. */
+  .cef-date-time-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .cef-date-time-row > input[type="date"]{flex:1;min-width:130px;}
+  .cef-date-time-row > .cef-time-row{flex:1;min-width:160px;}
+  .cef-recur-custom-desc{margin:6px 0 0;font-size:11.5px;color:var(--ink-600);}
   /* Ora început/sfârșit default to a quick 15-min-increment select (or
      a relative-duration select for the end time) — the native
      type="time" picker's scroll-wheel UI is the "annoying" part this

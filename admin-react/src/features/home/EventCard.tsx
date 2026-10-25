@@ -15,6 +15,8 @@ export function EventCard({ event, now, onClick }: { event: CalendarEvent; now: 
         {Array.isArray(event.attendees) && event.attendees.length > 0 && (
           <div className="calendar-day-event-meta">👤 {event.attendees.join(', ')}</div>
         )}
+        {!!event.travel_time_minutes && <div className="calendar-day-event-meta">🚗 {event.travel_time_minutes} min deplasare</div>}
+        {event.url && <div className="calendar-day-event-meta"><a href={event.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>🔗 {event.url}</a></div>}
       </div>
       <span className="calendar-day-event-time">{timeLabel}</span>
     </div>

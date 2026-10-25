@@ -35,6 +35,8 @@ export interface CalendarEvent {
   recurrence_count: number | null;
   attendees: string[] | null;
   created_by: string | null;
+  travel_time_minutes: number | null;
+  url: string | null;
   is_recurring_occurrence?: boolean;
 }
 
@@ -134,8 +136,16 @@ export function eventsByDateInRange(calendarEvents: CalendarEvent[], rangeStart:
         push(dateKey(d), buildOccurrenceEvent(e, d));
       }
     } else {
-      const d = new Date(e.start_time);
-      if (d >= rangeStart && d <= rangeEnd) push(dateKey(d), e);
+      const startDay = new Date(new Date(e.start_time).getFullYear(), new Date(e.start_time).getMonth(), new Date(e.start_time).getDate());
+      const endDay = e.end_time
+        ? new Date(new Date(e.end_time).getFullYear(), new Date(e.end_time).getMonth(), new Date(e.end_time).getDate())
+        : startDay;
+      let cursor = new Date(Math.max(startDay.getTime(), rangeStart.getTime()));
+      const stopAt = new Date(Math.min(endDay.getTime(), rangeEnd.getTime()));
+      while (cursor <= stopAt) {
+        push(dateKey(cursor), e);
+        cursor = new Date(cursor.getTime() + 86400000);
+      }
     }
   }
   for (const arr of map.values()) arr.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
@@ -145,7 +155,15 @@ export function eventsByDateInRange(calendarEvents: CalendarEvent[], rangeStart:
 export function eventsOnDate(calendarEvents: CalendarEvent[], dateKeyStr: string): CalendarEvent[] {
   const [y, m, d] = dateKeyStr.split('-').map(Number);
   const targetDate = new Date(y, m - 1, d);
-  const direct = calendarEvents.filter((e) => e.start_time && !e.recurrence_freq && dateKey(new Date(e.start_time)) === dateKeyStr);
+  // end_time can now land on a later calendar day than start_time (a
+  // real "Ends" date/time, not a same-day duration) -- an event occupies
+  // every day in [startDay, endDay] inclusive, not just its start day.
+  const direct = calendarEvents.filter((e) => {
+    if (!e.start_time || e.recurrence_freq) return false;
+    const startKey = dateKey(new Date(e.start_time));
+    const endKey = e.end_time ? dateKey(new Date(e.end_time)) : startKey;
+    return dateKeyStr >= startKey && dateKeyStr <= endKey;
+  });
   const recurring = calendarEvents
     .filter((e) => e.recurrence_freq && getRecurrenceOccurrenceDates(e, targetDate, targetDate).length > 0)
     .map((e) => buildOccurrenceEvent(e, targetDate));

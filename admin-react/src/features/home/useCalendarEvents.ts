@@ -17,6 +17,8 @@ export interface CalendarEventInput {
   recurrence_end_date: string | null;
   recurrence_count: number | null;
   attendees: string[] | null;
+  travel_time_minutes: number | null;
+  url: string | null;
 }
 
 export function useCalendarEvents(sessionEmail: string | null) {

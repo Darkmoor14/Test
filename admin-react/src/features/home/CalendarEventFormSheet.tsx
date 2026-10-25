@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { pad2 } from '../../lib/format';
-import { dateKey, describeRecurrence, type CalendarEvent, type RecurrencePattern } from './calendarUtils';
+import { dateKey, describeRecurrence, isoWeekday, type CalendarEvent, type RecurrenceFreq, type RecurrencePattern } from './calendarUtils';
 import { RecurrenceSheet } from './RecurrenceSheet';
 import type { CalendarEventInput } from './useCalendarEvents';
 
@@ -12,9 +12,25 @@ const REMINDER_OPTIONS = [
   { value: '60', label: 'Cu 1 oră înainte' },
   { value: '1440', label: 'Cu 1 zi înainte' },
 ];
-const END_DURATION_OPTIONS = [
-  { value: '30', label: '30 minute' }, { value: '60', label: '1 oră' },
-  { value: '90', label: '1,5 ore' }, { value: '120', label: '2 ore' },
+const TRAVEL_TIME_OPTIONS = [
+  { value: '', label: 'Fără' },
+  { value: '5', label: '5 minute' },
+  { value: '15', label: '15 minute' },
+  { value: '30', label: '30 minute' },
+  { value: '45', label: '45 minute' },
+  { value: '60', label: '1 oră' },
+  { value: '90', label: '1,5 ore' },
+  { value: '120', label: '2 ore' },
+];
+
+type RepeatPreset = 'none' | RecurrenceFreq | 'custom';
+const REPEAT_OPTIONS: { value: RepeatPreset; label: string }[] = [
+  { value: 'none', label: 'Niciodată' },
+  { value: 'daily', label: 'Zilnic' },
+  { value: 'weekly', label: 'Săptămânal' },
+  { value: 'monthly', label: 'Lunar' },
+  { value: 'yearly', label: 'Anual' },
+  { value: 'custom', label: 'Personalizat…' },
 ];
 
 function buildStartTimeOptions(): string[] {
@@ -24,14 +40,36 @@ function buildStartTimeOptions(): string[] {
   }
   return out;
 }
-const START_TIME_OPTIONS = buildStartTimeOptions();
+const TIME_OPTIONS = buildStartTimeOptions();
 
-type EventFormTab = 'details' | 'recurrence' | 'attendees';
-const TABS: { key: EventFormTab; label: string }[] = [
-  { key: 'details', label: 'Detalii' },
-  { key: 'recurrence', label: 'Repetare & Memento' },
-  { key: 'attendees', label: 'Participanți' },
-];
+// A pattern only round-trips through the dropdown if it's exactly what
+// picking that preset would produce (interval 1, no end date/count, and
+// for weekly, only the event's own start weekday) -- anything else (a
+// custom interval, several weekdays, an end date/count) falls back to
+// 'custom' so RecurrenceSheet stays the source of truth for it.
+function presetFromPattern(r: RecurrencePattern | null, startDateVal: string): RepeatPreset {
+  if (!r) return 'none';
+  if (r.recurrence_interval !== 1 || r.recurrence_end_type !== 'never') return 'custom';
+  if (r.recurrence_freq === 'weekly') {
+    const [y, m, d] = startDateVal.split('-').map(Number);
+    const startWd = isoWeekday(new Date(y, m - 1, d));
+    if (!r.recurrence_days_of_week || r.recurrence_days_of_week.length !== 1 || r.recurrence_days_of_week[0] !== startWd) return 'custom';
+  }
+  return r.recurrence_freq;
+}
+function patternFromPreset(preset: Exclude<RepeatPreset, 'custom'>, startDateVal: string): RecurrencePattern | null {
+  if (preset === 'none') return null;
+  const [y, m, d] = startDateVal.split('-').map(Number);
+  const startWd = isoWeekday(new Date(y, m - 1, d));
+  return {
+    recurrence_freq: preset,
+    recurrence_interval: 1,
+    recurrence_days_of_week: preset === 'weekly' ? [startWd] : null,
+    recurrence_end_type: 'never',
+    recurrence_end_date: null,
+    recurrence_count: null,
+  };
+}
 
 export function CalendarEventFormSheet({
   open, event, defaultDateKey, allStaffEmails, onClose, onSave, onDelete,
@@ -46,36 +84,40 @@ export function CalendarEventFormSheet({
 }) {
   const [title, setTitle] = useState('');
   const [allDay, setAllDay] = useState(false);
-  const [dateVal, setDateVal] = useState('');
+  const [startDateVal, setStartDateVal] = useState('');
   const [startPrecise, setStartPrecise] = useState(false);
   const [startSelectValue, setStartSelectValue] = useState('09:00');
   const [startPreciseValue, setStartPreciseValue] = useState('');
+  const [endDateVal, setEndDateVal] = useState('');
   const [endPrecise, setEndPrecise] = useState(false);
-  const [endDurationValue, setEndDurationValue] = useState('30');
+  const [endSelectValue, setEndSelectValue] = useState('09:30');
   const [endPreciseValue, setEndPreciseValue] = useState('');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
+  const [url, setUrl] = useState('');
   const [reminder, setReminder] = useState('');
+  const [travelTime, setTravelTime] = useState('');
   const [attendees, setAttendees] = useState<Set<string>>(new Set());
+  const [newAttendeeText, setNewAttendeeText] = useState('');
   const [pendingRecurrence, setPendingRecurrence] = useState<RecurrencePattern | null>(null);
   const [recurrenceSheetOpen, setRecurrenceSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<EventFormTab>('details');
 
   useEffect(() => {
     if (!open) return;
-    setActiveTab('details');
     setTitle(event ? event.title : '');
     setAllDay(event ? !!event.all_day : false);
     const start = event ? new Date(event.start_time) : null;
     const end = event && event.end_time ? new Date(event.end_time) : null;
-    setDateVal(event ? dateKey(start!) : (defaultDateKey || dateKey(new Date())));
+    const initialStartDate = event ? dateKey(start!) : (defaultDateKey || dateKey(new Date()));
+    setStartDateVal(initialStartDate);
 
+    let initialStartHHMM: string;
     if (start) {
-      const hhmm = `${pad2(start.getHours())}:${pad2(start.getMinutes())}`;
-      setStartPreciseValue(hhmm);
+      initialStartHHMM = `${pad2(start.getHours())}:${pad2(start.getMinutes())}`;
+      setStartPreciseValue(initialStartHHMM);
       if (start.getMinutes() % 15 === 0) {
-        setStartSelectValue(hhmm);
+        setStartSelectValue(initialStartHHMM);
         setStartPrecise(false);
       } else {
         setStartPrecise(true);
@@ -85,32 +127,39 @@ export function CalendarEventFormSheet({
       let mins = Math.ceil(now.getMinutes() / 15) * 15;
       let hrs = now.getHours();
       if (mins === 60) { mins = 0; hrs = (hrs + 1) % 24; }
-      const hhmm = `${pad2(hrs)}:${pad2(mins)}`;
-      setStartSelectValue(hhmm);
-      setStartPreciseValue(hhmm);
+      initialStartHHMM = `${pad2(hrs)}:${pad2(mins)}`;
+      setStartSelectValue(initialStartHHMM);
+      setStartPreciseValue(initialStartHHMM);
       setStartPrecise(false);
     }
 
-    if (end && start) {
+    if (end) {
+      setEndDateVal(dateKey(end));
       const hhmm = `${pad2(end.getHours())}:${pad2(end.getMinutes())}`;
       setEndPreciseValue(hhmm);
-      const diffMin = Math.round((end.getTime() - start.getTime()) / 60000);
-      if ([30, 60, 90, 120].includes(diffMin)) {
-        setEndDurationValue(String(diffMin));
+      if (end.getMinutes() % 15 === 0) {
+        setEndSelectValue(hhmm);
         setEndPrecise(false);
       } else {
         setEndPrecise(true);
       }
     } else {
-      setEndDurationValue('30');
-      setEndPreciseValue('');
+      setEndDateVal(initialStartDate);
+      const endDt = new Date(`${initialStartDate}T${initialStartHHMM}`);
+      endDt.setMinutes(endDt.getMinutes() + 30);
+      const hhmm = `${pad2(endDt.getHours())}:${pad2(endDt.getMinutes())}`;
+      setEndSelectValue(hhmm);
+      setEndPreciseValue(hhmm);
       setEndPrecise(false);
     }
 
     setLocation(event ? (event.location || '') : '');
     setDescription(event ? (event.description || '') : '');
+    setUrl(event ? (event.url || '') : '');
     setReminder(event && event.reminder_minutes_before ? String(event.reminder_minutes_before) : '');
+    setTravelTime(event && event.travel_time_minutes ? String(event.travel_time_minutes) : '');
     setAttendees(new Set((event && Array.isArray(event.attendees)) ? event.attendees : []));
+    setNewAttendeeText('');
     setPendingRecurrence(event && event.recurrence_freq ? {
       recurrence_freq: event.recurrence_freq,
       recurrence_interval: event.recurrence_interval || 1,
@@ -125,12 +174,28 @@ export function CalendarEventFormSheet({
   if (!open) return null;
 
   const getStartValue = (): string => (startPrecise ? (startPreciseValue || '00:00') : startSelectValue);
-  const getEndValue = (): string | null => {
-    if (endPrecise) return endPreciseValue || null;
-    if (!dateVal) return null;
-    const startVal = getStartValue();
-    const endDt = new Date(new Date(`${dateVal}T${startVal}`).getTime() + Number(endDurationValue) * 60000);
-    return `${pad2(endDt.getHours())}:${pad2(endDt.getMinutes())}`;
+  const getEndValue = (): string => (endPrecise ? (endPreciseValue || '00:00') : endSelectValue);
+
+  // Keeps the event's duration constant when the start time moves, same
+  // as dragging an event's start in Apple Calendar -- without this, a
+  // changed start time with a fixed end could silently flip the event
+  // negative-duration.
+  const shiftEndWithNewStart = (newStartTimeVal: string) => {
+    if (allDay) return;
+    const oldStart = new Date(`${startDateVal}T${getStartValue()}`);
+    const oldEnd = new Date(`${endDateVal}T${getEndValue()}`);
+    const durationMs = Math.max(0, oldEnd.getTime() - oldStart.getTime());
+    const newStart = new Date(`${startDateVal}T${newStartTimeVal}`);
+    const newEnd = new Date(newStart.getTime() + durationMs);
+    setEndDateVal(dateKey(newEnd));
+    const hhmm = `${pad2(newEnd.getHours())}:${pad2(newEnd.getMinutes())}`;
+    setEndSelectValue(hhmm);
+    setEndPreciseValue(hhmm);
+  };
+
+  const onStartDateChange = (newDate: string) => {
+    setEndDateVal((prevEnd) => (prevEnd === startDateVal ? newDate : prevEnd));
+    setStartDateVal(newDate);
   };
 
   const toggleAttendee = (email: string) => {
@@ -140,20 +205,44 @@ export function CalendarEventFormSheet({
       return next;
     });
   };
+  const addCustomAttendee = () => {
+    const name = newAttendeeText.trim();
+    if (!name) return;
+    setAttendees((prev) => new Set(prev).add(name));
+    setNewAttendeeText('');
+  };
+  const removeAttendee = (name: string) => {
+    setAttendees((prev) => {
+      const next = new Set(prev);
+      next.delete(name);
+      return next;
+    });
+  };
+  const customAttendees = [...attendees].filter((a) => !allStaffEmails.includes(a));
+
+  const repeatPreset = presetFromPattern(pendingRecurrence, startDateVal);
+  const onRepeatChange = (val: RepeatPreset) => {
+    if (val === 'custom') { setRecurrenceSheetOpen(true); return; }
+    setPendingRecurrence(patternFromPreset(val, startDateVal));
+  };
 
   const handleSave = async () => {
     if (!title.trim()) return;
-    if (!dateVal) return;
-    const startTimeVal = getStartValue() || '00:00';
-    const endTimeVal = getEndValue();
-    const startISO = new Date(`${dateVal}T${allDay ? '00:00' : startTimeVal}`).toISOString();
-    const endISO = (!allDay && endTimeVal) ? new Date(`${dateVal}T${endTimeVal}`).toISOString() : null;
+    if (!startDateVal || !endDateVal) return;
+    const startTimeVal = allDay ? '00:00' : getStartValue();
+    const endTimeVal = allDay ? '23:59' : getEndValue();
+    const startDt = new Date(`${startDateVal}T${startTimeVal}`);
+    const endDt = new Date(`${endDateVal}T${endTimeVal}`);
+    if (endDt < startDt) {
+      alert('Data de final nu poate fi înainte de data de început.');
+      return;
+    }
     const payload: CalendarEventInput = {
       title: title.trim(),
       description: description.trim() || null,
       location: location.trim() || null,
-      start_time: startISO,
-      end_time: endISO,
+      start_time: startDt.toISOString(),
+      end_time: endDt.toISOString(),
       all_day: allDay,
       reminder_minutes_before: reminder ? Number(reminder) : null,
       recurrence_freq: pendingRecurrence ? pendingRecurrence.recurrence_freq : null,
@@ -163,6 +252,8 @@ export function CalendarEventFormSheet({
       recurrence_end_date: pendingRecurrence ? pendingRecurrence.recurrence_end_date : null,
       recurrence_count: pendingRecurrence ? pendingRecurrence.recurrence_count : null,
       attendees: attendees.size ? [...attendees] : null,
+      travel_time_minutes: travelTime ? Number(travelTime) : null,
+      url: url.trim() || null,
     };
     setSaving(true);
     const ok = await onSave(event ? event.id : null, payload);
@@ -191,118 +282,146 @@ export function CalendarEventFormSheet({
               <div><h3 id="calendarEventFormSheetTitle">{event ? 'Editează eveniment' : 'Eveniment nou'}</h3></div>
               <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
             </div>
-            <div className="cef-tabs">
-              {TABS.map((t) => (
-                <button
-                  key={t.key} type="button"
-                  className={`cef-tab${activeTab === t.key ? ' active' : ''}`}
-                  onClick={() => setActiveTab(t.key)}
-                >
-                  {t.label}
-                </button>
-              ))}
+
+            <div className="ctrl-field">
+              <label>Titlu</label>
+              <input type="text" placeholder="ex: Întâlnire șantier" autoComplete="off" value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
-            {activeTab === 'details' && (
-              <>
-                <div className="ctrl-field">
-                  <label>Titlu</label>
-                  <input type="text" placeholder="ex: Întâlnire șantier" autoComplete="off" value={title} onChange={(e) => setTitle(e.target.value)} />
-                </div>
-                <label className="cef-allday-field">
-                  <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} /> Toată ziua
-                </label>
-                <div className="sheet-grid">
-                  <div className="ctrl-field">
-                    <label>Data</label>
-                    <input type="date" value={dateVal} onChange={(e) => setDateVal(e.target.value)} />
+
+            <div className="ctrl-field">
+              <label>Începe</label>
+              <div className="cef-date-time-row">
+                <input type="date" value={startDateVal} onChange={(e) => onStartDateChange(e.target.value)} />
+                {!allDay && (
+                  <div className="cef-time-row">
+                    <select hidden={startPrecise} value={startSelectValue} onChange={(e) => { setStartSelectValue(e.target.value); shiftEndWithNewStart(e.target.value); }}>
+                      {TIME_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <button
+                      type="button"
+                      className={`cef-time-edit-btn${startPrecise ? ' active' : ''}`}
+                      title="Editează o oră exactă"
+                      aria-label="Editează o oră exactă"
+                      onClick={() => {
+                        const willBePrecise = !startPrecise;
+                        if (willBePrecise && !startPreciseValue) setStartPreciseValue(startSelectValue);
+                        setStartPrecise(willBePrecise);
+                      }}
+                    >
+                      🕐
+                    </button>
+                    <input type="time" className="cef-time-precise" hidden={!startPrecise} value={startPreciseValue} onChange={(e) => { setStartPreciseValue(e.target.value); shiftEndWithNewStart(e.target.value); }} />
                   </div>
-                  {!allDay && (
-                    <div className="ctrl-field">
-                      <label>Ora început</label>
-                      <div className="cef-time-row">
-                        <select hidden={startPrecise} value={startSelectValue} onChange={(e) => setStartSelectValue(e.target.value)}>
-                          {START_TIME_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                        <button
-                          type="button"
-                          className={`cef-time-edit-btn${startPrecise ? ' active' : ''}`}
-                          title="Editează o oră exactă"
-                          aria-label="Editează o oră exactă"
-                          onClick={() => {
-                            const willBePrecise = !startPrecise;
-                            if (willBePrecise && !startPreciseValue) setStartPreciseValue(startSelectValue);
-                            setStartPrecise(willBePrecise);
-                          }}
-                        >
-                          🕐
-                        </button>
-                        <input type="time" className="cef-time-precise" hidden={!startPrecise} value={startPreciseValue} onChange={(e) => setStartPreciseValue(e.target.value)} />
-                      </div>
-                    </div>
-                  )}
-                  {!allDay && (
-                    <div className="ctrl-field">
-                      <label>Ora sfârșit</label>
-                      <div className="cef-time-row">
-                        <select hidden={endPrecise} value={endDurationValue} onChange={(e) => setEndDurationValue(e.target.value)}>
-                          {END_DURATION_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                        <button
-                          type="button"
-                          className={`cef-time-edit-btn${endPrecise ? ' active' : ''}`}
-                          title="Editează o oră exactă"
-                          aria-label="Editează o oră exactă"
-                          onClick={() => {
-                            const willBePrecise = !endPrecise;
-                            if (willBePrecise && !endPreciseValue) setEndPreciseValue(getEndValue() || '');
-                            setEndPrecise(willBePrecise);
-                          }}
-                        >
-                          🕐
-                        </button>
-                        <input type="time" className="cef-time-precise" hidden={!endPrecise} value={endPreciseValue} onChange={(e) => setEndPreciseValue(e.target.value)} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="ctrl-field">
-                  <label>Locație (opțional)</label>
-                  <input type="text" placeholder="ex: Str. Gh. Doja nr. 4" autoComplete="off" value={location} onChange={(e) => setLocation(e.target.value)} />
-                </div>
-                <div className="ctrl-field">
-                  <label>Descriere (opțional)</label>
-                  <input type="text" placeholder="Detalii" autoComplete="off" value={description} onChange={(e) => setDescription(e.target.value)} />
-                </div>
-              </>
-            )}
-            {activeTab === 'recurrence' && (
-              <>
-                <div className="ctrl-field">
-                  <button type="button" className={`btn cef-recur-btn${pendingRecurrence ? ' active' : ''}`} onClick={() => setRecurrenceSheetOpen(true)}>
-                    {describeRecurrence(pendingRecurrence)}
-                  </button>
-                </div>
-                <div className="ctrl-field">
-                  <label>Memento</label>
-                  <select value={reminder} onChange={(e) => setReminder(e.target.value)}>
-                    {REMINDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-              </>
-            )}
-            {activeTab === 'attendees' && (
-              <div className="ctrl-field">
-                <label>Alocat cui (opțional)</label>
-                <div className="cef-attendees-list">
-                  {allStaffEmails.length ? allStaffEmails.map((email) => (
-                    <label key={email} className="cef-attendee-item">
-                      <input type="checkbox" checked={attendees.has(email)} onChange={() => toggleAttendee(email)} /> {email}
-                    </label>
-                  )) : <span className="cef-attendees-empty">Lista de conturi nu s-a încărcat încă.</span>}
-                </div>
-                <p className="cef-attendees-hint">Lăsat gol → vizibil pentru toată lumea pe Acasă. Bifat → apare doar în „De făcut" al persoanelor alese.</p>
+                )}
               </div>
-            )}
+            </div>
+
+            <div className="ctrl-field">
+              <label>Se termină</label>
+              <div className="cef-date-time-row">
+                <input type="date" value={endDateVal} min={startDateVal} onChange={(e) => setEndDateVal(e.target.value)} />
+                {!allDay && (
+                  <div className="cef-time-row">
+                    <select hidden={endPrecise} value={endSelectValue} onChange={(e) => setEndSelectValue(e.target.value)}>
+                      {TIME_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <button
+                      type="button"
+                      className={`cef-time-edit-btn${endPrecise ? ' active' : ''}`}
+                      title="Editează o oră exactă"
+                      aria-label="Editează o oră exactă"
+                      onClick={() => {
+                        const willBePrecise = !endPrecise;
+                        if (willBePrecise && !endPreciseValue) setEndPreciseValue(endSelectValue);
+                        setEndPrecise(willBePrecise);
+                      }}
+                    >
+                      🕐
+                    </button>
+                    <input type="time" className="cef-time-precise" hidden={!endPrecise} value={endPreciseValue} onChange={(e) => setEndPreciseValue(e.target.value)} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <label className="cef-allday-field">
+              <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} /> Toată ziua
+            </label>
+
+            <div className="ctrl-field">
+              <label>Repetare</label>
+              <div className="cef-time-row">
+                <select value={repeatPreset} onChange={(e) => onRepeatChange(e.target.value as RepeatPreset)}>
+                  {REPEAT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                {repeatPreset === 'custom' && (
+                  <button type="button" className="btn" onClick={() => setRecurrenceSheetOpen(true)}>Modifică…</button>
+                )}
+              </div>
+              {repeatPreset === 'custom' && pendingRecurrence && (
+                <p className="cef-recur-custom-desc">{describeRecurrence(pendingRecurrence)}</p>
+              )}
+            </div>
+
+            <div className="ctrl-field">
+              <label>Locație (opțional)</label>
+              <input type="text" placeholder="ex: Str. Gh. Doja nr. 4" autoComplete="off" value={location} onChange={(e) => setLocation(e.target.value)} />
+            </div>
+
+            <div className="ctrl-field">
+              <label>Invitați (opțional)</label>
+              <div className="cef-attendees-list">
+                {allStaffEmails.length ? allStaffEmails.map((email) => (
+                  <label key={email} className="cef-attendee-item">
+                    <input type="checkbox" checked={attendees.has(email)} onChange={() => toggleAttendee(email)} /> {email}
+                  </label>
+                )) : <span className="cef-attendees-empty">Lista de conturi nu s-a încărcat încă.</span>}
+              </div>
+              <div className="cef-attendee-add-row">
+                <input
+                  type="text" placeholder="Nume invitat (ex: client, firmă externă)" autoComplete="off" value={newAttendeeText}
+                  onChange={(e) => setNewAttendeeText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomAttendee(); } }}
+                />
+                <button type="button" className="btn" onClick={addCustomAttendee}>+ Adaugă</button>
+              </div>
+              {customAttendees.length > 0 && (
+                <div className="cef-attendee-tags">
+                  {customAttendees.map((name) => (
+                    <span key={name} className="cef-attendee-tag">
+                      {name}
+                      <button type="button" aria-label={`Elimină ${name}`} onClick={() => removeAttendee(name)}>×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="cef-attendees-hint">Lăsat gol → vizibil pentru toată lumea pe Acasă. Bifat → apare doar în „De făcut" al persoanelor alese.</p>
+            </div>
+
+            <div className="ctrl-field">
+              <label>Memento</label>
+              <select value={reminder} onChange={(e) => setReminder(e.target.value)}>
+                {REMINDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+
+            <div className="ctrl-field">
+              <label>Timp de deplasare</label>
+              <select value={travelTime} onChange={(e) => setTravelTime(e.target.value)}>
+                {TRAVEL_TIME_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+
+            <div className="ctrl-field">
+              <label>Note (opțional)</label>
+              <input type="text" placeholder="Detalii" autoComplete="off" value={description} onChange={(e) => setDescription(e.target.value)} />
+            </div>
+
+            <div className="ctrl-field">
+              <label>Link (opțional)</label>
+              <input type="url" placeholder="https://…" autoComplete="off" value={url} onChange={(e) => setUrl(e.target.value)} />
+            </div>
+
             <div className="sheet-actions cef-actions">
               {event && <button type="button" className="btn" onClick={handleDelete}>Șterge</button>}
               <button type="button" className="btn btn-primary" disabled={saving} onClick={handleSave}>Salvează</button>
@@ -314,7 +433,7 @@ export function CalendarEventFormSheet({
         open={recurrenceSheetOpen}
         onClose={() => setRecurrenceSheetOpen(false)}
         current={pendingRecurrence}
-        eventDateKey={dateVal || defaultDateKey}
+        eventDateKey={startDateVal || defaultDateKey}
         onRemove={() => { setPendingRecurrence(null); setRecurrenceSheetOpen(false); }}
         onSave={(pattern) => { setPendingRecurrence(pattern); setRecurrenceSheetOpen(false); }}
       />
