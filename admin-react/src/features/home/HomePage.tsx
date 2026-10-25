@@ -6,6 +6,7 @@ import { useReminders } from './useReminders';
 import { HomeClock } from './HomeClock';
 import { MiniCalendar } from './MiniCalendar';
 import { FullMonthCalendar } from './FullMonthCalendar';
+import { CalendarSyncSheet } from './CalendarSyncSheet';
 import { EventListOrEmpty } from './EventCard';
 import { CalendarDaySheet } from './CalendarDaySheet';
 import { CalendarEventFormSheet } from './CalendarEventFormSheet';
@@ -23,6 +24,7 @@ export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | 
   const [formEvent, setFormEvent] = useState<CalendarEvent | null>(null);
   const [formDefaultDate, setFormDefaultDate] = useState<string>(dateKey(new Date()));
   const [fullMonthOpen, setFullMonthOpen] = useState(false);
+  const [syncSheetOpen, setSyncSheetOpen] = useState(false);
 
   const openDay = (key: string) => { setSelectedDay(key); setDaySheetOpen(true); };
   const openNewEvent = (defaultDate: string) => { setFormEvent(null); setFormDefaultDate(defaultDate); setFormOpen(true); };
@@ -50,6 +52,7 @@ export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | 
           <HomeClock />
           <MiniCalendar calendarEvents={events} onDayClick={openDay} />
           <button type="button" className="home-mini-cal-expand-link" onClick={() => setFullMonthOpen(true)}>Vezi luna completă →</button>
+          <button type="button" className="home-mini-cal-expand-link" onClick={() => setSyncSheetOpen(true)}>Sincronizează cu telefonul →</button>
           <div className="home-cal-today">
             <span className="k">Astăzi</span>
             <div className="calendar-day-events">
@@ -92,6 +95,7 @@ export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | 
         onEventClick={openEditEventFromFullMonth}
         onAddEvent={openNewEventFromFullMonth}
       />
+      <CalendarSyncSheet open={syncSheetOpen} onClose={() => setSyncSheetOpen(false)} />
     </>
   );
 }

@@ -733,6 +733,15 @@
   .cef-date-time-row > input[type="date"]{flex:1;min-width:130px;}
   .cef-date-time-row > .cef-time-row{flex:1;min-width:160px;}
   .cef-recur-custom-desc{margin:6px 0 0;font-size:11.5px;color:var(--ink-600);}
+  .cal-sync-link-row{display:flex;gap:8px;}
+  .cal-sync-link-row input{
+    flex:1;min-width:0;font-family:var(--mono);font-size:11.5px;color:var(--ink-700);
+    padding:8px 11px;border:1px solid var(--line-strong);border-radius:6px;background:var(--paper-050);
+  }
+  .cal-sync-steps{display:flex;flex-direction:column;gap:10px;margin:16px 0;}
+  .cal-sync-step{padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--paper-050);}
+  .cal-sync-step-label{display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:var(--copper-600);margin-bottom:4px;}
+  .cal-sync-step p{margin:0;font-size:12.5px;color:var(--ink-700);}
   /* Ora început/sfârșit default to a quick 15-min-increment select (or
      a relative-duration select for the end time) — the native
      type="time" picker's scroll-wheel UI is the "annoying" part this
@@ -1038,13 +1047,16 @@
       box-shadow:0 20px 60px rgba(20,24,29,0.28);
     }
     #reportMonthSheet .mobile-sheet-panel,
-    #fuelReportExportFilterSheet .mobile-sheet-panel{
+    #fuelReportExportFilterSheet .mobile-sheet-panel,
+    #calendarSyncSheet .mobile-sheet-panel{
       position:fixed;top:50%;left:50%;right:auto;bottom:auto;
       transform:translate(-50%,-50%);
       width:460px;max-width:calc(100vw - 40px);
       border-radius:14px;max-height:86vh;
       box-shadow:0 20px 60px rgba(20,24,29,0.28);
     }
+    #calendarSyncSheet .mobile-sheet-panel-scroll{padding:18px 20px;}
+    #calendarSyncSheet .sheet-handle{display:none;}
     /* A real month grid needs far more than the 460px bucket above —
        its own wide centered popup instead of a new size tier shared
        with the small single-form sheets. */
