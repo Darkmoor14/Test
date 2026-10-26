@@ -46,10 +46,11 @@ export function hasExpiredDocs(eq: EquipmentItem): boolean {
   return expiredDocNames(eq).length > 0;
 }
 
-// Field-level diff for the activity journal -- "X a fost actualizat"
-// told you *that* something changed on save, never *what*, so every
-// edit looked identical in Jurnal de activitate regardless of whether
-// one typo was fixed or the whole record was rewritten.
+// Field labels for describeFieldChanges (now in ../shared/entityLogClient,
+// since Tickets needs the same diffing) -- "X a fost actualizat" told you
+// *that* something changed on save, never *what*, so every edit looked
+// identical in Jurnal de activitate regardless of whether one typo was
+// fixed or the whole record was rewritten.
 export const EQUIPMENT_FIELD_LABELS: Record<string, string> = {
   name: 'Nume',
   category: 'Categorie',
@@ -61,19 +62,3 @@ export const EQUIPMENT_FIELD_LABELS: Record<string, string> = {
   assigned_to: 'Alocat cui',
   notes: 'Note',
 };
-
-export function describeFieldChanges(
-  before: Record<string, unknown>,
-  after: Record<string, unknown>,
-  labels: Record<string, string>,
-): string {
-  const changes: string[] = [];
-  for (const key of Object.keys(labels)) {
-    const oldVal = before[key];
-    const newVal = after[key];
-    const oldNorm = oldVal === null || oldVal === undefined || oldVal === '' ? '—' : String(oldVal);
-    const newNorm = newVal === null || newVal === undefined || newVal === '' ? '—' : String(newVal);
-    if (oldNorm !== newNorm) changes.push(`${labels[key]}: ${oldNorm} → ${newNorm}`);
-  }
-  return changes.join('; ');
-}

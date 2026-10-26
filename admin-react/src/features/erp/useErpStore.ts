@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
-import { createLogEntityActivity } from '../shared/entityLogClient';
+import { createLogEntityActivity, describeFieldChanges } from '../shared/entityLogClient';
 import { erpData } from '../../lib/dataServices';
 import type { EquipmentItem, NonVehicleCategory, ResourceAssignment } from './types';
-import { describeFieldChanges, EQUIPMENT_FIELD_LABELS, EQUIPMENT_STATUS_CYCLE } from './erpUtils';
+import { EQUIPMENT_FIELD_LABELS, EQUIPMENT_STATUS_CYCLE } from './erpUtils';
 
 declare global {
   interface Window {

@@ -2,9 +2,14 @@ import { useEffect, useRef } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
 
 // Ported from system-status.js's "Auto-îmbunătățire" collectors: real JS
-// errors, UI friction signals (rage clicks, heavy typing), feature-click
-// tallies, and tab dwell time. All best-effort -- logging must never
-// itself break the app.
+// errors and UI friction signals (rage clicks, heavy typing). All
+// best-effort -- logging must never itself break the app.
+//
+// Used to also tally feature clicks and tab dwell time into
+// app_feature_clicks/app_page_views for a "Workflow" card on that page --
+// dropped (card and collection both) since nobody acted on time-on-page
+// or click-count stats for a handful of staff; the data just grew
+// forever unread. The tables themselves are left in place, unused.
 //
 // IMPORTANT: this installs app-WIDE listeners (window.onerror,
 // console.error, click/keydown/blur on `document`). Once mounted inside
@@ -18,7 +23,6 @@ const ERROR_LOG_DEDUPE_WINDOW_MS = 30000;
 const RAGE_CLICK_WINDOW_MS = 700;
 const RAGE_CLICK_THRESHOLD = 3;
 const RAGE_CLICK_THROTTLE_MS = 60000;
-const FEATURE_CLICK_FLUSH_MS = 120000;
 
 function frictionElementLabel(el: Element | null): string {
   if (!el) return 'necunoscut';
@@ -92,15 +96,12 @@ export function useGlobalTelemetry(sessionEmail: string | null, getCurrentTab: (
 
     const rageClickTracker = new Map<string, { count: number; firstTs: number }>();
     const rageClickLoggedAt = new Map<string, number>();
-    const featureClickTally = new Map<string, number>();
 
     const onClick = (e: MouseEvent) => {
       const target = (e.target as Element)?.closest('button, a, [role="button"]');
       if (!target) return;
       const sig = frictionElementLabel(target);
       const now = Date.now();
-      const tallyKey = `${getCurrentTabRef.current()}|${sig}`;
-      featureClickTally.set(tallyKey, (featureClickTally.get(tallyKey) || 0) + 1);
       const rec = rageClickTracker.get(sig);
       if (rec && now - rec.firstTs < RAGE_CLICK_WINDOW_MS) {
         rec.count++;
@@ -117,42 +118,6 @@ export function useGlobalTelemetry(sessionEmail: string | null, getCurrentTab: (
       }
     };
     document.addEventListener('click', onClick, true);
-
-    async function flushFeatureClickTally() {
-      if (featureClickTally.size === 0) return;
-      const rows = Array.from(featureClickTally.entries()).map(([key, count]) => {
-        const sepIdx = key.indexOf('|');
-        return {
-          tab: key.slice(0, sepIdx) || null,
-          target_label: key.slice(sepIdx + 1),
-          click_count: count,
-          user_email: sessionEmailRef.current,
-        };
-      });
-      featureClickTally.clear();
-      try {
-        await supabase.from('app_feature_clicks').insert(rows);
-      } catch {
-        // best effort
-      }
-    }
-    const flushInterval = setInterval(flushFeatureClickTally, FEATURE_CLICK_FLUSH_MS);
-
-    let tabEnteredAt = Date.now();
-    async function logPageView(tab: string, durationSeconds: number) {
-      try {
-        await supabase.from('app_page_views').insert({ tab, duration_seconds: Math.round(durationSeconds), user_email: sessionEmailRef.current });
-      } catch {
-        // best effort
-      }
-    }
-    const onBeforeUnload = () => {
-      flushFeatureClickTally();
-      const seconds = (Date.now() - tabEnteredAt) / 1000;
-      if (seconds >= 2) logPageView(getCurrentTabRef.current(), seconds);
-      tabEnteredAt = Date.now();
-    };
-    window.addEventListener('beforeunload', onBeforeUnload);
 
     const keystrokeCounts = new WeakMap<Element, number>();
     const onKeydown = (e: KeyboardEvent) => {
@@ -182,8 +147,6 @@ export function useGlobalTelemetry(sessionEmail: string | null, getCurrentTab: (
       window.removeEventListener('unhandledrejection', onRejection);
       console.error = origConsoleError;
       document.removeEventListener('click', onClick, true);
-      clearInterval(flushInterval);
-      window.removeEventListener('beforeunload', onBeforeUnload);
       document.removeEventListener('keydown', onKeydown);
       document.removeEventListener('blur', onBlur, true);
     };

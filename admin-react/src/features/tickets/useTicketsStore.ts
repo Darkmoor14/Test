@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
 import { ticketData } from '../../lib/dataServices';
+import { createLogEntityActivity, describeFieldChanges } from '../shared/entityLogClient';
 import type {
   ActiveTypeFilterKey, OverviewCardFilterKey, OverviewReturnState, OverviewStatusFilterKey,
   StatusFilterKey, Ticket, TypeOnlyFilterKey,
@@ -8,7 +9,7 @@ import type {
 import {
   AGING_THRESHOLD_DAYS, getCanonicalTicket, getEffectiveMonthYear, isAwaitingReport, isDuplicateTicket,
   isHistoricalDateFilter, matchesMonth, matchesSearch, matchesYear, parseTicketDate, sortTicketsByNumber,
-  ticketMatchesStatusFilter,
+  TICKET_FIELD_LABELS, ticketMatchesStatusFilter,
 } from './ticketUtils';
 
 declare global {
@@ -50,6 +51,7 @@ function viewFromTabKey(tabKey: string): ActiveTicketView {
 
 export function useTicketsStore(sessionEmail: string | null) {
   const supabase = useSupabase();
+  const logEntityActivity = useMemo(() => createLogEntityActivity(supabase, () => sessionEmail), [supabase, sessionEmail]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -296,6 +298,12 @@ export function useTicketsStore(sessionEmail: string | null) {
     }
     setEditingTicketId((prev) => (prev === t.id ? null : prev));
     clearDraft(t.id);
+    const changeSummary = describeFieldChanges(t as unknown as Record<string, unknown>, payload, TICKET_FIELD_LABELS);
+    logEntityActivity(
+      'ticket',
+      t.id,
+      changeSummary ? `Tichetul ${t.ticket_number || ''} a fost actualizat — ${changeSummary}.` : `Tichetul ${t.ticket_number || ''} a fost actualizat (fără modificări de câmp).`,
+    );
     if (opts.isNowAwaitingReport && !opts.wasAwaitingReport) {
       sendNotification({
         type: 'report_needed',
@@ -309,14 +317,16 @@ export function useTicketsStore(sessionEmail: string | null) {
     showToast(`Tichetul ${t.ticket_number || ''} a fost salvat.`);
     await reload();
     return true;
-  }, [supabase, clearDraft, sendNotification, reload]);
+  }, [supabase, clearDraft, sendNotification, reload, logEntityActivity]);
 
   const restoreTicket = useCallback(async (ticketId: string) => {
     const { error } = await ticketData.update(supabase, ticketId, { archived: false, archived_at: null });
     if (error) { console.error(error); alert('Eroare la dezarhivare. Încercați din nou.'); return false; }
+    const ticket = tickets.find((t) => t.id === ticketId);
+    logEntityActivity('ticket', ticketId, `Tichetul ${ticket?.ticket_number || ''} a fost restaurat din arhivă.`);
     await reload();
     return true;
-  }, [supabase, reload]);
+  }, [supabase, tickets, reload, logEntityActivity]);
 
   const archiveSelected = useCallback(async () => {
     if (selectedIds.size === 0) return;
@@ -338,13 +348,25 @@ export function useTicketsStore(sessionEmail: string | null) {
     if (!confirm(confirmMsg)) return;
     const { error } = await ticketData.updateMany(supabase, Array.from(idsToArchive), { archived: true, archived_at: new Date().toISOString() });
     if (error) { console.error(error); alert('Eroare la arhivare. Încercați din nou.'); return; }
+    idsToArchive.forEach((id) => {
+      const t = tickets.find((x) => x.id === id);
+      logEntityActivity('ticket', id, `Tichetul ${t?.ticket_number || ''} a fost arhivat.`);
+    });
     setSelectedIds(new Set());
     await reload();
-  }, [supabase, selectedIds, tickets, reload]);
+  }, [supabase, selectedIds, tickets, reload, logEntityActivity]);
 
   const markDuplicates = useCallback(async (canonicalId: string, duplicateIds: string[]) => {
-    return ticketData.updateMany(supabase, duplicateIds, { duplicate_of: canonicalId });
-  }, [supabase]);
+    const result = await ticketData.updateMany(supabase, duplicateIds, { duplicate_of: canonicalId });
+    if (!result.error) {
+      const canonical = tickets.find((t) => t.id === canonicalId);
+      duplicateIds.forEach((id) => {
+        const dup = tickets.find((t) => t.id === id);
+        logEntityActivity('ticket', id, `Tichetul ${dup?.ticket_number || ''} a fost marcat duplicat al ${canonical?.ticket_number || ''}.`);
+      });
+    }
+    return result;
+  }, [supabase, tickets, logEntityActivity]);
 
   const unmarkDuplicate = useCallback(async (ticketId: string) => {
     if (!confirm('Anulezi legătura de duplicat? Sesizarea revine la starea pe care o avea înainte să fie marcată duplicat.')) return;
@@ -354,9 +376,10 @@ export function useTicketsStore(sessionEmail: string | null) {
     if (restoredStatus !== 'Terminat') { payload.archived = false; payload.archived_at = null; }
     const { error } = await ticketData.update(supabase, ticketId, payload);
     if (error) { console.error(error); alert('Eroare la anularea duplicatului. Încercați din nou.'); return; }
+    logEntityActivity('ticket', ticketId, `Tichetul ${ticket?.ticket_number || ''} — legătura de duplicat a fost anulată.`);
     showToast('Legătura de duplicat a fost anulată.');
     await reload();
-  }, [supabase, tickets, reload]);
+  }, [supabase, tickets, reload, logEntityActivity]);
 
   const createTicket = useCallback(async (input: { type: string; name: string; phone: string; email: string; address: string; description: string; dateVal: string; resolvedDateVal: string; resolvedByVal: string }) => {
     const { data: ticketNumber, error } = await ticketData.create(supabase, {
@@ -373,6 +396,13 @@ export function useTicketsStore(sessionEmail: string | null) {
       name: input.name, phone: input.phone, email: input.email || '-', address: input.address, description: input.description || '-',
     };
     sendNotification(notifyPayload);
+    // create_ticket's RPC only returns the human-readable ticket_number,
+    // not the row's real id entity_log keys on -- one small lookup so
+    // this creation and every later edit/archive/duplicate-link on the
+    // same ticket share one id in Jurnal de activitate.
+    const { data: createdRows } = await supabase.from('tickets').select('id').eq('ticket_number', ticketNumber).limit(1);
+    const createdId = createdRows?.[0]?.id;
+    if (createdId) logEntityActivity('ticket', createdId, `Tichetul ${ticketNumber} a fost creat.`);
     if (!input.resolvedDateVal) sendPushNotification({ ticket_number: ticketNumber as string, address: input.address });
 
     let dateUpdateWarning: string | null = null;
@@ -399,7 +429,7 @@ export function useTicketsStore(sessionEmail: string | null) {
     showToast(dateUpdateWarning ? `Sesizarea ${ticketNumber} a fost creată; verificați datele.` : `Sesizarea ${ticketNumber} a fost creată.`);
     await reload();
     return { ok: true as const, ticketNumber: ticketNumber as string, warning: dateUpdateWarning };
-  }, [supabase, sendNotification, sendPushNotification, reload]);
+  }, [supabase, sendNotification, sendPushNotification, reload, logEntityActivity]);
 
   // ---- goToTicket / deep-link ----
   const goToTicket = useCallback((ticketId: string) => {

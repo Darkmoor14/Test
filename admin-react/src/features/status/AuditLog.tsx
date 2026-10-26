@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
 import { formatLogTimeRO } from '../../lib/format';
 
+const TICKET_ENTITY_TYPES = ['ticket'] as const;
 const PROJECT_ENTITY_TYPES = ['project', 'backlog', 'lookahead'] as const;
 const ERP_ENTITY_TYPES = ['echipament', 'masina', 'material', 'produs'] as const;
 const ENTITY_TYPE_LABEL: Record<string, string> = {
+  ticket: 'Sesizare',
   project: 'Proiect public',
   backlog: 'Avarie rețea',
   lookahead: 'LPS Look-ahead',
@@ -47,18 +49,21 @@ export function AuditLog() {
       // pages having already loaded their own data (this pilot runs
       // standalone, outside the shared global state the rest of the app
       // still uses).
+      const ticketIds = entries.filter((r) => r.entity_type === 'ticket').map((r) => r.entity_id);
       const projectIds = entries.filter((r) => r.entity_type === 'project').map((r) => r.entity_id);
       const backlogIds = entries.filter((r) => r.entity_type === 'backlog').map((r) => r.entity_id);
       const lookaheadIds = entries.filter((r) => r.entity_type === 'lookahead').map((r) => r.entity_id);
       const erpIds = entries.filter((r) => (ERP_ENTITY_TYPES as readonly string[]).includes(r.entity_type)).map((r) => r.entity_id);
 
-      const [projectsRes, backlogRes, lookaheadRes, erpRes] = await Promise.all([
+      const [ticketsRes, projectsRes, backlogRes, lookaheadRes, erpRes] = await Promise.all([
+        ticketIds.length ? supabase.from('tickets').select('id,ticket_number').in('id', ticketIds) : Promise.resolve({ data: [] }),
         projectIds.length ? supabase.from('current_projects').select('id,title').in('id', projectIds) : Promise.resolve({ data: [] }),
         backlogIds.length ? supabase.from('backlog_projects').select('id,title').in('id', backlogIds) : Promise.resolve({ data: [] }),
         lookaheadIds.length ? supabase.from('lps_lookahead_items').select('id,title').in('id', lookaheadIds) : Promise.resolve({ data: [] }),
         erpIds.length ? supabase.from('equipment_inventory').select('id,name').in('id', erpIds) : Promise.resolve({ data: [] }),
       ]);
       const titleMap: Record<string, string> = {};
+      (ticketsRes.data || []).forEach((r: { id: string; ticket_number: string }) => { titleMap[`ticket:${r.id}`] = r.ticket_number; });
       (projectsRes.data || []).forEach((r: { id: string; title: string }) => { titleMap[`project:${r.id}`] = r.title; });
       (backlogRes.data || []).forEach((r: { id: string; title: string }) => { titleMap[`backlog:${r.id}`] = r.title; });
       (lookaheadRes.data || []).forEach((r: { id: string; title: string }) => { titleMap[`lookahead:${r.id}`] = r.title; });
@@ -73,6 +78,7 @@ export function AuditLog() {
   const entityTitle = (row: EntityLogRow) => {
     const key = `${row.entity_type}:${row.entity_id}`;
     if (titles[key]) return titles[key];
+    if (row.entity_type === 'ticket') return 'Sesizare ștearsă';
     if (row.entity_type === 'project') return 'Proiect șters';
     if (row.entity_type === 'backlog') return 'Avarie ștearsă';
     if (row.entity_type === 'lookahead') return 'Element șters';
@@ -81,7 +87,7 @@ export function AuditLog() {
   };
 
   const filtered = useMemo(() => {
-    const allRows = rows.filter((r) => (PROJECT_ENTITY_TYPES as readonly string[]).includes(r.entity_type) || (ERP_ENTITY_TYPES as readonly string[]).includes(r.entity_type));
+    const allRows = rows.filter((r) => (TICKET_ENTITY_TYPES as readonly string[]).includes(r.entity_type) || (PROJECT_ENTITY_TYPES as readonly string[]).includes(r.entity_type) || (ERP_ENTITY_TYPES as readonly string[]).includes(r.entity_type));
     return filter === 'all' ? allRows : allRows.filter((r) => r.entity_type === filter);
   }, [rows, filter]);
 
@@ -100,6 +106,7 @@ export function AuditLog() {
             <div className="status-card-head-actions">
               <select value={filter} onChange={(e) => setFilter(e.target.value)}>
                 <option value="all">Toate categoriile</option>
+                <option value="ticket">Sesizări</option>
                 <option value="project">Proiecte publice</option>
                 <option value="backlog">Avarii rețele</option>
                 <option value="lookahead">LPS Look-ahead</option>
@@ -111,7 +118,7 @@ export function AuditLog() {
             </div>
           </div>
           <p className="status-note" style={{ marginTop: 0, marginBottom: 12 }}>
-            Schimbările de stare și notițele adăugate pe proiecte publice, avarii de rețea, elemente Look-ahead din LPS și inventarul Resurse și inventar (echipamente, mașini, materiale, produse) — toate, într-un singur fir cronologic.
+            Schimbările de stare și notițele adăugate pe sesizări, proiecte publice, avarii de rețea, elemente Look-ahead din LPS și inventarul Resurse și inventar (echipamente, mașini, materiale, produse) — toate, într-un singur fir cronologic.
           </p>
           <div className="entity-log-list" style={{ maxHeight: 560 }}>
             {loading ? (
