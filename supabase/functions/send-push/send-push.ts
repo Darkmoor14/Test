@@ -55,6 +55,9 @@
 //
 // admin-3.html calls this with a simple JSON body:
 //   { "title": "...", "body": "...", "url": "/admin-3.html" }
+// Optionally add "recipients": ["email@..."] to scope delivery to just
+// those staff accounts' devices (e.g. a calendar event's invitees)
+// instead of every subscribed device.
 // and this function fans it out to every stored subscription (or, for
 // an "error" alert, only to subscriptions belonging to a 'god'-role
 // account — see resolveNotificationContent/recipientFilter below).
@@ -242,7 +245,7 @@ async function sendPushToSubscription(
 
 const NOTIFY_SHARED_SECRET = Deno.env.get("NOTIFY_SHARED_SECRET")!;
 
-type NotificationContent = { title: string; body: string; url: string; recipientFilter?: "god" };
+type NotificationContent = { title: string; body: string; url: string; recipientFilter?: "god"; recipientEmails?: string[] };
 
 async function resolveNotificationContent(
   req: Request,
@@ -327,6 +330,12 @@ async function resolveNotificationContent(
       title: payload.title || "Sesizare nouă",
       body: payload.body || "A fost înregistrată o sesizare nouă pe site.",
       url: payload.url || "admin-3.html",
+      // Optional: scope delivery to specific staff accounts (e.g. a
+      // calendar event's invitees) instead of every device -- omitted,
+      // this behaves exactly as before (every subscribed device).
+      recipientEmails: Array.isArray(payload.recipients)
+        ? payload.recipients.filter((e: unknown): e is string => typeof e === "string" && e.length > 0)
+        : undefined,
     };
   }
 
@@ -358,7 +367,7 @@ Deno.serve(async (req: Request) => {
 
     const content = await resolveNotificationContent(req);
     if (content instanceof Response) return content;
-    const { title, body: notifBody, url, recipientFilter } = content;
+    const { title, body: notifBody, url, recipientFilter, recipientEmails } = content;
 
     // Only the query string (e.g. "?ticket=SES-2026-10") is shared by
     // every recipient — which admin page it's appended to is decided
@@ -389,6 +398,11 @@ Deno.serve(async (req: Request) => {
         (Array.isArray(godRows) ? godRows : []).map((r: { email: string }) => (r.email || "").toLowerCase()),
       );
       subs = subs.filter((sub: { user_email?: string }) => sub.user_email && godEmails.has(sub.user_email.toLowerCase()));
+    }
+
+    if (recipientEmails && recipientEmails.length > 0 && Array.isArray(subs)) {
+      const targetEmails = new Set(recipientEmails.map((e) => e.toLowerCase()));
+      subs = subs.filter((sub: { user_email?: string }) => sub.user_email && targetEmails.has(sub.user_email.toLowerCase()));
     }
 
     if (!Array.isArray(subs) || subs.length === 0) {

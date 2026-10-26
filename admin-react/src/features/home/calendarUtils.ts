@@ -240,6 +240,17 @@ export interface IcsEventInput {
   recurrence_end_type: RecurrenceEndType | null;
   recurrence_end_date: string | null;
   recurrence_count: number | null;
+  // A saved event's own id, so the UID matches both what the Apple
+  // Calendar feed would use for it (${id}@insta-grup.ro) and any later
+  // cancellation notice for the same event -- without this, a calendar
+  // app has no way to tell a CANCEL apart from an unrelated new event.
+  // Omitted for an unsaved draft (nothing to match yet); a random UID
+  // is generated for that case.
+  id?: string;
+  // A cancellation notice re-sends the same event as CANCELLED instead
+  // of PUBLISH/CONFIRMED -- calendar apps that kept the original
+  // (matched by the same UID above) remove or grey it out on import.
+  cancelled?: boolean;
 }
 
 function icsFormatUtc(d: Date): string {
@@ -298,10 +309,16 @@ function icsBuildRRule(e: IcsEventInput): string | null {
 }
 
 export function buildEventIcs(e: IcsEventInput): string {
-  const lines: string[] = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Insta Grup//Calendar Acasa//RO', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+  const method = e.cancelled ? 'CANCEL' : 'PUBLISH';
+  const lines: string[] = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Insta Grup//Calendar Acasa//RO', 'CALSCALE:GREGORIAN', `METHOD:${method}`];
   lines.push('BEGIN:VEVENT');
-  lines.push(`UID:${Date.now()}-${Math.random().toString(36).slice(2)}@insta-grup.ro`);
+  lines.push(`UID:${e.id ? `${e.id}@insta-grup.ro` : `${Date.now()}-${Math.random().toString(36).slice(2)}@insta-grup.ro`}`);
   lines.push(`DTSTAMP:${icsFormatUtc(new Date())}`);
+  // A cancellation has to outrank the original invite's sequence number
+  // for calendar apps to treat it as superseding (not just a duplicate)
+  // -- there's only ever at most one re-send in this flow, so 0/1 is
+  // enough without persisting a real counter per event.
+  lines.push(`SEQUENCE:${e.cancelled ? '1' : '0'}`);
 
   if (e.all_day) {
     const startDigits = icsBucharestDateDigits(e.start_time);
@@ -321,13 +338,17 @@ export function buildEventIcs(e: IcsEventInput): string {
   const rrule = icsBuildRRule(e);
   if (rrule) lines.push(`RRULE:${rrule}`);
 
-  if (e.reminder_minutes_before) {
-    lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', icsFoldLine(`DESCRIPTION:${icsEscape(e.title || 'Memento')}`), `TRIGGER:-PT${e.reminder_minutes_before}M`, 'END:VALARM');
-  }
-  if (e.travel_time_minutes) {
-    lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Timp de deplasare', `TRIGGER:-PT${e.travel_time_minutes + (e.reminder_minutes_before || 0)}M`, 'END:VALARM');
+  // Alarms are meaningless on a cancelled event -- nobody needs a
+  // reminder or a travel-time alert for something that's off.
+  if (!e.cancelled) {
+    if (e.reminder_minutes_before) {
+      lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', icsFoldLine(`DESCRIPTION:${icsEscape(e.title || 'Memento')}`), `TRIGGER:-PT${e.reminder_minutes_before}M`, 'END:VALARM');
+    }
+    if (e.travel_time_minutes) {
+      lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Timp de deplasare', `TRIGGER:-PT${e.travel_time_minutes + (e.reminder_minutes_before || 0)}M`, 'END:VALARM');
+    }
   }
 
-  lines.push('STATUS:CONFIRMED', 'END:VEVENT', 'END:VCALENDAR');
+  lines.push(`STATUS:${e.cancelled ? 'CANCELLED' : 'CONFIRMED'}`, 'END:VEVENT', 'END:VCALENDAR');
   return lines.join('\r\n') + '\r\n';
 }

@@ -80,7 +80,7 @@ export function CalendarEventFormSheet({
   allStaffEmails: string[];
   onClose: () => void;
   onSave: (id: string | null, payload: CalendarEventInput) => Promise<boolean>;
-  onDelete: (id: string) => Promise<boolean>;
+  onDelete: (event: CalendarEvent, staffRecipients: string[]) => Promise<boolean>;
 }) {
   const [title, setTitle] = useState('');
   const [allDay, setAllDay] = useState(false);
@@ -235,7 +235,7 @@ export function CalendarEventFormSheet({
   // attached" would mean sending the email for real from our own
   // server instead of opening the user's own mail client -- a
   // different, bigger feature, not this.
-  const downloadEventIcs = () => {
+  const downloadEventIcs = (cancelled = false) => {
     const ics = buildEventIcs({
       title: title.trim() || '(fără titlu)',
       description: description.trim() || null,
@@ -252,9 +252,11 @@ export function CalendarEventFormSheet({
       recurrence_end_type: pendingRecurrence ? pendingRecurrence.recurrence_end_type : null,
       recurrence_end_date: pendingRecurrence ? pendingRecurrence.recurrence_end_date : null,
       recurrence_count: pendingRecurrence ? pendingRecurrence.recurrence_count : null,
+      id: event?.id,
+      cancelled,
     });
     const blobUrl = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
-    const fileName = `${(title.trim() || 'eveniment').replace(/[^\w.-]+/g, '_')}.ics`;
+    const fileName = `${(title.trim() || 'eveniment').replace(/[^\w.-]+/g, '_')}${cancelled ? '_anulat' : ''}.ics`;
     const a = document.createElement('a');
     a.href = blobUrl;
     a.download = fileName;
@@ -267,6 +269,22 @@ export function CalendarEventFormSheet({
     downloadEventIcs();
     if (typeof window.showToast === 'function') window.showToast('Fișier .ics descărcat — atașează-l la emailul care s-a deschis.');
     window.location.href = buildInviteMailto(emails);
+  };
+  const buildCancelMailto = (emails: string[]): string => {
+    const subject = `Anulat: ${title.trim() || 'eveniment'}`;
+    const bodyLines = [
+      `Evenimentul "${title.trim() || '(fără titlu)'}" a fost ANULAT.`,
+      `Data inițială: ${startDateVal}${!allDay ? ` ${getStartValue()}` : ' (toată ziua)'}`,
+      location.trim() ? `Locație: ${location.trim()}` : null,
+      '',
+      'Fișierul .ics de anulare tocmai descărcat elimină evenimentul din calendar -- atașează-l la acest email înainte să-l trimiți.',
+    ].filter((l) => l !== null) as string[];
+    return `mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
+  };
+  const sendCancellationEmail = (emails: string[]) => {
+    downloadEventIcs(true);
+    if (typeof window.showToast === 'function') window.showToast('Fișier .ics de anulare descărcat — atașează-l la emailul care s-a deschis.');
+    window.location.href = buildCancelMailto(emails);
   };
   const attendeeSuggestions = attendeeInput.trim()
     ? allStaffEmails.filter((e) => e.toLowerCase().includes(attendeeInput.trim().toLowerCase()) && !attendees.has(e)).slice(0, 6)
@@ -320,8 +338,15 @@ export function CalendarEventFormSheet({
   const handleDelete = async () => {
     if (!event) return;
     if (!confirm('Ștergi acest eveniment?')) return;
-    const ok = await onDelete(event.id);
-    if (ok) onClose();
+    const staffRecipients = [...attendees].filter((a) => allStaffEmails.includes(a));
+    const ok = await onDelete(event, staffRecipients);
+    if (!ok) return;
+    if (externalInvitees.length > 0) {
+      const n = externalInvitees.length;
+      const label = n > 1 ? `${n} invitați externi` : '1 invitat extern';
+      if (confirm(`Trimiți un email de anulare către ${label}?`)) sendCancellationEmail(externalInvitees);
+    }
+    onClose();
   };
 
   return (

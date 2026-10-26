@@ -62,14 +62,33 @@ export function useCalendarEvents(sessionEmail: string | null) {
     }
   }, [supabase, sessionEmail, reload]);
 
-  const deleteEvent = useCallback(async (id: string): Promise<boolean> => {
-    const { error } = await supabase.from('calendar_events').delete().eq('id', id);
+  // staffRecipients are the deleted event's attendees who have an account
+  // here -- they get a push warning them it's gone from their "De făcut"
+  // feed. External (non-staff) invitees have no account to push to; the
+  // form offers them a cancellation email + CANCEL .ics separately.
+  const deleteEvent = useCallback(async (event: CalendarEvent, staffRecipients: string[]): Promise<boolean> => {
+    const { error } = await supabase.from('calendar_events').delete().eq('id', event.id);
     if (error) {
       console.error('Ștergerea a eșuat:', error);
       alert('Ștergerea a eșuat.');
       return false;
     }
     await reload();
+    if (staffRecipients.length > 0) {
+      try {
+        const { error: pushError } = await supabase.functions.invoke('send-push', {
+          body: {
+            title: 'Eveniment anulat',
+            body: `"${event.title}" a fost șters din calendar.`,
+            url: 'admin-3.html',
+            recipients: staffRecipients,
+          },
+        });
+        if (pushError) console.error('send-push failed:', pushError);
+      } catch (err) {
+        console.error('send-push call failed:', err);
+      }
+    }
     return true;
   }, [supabase, reload]);
 
