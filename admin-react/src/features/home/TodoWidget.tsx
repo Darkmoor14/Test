@@ -10,18 +10,17 @@ const InfoIcon = () => (
 );
 
 export function TodoWidget({
-  calendarEvents, sessionEmail, onLinkedEventClick,
+  calendarEvents, onLinkedEventClick,
 }: {
   calendarEvents: CalendarEvent[];
-  sessionEmail: string | null;
   onLinkedEventClick: (e: CalendarEvent) => void;
 }) {
   const { notes, addNote, updateNoteText, deleteNote } = useTodoNotes();
   const newNoteIdRef = useRef<string | null>(null);
 
-  const linkedEvents = eventsOnDate(calendarEvents, dateKey(new Date())).filter(
-    (e) => !Array.isArray(e.attendees) || e.attendees.length === 0 || e.attendees.includes(sessionEmail || ''),
-  );
+  // calendarEvents is already scoped to "visible to me" by the caller
+  // (HomePage) -- no attendee filtering needed here on top of that.
+  const linkedEvents = eventsOnDate(calendarEvents, dateKey(new Date()));
 
   const handleAdd = () => {
     const id = addNote();

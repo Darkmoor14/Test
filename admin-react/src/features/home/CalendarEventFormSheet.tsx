@@ -98,7 +98,7 @@ export function CalendarEventFormSheet({
   const [reminder, setReminder] = useState('');
   const [travelTime, setTravelTime] = useState('');
   const [attendees, setAttendees] = useState<Set<string>>(new Set());
-  const [newAttendeeText, setNewAttendeeText] = useState('');
+  const [attendeeInput, setAttendeeInput] = useState('');
   const [pendingRecurrence, setPendingRecurrence] = useState<RecurrencePattern | null>(null);
   const [recurrenceSheetOpen, setRecurrenceSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -159,7 +159,7 @@ export function CalendarEventFormSheet({
     setReminder(event && event.reminder_minutes_before ? String(event.reminder_minutes_before) : '');
     setTravelTime(event && event.travel_time_minutes ? String(event.travel_time_minutes) : '');
     setAttendees(new Set((event && Array.isArray(event.attendees)) ? event.attendees : []));
-    setNewAttendeeText('');
+    setAttendeeInput('');
     setPendingRecurrence(event && event.recurrence_freq ? {
       recurrence_freq: event.recurrence_freq,
       recurrence_interval: event.recurrence_interval || 1,
@@ -198,27 +198,35 @@ export function CalendarEventFormSheet({
     setStartDateVal(newDate);
   };
 
-  const toggleAttendee = (email: string) => {
+  const addAttendee = (value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    setAttendees((prev) => new Set(prev).add(v));
+    setAttendeeInput('');
+  };
+  const removeAttendee = (value: string) => {
     setAttendees((prev) => {
       const next = new Set(prev);
-      if (next.has(email)) next.delete(email); else next.add(email);
+      next.delete(value);
       return next;
     });
   };
-  const addCustomAttendee = () => {
-    const name = newAttendeeText.trim();
-    if (!name) return;
-    setAttendees((prev) => new Set(prev).add(name));
-    setNewAttendeeText('');
+  const isEmailShaped = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+  // Staff already get the event in their own Acasă/"De făcut" feed once
+  // saved -- this is only for someone with no account here at all, so
+  // it's offered only for an email-shaped entry that isn't one of them.
+  const buildInviteMailto = (email: string): string => {
+    const subject = `Invitație: ${title.trim() || 'eveniment'}`;
+    const bodyLines = [
+      `Eveniment: ${title.trim() || '(fără titlu)'}`,
+      `Data: ${startDateVal}${!allDay ? ` ${getStartValue()}` : ' (toată ziua)'}`,
+      location.trim() ? `Locație: ${location.trim()}` : null,
+    ].filter(Boolean) as string[];
+    return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
   };
-  const removeAttendee = (name: string) => {
-    setAttendees((prev) => {
-      const next = new Set(prev);
-      next.delete(name);
-      return next;
-    });
-  };
-  const customAttendees = [...attendees].filter((a) => !allStaffEmails.includes(a));
+  const attendeeSuggestions = attendeeInput.trim()
+    ? allStaffEmails.filter((e) => e.toLowerCase().includes(attendeeInput.trim().toLowerCase()) && !attendees.has(e)).slice(0, 6)
+    : [];
 
   const repeatPreset = presetFromPattern(pendingRecurrence, startDateVal);
   const onRepeatChange = (val: RepeatPreset) => {
@@ -370,32 +378,44 @@ export function CalendarEventFormSheet({
 
             <div className="ctrl-field">
               <label>Invitați (opțional)</label>
-              <div className="cef-attendees-list">
-                {allStaffEmails.length ? allStaffEmails.map((email) => (
-                  <label key={email} className="cef-attendee-item">
-                    <input type="checkbox" checked={attendees.has(email)} onChange={() => toggleAttendee(email)} /> {email}
-                  </label>
-                )) : <span className="cef-attendees-empty">Lista de conturi nu s-a încărcat încă.</span>}
-              </div>
-              <div className="cef-attendee-add-row">
+              <div className="cef-invitee-input-row">
                 <input
-                  type="text" placeholder="Nume invitat (ex: client, firmă externă)" autoComplete="off" value={newAttendeeText}
-                  onChange={(e) => setNewAttendeeText(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomAttendee(); } }}
+                  type="text" placeholder="Nume sau email" autoComplete="off" value={attendeeInput}
+                  onChange={(e) => setAttendeeInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addAttendee(attendeeInput); } }}
                 />
-                <button type="button" className="btn" onClick={addCustomAttendee}>+ Adaugă</button>
+                <button type="button" className="btn" onClick={() => addAttendee(attendeeInput)}>+ Adaugă</button>
               </div>
-              {customAttendees.length > 0 && (
-                <div className="cef-attendee-tags">
-                  {customAttendees.map((name) => (
-                    <span key={name} className="cef-attendee-tag">
-                      {name}
-                      <button type="button" aria-label={`Elimină ${name}`} onClick={() => removeAttendee(name)}>×</button>
-                    </span>
+              {attendeeSuggestions.length > 0 && (
+                <div className="cef-invitee-suggestions">
+                  {attendeeSuggestions.map((email) => (
+                    <button type="button" key={email} className="cef-invitee-suggestion" onClick={() => addAttendee(email)}>
+                      {email}
+                    </button>
                   ))}
                 </div>
               )}
-              <p className="cef-attendees-hint">Lăsat gol → vizibil pentru toată lumea pe Acasă. Bifat → apare doar în „De făcut" al persoanelor alese.</p>
+              {attendees.size > 0 && (
+                <div className="cef-attendee-tags">
+                  {[...attendees].map((a) => {
+                    const canInvite = isEmailShaped(a) && !allStaffEmails.includes(a);
+                    return (
+                      <span key={a} className="cef-attendee-tag">
+                        {a}
+                        {canInvite && (
+                          <a
+                            className="cef-attendee-share" href={buildInviteMailto(a)}
+                            title={`Trimite invitație prin email către ${a}`} aria-label={`Trimite invitație prin email către ${a}`}
+                            onClick={(e) => e.stopPropagation()}
+                          >✉</a>
+                        )}
+                        <button type="button" aria-label={`Elimină ${a}`} onClick={() => removeAttendee(a)}>×</button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="cef-attendees-hint">Fără invitați → eveniment privat, vizibil doar pentru tine. Cu invitați adăugați → vizibil pentru tine și pentru persoanele adăugate (apare în „De făcut" al fiecăreia).</p>
             </div>
 
             <div className="ctrl-field">

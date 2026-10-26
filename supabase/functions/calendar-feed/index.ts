@@ -15,9 +15,9 @@
 // exposes one person's events and can be invalidated by regenerating.
 //
 // Visibility mirrors exactly what each person already sees on Acasă:
-// an event with no attendees is public (everyone's feed gets it), an
-// event with attendees only appears in the feeds of those listed --
-// same rule the "De făcut" widget already uses.
+// a no-invitees event is private to its creator; one with invitees is
+// shared with exactly those people plus the creator. Nobody else's
+// feed gets it either way.
 //
 // DEPLOY: via the Supabase MCP deploy_edge_function tool (project has
 // no supabase/config.toml -- functions here are deployed that way,
@@ -47,6 +47,7 @@ interface CalendarEventRow {
   attendees: string[] | null;
   travel_time_minutes: number | null;
   url: string | null;
+  created_by: string | null;
   updated_at?: string | null;
 }
 
@@ -204,7 +205,7 @@ Deno.serve(async (req) => {
   }
 
   const visible = ((events || []) as CalendarEventRow[]).filter(
-    (e) => !e.attendees || e.attendees.length === 0 || e.attendees.includes(email),
+    (e) => e.created_by === email || (Array.isArray(e.attendees) && e.attendees.includes(email)),
   );
 
   const body = [

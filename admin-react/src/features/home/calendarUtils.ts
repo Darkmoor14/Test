@@ -152,6 +152,17 @@ export function eventsByDateInRange(calendarEvents: CalendarEvent[], rangeStart:
   return map;
 }
 
+// An event with no invitees is a private, personal-calendar entry --
+// only its creator sees it anywhere (mini calendar, full month view,
+// day sheets, De făcut, the Apple Calendar feed). Adding invitees
+// shares it with exactly those people plus the creator; it never
+// becomes visible to staff at large just by having invitees.
+export function isEventVisibleTo(e: CalendarEvent, email: string | null): boolean {
+  if (!email) return false;
+  if (e.created_by === email) return true;
+  return Array.isArray(e.attendees) && e.attendees.includes(email);
+}
+
 export function eventsOnDate(calendarEvents: CalendarEvent[], dateKeyStr: string): CalendarEvent[] {
   const [y, m, d] = dateKeyStr.split('-').map(Number);
   const targetDate = new Date(y, m - 1, d);

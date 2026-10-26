@@ -714,44 +714,44 @@
     display:flex;flex-direction:column;gap:0;max-height:160px;overflow-y:auto;
     border:1px solid var(--line-strong);border-radius:9px;padding:2px 12px;background:var(--paper-050);
   }
-  /* Each row is itself a <label> (for its checkbox) sitting inside the
-     field's own .ctrl-field label (its "Invitați" heading) -- without
-     this reset it inherits that heading's eyebrow-label look
-     (uppercase, mono, 10px, muted), which is why these used to render
-     shouting-case and barely readable.
-     #calendarEventFormSheet .cef-attendees-list .cef-attendee-item is
-     used (not just .cef-attendee-item) purely to out-specificity
-     #calendarEventFormSheet .ctrl-field label below: both are
-     ID-scoped, so it comes down to class/element count, and an extra
-     class here (two vs. their class+element) is what actually wins. */
-  #calendarEventFormSheet .cef-attendees-list .cef-attendee-item{
-    display:flex;align-items:center;gap:10px;
-    font-family:var(--body);font-size:13px;font-weight:400;letter-spacing:normal;text-transform:none;
-    color:var(--ink-700);cursor:pointer;padding:8px 0;border-top:1px solid var(--line);margin-bottom:0;
-  }
-  .cef-attendee-item:first-child{border-top:none;}
-  .cef-attendee-item input[type="checkbox"]{
-    width:16px;height:16px;accent-color:var(--copper-500);cursor:pointer;flex-shrink:0;
-  }
   .cef-attendees-empty{font-size:12.5px;color:var(--ink-400);padding:8px 0;}
   .cef-attendees-hint{margin:6px 0 0;font-size:11.5px;color:var(--ink-400);}
-  .cef-attendee-add-row{display:flex;gap:8px;margin-top:8px;}
-  .cef-attendee-add-row input{
+  /* One combobox instead of a separate staff checkbox list + free-text
+     row: type a name/email, matching staff accounts suggest below (a
+     plain filter over allStaffEmails, no server round-trip needed),
+     and Enter/+ Adaugă adds whatever's typed verbatim -- a staff email
+     you didn't pick from the list still works, it just won't get the
+     "already has an account" invite-by-email treatment below. */
+  .cef-invitee-input-row{display:flex;gap:8px;}
+  .cef-invitee-input-row input{
     flex:1;min-width:0;box-sizing:border-box;height:34px;padding:7px 9px;
     border:1px solid var(--line-strong);border-radius:9px;
     font-family:var(--body);font-size:12.5px;background:var(--paper-050);color:var(--ink-900);
   }
-  .cef-attendee-add-row input:focus{border-color:var(--copper-500);background:var(--paper-000);outline:none;}
+  .cef-invitee-input-row input:focus{border-color:var(--copper-500);background:var(--paper-000);outline:none;}
+  .cef-invitee-suggestions{
+    display:flex;flex-direction:column;margin-top:4px;
+    border:1px solid var(--line-strong);border-radius:9px;background:var(--paper-000);overflow:hidden;
+  }
+  .cef-invitee-suggestion{
+    display:block;width:100%;text-align:left;padding:8px 12px;border:none;border-top:1px solid var(--line);
+    background:none;font:inherit;font-size:12.5px;color:var(--ink-700);cursor:pointer;
+  }
+  .cef-invitee-suggestion:first-child{border-top:none;}
+  .cef-invitee-suggestion:hover{background:var(--copper-050);color:var(--copper-600);}
   .cef-attendee-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
   .cef-attendee-tag{
-    display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-700);
+    display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--ink-700);
     background:var(--paper-100);border:1px solid var(--line-strong);border-radius:20px;padding:4px 6px 4px 10px;
   }
-  .cef-attendee-tag button{
+  .cef-attendee-tag button, .cef-attendee-tag a{
     width:16px;height:16px;border-radius:50%;border:none;background:var(--paper-000);
-    color:var(--ink-600);cursor:pointer;font-size:12px;line-height:1;padding:0;flex-shrink:0;
+    color:var(--ink-600);cursor:pointer;font-size:11px;line-height:1;padding:0;flex-shrink:0;
+    display:inline-flex;align-items:center;justify-content:center;text-decoration:none;
   }
   .cef-attendee-tag button:hover{color:var(--signal-red);}
+  .cef-attendee-tag a.cef-attendee-share{color:var(--copper-600);}
+  .cef-attendee-share:hover{background:var(--copper-050);}
   /* Starts/Ends: a date picker plus the same select+precise-toggle time
      control used elsewhere, side by side on wide screens -- stacked on
      narrow ones since a date input and a time-row each want real width. */
