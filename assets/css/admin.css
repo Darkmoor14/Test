@@ -288,8 +288,8 @@
      one matches the current rail category — at most one is ever
      visible, sharing .topbar's own padding/border/background rather
      than carrying its own). Most rows are flat; Resurse și inventar's
-     Parc Auto and HR's Documentație have real nesting underneath, so
-     their trigger item (.category-topbar-dropdown) opens a floating
+     Parc Auto and Documentație's Proiecte have real nesting underneath,
+     so their trigger item (.category-topbar-dropdown) opens a floating
      menu instead of a sixth plain button. */
   .category-topbar{display:none;align-items:center;gap:2px;flex-wrap:wrap;}
   .category-topbar.active{display:flex;}
@@ -307,21 +307,15 @@
   }
   .category-topbar-item.admin-tab:hover{background:var(--paper-100);color:var(--ink-900);}
   .category-topbar-item.admin-tab.active{background:var(--copper-050);color:var(--copper-600);font-weight:600;border-bottom-color:transparent;}
-  /* Dropdown-capable topbar item (Parc Auto, Documentație): the
-     trigger is a normal .category-topbar-item, its menu floats below
-     it. .category-topbar-subdropdown nests one level deeper
-     (Documentație → Proiecte) and flies its own menu out to the right
-     instead, so it doesn't open underneath (and get clipped by) its
-     already-floating parent menu. */
+  /* Dropdown-capable topbar item (Parc Auto, Documentație → Proiecte):
+     the trigger is a normal .category-topbar-item, its menu floats
+     below it. */
   .category-topbar-dropdown{position:relative;}
   .category-topbar .docs-nav-subgroup{
     position:absolute;top:calc(100% + 4px);left:0;z-index:40;min-width:220px;
     padding:6px;margin:0;background:var(--paper-000);border:1px solid var(--line);
     border-radius:10px;box-shadow:0 8px 24px rgba(20,24,29,.14);
   }
-  .category-topbar-subdropdown{position:relative;}
-  .category-topbar-subdropdown .docs-nav-toggle{padding:9px 12px;}
-  .category-topbar-subdropdown .docs-nav-subgroup{top:0;left:calc(100% + 4px);}
 
   .main{flex:1;min-width:0;display:flex;flex-direction:column;}
   .topbar{
@@ -937,6 +931,7 @@
      would collide with the tab-restore system's own use of the URL
      hash. */
   .docs-intro{color:var(--ink-600);font-size:14px;max-width:760px;margin:0 0 18px;}
+  .docs-calendar-sync-cta{margin-bottom:18px;}
   #docsHomeSearchWrap{max-width:420px;margin-bottom:18px;}
   .docs-search-empty{padding:24px 0;text-align:center;color:var(--ink-400);font-size:13px;}
   .docs-toc{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:28px;max-width:980px;}

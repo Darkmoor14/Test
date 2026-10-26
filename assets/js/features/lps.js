@@ -757,18 +757,18 @@
   };
   // Which rail category each tab belongs to, and each category's
   // default landing tab (used when a rail icon itself is clicked,
-  // rather than a specific item inside its category panel). docs
-  // lives under the HR rail icon now (a dropdown inside it, not its
-  // own icon) — see the sidebar markup and applyRolePermissionsToUI.
+  // rather than a specific item inside its category panel). docs is
+  // its own rail icon/category now, same as every other section — see
+  // the sidebar markup and applyRolePermissionsToUI.
   const TAB_CATEGORY = {
     overview: 'tickets', 'tickets-functional': 'tickets', 'tickets-accident': 'tickets', reports: 'tickets',
     'projects-home': 'projects', projects: 'projects', backlog: 'projects', lps: 'projects', workorders: 'projects',
     'erp-home': 'erp', equipment: 'erp', machines: 'erp', 'machines-fuel-report': 'erp', materials: 'erp', products: 'erp',
-    'hr-home': 'hr', 'hr-employees': 'hr', 'hr-worktime': 'hr', 'hr-vacation': 'hr', docs: 'hr',
+    'hr-home': 'hr', 'hr-employees': 'hr', 'hr-worktime': 'hr', 'hr-vacation': 'hr', docs: 'docs',
     status: 'status', 'status-improve': 'status', 'status-audit': 'status', 'status-stats': 'status', 'status-roles': 'status',
   };
   const CATEGORY_DEFAULT_TAB = {
-    tickets: 'overview', projects: 'projects-home', erp: 'erp-home', hr: 'hr-home', status: 'status',
+    tickets: 'overview', projects: 'projects-home', erp: 'erp-home', hr: 'hr-home', docs: 'docs', status: 'status',
   };
   function setActiveCategory(category){
     document.querySelectorAll('.rail-item[data-category]').forEach(item => {
@@ -987,17 +987,6 @@
       const erpMachinesToggleBtn = document.querySelector('[data-erp-toggle="machines"]');
       if (erpMachinesToggleLabel) erpMachinesToggleLabel.textContent = 'Parc Auto';
       if (erpMachinesToggleBtn) erpMachinesToggleBtn.classList.remove('active');
-    }
-    // Documentație's nested dropdown under HR (see the sidebar markup)
-    // auto-opens whenever landing on any docs-group tab, same as Parc
-    // Auto's subgroup above — otherwise reaching it from the Home nav
-    // card or a search result would land on the docs panel with its
-    // own sidebar entry collapsed and not visibly selected.
-    if (tabKey === 'docs') {
-      const sg = document.querySelector('[data-hr-subgroup="docs"]');
-      const tg = document.querySelector('[data-hr-toggle="docs"]');
-      if (sg) sg.classList.add('open');
-      if (tg) tg.classList.add('open');
     }
     // Proiecte publice's "always opens on Active" reset is now
     // admin-react/'s own concern -- its useProjectsStore already

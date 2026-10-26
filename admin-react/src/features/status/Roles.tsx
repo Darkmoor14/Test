@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { useSupabase } from '../../lib/supabaseContext';
 
-const STAFF_ROLE_KEYS = ['tickets', 'proiecte', 'erp', 'hr', 'god'] as const;
+const STAFF_ROLE_KEYS = ['tickets', 'proiecte', 'erp', 'hr', 'docs', 'god'] as const;
 type RoleKey = (typeof STAFF_ROLE_KEYS)[number];
-const ROLE_LABEL: Record<RoleKey, string> = { tickets: 'Sesizări', proiecte: 'Proiecte', erp: 'Resurse', hr: 'HR', god: 'God' };
+const ROLE_LABEL: Record<RoleKey, string> = { tickets: 'Sesizări', proiecte: 'Proiecte', erp: 'Resurse', hr: 'HR', docs: 'Documentație', god: 'God' };
 
 function generateStaffPassword(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
@@ -116,8 +116,8 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
           <div className="overview-table-wrap">
             <table className="overview-table" id="staffRolesTable">
               <colgroup>
-                <col style={{ width: '22%' }} /><col style={{ width: '11%' }} /><col style={{ width: '11%' }} /><col style={{ width: '10%' }} />
-                <col style={{ width: '8%' }} /><col style={{ width: '8%' }} /><col style={{ width: '12%' }} /><col style={{ width: '18%' }} />
+                <col style={{ width: '19%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10%' }} /><col style={{ width: '9%' }} />
+                <col style={{ width: '7%' }} /><col style={{ width: '10%' }} /><col style={{ width: '7%' }} /><col style={{ width: '11%' }} /><col style={{ width: '17%' }} />
               </colgroup>
               <thead>
                 <tr>
@@ -126,6 +126,7 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
                   <th>Proiecte</th>
                   <th>Resurse</th>
                   <th>HR</th>
+                  <th>Documentație</th>
                   <th>God</th>
                   <th>Notificări</th>
                   <th></th>
@@ -133,9 +134,9 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={8} className="no-results">Se încarcă…</td></tr>
+                  <tr><td colSpan={9} className="no-results">Se încarcă…</td></tr>
                 ) : emails.length === 0 ? (
-                  <tr><td colSpan={8} className="no-results">Nimeni încă — adaugă prima persoană.</td></tr>
+                  <tr><td colSpan={9} className="no-results">Nimeni încă — adaugă prima persoană.</td></tr>
                 ) : (
                   emails.map((email) => {
                     const roles = rolesByEmail.get(email) || new Set();
@@ -144,7 +145,7 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
                     return (
                       <tr key={email}>
                         <td>{email}{isSelf && <span className="backlog-tag">tu</span>}</td>
-                        {(['tickets', 'proiecte', 'erp', 'hr', 'god'] as RoleKey[]).map((role) => {
+                        {(['tickets', 'proiecte', 'erp', 'hr', 'docs', 'god'] as RoleKey[]).map((role) => {
                           const lockedSelf = isSelf && role === 'god';
                           return (
                             <td key={role}>

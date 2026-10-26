@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
 
+declare global {
+  interface Window {
+    openCalendarSync?: () => void;
+  }
+}
+
 // One-way sync only: Apple Calendar reads this feed, it never writes
 // back. See supabase/functions/calendar-feed for the actual .ics
 // generation and 20261025103110_calendar_feed_tokens.sql for the
-// per-person token the feed URL is keyed on.
+// per-person token the feed URL is keyed on. Lives in SharedSheetsRoot
+// (mounted once, independent of any one panel) and opened via
+// window.openCalendarSync -- its trigger button is on the Documentație
+// page now, not Acasă's calendar card.
 export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const supabase = useSupabase();
   const [token, setToken] = useState<string | null>(null);

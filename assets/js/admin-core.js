@@ -95,7 +95,10 @@
        tickets   — Sesizări: full access.
        proiecte  — Proiecte: full access.
        erp       — Resurse și inventar: full access.
-       hr        — HR (and Documentație, nested under it): full access.
+       hr        — HR: full access.
+       docs      — Documentație: full access (view only -- nothing in
+                   it writes anywhere, but it follows the same
+                   grant-this-section model as every other role).
 
      A person can hold any combination. No view-only tier any more —
      holding a section's role grants full read+write on it and shows
@@ -145,10 +148,8 @@
   // would just redirect straight back (see openAdminTab's matching
   // guard in lps.js) or a control that would fail at save time.
   // data-category (rail/category-panel) vs. role name differ only for
-  // "projects" <-> 'proiecte'. Documentație lives nested under the HR
-  // rail icon (see TAB_CATEGORY in lps.js), so it rides on 'hr' too —
-  // homeNavDocs below, not a category of its own.
-  const CATEGORY_TO_MODULE = { tickets: 'tickets', projects: 'proiecte', erp: 'erp', hr: 'hr' };
+  // "projects" <-> 'proiecte'.
+  const CATEGORY_TO_MODULE = { tickets: 'tickets', projects: 'proiecte', erp: 'erp', hr: 'hr', docs: 'docs' };
   function applyRolePermissionsToUI(){
     const god = isGod();
     Object.keys(CATEGORY_TO_MODULE).forEach(category => {
@@ -189,7 +190,7 @@
       'hr-employees': god || modulePermission('hr') === 'write',
       'hr-worktime': god || modulePermission('hr') === 'write',
       'hr-vacation': god || modulePermission('hr') === 'write',
-      docs: god || modulePermission('hr') === 'write',
+      docs: god || modulePermission('docs') === 'write',
       status: god,
       'status-improve': god,
       'status-audit': god,
@@ -434,6 +435,8 @@
     });
     const searchWrap = document.getElementById('docsHomeSearchWrap');
     if (searchWrap) searchWrap.style.display = docsActiveGroup === 'home' ? '' : 'none';
+    const syncCta = document.getElementById('docsOpenCalendarSyncBtn')?.closest('.docs-calendar-sync-cta');
+    if (syncCta) syncCta.style.display = docsActiveGroup === 'home' ? '' : 'none';
     document.querySelectorAll('.docs-toc-link').forEach(link => {
       const target = document.getElementById(link.dataset.docsTarget);
       link.style.display = (target && target.dataset.docsGroup === docsActiveGroup) ? '' : 'none';
@@ -474,19 +477,17 @@
       if (subgroup) subgroup.classList.toggle('open');
     });
   }
-  // HR's "Documentație" dropdown — moved here from its own top-level
-  // rail icon (see the sidebar markup). One level above the Proiecte
-  // toggle just above, which nests fine (.docs-nav-subgroup's indent
-  // just stacks for each level deep).
-  const hrDocsToggleBtn = document.querySelector('.docs-nav-toggle[data-hr-toggle="docs"]');
-  if (hrDocsToggleBtn) {
-    hrDocsToggleBtn.addEventListener('click', () => {
-      hrDocsToggleBtn.classList.toggle('open');
-      const subgroup = document.querySelector('.docs-nav-subgroup[data-hr-subgroup="docs"]');
-      if (subgroup) subgroup.classList.toggle('open');
+  applyDocsSectionVisibility(); // initial state — docsActiveGroup starts at 'home'
+
+  // Documentație's own calendar-sync shortcut -- opens the same sheet
+  // Acasă's calendar card used to trigger (now moved here entirely; see
+  // SharedSheetsRoot.tsx's window.openCalendarSync).
+  const docsOpenCalendarSyncBtn = document.getElementById('docsOpenCalendarSyncBtn');
+  if (docsOpenCalendarSyncBtn) {
+    docsOpenCalendarSyncBtn.addEventListener('click', () => {
+      if (typeof openCalendarSync === 'function') openCalendarSync();
     });
   }
-  applyDocsSectionVisibility(); // initial state — docsActiveGroup starts at 'home'
 
   // Documentație's table of contents — scrolls within the panel rather
   // than using real #anchors, which would collide with the tab-restore
@@ -672,9 +673,9 @@
       text: 'Un spațiu personal, tip post-it, salvat doar în acest browser — nu e vizibil pentru alți utilizatori.',
     },
     {
-      selector: '.rail-item[data-category="hr"]',
+      selector: '.rail-item[data-category="docs"]',
       title: 'Documentație completă',
-      text: 'Dacă vrei detalii pas cu pas pentru orice pagină sau buton din platformă, ghidul complet e mereu aici — sub „HR”, ca un meniu derulant — organizat pe aceleași secțiuni ca restul platformei (Sesizări, Proiecte, Resurse și inventar), cu propria căutare.',
+      text: 'Dacă vrei detalii pas cu pas pentru orice pagină sau buton din platformă, ghidul complet e mereu aici — organizat pe aceleași secțiuni ca restul platformei (Sesizări, Proiecte, Resurse și inventar), cu propria căutare.',
     },
   ];
   let onboardingStepIndex = 0;
