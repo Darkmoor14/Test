@@ -752,6 +752,14 @@
   .cef-attendee-tag button:hover{color:var(--signal-red);}
   .cef-attendee-tag a.cef-attendee-share{color:var(--copper-600);}
   .cef-attendee-share:hover{background:var(--copper-050);}
+  /* Sits above the tag row (not inside it) whenever 2+ added invitees
+     have no account here -- one mailto: to all of them at once instead
+     of clicking each tag's own share icon in turn. */
+  .cef-attendee-share-all{
+    display:inline-flex;width:100%;justify-content:center;margin-top:8px;
+    color:var(--copper-600);border-color:var(--copper-300);background:var(--copper-050);
+  }
+  .cef-attendee-share-all:hover{border-color:var(--copper-500);background:var(--copper-100);}
   /* Starts/Ends: a date picker plus the same select+precise-toggle time
      control used elsewhere, side by side on wide screens -- stacked on
      narrow ones since a date input and a time-row each want real width. */

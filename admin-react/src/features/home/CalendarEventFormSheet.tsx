@@ -215,18 +215,21 @@ export function CalendarEventFormSheet({
   // Staff already get the event in their own Acasă/"De făcut" feed once
   // saved -- this is only for someone with no account here at all, so
   // it's offered only for an email-shaped entry that isn't one of them.
-  const buildInviteMailto = (email: string): string => {
+  // mailto: accepts comma-separated recipients, so one emails and the
+  // "share with all" button are the same builder with a different list.
+  const buildInviteMailto = (emails: string[]): string => {
     const subject = `Invitație: ${title.trim() || 'eveniment'}`;
     const bodyLines = [
       `Eveniment: ${title.trim() || '(fără titlu)'}`,
       `Data: ${startDateVal}${!allDay ? ` ${getStartValue()}` : ' (toată ziua)'}`,
       location.trim() ? `Locație: ${location.trim()}` : null,
     ].filter(Boolean) as string[];
-    return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
+    return `mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
   };
   const attendeeSuggestions = attendeeInput.trim()
     ? allStaffEmails.filter((e) => e.toLowerCase().includes(attendeeInput.trim().toLowerCase()) && !attendees.has(e)).slice(0, 6)
     : [];
+  const externalInvitees = [...attendees].filter((a) => isEmailShaped(a) && !allStaffEmails.includes(a));
 
   const repeatPreset = presetFromPattern(pendingRecurrence, startDateVal);
   const onRepeatChange = (val: RepeatPreset) => {
@@ -395,6 +398,12 @@ export function CalendarEventFormSheet({
                   ))}
                 </div>
               )}
+              {externalInvitees.length > 1 && (
+                <a
+                  className="btn cef-attendee-share-all" href={buildInviteMailto(externalInvitees)}
+                  onClick={(e) => e.stopPropagation()}
+                >✉ Trimite invitație tuturor ({externalInvitees.length})</a>
+              )}
               {attendees.size > 0 && (
                 <div className="cef-attendee-tags">
                   {[...attendees].map((a) => {
@@ -404,7 +413,7 @@ export function CalendarEventFormSheet({
                         {a}
                         {canInvite && (
                           <a
-                            className="cef-attendee-share" href={buildInviteMailto(a)}
+                            className="cef-attendee-share" href={buildInviteMailto([a])}
                             title={`Trimite invitație prin email către ${a}`} aria-label={`Trimite invitație prin email către ${a}`}
                             onClick={(e) => e.stopPropagation()}
                           >✉</a>
