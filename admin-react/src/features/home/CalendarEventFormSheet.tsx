@@ -387,7 +387,15 @@ export function CalendarEventFormSheet({
                   onChange={(e) => setAttendeeInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addAttendee(attendeeInput); } }}
                 />
-                <button type="button" className="btn" onClick={() => addAttendee(attendeeInput)}>+ Adaugă</button>
+                <button type="button" className="btn cef-invitee-add-btn" title="Adaugă invitat" aria-label="Adaugă invitat" onClick={() => addAttendee(attendeeInput)}>+</button>
+                {externalInvitees.length > 1 && (
+                  <a
+                    className="cef-attendee-share-all" href={buildInviteMailto(externalInvitees)}
+                    title={`Trimite invitație tuturor (${externalInvitees.length})`}
+                    aria-label={`Trimite invitație tuturor (${externalInvitees.length})`}
+                    onClick={(e) => e.stopPropagation()}
+                  >✉<span>{externalInvitees.length}</span></a>
+                )}
               </div>
               {attendeeSuggestions.length > 0 && (
                 <div className="cef-invitee-suggestions">
@@ -397,14 +405,6 @@ export function CalendarEventFormSheet({
                     </button>
                   ))}
                 </div>
-              )}
-              {externalInvitees.length > 1 && (
-                <a
-                  className="cef-attendee-share-all" href={buildInviteMailto(externalInvitees)}
-                  title={`Trimite invitație tuturor (${externalInvitees.length})`}
-                  aria-label={`Trimite invitație tuturor (${externalInvitees.length})`}
-                  onClick={(e) => e.stopPropagation()}
-                >✉<span>{externalInvitees.length}</span></a>
               )}
               {attendees.size > 0 && (
                 <div className="cef-attendee-tags">
