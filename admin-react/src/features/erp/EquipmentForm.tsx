@@ -51,7 +51,7 @@ export function EquipmentForm() {
   };
 
   return (
-    <div className="mobile-sheet show" aria-hidden="false">
+    <div id="erpItemFormSheet" className="mobile-sheet show" aria-hidden="false">
       <div className="mobile-sheet-backdrop" onClick={store.closeForm} />
       <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="erpItemFormSheetTitle">
         <div className="mobile-sheet-panel-scroll">

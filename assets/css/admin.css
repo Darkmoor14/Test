@@ -1075,7 +1075,8 @@
     #vehicleFormSheet .mobile-sheet-panel,
     #vehicleFuelLogFormSheet .mobile-sheet-panel,
     #serviceDueSheet .mobile-sheet-panel,
-    #calendarEventFormSheet .mobile-sheet-panel{
+    #calendarEventFormSheet .mobile-sheet-panel,
+    #erpItemFormSheet .mobile-sheet-panel{
       position:fixed;top:50%;left:50%;right:auto;bottom:auto;
       transform:translate(-50%,-50%);
       width:460px;max-width:calc(100vw - 40px);
@@ -1085,11 +1086,13 @@
     #vehicleFormSheet .mobile-sheet-panel-scroll,
     #vehicleFuelLogFormSheet .mobile-sheet-panel-scroll,
     #serviceDueSheet .mobile-sheet-panel-scroll,
-    #calendarEventFormSheet .mobile-sheet-panel-scroll{padding:18px 20px;}
+    #calendarEventFormSheet .mobile-sheet-panel-scroll,
+    #erpItemFormSheet .mobile-sheet-panel-scroll{padding:18px 20px;}
     #vehicleFormSheet .sheet-handle,
     #vehicleFuelLogFormSheet .sheet-handle,
     #serviceDueSheet .sheet-handle,
-    #calendarEventFormSheet .sheet-handle{display:none;}
+    #calendarEventFormSheet .sheet-handle,
+    #erpItemFormSheet .sheet-handle{display:none;}
   }
   /* Same reasoning again, this time for every "Raport Excel" step
      sheet — Sesizări's own (report type / repair scope / year / month)
