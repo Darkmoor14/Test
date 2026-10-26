@@ -754,18 +754,19 @@
     display:inline-flex;align-items:center;justify-content:center;text-decoration:none;
   }
   .cef-attendee-tag button:hover{color:var(--signal-red);}
-  .cef-attendee-tag a.cef-attendee-share{color:var(--copper-600);}
+  .cef-attendee-tag .cef-attendee-share{color:var(--copper-600);}
   .cef-attendee-share:hover{background:var(--copper-050);}
   /* Sits in the input row next to + (not in the tag row below) whenever
-     2+ added invitees have no account here -- one mailto: to all of
-     them at once instead of clicking each tag's own share icon in
-     turn. A small icon+count pill, not a full-sentence button -- the
-     full description is a title tooltip instead. */
+     2+ added invitees have no account here -- downloads one .ics for
+     all of them and opens one mailto: draft to all of them, instead of
+     clicking each tag's own share button in turn. A small icon+count
+     pill, not a full-sentence button -- the full description is a
+     title tooltip instead. */
   .cef-attendee-share-all{
     flex-shrink:0;display:inline-flex;align-items:center;gap:3px;height:34px;box-sizing:border-box;
-    padding:0 9px;border-radius:999px;border:1px solid var(--copper-300);
+    padding:0 9px;border-radius:999px;border:1px solid var(--copper-300);cursor:pointer;
     color:var(--copper-600);background:var(--copper-050);
-    font-family:var(--mono);font-size:11px;line-height:1;text-decoration:none;
+    font-family:var(--mono);font-size:11px;line-height:1;
   }
   .cef-attendee-share-all:hover{border-color:var(--copper-500);background:var(--copper-100);}
   /* Starts/Ends: a date picker plus the same select+precise-toggle time

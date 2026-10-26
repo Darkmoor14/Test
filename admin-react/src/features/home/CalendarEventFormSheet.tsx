@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { pad2 } from '../../lib/format';
-import { dateKey, describeRecurrence, isoWeekday, type CalendarEvent, type RecurrenceFreq, type RecurrencePattern } from './calendarUtils';
+import { buildEventIcs, dateKey, describeRecurrence, isoWeekday, type CalendarEvent, type RecurrenceFreq, type RecurrencePattern } from './calendarUtils';
 import { RecurrenceSheet } from './RecurrenceSheet';
 import type { CalendarEventInput } from './useCalendarEvents';
 
@@ -215,7 +215,7 @@ export function CalendarEventFormSheet({
   // Staff already get the event in their own Acasă/"De făcut" feed once
   // saved -- this is only for someone with no account here at all, so
   // it's offered only for an email-shaped entry that isn't one of them.
-  // mailto: accepts comma-separated recipients, so one emails and the
+  // mailto: accepts comma-separated recipients, so one email and the
   // "share with all" button are the same builder with a different list.
   const buildInviteMailto = (emails: string[]): string => {
     const subject = `Invitație: ${title.trim() || 'eveniment'}`;
@@ -223,8 +223,50 @@ export function CalendarEventFormSheet({
       `Eveniment: ${title.trim() || '(fără titlu)'}`,
       `Data: ${startDateVal}${!allDay ? ` ${getStartValue()}` : ' (toată ziua)'}`,
       location.trim() ? `Locație: ${location.trim()}` : null,
-    ].filter(Boolean) as string[];
+      '',
+      'Fișierul .ics tocmai descărcat conține evenimentul -- atașează-l la acest email înainte să-l trimiți.',
+    ].filter((l) => l !== null) as string[];
     return `mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
+  };
+  // mailto: can't carry an attachment (no browser/URI-scheme support for
+  // it) -- the closest a plain link can get is downloading the real
+  // .ics alongside opening the draft, so attaching it is one drag
+  // instead of building the file by hand. A real one-click "already
+  // attached" would mean sending the email for real from our own
+  // server instead of opening the user's own mail client -- a
+  // different, bigger feature, not this.
+  const downloadEventIcs = () => {
+    const ics = buildEventIcs({
+      title: title.trim() || '(fără titlu)',
+      description: description.trim() || null,
+      location: location.trim() || null,
+      url: url.trim() || null,
+      start_time: new Date(`${startDateVal}T${allDay ? '00:00' : getStartValue()}`).toISOString(),
+      end_time: new Date(`${endDateVal}T${allDay ? '23:59' : getEndValue()}`).toISOString(),
+      all_day: allDay,
+      reminder_minutes_before: reminder ? Number(reminder) : null,
+      travel_time_minutes: travelTime ? Number(travelTime) : null,
+      recurrence_freq: pendingRecurrence ? pendingRecurrence.recurrence_freq : null,
+      recurrence_interval: pendingRecurrence ? pendingRecurrence.recurrence_interval : null,
+      recurrence_days_of_week: pendingRecurrence ? pendingRecurrence.recurrence_days_of_week : null,
+      recurrence_end_type: pendingRecurrence ? pendingRecurrence.recurrence_end_type : null,
+      recurrence_end_date: pendingRecurrence ? pendingRecurrence.recurrence_end_date : null,
+      recurrence_count: pendingRecurrence ? pendingRecurrence.recurrence_count : null,
+    });
+    const blobUrl = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+    const fileName = `${(title.trim() || 'eveniment').replace(/[^\w.-]+/g, '_')}.ics`;
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 4000);
+  };
+  const shareInviteByEmail = (emails: string[]) => {
+    downloadEventIcs();
+    if (typeof window.showToast === 'function') window.showToast('Fișier .ics descărcat — atașează-l la emailul care s-a deschis.');
+    window.location.href = buildInviteMailto(emails);
   };
   const attendeeSuggestions = attendeeInput.trim()
     ? allStaffEmails.filter((e) => e.toLowerCase().includes(attendeeInput.trim().toLowerCase()) && !attendees.has(e)).slice(0, 6)
@@ -389,12 +431,12 @@ export function CalendarEventFormSheet({
                 />
                 <button type="button" className="btn cef-invitee-add-btn" title="Adaugă invitat" aria-label="Adaugă invitat" onClick={() => addAttendee(attendeeInput)}>+</button>
                 {externalInvitees.length > 1 && (
-                  <a
-                    className="cef-attendee-share-all" href={buildInviteMailto(externalInvitees)}
-                    title={`Trimite invitație tuturor (${externalInvitees.length})`}
-                    aria-label={`Trimite invitație tuturor (${externalInvitees.length})`}
-                    onClick={(e) => e.stopPropagation()}
-                  >✉<span>{externalInvitees.length}</span></a>
+                  <button
+                    type="button" className="cef-attendee-share-all"
+                    title={`Trimite invitație tuturor (${externalInvitees.length}), cu fișier .ics`}
+                    aria-label={`Trimite invitație tuturor (${externalInvitees.length}), cu fișier .ics`}
+                    onClick={(e) => { e.stopPropagation(); shareInviteByEmail(externalInvitees); }}
+                  >✉<span>{externalInvitees.length}</span></button>
                 )}
               </div>
               {attendeeSuggestions.length > 0 && (
@@ -414,11 +456,12 @@ export function CalendarEventFormSheet({
                       <span key={a} className="cef-attendee-tag">
                         {a}
                         {canInvite && (
-                          <a
-                            className="cef-attendee-share" href={buildInviteMailto([a])}
-                            title={`Trimite invitație prin email către ${a}`} aria-label={`Trimite invitație prin email către ${a}`}
-                            onClick={(e) => e.stopPropagation()}
-                          >✉</a>
+                          <button
+                            type="button" className="cef-attendee-share"
+                            title={`Trimite invitație prin email către ${a}, cu fișier .ics`}
+                            aria-label={`Trimite invitație prin email către ${a}, cu fișier .ics`}
+                            onClick={(e) => { e.stopPropagation(); shareInviteByEmail([a]); }}
+                          >✉</button>
                         )}
                         <button type="button" aria-label={`Elimină ${a}`} onClick={() => removeAttendee(a)}>×</button>
                       </span>

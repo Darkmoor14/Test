@@ -5,6 +5,8 @@
 // persisted as its own row. Editing/deleting the row edits/deletes the
 // whole series.
 
+import { pad2 } from '../../lib/format';
+
 export type RecurrenceFreq = 'daily' | 'weekly' | 'monthly' | 'yearly';
 export type RecurrenceEndType = 'date' | 'count' | 'never';
 
@@ -213,4 +215,119 @@ export function isEventHappeningNow(e: CalendarEvent, now: Date): boolean {
   const start = new Date(e.start_time);
   const end = e.end_time ? new Date(e.end_time) : new Date(start.getTime() + EVENT_ACTIVE_GRACE_MS);
   return now >= start && now <= end;
+}
+
+// ===== Single-event .ics export (invite-by-email "share" button) =====
+// Same RFC5545 formatting rules as supabase/functions/calendar-feed
+// (the Apple Calendar subscription feed), ported here rather than
+// shared as a module -- that one runs in Deno, this runs in the
+// browser, and they don't share a build pipeline. Works on an
+// in-progress draft (no id yet, nothing saved) since it only needs the
+// same fields CalendarEventInput already carries, not a saved row.
+export interface IcsEventInput {
+  title: string;
+  description: string | null;
+  location: string | null;
+  url: string | null;
+  start_time: string;
+  end_time: string | null;
+  all_day: boolean;
+  reminder_minutes_before: number | null;
+  travel_time_minutes: number | null;
+  recurrence_freq: RecurrenceFreq | null;
+  recurrence_interval: number | null;
+  recurrence_days_of_week: number[] | null;
+  recurrence_end_type: RecurrenceEndType | null;
+  recurrence_end_date: string | null;
+  recurrence_count: number | null;
+}
+
+function icsFormatUtc(d: Date): string {
+  return `${d.getUTCFullYear()}${pad2(d.getUTCMonth() + 1)}${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}${pad2(d.getUTCMinutes())}${pad2(d.getUTCSeconds())}Z`;
+}
+
+// All-day dates are read back in Europe/Bucharest, not naive UTC --
+// Bucharest is ahead of UTC, so the UTC date of a Bucharest midnight
+// instant is the day before.
+function icsBucharestDateDigits(iso: string): string {
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Bucharest', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(d);
+  const get = (t: string) => parts.find((p) => p.type === t)!.value;
+  return `${get('year')}${get('month')}${get('day')}`;
+}
+function icsAddDaysToDateDigits(digits: string, days: number): string {
+  const y = Number(digits.slice(0, 4));
+  const m = Number(digits.slice(4, 6));
+  const d = Number(digits.slice(6, 8));
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  return `${dt.getUTCFullYear()}${pad2(dt.getUTCMonth() + 1)}${pad2(dt.getUTCDate())}`;
+}
+function icsEscape(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+}
+function icsFoldLine(line: string): string {
+  if (line.length <= 75) return line;
+  const chunks: string[] = [];
+  let rest = line;
+  chunks.push(rest.slice(0, 75));
+  rest = rest.slice(75);
+  while (rest.length > 0) {
+    chunks.push(' ' + rest.slice(0, 74));
+    rest = rest.slice(74);
+  }
+  return chunks.join('\r\n');
+}
+const ICS_DAY_CODES: Record<number, string> = { 1: 'MO', 2: 'TU', 3: 'WE', 4: 'TH', 5: 'FR', 6: 'SA', 7: 'SU' };
+const ICS_FREQ_CODES: Record<RecurrenceFreq, string> = { daily: 'DAILY', weekly: 'WEEKLY', monthly: 'MONTHLY', yearly: 'YEARLY' };
+
+function icsBuildRRule(e: IcsEventInput): string | null {
+  if (!e.recurrence_freq) return null;
+  const parts = [`FREQ=${ICS_FREQ_CODES[e.recurrence_freq]}`];
+  if (e.recurrence_interval && e.recurrence_interval > 1) parts.push(`INTERVAL=${e.recurrence_interval}`);
+  if (e.recurrence_freq === 'weekly' && e.recurrence_days_of_week?.length) {
+    parts.push(`BYDAY=${e.recurrence_days_of_week.map((d) => ICS_DAY_CODES[d]).filter(Boolean).join(',')}`);
+  }
+  if (e.recurrence_end_type === 'date' && e.recurrence_end_date) {
+    parts.push(`UNTIL=${icsFormatUtc(new Date(`${e.recurrence_end_date}T23:59:59Z`))}`);
+  } else if (e.recurrence_end_type === 'count' && e.recurrence_count) {
+    parts.push(`COUNT=${e.recurrence_count}`);
+  }
+  return parts.join(';');
+}
+
+export function buildEventIcs(e: IcsEventInput): string {
+  const lines: string[] = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Insta Grup//Calendar Acasa//RO', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+  lines.push('BEGIN:VEVENT');
+  lines.push(`UID:${Date.now()}-${Math.random().toString(36).slice(2)}@insta-grup.ro`);
+  lines.push(`DTSTAMP:${icsFormatUtc(new Date())}`);
+
+  if (e.all_day) {
+    const startDigits = icsBucharestDateDigits(e.start_time);
+    const endDigits = icsBucharestDateDigits(e.end_time || e.start_time);
+    lines.push(`DTSTART;VALUE=DATE:${startDigits}`);
+    lines.push(`DTEND;VALUE=DATE:${icsAddDaysToDateDigits(endDigits, 1)}`);
+  } else {
+    lines.push(`DTSTART:${icsFormatUtc(new Date(e.start_time))}`);
+    lines.push(`DTEND:${icsFormatUtc(new Date(e.end_time || e.start_time))}`);
+  }
+
+  lines.push(icsFoldLine(`SUMMARY:${icsEscape(e.title || '(fără titlu)')}`));
+  if (e.location) lines.push(icsFoldLine(`LOCATION:${icsEscape(e.location)}`));
+  if (e.url) lines.push(icsFoldLine(`URL:${e.url.replace(/\r?\n/g, '')}`));
+  if (e.description) lines.push(icsFoldLine(`DESCRIPTION:${icsEscape(e.description)}`));
+
+  const rrule = icsBuildRRule(e);
+  if (rrule) lines.push(`RRULE:${rrule}`);
+
+  if (e.reminder_minutes_before) {
+    lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', icsFoldLine(`DESCRIPTION:${icsEscape(e.title || 'Memento')}`), `TRIGGER:-PT${e.reminder_minutes_before}M`, 'END:VALARM');
+  }
+  if (e.travel_time_minutes) {
+    lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Timp de deplasare', `TRIGGER:-PT${e.travel_time_minutes + (e.reminder_minutes_before || 0)}M`, 'END:VALARM');
+  }
+
+  lines.push('STATUS:CONFIRMED', 'END:VEVENT', 'END:VCALENDAR');
+  return lines.join('\r\n') + '\r\n';
 }
