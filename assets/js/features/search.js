@@ -1,10 +1,11 @@
 /* ============================================================
      ACASĂ — CĂUTARE INTELIGENTĂ. Un motor pe reguli (nu AI — fără
-     cost, fără cheie API, răspunde instant) peste ERP, Proiecte
-     publice, Avarii rețele, Proiecte LPS și Programe lucrări, pentru
-     întrebări de genul "cât cablu X mai am", "unde e excavatorul",
-     "cine lucrează la avaria de pe strada X", "când e programată
-     lucrarea Y". Acoperă tiparele de mai jos; orice altceva primește
+     cost, fără cheie API, răspunde instant) peste ERP, Sesizări,
+     Proiecte publice, Avarii rețele, Proiecte LPS și Programe lucrări,
+     pentru întrebări de genul "cât cablu X mai am", "unde e
+     excavatorul", "cine lucrează la avaria de pe strada X", "când e
+     programată lucrarea Y", "câte sesizări active sunt". Acoperă
+     tiparele de mai jos; orice altceva primește
      fie câteva sugestii apropiate (dacă există ceva asemănător),
      fie un mesaj clar că nu a fost găsit — niciodată un răspuns
      ghicit greșit. Fiecare căutare e logată ca semnal ('search_query')
@@ -30,7 +31,7 @@
   function searchTokens(s){
     return normalizeSearchText(s).split(' ').filter(t => t.length >= 2 && !SEARCH_STOPWORDS.has(t));
   }
-  function tabForErpCategory(cat){ return cat === 'echipament' ? 'equipment' : cat === 'masina' ? 'machines' : 'materials'; }
+  function tabForErpCategory(cat){ return cat === 'echipament' ? 'equipment' : cat === 'masina' ? 'machines' : cat === 'produs' ? 'products' : 'materials'; }
   const SEARCH_COLLECTION_LABEL = { erp_echipament: 'Echipament', erp_masina: 'Mașină', erp_material: 'Material', projects: 'Proiect public', backlog: 'Avarie rețea', lps: 'Proiect LPS', workorders: 'Programare', tickets: 'Sesizare' };
   // One flat index across every searchable collection — rebuilt on
   // every search (cheap: a few hundred rows at most for a platform
@@ -116,8 +117,13 @@
     }
     return out;
   }
-  const SEARCH_CATEGORY_WORDS = { echipament: ['echipament', 'echipamente'], masina: ['masina', 'masini'], material: ['material', 'materiale'] };
+  const SEARCH_CATEGORY_WORDS = { echipament: ['echipament', 'echipamente'], masina: ['masina', 'masini'], material: ['material', 'materiale'], produs: ['produs', 'produse'] };
   const SEARCH_STATUS_WORDS = { 'Disponibil': ['disponibil', 'disponibile'], 'In folosinta': ['folosinta', 'folosita', 'folosite'], 'Service': ['service'], 'Indisponibil': ['indisponibil', 'indisponibile'] };
+  // "câte sesizări/accidente/defecte [active/soluționate]" -- the ERP
+  // block above already counts equipment/materials/produse; tickets are
+  // the actual primary object in this app and had no counting at all.
+  const SEARCH_TICKET_TYPE_WORDS = { 'Anunt accident': ['accident', 'accidente'], 'Defect': ['functional', 'functionale', 'defect', 'defecte'] };
+  const SEARCH_TICKET_STATUS_WORDS = { 'Ongoing': ['activ', 'active', 'deschis', 'deschise'], 'Terminat': ['solutionat', 'solutionate', 'terminat', 'terminate', 'rezolvat', 'rezolvate', 'inchis', 'inchise'] };
   function describeErpMatch(item, q){
     const cat = item.erp_category || (item.item_type === 'echipament' ? 'echipament' : 'material');
     const isVehicle = cat === 'masina';
@@ -240,12 +246,31 @@
         }
         let items = (allEquipment || []).filter(e => (e.erp_category || '') === matchedCategory);
         if (matchedStatus) items = items.filter(e => e.status === matchedStatus);
-        const catLabel = { echipament: 'echipamente', masina: 'mașini', material: 'materiale' }[matchedCategory];
+        const catLabel = { echipament: 'echipamente', masina: 'mașini', material: 'materiale', produs: 'produse' }[matchedCategory];
         const statusLabel = matchedStatus ? ' ' + (EQUIPMENT_STATUS_LABEL[matchedStatus] || matchedStatus).toLowerCase() : '';
         const names = items.slice(0, 6).map(e => e.name).join(', ');
         return {
           text: `${items.length} ${catLabel}${statusLabel}${items.length ? ': ' + names + (items.length > 6 ? '…' : '') : '.'}`,
           tab: tabForErpCategory(matchedCategory), matched: true, suggestions: [],
+        };
+      }
+      if (/sesizar|tichet|accident|defect/.test(q)) {
+        let matchedType = null;
+        for (const type of Object.keys(SEARCH_TICKET_TYPE_WORDS)) { if (SEARCH_TICKET_TYPE_WORDS[type].some(w => q.includes(w))) { matchedType = type; break; } }
+        let matchedStatus = null;
+        for (const status of Object.keys(SEARCH_TICKET_STATUS_WORDS)) { if (SEARCH_TICKET_STATUS_WORDS[status].some(w => q.includes(w))) { matchedStatus = status; break; } }
+        // Duplicates fold into their canonical ticket -- counting them
+        // separately would double-count the same real-world issue.
+        let items = (allTickets || []).filter(t => !t.duplicate_of);
+        if (matchedType) items = items.filter(t => t.type === matchedType);
+        if (matchedStatus) items = items.filter(t => t.status === matchedStatus);
+        const typeLabel = matchedType === 'Anunt accident' ? 'accidente' : matchedType === 'Defect' ? 'sesizări funcționale' : 'sesizări';
+        const statusLabel = matchedStatus ? ' ' + (matchedStatus === 'Terminat' ? 'soluționate' : 'active') : '';
+        const tab = matchedType === 'Anunt accident' ? 'tickets-accident' : matchedType === 'Defect' ? 'tickets-functional' : 'overview';
+        const names = items.slice(0, 6).map(t => t.ticket_number).filter(Boolean).join(', ');
+        return {
+          text: `${items.length} ${typeLabel}${statusLabel}${items.length ? ': ' + names + (items.length > 6 ? '…' : '') : '.'}`,
+          tab, matched: true, suggestions: [],
         };
       }
     }
