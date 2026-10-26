@@ -32,7 +32,12 @@ export function ErpRoot({ sessionEmail, targets }: { sessionEmail: string | null
       {createPortal(<AddItemButton category="material" />, targets.materialsQuickFilters)}
       {createPortal(<AddItemButton category="produs" />, targets.productsQuickFilters)}
       <ErpHomePanel />
-      <EquipmentForm />
+      {/* EquipmentForm must reach the viewer regardless of which ERP tab
+          is active -- this root lives inside panel-erp-home (an
+          .admin-panel, display:none unless its own tab is active), so a
+          plain child here is hidden whenever Add is clicked from
+          Echipamente/Materiale/Produse instead of Home. Portal to body. */}
+      {createPortal(<EquipmentForm />, document.body)}
     </ErpStoreProvider>
   );
 }
