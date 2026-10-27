@@ -506,6 +506,40 @@ function extractSyncToken(body: string): string | null {
   return m ? m[1].trim() : null;
 }
 
+// PROPPATCH -- a client setting its own display properties on the
+// calendar collection (iOS sets its chosen calendar-color here right
+// after the first successful sync; observed live as a 405 before this
+// was implemented, which iOS surfaces as "Unable to update calendars"
+// even though discovery and the actual event fetch both succeeded).
+// There's nothing to persist server-side -- the color is a per-client
+// display preference, not app state -- so every property the client
+// tries to set or remove is just acknowledged as done. Each opening
+// tag is captured whole (including any inline xmlns attribute, which
+// is how clients typically declare a custom property's namespace) and
+// echoed back verbatim as a self-closing element, so the response
+// stays valid even for a namespace this document's own head doesn't
+// declare.
+function parsePropPatchPropTags(body: string): string[] {
+  const tags: string[] = [];
+  const blockRe = /<(?:[a-zA-Z0-9_]+:)?(?:set|remove)[^>]*>([\s\S]*?)<\/(?:[a-zA-Z0-9_]+:)?(?:set|remove)>/gi;
+  let blockMatch: RegExpExecArray | null;
+  while ((blockMatch = blockRe.exec(body))) {
+    const propBlockMatch = blockMatch[1].match(/<(?:[a-zA-Z0-9_]+:)?prop[^>]*>([\s\S]*?)<\/(?:[a-zA-Z0-9_]+:)?prop>/i);
+    if (!propBlockMatch) continue;
+    const tagRe = /<([a-zA-Z0-9_.:-]+)((?:\s+[a-zA-Z0-9_:.-]+="[^"]*")*)\s*\/?>/g;
+    let tagMatch: RegExpExecArray | null;
+    while ((tagMatch = tagRe.exec(propBlockMatch[1]))) {
+      tags.push(`<${tagMatch[1]}${tagMatch[2]}/>`);
+    }
+  }
+  return tags;
+}
+
+function proppatchResponseBody(selfHref: string, propTags: string[]): string {
+  const propsXml = propTags.join("");
+  return `${MULTISTATUS_HEAD}<d:response><d:href>${xmlEscape(selfHref)}</d:href><d:propstat><d:prop>${propsXml}</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>${MULTISTATUS_TAIL}`;
+}
+
 // ================================================================
 // Visibility -- identical rule to calendar-feed: a no-invitees event
 // is private to its creator; one with invitees is shared with exactly
@@ -609,10 +643,10 @@ Deno.serve(async (req) => {
       status: 204,
       headers: {
         DAV: "1, 2, 3, calendar-access",
-        Allow: "OPTIONS, GET, HEAD, PUT, DELETE, PROPFIND, REPORT",
+        Allow: "OPTIONS, GET, HEAD, PUT, DELETE, PROPFIND, PROPPATCH, REPORT",
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "authorization, content-type, depth, if-match, if-none-match",
-        "Access-Control-Allow-Methods": "OPTIONS, GET, HEAD, PUT, DELETE, PROPFIND, REPORT",
+        "Access-Control-Allow-Methods": "OPTIONS, GET, HEAD, PUT, DELETE, PROPFIND, PROPPATCH, REPORT",
       },
     });
   }
@@ -634,6 +668,11 @@ Deno.serve(async (req) => {
   if (path === "/" && method === "REPORT") {
     const reqBody = await req.text();
     const body = await calendarCollectionReportBody(email, reqBody);
+    return multistatusResponse(body);
+  }
+  if (path === "/" && method === "PROPPATCH") {
+    const reqBody = await req.text();
+    const body = proppatchResponseBody(`${PUBLIC_BASE}/`, parsePropPatchPropTags(reqBody));
     return multistatusResponse(body);
   }
 
@@ -681,7 +720,13 @@ Deno.serve(async (req) => {
       return multistatusResponse(body);
     }
 
-    return new Response("Method Not Allowed", { status: 405, headers: { Allow: "PROPFIND, REPORT" } });
+    if (method === "PROPPATCH") {
+      const reqBody = await req.text();
+      const body = proppatchResponseBody(`${PUBLIC_BASE}${path}/`, parsePropPatchPropTags(reqBody));
+      return multistatusResponse(body);
+    }
+
+    return new Response("Method Not Allowed", { status: 405, headers: { Allow: "PROPFIND, PROPPATCH, REPORT" } });
   }
 
   // --- a single event resource ---
