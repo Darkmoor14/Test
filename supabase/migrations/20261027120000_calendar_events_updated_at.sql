@@ -33,9 +33,15 @@ create table public.calendar_events_tombstones (
 );
 alter table public.calendar_events_tombstones enable row level security;
 
+-- security definer: calendar_events_tombstones has RLS enabled with no
+-- policies at all (nobody should read/write it directly), but this
+-- trigger fires on a normal authenticated user's own DELETE -- without
+-- definer it'd run as that user and get blocked by the very RLS it's
+-- supposed to bypass ("new row violates row-level security policy").
 create or replace function public.log_calendar_event_tombstone()
 returns trigger
 language plpgsql
+security definer
 set search_path to 'public'
 as $$
 begin
