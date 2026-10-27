@@ -233,57 +233,17 @@
     allVehicles.forEach(eq => { if (subcatCounts[eq.category] != null) subcatCounts[eq.category]++; });
     return { allVehicles, urgentVehicles, subcatCounts };
   }
+  // Rezervorul (rezervoarele) de motorină -- rânduri simple în același
+  // tabel ca restul Parc Auto (nu un card separat deasupra), cu „—"
+  // pentru orice coloană care nu i se aplică (documente/service/km).
+  // Apare doar pe „Toate" (nefiltrat) -- nicio subcategorie nu-l poate
+  // selecta, pentru că n-are propriul card de filtrare.
   function allReservoirs(){
     return allEquipment.filter(eq => eq.erp_category === 'masina' && isReservoir(eq));
   }
-  // Rezervorul (rezervoarele) de motorină -- afișate ca un card simplu
-  // (nume + litri + editează/șterge), nu în tabelul/cardurile Parc Auto
-  // de mai sus. Același card apare identic pe Prezentare generală și pe
-  // Raport lunar consum (motorina rămasă e relevantă în amândouă), deci
-  // randat o dată și injectat în ambele containere.
-  function reservoirCardHtml(eq){
-    const liters = eq.quantity != null ? Number(eq.quantity).toLocaleString('ro-RO') : '0';
-    return `
-      <div class="reservoir-card">
-        <div class="reservoir-card-main">
-          <span class="k">${escapeHtml(eq.name)}</span>
-          <div class="reservoir-card-liters">${liters} L</div>
-        </div>
-        <div class="reservoir-card-actions">
-          <button type="button" class="mt-row-icon-btn mt-edit-icon" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-          </button>
-          <button type="button" class="mt-row-icon-btn danger mt-delete-icon" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Șterge" aria-label="Șterge ${escapeHtml(eq.name)}">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-          </button>
-        </div>
-      </div>
-    `;
+  function reservoirLitersLabel(eq){
+    return `${eq.quantity != null ? Number(eq.quantity).toLocaleString('ro-RO') : '0'} L`;
   }
-  function renderReservoirSummary(){
-    const reservoirs = allReservoirs();
-    ['machinesReservoirSummary', 'machinesFuelReportReservoirSummary'].forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      if (!reservoirs.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
-      el.style.display = '';
-      el.innerHTML = reservoirs.map(reservoirCardHtml).join('');
-    });
-  }
-  ['machinesReservoirSummary', 'machinesFuelReportReservoirSummary'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener('click', (e) => {
-      const editIcon = e.target.closest('.mt-edit-icon');
-      if (editIcon) {
-        const eq = allEquipment.find(v => v.id === editIcon.dataset.vehicleId);
-        if (eq) openVehicleEdit(eq);
-        return;
-      }
-      const deleteIcon = e.target.closest('.mt-delete-icon');
-      if (deleteIcon) deleteVehicle(deleteIcon.dataset.vehicleId);
-    });
-  });
   // Shared by the Prezentare generală cards and the Raport lunar
   // consum cards below -- same defs, same counts, same toggle-off
   // behaviour, just a different active key and a different callback
@@ -342,6 +302,11 @@
       : allVehicles.filter(eq => eq.category === machinesSubcatFilter))
       .slice()
       .sort((a, b) => (a.plate_number || '').localeCompare(b.plate_number || '', 'ro'));
+    // Rezervorul apare doar pe "Toate" nefiltrat -- n-are propriul card
+    // de filtrare, deci orice altă subcategorie sau "Notificări" îl
+    // exclude automat (allVehicles deja nu-l include).
+    const reservoirRows = machinesSubcatFilter === 'Toate' ? allReservoirs() : [];
+    const rowsToRender = filtered.concat(reservoirRows);
 
     const countEl = document.getElementById('machinesCount');
     if (countEl) countEl.textContent = machinesSubcatFilter === 'Toate'
@@ -360,7 +325,7 @@
     cardsList.style.display = onOverview ? 'none' : '';
 
     if (onOverview) {
-      if (!filtered.length) {
+      if (!rowsToRender.length) {
         tbody.innerHTML = `<tr><td colspan="9"><div class="machines-table-empty">Nicio mașină înregistrată.</div></td></tr>`;
         return;
       }
@@ -385,7 +350,22 @@
         if (!parts.length) return '<td class="mt-na">—</td>';
         return `<td>${parts.join(' · ')}</td>`;
       }
-      tbody.innerHTML = filtered.map(eq => {
+      tbody.innerHTML = rowsToRender.map(eq => {
+        if (isReservoir(eq)) {
+          return `
+            <tr>
+              <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div><div class="mt-subcat">${eq.notes ? escapeHtml(eq.notes) : ''}</div></td>
+              <td><a href="#" class="ticket-link" data-vehicle-id="${escapeHtml(eq.id)}">${escapeHtml(reservoirLitersLabel(eq))}</a></td>
+              <td class="mt-na">—</td>
+              <td class="mt-na">—</td>
+              <td class="mt-na">—</td>
+              <td class="mt-na">—</td>
+              <td class="mt-na">—</td>
+              <td class="mt-na">—</td>
+              <td class="mt-na">—</td>
+            </tr>
+          `;
+        }
         const isCamion = eq.category === 'camion';
         return `
           <tr>
@@ -670,17 +650,41 @@
       .slice()
       .sort((a, b) => (a.plate_number || '').localeCompare(b.plate_number || '', 'ro'));
     if (countEl) countEl.textContent = vehicles.length + (vehicles.length === 1 ? ' mașină' : ' mașini');
-    if (!vehicles.length) {
+    // Same rule as Prezentare generală: the reservoir only shows on
+    // "Toate" nefiltrat, in the "L (diferență)" column -- the one slot
+    // here that already means "fuel currently in the tank" for a real
+    // vehicle (its leftoverOut), just showing the bulk tank's own level
+    // instead of a per-vehicle computed one.
+    const reservoirRows = fuelReportSubcatFilter === 'Toate' ? allReservoirs() : [];
+    const rowsToRender = vehicles.concat(reservoirRows);
+    if (!rowsToRender.length) {
       tbody.innerHTML = `<tr><td colspan="9"><div class="machines-table-empty">Nicio mașină înregistrată.</div></td></tr>`;
       return;
     }
-    tbody.innerHTML = vehicles.map(eq => {
+    const na = '<span class="mt-na">—</span>';
+    tbody.innerHTML = rowsToRender.map(eq => {
+      if (isReservoir(eq)) {
+        return `
+          <tr>
+            <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div></td>
+            <td>${na}</td>
+            <td>${na}</td>
+            <td>${na}</td>
+            <td>${na}</td>
+            <td>${escapeHtml(reservoirLitersLabel(eq))}</td>
+            <td>${na}</td>
+            <td>${na}</td>
+            <td><button type="button" class="mt-row-icon-btn fuel-log-edit-btn" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+            </button></td>
+          </tr>
+        `;
+      }
       const cs = vehicleFuelConsumptions(eq, fuelReportYear, fuelReportMonth);
       const kmC = cs.find(c => c.unit === 'km');
       const hC = cs.find(c => c.unit === 'h');
       const overLimit = cs.some(c => c.overLimit);
       const totalAdded = fuelPurchaseSum(eq.id, fuelReportYear, fuelReportMonth);
-      const na = '<span class="mt-na">—</span>';
       // Camion/Autoutilitara track both -- join whichever of the two
       // have a value into one cell instead of adding more columns.
       const joinPair = (fmt) => {
@@ -879,7 +883,10 @@
     const editBtn = e.target.closest('.fuel-log-edit-btn');
     if (editBtn) {
       const eq = allEquipment.find(v => v.id === editBtn.dataset.vehicleId);
-      if (eq) openVehicleFuelLogForm(eq);
+      // The reservoir has no monthly odometer/purchase log -- its edit
+      // icon here opens the identity form (Nume/Litri) instead.
+      if (eq && isReservoir(eq)) openVehicleEdit(eq);
+      else if (eq) openVehicleFuelLogForm(eq);
       return;
     }
     const link = e.target.closest('.ticket-link');
@@ -1039,7 +1046,6 @@
   function renderEquipment(){
     renderMachinesOverview();
     renderMachinesFuelReport();
-    renderReservoirSummary();
   }
 
   // vehicleFormSheet is the one merged vehicle form — identity (Titlu,
@@ -1110,6 +1116,8 @@
     if (titleEl) titleEl.textContent = 'Adaugă mașină';
     const saveBtn = document.getElementById('vfSaveBtn');
     if (saveBtn) saveBtn.textContent = 'Adaugă';
+    const deleteBtn = document.getElementById('vfDeleteBtn');
+    if (deleteBtn) deleteBtn.style.display = 'none';
     setSheetOpen('vehicleFormSheet', true);
   });
   function openVehicleEdit(eq){
@@ -1139,8 +1147,20 @@
     if (titleEl) titleEl.textContent = `Editează — ${eq.name}`;
     const saveBtn = document.getElementById('vfSaveBtn');
     if (saveBtn) saveBtn.textContent = 'Salvează';
+    // Real vehicles still delete from their own subcategory card page
+    // (Editează/Șterge icons) -- the reservoir has no such page, so this
+    // is its only delete path, shown only when editing an existing one.
+    const deleteBtn = document.getElementById('vfDeleteBtn');
+    if (deleteBtn) deleteBtn.style.display = isReservoir(eq) ? '' : 'none';
     setSheetOpen('vehicleFormSheet', true);
   }
+  const vfDeleteBtn = document.getElementById('vfDeleteBtn');
+  if (vfDeleteBtn) vfDeleteBtn.addEventListener('click', async () => {
+    const id = document.getElementById('vf-id').value;
+    if (!id) return;
+    const ok = await deleteVehicle(id);
+    if (ok) setSheetOpen('vehicleFormSheet', false);
+  });
   const vfSaveBtn = document.getElementById('vfSaveBtn');
   if (vfSaveBtn) vfSaveBtn.addEventListener('click', async () => {
     const id = document.getElementById('vf-id').value;
@@ -1155,7 +1175,15 @@
       if (litersInput === '') { alert('Completați litrii din rezervor.'); return; }
       const liters = Number(litersInput);
       const name = title || 'Rezervor motorină';
-      const reservoirPayload = { name, category: subcat, quantity: liters, unit: 'L', notes: notes || null };
+      const reservoirPayload = {
+        name, category: subcat, quantity: liters, unit: 'L', notes: notes || null,
+        plate_number: null, serial_number: null, assigned_to: null,
+        itp_expires_on: null, insurance_expires_on: null, transport_license_expires_on: null,
+        parking_ticket_expires_on: null, vignette_expires_on: null, tachograph_expires_on: null,
+        fuel_rated_consumption_km: null, fuel_rated_consumption_hours: null, fuel_tank_capacity_l: null,
+        fuel_initial_km: null, fuel_initial_hours: null,
+        fuel_service_interval_km: null, fuel_service_interval_hours: null,
+      };
       if (id) {
         const original = allEquipment.find(v => v.id === id);
         const { error } = await AppDataServices.erp.saveVehicle(supabaseClient, reservoirPayload, id);
@@ -1362,6 +1390,10 @@
   // then scroll to and highlight its card there — a click on Prezentare
   // generală goes straight to the car, not through another popup.
   function goToVehicle(eq){
+    // The reservoir has no subcategory page of its own to jump to --
+    // its only row lives right on Prezentare generală, so its one-click
+    // action is opening the edit form directly instead.
+    if (isReservoir(eq)) { openAdminTab('machines'); setMachinesSubcatFilter('Toate', { sidebarKey: 'Toate' }); openVehicleEdit(eq); return; }
     // Unlike the in-table ticket-link (already on panel-machines), this
     // is also reached from the Home smart search and command palette —
     // it must switch to Parc Auto itself, not just update its filter.
