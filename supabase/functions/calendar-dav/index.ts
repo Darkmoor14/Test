@@ -533,6 +533,70 @@ function eventResponseXml(email: string, e: CalendarEventRow, includeData: boole
 }
 
 // ================================================================
+// Shared PROPFIND/REPORT bodies for "a resource that IS the calendar
+// collection" -- used at BOTH the real collection path
+// (/calendars/<email>/events) and at root. Root needs this too
+// because a CalDAV account added on iOS with just a bare
+// Server/User/Password (no separate calendar path) sometimes treats
+// the exact URL typed into "Server" as the calendar collection
+// itself, syncing (REPORT) directly against it rather than following
+// the principal -> calendar-home-set discovery chain all the way
+// down -- observed live: every daemon successfully PROPFINDs root,
+// but none ever follow up with a request to the real collection path.
+// Answering both ways here means it works under either behavior.
+// ================================================================
+async function calendarCollectionPropfindBody(email: string, selfHref: string, depth: string, extraProps: string): Promise<string> {
+  const events = await visibleEventsFor(email);
+  const ctag = events.length ? String(Math.max(...events.map((e) => new Date(e.updated_at).getTime()))) : "0";
+  let body = `${MULTISTATUS_HEAD}<d:response><d:href>${xmlEscape(selfHref)}</d:href><d:propstat><d:prop><d:resourcetype><d:collection/><c:calendar/></d:resourcetype><d:displayname>Insta Grup — Acasă</d:displayname><cs:getctag>${xmlEscape(ctag)}</cs:getctag><d:sync-token>${xmlEscape(ctag)}</d:sync-token><c:supported-calendar-component-set><c:comp name="VEVENT"/></c:supported-calendar-component-set>${extraProps}</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`;
+  if (depth === "1") {
+    body += events.map((e) => eventResponseXml(email, e, false)).join("");
+  }
+  body += MULTISTATUS_TAIL;
+  return body;
+}
+
+async function calendarCollectionReportBody(email: string, reqBody: string): Promise<string> {
+  const kind = reportKind(reqBody);
+  const events = await visibleEventsFor(email);
+  const byId = new Map(events.map((e) => [e.id, e]));
+
+  if (kind === "multiget") {
+    const hrefs = extractHrefs(reqBody);
+    const ids = hrefs.map((h) => h.split("/").pop()?.replace(/\.ics$/, "")).filter(Boolean) as string[];
+    return `${MULTISTATUS_HEAD}${ids.map((id) => byId.get(id)).filter((e): e is CalendarEventRow => !!e).map((e) => eventResponseXml(email, e, true)).join("")}${MULTISTATUS_TAIL}`;
+  }
+
+  if (kind === "sync-collection") {
+    const sinceToken = extractSyncToken(reqBody);
+    const sinceMs = sinceToken ? Number(sinceToken) || 0 : 0;
+    const changed = events.filter((e) => new Date(e.updated_at).getTime() > sinceMs);
+    const { data: tombstones } = await admin
+      .from("calendar_events_tombstones")
+      .select("id, deleted_at")
+      .gt("deleted_at", sinceMs ? new Date(sinceMs).toISOString() : "1970-01-01") as { data: { id: string; deleted_at: string }[] | null };
+    const newCtag = String(Math.max(
+      sinceMs,
+      ...events.map((e) => new Date(e.updated_at).getTime()),
+      ...(tombstones || []).map((t) => new Date(t.deleted_at).getTime()),
+    ));
+    let body = MULTISTATUS_HEAD;
+    body += changed.map((e) => eventResponseXml(email, e, true)).join("");
+    for (const t of tombstones || []) {
+      if (byId.has(t.id)) continue; // still exists and visible -- not actually gone for this user
+      body += `<d:response><d:href>${xmlEscape(eventHref(email, t.id))}</d:href><d:status>HTTP/1.1 404 Not Found</d:status></d:response>`;
+    }
+    body += `<d:sync-token>${xmlEscape(newCtag)}</d:sync-token>`;
+    body += MULTISTATUS_TAIL;
+    return body;
+  }
+
+  // calendar-query -- no real time-range filtering (see file header);
+  // everything visible to this person, every time.
+  return `${MULTISTATUS_HEAD}${events.map((e) => eventResponseXml(email, e, true)).join("")}${MULTISTATUS_TAIL}`;
+}
+
+// ================================================================
 // Request handling
 // ================================================================
 Deno.serve(async (req) => {
@@ -556,9 +620,20 @@ Deno.serve(async (req) => {
   const email = await authenticate(req);
   if (!email) return unauthorized();
 
-  // --- root ---
+  // --- root -- answers as BOTH a discovery root (current-user-principal)
+  // AND, in case a client treats the given Server URL as the calendar
+  // itself, as a working calendar collection (see calendarCollection*
+  // above for why) ---
   if (path === "/" && method === "PROPFIND") {
-    const body = `${MULTISTATUS_HEAD}<d:response><d:href>${xmlEscape(`${PUBLIC_BASE}/`)}</d:href><d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype><d:current-user-principal><d:href>${xmlEscape(`${PUBLIC_BASE}/principals/${encodeURIComponent(email)}/`)}</d:href></d:current-user-principal><d:principal-URL><d:href>${xmlEscape(`${PUBLIC_BASE}/principals/${encodeURIComponent(email)}/`)}</d:href></d:principal-URL></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>${MULTISTATUS_TAIL}`;
+    const depth = req.headers.get("Depth") || "0";
+    const principalHref = `${PUBLIC_BASE}/principals/${encodeURIComponent(email)}/`;
+    const extraProps = `<d:current-user-principal><d:href>${xmlEscape(principalHref)}</d:href></d:current-user-principal><d:principal-URL><d:href>${xmlEscape(principalHref)}</d:href></d:principal-URL>`;
+    const body = await calendarCollectionPropfindBody(email, `${PUBLIC_BASE}/`, depth, extraProps);
+    return multistatusResponse(body);
+  }
+  if (path === "/" && method === "REPORT") {
+    const reqBody = await req.text();
+    const body = await calendarCollectionReportBody(email, reqBody);
     return multistatusResponse(body);
   }
 
@@ -596,56 +671,13 @@ Deno.serve(async (req) => {
 
     if (method === "PROPFIND") {
       const depth = req.headers.get("Depth") || "0";
-      const events = await visibleEventsFor(email);
-      const ctag = events.length ? String(Math.max(...events.map((e) => new Date(e.updated_at).getTime()))) : "0";
-      let body = `${MULTISTATUS_HEAD}<d:response><d:href>${xmlEscape(`${PUBLIC_BASE}${path}/`)}</d:href><d:propstat><d:prop><d:resourcetype><d:collection/><c:calendar/></d:resourcetype><d:displayname>Insta Grup — Acasă</d:displayname><cs:getctag>${xmlEscape(ctag)}</cs:getctag><d:sync-token>${xmlEscape(ctag)}</d:sync-token><c:supported-calendar-component-set><c:comp name="VEVENT"/></c:supported-calendar-component-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`;
-      if (depth === "1") {
-        body += events.map((e) => eventResponseXml(email, e, false)).join("");
-      }
-      body += MULTISTATUS_TAIL;
+      const body = await calendarCollectionPropfindBody(email, `${PUBLIC_BASE}${path}/`, depth, "");
       return multistatusResponse(body);
     }
 
     if (method === "REPORT") {
       const reqBody = await req.text();
-      const kind = reportKind(reqBody);
-      const events = await visibleEventsFor(email);
-      const byId = new Map(events.map((e) => [e.id, e]));
-
-      if (kind === "multiget") {
-        const hrefs = extractHrefs(reqBody);
-        const ids = hrefs.map((h) => h.split("/").pop()?.replace(/\.ics$/, "")).filter(Boolean) as string[];
-        const body = `${MULTISTATUS_HEAD}${ids.map((id) => byId.get(id)).filter((e): e is CalendarEventRow => !!e).map((e) => eventResponseXml(email, e, true)).join("")}${MULTISTATUS_TAIL}`;
-        return multistatusResponse(body);
-      }
-
-      if (kind === "sync-collection") {
-        const sinceToken = extractSyncToken(reqBody);
-        const sinceMs = sinceToken ? Number(sinceToken) || 0 : 0;
-        const changed = events.filter((e) => new Date(e.updated_at).getTime() > sinceMs);
-        const { data: tombstones } = await admin
-          .from("calendar_events_tombstones")
-          .select("id, deleted_at")
-          .gt("deleted_at", sinceMs ? new Date(sinceMs).toISOString() : "1970-01-01") as { data: { id: string; deleted_at: string }[] | null };
-        const newCtag = String(Math.max(
-          sinceMs,
-          ...events.map((e) => new Date(e.updated_at).getTime()),
-          ...(tombstones || []).map((t) => new Date(t.deleted_at).getTime()),
-        ));
-        let body = MULTISTATUS_HEAD;
-        body += changed.map((e) => eventResponseXml(email, e, true)).join("");
-        for (const t of tombstones || []) {
-          if (byId.has(t.id)) continue; // still exists and visible -- not actually gone for this user
-          body += `<d:response><d:href>${xmlEscape(eventHref(email, t.id))}</d:href><d:status>HTTP/1.1 404 Not Found</d:status></d:response>`;
-        }
-        body += `<d:sync-token>${xmlEscape(newCtag)}</d:sync-token>`;
-        body += MULTISTATUS_TAIL;
-        return multistatusResponse(body);
-      }
-
-      // calendar-query -- no real time-range filtering (see file header);
-      // everything visible to this person, every time.
-      const body = `${MULTISTATUS_HEAD}${events.map((e) => eventResponseXml(email, e, true)).join("")}${MULTISTATUS_TAIL}`;
+      const body = await calendarCollectionReportBody(email, reqBody);
       return multistatusResponse(body);
     }
 
