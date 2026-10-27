@@ -250,6 +250,39 @@
   function reservoirLitersLabel(eq){
     return `${eq.quantity != null ? Number(eq.quantity).toLocaleString('ro-RO') : '0'} L`;
   }
+  // Every dated event that ever changed this reservoir's own level:
+  // fuel delivered straight into it (its own "Alimentări" entries,
+  // vehicle_id === reservoir.id) and fuel drawn out of it for another
+  // vehicle's fill-up ("din rezervorul propriu", source_reservoir_id
+  // === reservoir.id). Raport lunar consum needs both to reconstruct
+  // what the level actually was in a past month -- see
+  // reservoirBalanceAtMonth below.
+  function reservoirLedgerEntries(reservoirId){
+    const additions = allVehicleFuelPurchases
+      .filter(p => p.vehicle_id === reservoirId)
+      .map(p => ({ year: p.year, month: p.month, delta: Number(p.liters) }));
+    const deductions = allVehicleFuelPurchases
+      .filter(p => p.source_reservoir_id === reservoirId)
+      .map(p => ({ year: p.year, month: p.month, delta: -Number(p.liters) }));
+    return additions.concat(deductions);
+  }
+  // eq.quantity is always the reservoir's live, present-day level --
+  // the one number every save actually writes, so it's the one
+  // guaranteed accurate. A past month's row showed that SAME live
+  // number no matter which month was selected, since nothing else was
+  // ever computed for it -- wrong the moment more than one month had
+  // gone by, e.g. still showing September's 364 L under August even
+  // though some of that 364 L was only added or drawn out later, in
+  // September itself. Reconstructed instead by walking the ledger
+  // BACKWARD from the live number: undo whatever was added/removed
+  // AFTER the requested month, the same "no separate snapshot per
+  // month" approach a vehicle's own leftover chain already uses.
+  function reservoirBalanceAtMonth(eq, year, month){
+    const futureDelta = reservoirLedgerEntries(eq.id)
+      .filter(e => e.year > year || (e.year === year && e.month > month))
+      .reduce((sum, e) => sum + e.delta, 0);
+    return round2(Number(eq.quantity || 0) - futureDelta);
+  }
   // Shared by the Prezentare generală cards and the Raport lunar
   // consum cards below -- same defs, same counts, same toggle-off
   // behaviour, just a different active key and a different callback
@@ -684,7 +717,7 @@
             <td>${na}</td>
             <td>${na}</td>
             <td>${reservoirAdded > 0 ? escapeHtml(String(reservoirAdded)) + ' L' : na}</td>
-            <td>${escapeHtml(reservoirLitersLabel(eq))}</td>
+            <td>${escapeHtml(reservoirBalanceAtMonth(eq, fuelReportYear, fuelReportMonth).toLocaleString('ro-RO'))} L</td>
             <td>${na}</td>
             <td>${na}</td>
             <td><button type="button" class="mt-row-icon-btn fuel-log-edit-btn" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
