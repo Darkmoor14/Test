@@ -585,19 +585,21 @@
   // excel.js (shared top-level script scope, same cross-file pattern
   // already used throughout this app) — only referenced inside
   // functions, never at load time, so file load order doesn't matter.
-  // Real (observed) lifetime average for this vehicle+unit -- total liters
-  // ever purchased divided by total km/hours ever driven across every
-  // tracked month, deliberately NOT the manufacturer "rated" figure (that
-  // one stays below, as `rated`, purely for the over-limit alert
-  // threshold -- a different comparison). A single month's purchases
-  // rarely land exactly on what was burned that same month (see
-  // vehicleFuelLeftoverChain below), but averaged across a vehicle's
-  // whole history the two settle into agreement -- self-correcting as
-  // more months of data come in.
-  function vehicleRealRateFor(eq, unit){
+  // Real (observed) average for this vehicle+unit, AS OF a given month --
+  // total liters purchased divided by total km/hours driven across every
+  // tracked month UP TO AND INCLUDING that one, never a later one.
+  // Deliberately NOT the manufacturer "rated" figure (that one stays
+  // below, as `rated`, purely for the over-limit alert threshold -- a
+  // different comparison). Locked to uptoYear/uptoMonth so a month's own
+  // displayed figures never shift again once that month (and nothing
+  // past it) has been logged -- logging December doesn't reach back and
+  // change what September showed, the same "the past stays put" fix
+  // applied to the reservoir's own month-by-month balance above.
+  function vehicleRealRateFor(eq, unit, uptoYear, uptoMonth){
     const field = readingFieldFor(unit);
     const months = allVehicleFuelLogs
-      .filter(l => l.vehicle_id === eq.id && l[field] != null)
+      .filter(l => l.vehicle_id === eq.id && l[field] != null
+        && (l.year < uptoYear || (l.year === uptoYear && l.month <= uptoMonth)))
       .map(l => ({ year: l.year, month: l.month }));
     if (!months.length) return null;
     let totalDelta = 0, totalPurchased = 0;
@@ -605,7 +607,12 @@
       const log = fuelLogFor(eq.id, m.year, m.month);
       const baseline = previousFuelReadingFor(eq, unit, m.year, m.month);
       const reading = log && log[field] != null ? Number(log[field]) : null;
-      const delta = (reading != null && baseline != null && reading - baseline > 0) ? reading - baseline : 0;
+      // >= 0, not > 0 -- a vehicle that was read but genuinely sat idle
+      // (0 km/0 h that month) is real data, not "nothing logged", and
+      // contributes 0 to the distance/time side same as it always did
+      // here; only an actual decrease (bad data -- a typo'd reading
+      // below the last one, already flagged at save time) is excluded.
+      const delta = (reading != null && baseline != null && reading - baseline >= 0) ? reading - baseline : 0;
       totalDelta += delta;
       totalPurchased += fuelPurchaseSum(eq.id, m.year, m.month);
     });
@@ -613,25 +620,27 @@
     return totalPurchased / totalDelta * (unit === 'hours' ? 1 : 100);
   }
   // Month-by-month running fuel-tank balance for one vehicle+unit, chained
-  // chronologically from its first tracked month (leftover starts at 0 --
-  // some vehicles already had fuel in the tank before tracking began, but
-  // that's unknowable and self-corrects over a few months same as any
-  // other baseline-less first reading in this file). Each month's
-  // "theoretical" burn is the vehicle's own real lifetime rate (see
-  // vehicleRealRateFor) applied to that month's km/hours -- comparing
-  // against what was actually purchased gives a surplus/deficit, which
-  // carries into the next month capped by the tank's physical capacity
-  // (fuel_tank_capacity_l). A month whose balance would overflow that cap
-  // means more was bought than could possibly have fit, which is exactly
-  // the signal that catches fuel-card skimming or a misdeclared fill-up.
-  function vehicleFuelLeftoverChain(eq, unit){
+  // chronologically from its first tracked month up to and including
+  // uptoYear/uptoMonth (leftover starts at 0 -- some vehicles already had
+  // fuel in the tank before tracking began, but that's unknowable and
+  // self-corrects over a few months same as any other baseline-less first
+  // reading in this file). Each month's "theoretical" burn is the
+  // vehicle's own real rate AS OF THAT SAME CUTOFF (see vehicleRealRateFor)
+  // applied to that month's km/hours -- comparing against what was
+  // actually purchased gives a surplus/deficit, which carries into the
+  // next month capped by the tank's physical capacity (fuel_tank_capacity_l).
+  // A month whose balance would overflow that cap means more was bought
+  // than could possibly have fit, which is exactly the signal that
+  // catches fuel-card skimming or a misdeclared fill-up.
+  function vehicleFuelLeftoverChain(eq, unit, uptoYear, uptoMonth){
     const chain = new Map();
     const capacity = eq.fuel_tank_capacity_l != null ? Number(eq.fuel_tank_capacity_l) : null;
-    const realRate = vehicleRealRateFor(eq, unit);
+    const realRate = vehicleRealRateFor(eq, unit, uptoYear, uptoMonth);
     if (capacity == null || realRate == null) return chain;
     const field = readingFieldFor(unit);
     const months = allVehicleFuelLogs
-      .filter(l => l.vehicle_id === eq.id && l[field] != null)
+      .filter(l => l.vehicle_id === eq.id && l[field] != null
+        && (l.year < uptoYear || (l.year === uptoYear && l.month <= uptoMonth)))
       .map(l => ({ year: l.year, month: l.month }))
       .sort((a, b) => (a.year - b.year) || (a.month - b.month));
     let leftover = 0;
@@ -639,7 +648,7 @@
       const log = fuelLogFor(eq.id, m.year, m.month);
       const baseline = previousFuelReadingFor(eq, unit, m.year, m.month);
       const reading = log && log[field] != null ? Number(log[field]) : null;
-      const delta = (reading != null && baseline != null && reading - baseline > 0) ? reading - baseline : 0;
+      const delta = (reading != null && baseline != null && reading - baseline >= 0) ? reading - baseline : 0;
       const purchased = fuelPurchaseSum(eq.id, m.year, m.month);
       const theoretical = realRate * delta / (unit === 'hours' ? 1 : 100);
       const leftoverIn = leftover;
@@ -656,15 +665,22 @@
     const log = fuelLogFor(eq.id, year, month);
     const reading = (log && log[field] != null) ? Number(log[field]) : null;
     const baseline = previousFuelReadingFor(eq, unit, year, month);
-    const delta = (reading != null && baseline != null && reading - baseline > 0) ? (reading - baseline) : null;
+    // >= 0 -- see vehicleRealRateFor's own comment: a real 0 (read, but
+    // no movement that month) now displays as "0", not "—", which was
+    // previously indistinguishable from no reading at all.
+    const delta = (reading != null && baseline != null && reading - baseline >= 0) ? (reading - baseline) : null;
     const totalAdded = fuelPurchaseSum(eq.id, year, month);
     // Adjusted for the running tank balance when there's enough history
     // for one (see vehicleFuelLeftoverChain) -- falls back to the raw
     // liters-purchased figure otherwise (no tank capacity set, or too few
-    // tracked months yet to establish a real rate).
-    const leftoverEntry = vehicleFuelLeftoverChain(eq, unit).get(`${year}-${month}`) || null;
+    // tracked months yet to establish a real rate). Locked to THIS
+    // month's own cutoff, so it never moves once computed.
+    const leftoverEntry = vehicleFuelLeftoverChain(eq, unit, year, month).get(`${year}-${month}`) || null;
     const consumedBasis = leftoverEntry != null ? (leftoverEntry.leftoverIn + totalAdded - leftoverEntry.leftoverOut) : totalAdded;
-    const actual = (delta != null && consumedBasis > 0)
+    // delta > 0 (not just != null) -- a 0-distance month can't have a
+    // per-km/per-hour rate; dividing by that zero delta would otherwise
+    // produce Infinity instead of the "—" this correctly falls back to.
+    const actual = (delta != null && delta > 0 && consumedBasis > 0)
       ? (unit === 'hours' ? consumedBasis / delta : consumedBasis / delta * 100)
       : null;
     const rated = eq[ratedFieldFor(unit)] != null ? Number(eq[ratedFieldFor(unit)]) : null;
