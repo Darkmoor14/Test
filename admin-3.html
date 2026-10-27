@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/admin.css?v=20261027b">
+<link rel="stylesheet" href="assets/css/admin.css?v=20261027c">
 </head>
 <body>
 
@@ -1082,6 +1082,16 @@
         <input type="text" id="vfl-purchase-note" placeholder="ex: bon nr. 123">
       </div>
     </div>
+    <div id="vfl-from-reservoir-field" style="display:none;">
+      <label class="vfl-reservoir-toggle">
+        <input type="checkbox" id="vfl-from-reservoir">
+        Din rezervorul propriu
+      </label>
+      <div class="ctrl-field" id="vfl-reservoir-select-field" style="display:none;">
+        <label>Care rezervor</label>
+        <select id="vfl-reservoir-select"></select>
+      </div>
+    </div>
     <div class="sheet-actions">
       <button class="btn" type="button" data-close-sheet="vehicleFuelLogFormSheet">Închide</button>
       <button class="btn btn-primary" id="vflPurchaseAddBtn" type="button">+ Adaugă alimentare</button>
@@ -1468,7 +1478,7 @@
      (see mountProjects() above) -- nothing in either file was shared
      bootstrap, unlike tickets.js, so both were fully replaced rather
      than trimmed. -->
-<script src="assets/js/features/erp.js?v=20261027d"></script>
+<script src="assets/js/features/erp.js?v=20261027e"></script>
 <script src="assets/js/features/hr.js?v=20261022c"></script>
 <script src="assets/js/features/excel.js?v=20261021b"></script>
 <script src="assets/js/features/search.js?v=20261027a"></script>

@@ -764,6 +764,13 @@
   if (vflReadingKmInput) vflReadingKmInput.addEventListener('input', updateVflDiffDisplay);
   const vflReadingHoursInput = document.getElementById('vfl-reading-hours');
   if (vflReadingHoursInput) vflReadingHoursInput.addEventListener('input', updateVflDiffDisplay);
+  const vflFromReservoirCheckbox = document.getElementById('vfl-from-reservoir');
+  if (vflFromReservoirCheckbox) vflFromReservoirCheckbox.addEventListener('change', () => {
+    const reservoirSelectField = document.getElementById('vfl-reservoir-select-field');
+    const reservoirSelect = document.getElementById('vfl-reservoir-select');
+    const showPicker = vflFromReservoirCheckbox.checked && reservoirSelect && reservoirSelect.options.length > 1;
+    if (reservoirSelectField) reservoirSelectField.style.display = showPicker ? '' : 'none';
+  });
   function renderFuelPurchaseList(){
     const listEl = document.getElementById('vflPurchaseList');
     const totalEl = document.getElementById('vfl-purchase-total');
@@ -781,7 +788,7 @@
     listEl.innerHTML = entries.map(p => `
       <div class="fuel-purchase-item">
         <div>
-          <div class="fuel-purchase-item-main">${escapeHtml(String(p.liters))} L</div>
+          <div class="fuel-purchase-item-main">${escapeHtml(String(p.liters))} L${p.source_reservoir_id ? ' <span class="fuel-purchase-item-tag">din rezervor</span>' : ''}</div>
           ${p.note ? `<div class="fuel-purchase-item-note">${escapeHtml(p.note)}</div>` : ''}
         </div>
         <button type="button" class="fuel-purchase-delete" data-id="${escapeHtml(p.id)}" data-requires-write="erp" aria-label="Șterge alimentarea">×</button>
@@ -823,6 +830,20 @@
     renderFuelPurchaseList();
     document.getElementById('vfl-purchase-liters').value = '';
     document.getElementById('vfl-purchase-note').value = '';
+    // "Din rezervorul propriu" only makes sense for a real vehicle's own
+    // fill-up (the reservoir logging fuel against itself would be
+    // circular) and only when there's actually a reservoir to draw
+    // from. With more than one, which tank it came from is ambiguous,
+    // so a picker shows up too -- with exactly one, it's assumed.
+    const reservoirs = allReservoirs();
+    const fromReservoirField = document.getElementById('vfl-from-reservoir-field');
+    const fromReservoirCheckbox = document.getElementById('vfl-from-reservoir');
+    const reservoirSelectField = document.getElementById('vfl-reservoir-select-field');
+    const reservoirSelect = document.getElementById('vfl-reservoir-select');
+    if (fromReservoirCheckbox) fromReservoirCheckbox.checked = false;
+    if (fromReservoirField) fromReservoirField.style.display = (!isRes && reservoirs.length) ? '' : 'none';
+    if (reservoirSelect) reservoirSelect.innerHTML = reservoirs.map(r => `<option value="${escapeHtml(r.id)}">${escapeHtml(r.name)}</option>`).join('');
+    if (reservoirSelectField) reservoirSelectField.style.display = 'none';
     const titleEl = document.getElementById('vehicleFuelLogFormSheetTitle');
     if (titleEl) titleEl.textContent = `${eq.name} — ${REPORT_MONTHS[fuelReportMonth - 1]} ${fuelReportYear}`;
     setSheetOpen('vehicleFuelLogFormSheet', true);
@@ -865,30 +886,57 @@
     if (!liters || liters <= 0) { alert('Introduceți o cantitate validă de litri.'); return; }
     const { vehicleId, year, month } = fuelLogSheetContext;
     const eq = allEquipment.find(v => v.id === vehicleId);
-    vflPurchaseAddBtn.disabled = true;
-    const { error } = await supabaseClient.from('vehicle_fuel_purchases').insert({
-      vehicle_id: vehicleId, year, month, liters,
-      note: noteInput.value.trim() || null,
-      user_email: currentSessionEmail || null,
-    });
-    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); vflPurchaseAddBtn.disabled = false; return; }
     // A vehicle's own tank balance is always computed from readings/
     // rated consumption, but the reservoir's "quantity" IS its live
     // level (set directly in its own edit form) -- so for it, and only
     // it, logging fuel here has to raise that level too, or Prezentare
     // generală would never show what was actually delivered.
     const isRes = eq && isReservoir(eq);
+    // "Din rezervorul propriu" is the opposite direction -- a vehicle
+    // fueled from the on-site reservoir rather than an outside pump, so
+    // the SAME liters logged for the vehicle also has to come OFF the
+    // reservoir. Only offered for a real vehicle (see openVehicleFuelLogForm).
+    const fromReservoirCheckbox = document.getElementById('vfl-from-reservoir');
+    const fromReservoir = !isRes && fromReservoirCheckbox && fromReservoirCheckbox.checked;
+    let sourceReservoir = null;
+    if (fromReservoir) {
+      const reservoirSelect = document.getElementById('vfl-reservoir-select');
+      const reservoirId = reservoirSelect && reservoirSelect.value;
+      sourceReservoir = allReservoirs().find(r => r.id === reservoirId) || allReservoirs()[0];
+      if (!sourceReservoir) { alert('Nu există niciun rezervor de motorină configurat.'); return; }
+      const available = Number(sourceReservoir.quantity || 0);
+      if (liters > available) {
+        const proceed = confirm(`Rezervorul are doar ${available.toLocaleString('ro-RO')} L, dar se cer ${liters} L. Continui?`);
+        if (!proceed) return;
+      }
+    }
+    vflPurchaseAddBtn.disabled = true;
+    const { error } = await supabaseClient.from('vehicle_fuel_purchases').insert({
+      vehicle_id: vehicleId, year, month, liters,
+      note: noteInput.value.trim() || null,
+      user_email: currentSessionEmail || null,
+      source_reservoir_id: fromReservoir ? sourceReservoir.id : null,
+    });
+    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); vflPurchaseAddBtn.disabled = false; return; }
     if (isRes) {
       const newQuantity = Number(eq.quantity || 0) + liters;
       const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, vehicleId);
       if (qError) console.error(qError);
       else logEntityActivity('masina', vehicleId, `S-au adăugat ${liters} L (total ${newQuantity.toLocaleString('ro-RO')} L).`);
+    } else if (fromReservoir) {
+      const newQuantity = Math.max(0, Number(sourceReservoir.quantity || 0) - liters);
+      const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, sourceReservoir.id);
+      if (qError) console.error(qError);
+      else logEntityActivity('masina', sourceReservoir.id, `S-au scăzut ${liters} L (alimentare ${eq.name}) — total ${newQuantity.toLocaleString('ro-RO')} L.`);
     }
     vflPurchaseAddBtn.disabled = false;
     litersInput.value = '';
     noteInput.value = '';
+    if (fromReservoirCheckbox) fromReservoirCheckbox.checked = false;
+    const reservoirSelectField = document.getElementById('vfl-reservoir-select-field');
+    if (reservoirSelectField) reservoirSelectField.style.display = 'none';
     await loadVehicleFuelPurchases();
-    if (isRes) await loadEquipment();
+    if (isRes || fromReservoir) await loadEquipment();
     else renderMachinesFuelReport();
     renderFuelPurchaseList();
   });
@@ -904,16 +952,25 @@
     if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
     // Mirrors the add handler above -- undoing a logged delivery has to
     // take the liters back off the reservoir's own level too, not just
-    // remove the bill from the list.
+    // remove the bill from the list. Covers both directions: the
+    // reservoir's own entry (isRes), and a vehicle's entry that had
+    // been marked "din rezervorul propriu" (purchase.source_reservoir_id).
     const isRes = eq && isReservoir(eq);
+    const sourceReservoir = (!isRes && purchase && purchase.source_reservoir_id)
+      ? allEquipment.find(e => e.id === purchase.source_reservoir_id) : null;
     if (isRes && purchase) {
       const newQuantity = Math.max(0, Number(eq.quantity || 0) - Number(purchase.liters));
       const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, vehicleId);
       if (qError) console.error(qError);
       else logEntityActivity('masina', vehicleId, `S-a anulat o alimentare de ${purchase.liters} L (total ${newQuantity.toLocaleString('ro-RO')} L).`);
+    } else if (sourceReservoir) {
+      const newQuantity = Number(sourceReservoir.quantity || 0) + Number(purchase.liters);
+      const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, sourceReservoir.id);
+      if (qError) console.error(qError);
+      else logEntityActivity('masina', sourceReservoir.id, `S-au adăugat înapoi ${purchase.liters} L (alimentare anulată pentru ${eq ? eq.name : 'o mașină'}) — total ${newQuantity.toLocaleString('ro-RO')} L.`);
     }
     await loadVehicleFuelPurchases();
-    if (isRes) await loadEquipment();
+    if (isRes || sourceReservoir) await loadEquipment();
     else renderMachinesFuelReport();
     renderFuelPurchaseList();
   });
