@@ -82,6 +82,12 @@
   // Parc Auto (nu e o "mașină" de contorizat alături de ele).
   const VEHICLE_SUBCAT_LABEL = { masina_mica: 'Mașină mică', autoutilitara: 'Autoutilitară', camion: 'Camion', utilaj: 'Utilaj', rezervor: 'Rezervor motorină' };
   function isReservoir(eq){ return eq.category === 'rezervor'; }
+  // Liters are entered/added/subtracted as plain decimals in several
+  // places (reservoir quantity, fuel purchase sums) -- raw JS float
+  // arithmetic on them drifts into values like 85.25999999999999, which
+  // then get stored and displayed as-is. Round to 2dp at every such
+  // write/aggregate so neither the DB nor the UI ever shows the noise.
+  function round2(n){ return Math.round(Number(n) * 100) / 100; }
   let machinesSubcatFilter = 'Toate';
   // machinesSidebarKey tracks which sidebar sub-item is lit up, separate
   // from machinesSubcatFilter: navigating via the sidebar itself (default)
@@ -437,9 +443,15 @@
     return initial != null ? Number(initial) : null;
   }
   function fuelPurchaseSum(vehicleId, year, month){
-    return allVehicleFuelPurchases
+    // Rounded to 2dp -- plain floating-point addition of several
+    // decimal liter amounts (e.g. 42.3 + 42.96) lands on values like
+    // 85.25999999999999 rather than 85.26, and that raw sum gets
+    // displayed as-is in a few places (this table, the reservoir row,
+    // the Excel export) with no further formatting of its own.
+    const sum = allVehicleFuelPurchases
       .filter(p => p.vehicle_id === vehicleId && p.year === year && p.month === month)
-      .reduce((sum, p) => sum + Number(p.liters), 0);
+      .reduce((acc, p) => acc + Number(p.liters), 0);
+    return round2(sum);
   }
   function fuelLogFor(vehicleId, year, month){
     return allVehicleFuelLogs.find(l => l.vehicle_id === vehicleId && l.year === year && l.month === month) || null;
@@ -779,7 +791,7 @@
     const entries = allVehicleFuelPurchases
       .filter(p => p.vehicle_id === vehicleId && p.year === year && p.month === month)
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    const total = entries.reduce((sum, p) => sum + Number(p.liters), 0);
+    const total = fuelPurchaseSum(vehicleId, year, month);
     if (totalEl) totalEl.textContent = `${total} L`;
     if (!entries.length) {
       listEl.innerHTML = '<p class="status-history-empty">Nicio alimentare înregistrată încă.</p>';
@@ -919,12 +931,12 @@
     });
     if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); vflPurchaseAddBtn.disabled = false; return; }
     if (isRes) {
-      const newQuantity = Number(eq.quantity || 0) + liters;
+      const newQuantity = round2(Number(eq.quantity || 0) + liters);
       const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, vehicleId);
       if (qError) console.error(qError);
       else logEntityActivity('masina', vehicleId, `S-au adăugat ${liters} L (total ${newQuantity.toLocaleString('ro-RO')} L).`);
     } else if (fromReservoir) {
-      const newQuantity = Math.max(0, Number(sourceReservoir.quantity || 0) - liters);
+      const newQuantity = Math.max(0, round2(Number(sourceReservoir.quantity || 0) - liters));
       const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, sourceReservoir.id);
       if (qError) console.error(qError);
       else logEntityActivity('masina', sourceReservoir.id, `S-au scăzut ${liters} L (alimentare ${eq.name}) — total ${newQuantity.toLocaleString('ro-RO')} L.`);
@@ -959,12 +971,12 @@
     const sourceReservoir = (!isRes && purchase && purchase.source_reservoir_id)
       ? allEquipment.find(e => e.id === purchase.source_reservoir_id) : null;
     if (isRes && purchase) {
-      const newQuantity = Math.max(0, Number(eq.quantity || 0) - Number(purchase.liters));
+      const newQuantity = Math.max(0, round2(Number(eq.quantity || 0) - Number(purchase.liters)));
       const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, vehicleId);
       if (qError) console.error(qError);
       else logEntityActivity('masina', vehicleId, `S-a anulat o alimentare de ${purchase.liters} L (total ${newQuantity.toLocaleString('ro-RO')} L).`);
     } else if (sourceReservoir) {
-      const newQuantity = Number(sourceReservoir.quantity || 0) + Number(purchase.liters);
+      const newQuantity = round2(Number(sourceReservoir.quantity || 0) + Number(purchase.liters));
       const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, sourceReservoir.id);
       if (qError) console.error(qError);
       else logEntityActivity('masina', sourceReservoir.id, `S-au adăugat înapoi ${purchase.liters} L (alimentare anulată pentru ${eq ? eq.name : 'o mașină'}) — total ${newQuantity.toLocaleString('ro-RO')} L.`);
