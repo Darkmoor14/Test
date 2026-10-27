@@ -664,13 +664,14 @@
     const na = '<span class="mt-na">—</span>';
     tbody.innerHTML = rowsToRender.map(eq => {
       if (isReservoir(eq)) {
+        const reservoirAdded = fuelPurchaseSum(eq.id, fuelReportYear, fuelReportMonth);
         return `
           <tr>
             <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div></td>
             <td>${na}</td>
             <td>${na}</td>
             <td>${na}</td>
-            <td>${na}</td>
+            <td>${reservoirAdded > 0 ? escapeHtml(String(reservoirAdded)) + ' L' : na}</td>
             <td>${escapeHtml(reservoirLitersLabel(eq))}</td>
             <td>${na}</td>
             <td>${na}</td>
@@ -791,9 +792,17 @@
   // rather than inline table inputs, same reasoning as every other
   // add/edit flow in this file (room for labels/validation).
   function openVehicleFuelLogForm(eq){
-    const log = fuelLogFor(eq.id, fuelReportYear, fuelReportMonth);
-    const tracksKm = vehicleTracksKm(eq);
-    const tracksHours = vehicleTracksHours(eq);
+    // The reservoir has no odometer/ore-meter and no computed
+    // consumption -- vfSubcatTracksKm/Hours only make sense for the 4
+    // real vehicle subcategories, so both are forced off here rather
+    // than asking them to classify a 5th category they don't know
+    // about. Its only use of this sheet is the "Alimentări" half below
+    // (logging fuel delivered into the tank), same mechanic as a
+    // vehicle's own fuel bills, just without a reading to save first.
+    const isRes = isReservoir(eq);
+    const log = isRes ? null : fuelLogFor(eq.id, fuelReportYear, fuelReportMonth);
+    const tracksKm = isRes ? false : vehicleTracksKm(eq);
+    const tracksHours = isRes ? false : vehicleTracksHours(eq);
     fuelLogSheetContext = {
       vehicleId: eq.id, year: fuelReportYear, month: fuelReportMonth, eq,
       baselineKm: tracksKm ? previousFuelReadingFor(eq, 'km', fuelReportYear, fuelReportMonth) : null,
@@ -804,8 +813,10 @@
     document.getElementById('vfl-month').value = fuelReportMonth;
     const kmSection = document.getElementById('vfl-km-section');
     const hoursSection = document.getElementById('vfl-hours-section');
+    const readingActions = document.getElementById('vfl-reading-actions');
     if (kmSection) kmSection.style.display = tracksKm ? '' : 'none';
     if (hoursSection) hoursSection.style.display = tracksHours ? '' : 'none';
+    if (readingActions) readingActions.style.display = isRes ? 'none' : '';
     document.getElementById('vfl-reading-km').value = (log && log.fuel_odometer_km != null) ? log.fuel_odometer_km : '';
     document.getElementById('vfl-reading-hours').value = (log && log.fuel_odometer_hours != null) ? log.fuel_odometer_hours : '';
     updateVflDiffDisplay();
@@ -853,40 +864,70 @@
     const liters = Number(litersInput.value);
     if (!liters || liters <= 0) { alert('Introduceți o cantitate validă de litri.'); return; }
     const { vehicleId, year, month } = fuelLogSheetContext;
+    const eq = allEquipment.find(v => v.id === vehicleId);
     vflPurchaseAddBtn.disabled = true;
     const { error } = await supabaseClient.from('vehicle_fuel_purchases').insert({
       vehicle_id: vehicleId, year, month, liters,
       note: noteInput.value.trim() || null,
       user_email: currentSessionEmail || null,
     });
+    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); vflPurchaseAddBtn.disabled = false; return; }
+    // A vehicle's own tank balance is always computed from readings/
+    // rated consumption, but the reservoir's "quantity" IS its live
+    // level (set directly in its own edit form) -- so for it, and only
+    // it, logging fuel here has to raise that level too, or Prezentare
+    // generală would never show what was actually delivered.
+    const isRes = eq && isReservoir(eq);
+    if (isRes) {
+      const newQuantity = Number(eq.quantity || 0) + liters;
+      const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, vehicleId);
+      if (qError) console.error(qError);
+      else logEntityActivity('masina', vehicleId, `S-au adăugat ${liters} L (total ${newQuantity.toLocaleString('ro-RO')} L).`);
+    }
     vflPurchaseAddBtn.disabled = false;
-    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
     litersInput.value = '';
     noteInput.value = '';
     await loadVehicleFuelPurchases();
+    if (isRes) await loadEquipment();
+    else renderMachinesFuelReport();
     renderFuelPurchaseList();
-    renderMachinesFuelReport();
   });
   const vflPurchaseList = document.getElementById('vflPurchaseList');
   if (vflPurchaseList) vflPurchaseList.addEventListener('click', async (e) => {
     const delBtn = e.target.closest('.fuel-purchase-delete');
     if (!delBtn || !fuelLogSheetContext) return;
     if (!confirm('Ștergeți această alimentare?')) return;
+    const { vehicleId } = fuelLogSheetContext;
+    const eq = allEquipment.find(v => v.id === vehicleId);
+    const purchase = allVehicleFuelPurchases.find(p => p.id === delBtn.dataset.id);
     const { error } = await supabaseClient.from('vehicle_fuel_purchases').delete().eq('id', delBtn.dataset.id);
     if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
+    // Mirrors the add handler above -- undoing a logged delivery has to
+    // take the liters back off the reservoir's own level too, not just
+    // remove the bill from the list.
+    const isRes = eq && isReservoir(eq);
+    if (isRes && purchase) {
+      const newQuantity = Math.max(0, Number(eq.quantity || 0) - Number(purchase.liters));
+      const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, vehicleId);
+      if (qError) console.error(qError);
+      else logEntityActivity('masina', vehicleId, `S-a anulat o alimentare de ${purchase.liters} L (total ${newQuantity.toLocaleString('ro-RO')} L).`);
+    }
     await loadVehicleFuelPurchases();
+    if (isRes) await loadEquipment();
+    else renderMachinesFuelReport();
     renderFuelPurchaseList();
-    renderMachinesFuelReport();
   });
   const machinesFuelReportTableBody = document.getElementById('machinesFuelReportTableBody');
   if (machinesFuelReportTableBody) machinesFuelReportTableBody.addEventListener('click', (e) => {
     const editBtn = e.target.closest('.fuel-log-edit-btn');
     if (editBtn) {
       const eq = allEquipment.find(v => v.id === editBtn.dataset.vehicleId);
-      // The reservoir has no monthly odometer/purchase log -- its edit
-      // icon here opens the identity form (Nume/Litri) instead.
-      if (eq && isReservoir(eq)) openVehicleEdit(eq);
-      else if (eq) openVehicleFuelLogForm(eq);
+      // The reservoir has no odometer reading to save, but it still
+      // opens this same sheet -- openVehicleFuelLogForm hides the
+      // reading half for it and leaves just "Alimentări" (logging fuel
+      // delivered into the tank). Renaming/retiring the reservoir
+      // itself stays on Prezentare generală's own row link.
+      if (eq) openVehicleFuelLogForm(eq);
       return;
     }
     const link = e.target.closest('.ticket-link');
