@@ -52,6 +52,11 @@ export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: (
 
   const baseUrl = (supabase as unknown as { supabaseUrl?: string }).supabaseUrl || 'https://ebuigyyjifnjiuzsgpih.supabase.co';
   const davUrl = `${baseUrl}/functions/v1/calendar-dav/`;
+  // iOS/Android's "Server" field in a CalDAV account wants host+path, no
+  // scheme -- shown and copied without "https://" so pasting it in just
+  // works, rather than asking the person to hand-edit what they copied
+  // (which silently breaks the connection if they paste it as-is).
+  const davHost = davUrl.replace(/^https?:\/\//, '');
   const httpsUrl = token ? `${baseUrl}/functions/v1/calendar-feed?token=${token}` : '';
   const webcalUrl = httpsUrl.replace(/^https?:\/\//, 'webcal://');
 
@@ -104,8 +109,8 @@ export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: (
               <div className="ctrl-field">
                 <label>Adresă server</label>
                 <div className="cal-sync-link-row">
-                  <input type="text" readOnly value={davUrl} onFocus={(e) => e.target.select()} />
-                  <button type="button" className="btn" onClick={() => copy('url', davUrl)}>{copiedField === 'url' ? 'Copiat ✓' : 'Copiază'}</button>
+                  <input type="text" readOnly value={davHost} onFocus={(e) => e.target.select()} />
+                  <button type="button" className="btn" onClick={() => copy('url', davHost)}>{copiedField === 'url' ? 'Copiat ✓' : 'Copiază'}</button>
                 </div>
               </div>
               <div className="ctrl-field">
@@ -126,15 +131,15 @@ export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: (
               <div className="cal-sync-steps">
                 <div className="cal-sync-step">
                   <span className="cal-sync-step-label">Pe iPhone/iPad</span>
-                  <p>Reglaje → Calendar → Conturi → Adaugă cont → Altul → Adaugă cont CalDAV → completează cele trei câmpuri de mai sus (la server, fără „https://" la început).</p>
+                  <p>Reglaje → Calendar → Conturi → Adaugă cont → Altul → Adaugă cont CalDAV → copiază exact cele trei câmpuri de mai sus, fără sǎ le modifici (adresa de server e deja fără „https://" — nu adăuga nimic în plus).</p>
                 </div>
                 <div className="cal-sync-step">
                   <span className="cal-sync-step-label">Pe Mac</span>
-                  <p>Reglaje sistem → Conturi de internet → Adaugă cont → Altul → Cont CalDAV → Tip cont: Avansat → completează cele trei câmpuri (Adresă server = adresa de mai sus, fără „https://").</p>
+                  <p>Reglaje sistem → Conturi de internet → Adaugă cont → Altul → Cont CalDAV → Tip cont: Avansat → copiază exact cele trei câmpuri de mai sus (Adresă server = câmpul de mai sus, neschimbat).</p>
                 </div>
                 <div className="cal-sync-step">
                   <span className="cal-sync-step-label">Pe Android</span>
-                  <p>Instalează <strong>DAVx⁵</strong> din Play Store → Adaugă cont → Login with URL and user name → completează cele trei câmpuri de mai sus → activează sincronizarea calendarului din contul creat, apoi adaugă-l și în aplicația Calendar/Google Calendar de pe telefon dacă nu apare automat.</p>
+                  <p>Instalează <strong>DAVx⁵</strong> din Play Store → Adaugă cont → Login with URL and user name → la Base URL adaugă <strong>https://</strong> înainte de adresa de server copiată mai sus (DAVx⁵ cere adresa completă, cu „https://"), apoi Utilizator și Parolă ca mai sus → activează sincronizarea calendarului din contul creat, apoi adaugă-l și în aplicația Calendar/Google Calendar de pe telefon dacă nu apare automat.</p>
                 </div>
               </div>
               <p className="cef-attendees-hint">
