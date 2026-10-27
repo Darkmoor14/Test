@@ -65,6 +65,12 @@ const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 // (direct function invocation includes "/functions/v1/calendar-dav";
 // some proxies/local testing hit the function root directly).
 const KNOWN_PREFIXES = ["/functions/v1/calendar-dav", "/calendar-dav"];
+// Every href this server EMITS back to a client has to be this exact
+// prefix -- Supabase's gateway only routes /functions/v1/* to an edge
+// function, so an href missing it 404s at the gateway before ever
+// reaching this code (and a client that follows it just silently stops,
+// since that 404 never reaches here to be logged either).
+const PUBLIC_BASE = "/functions/v1/calendar-dav";
 function davPath(pathname: string): string {
   for (const p of KNOWN_PREFIXES) {
     if (pathname === p) return "/";
@@ -514,7 +520,7 @@ async function visibleEventsFor(email: string): Promise<CalendarEventRow[]> {
 }
 
 function eventHref(email: string, id: string): string {
-  return `/calendar-dav/calendars/${encodeURIComponent(email)}/events/${id}.ics`;
+  return `${PUBLIC_BASE}/calendars/${encodeURIComponent(email)}/events/${id}.ics`;
 }
 
 function eventResponseXml(email: string, e: CalendarEventRow, includeData: boolean): string {
@@ -552,7 +558,7 @@ Deno.serve(async (req) => {
 
   // --- root ---
   if (path === "/" && method === "PROPFIND") {
-    const body = `${MULTISTATUS_HEAD}<d:response><d:href>/calendar-dav/</d:href><d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype><d:current-user-principal><d:href>${xmlEscape(`/calendar-dav/principals/${encodeURIComponent(email)}/`)}</d:href></d:current-user-principal><d:principal-URL><d:href>${xmlEscape(`/calendar-dav/principals/${encodeURIComponent(email)}/`)}</d:href></d:principal-URL></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>${MULTISTATUS_TAIL}`;
+    const body = `${MULTISTATUS_HEAD}<d:response><d:href>${xmlEscape(`${PUBLIC_BASE}/`)}</d:href><d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype><d:current-user-principal><d:href>${xmlEscape(`${PUBLIC_BASE}/principals/${encodeURIComponent(email)}/`)}</d:href></d:current-user-principal><d:principal-URL><d:href>${xmlEscape(`${PUBLIC_BASE}/principals/${encodeURIComponent(email)}/`)}</d:href></d:principal-URL></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>${MULTISTATUS_TAIL}`;
     return multistatusResponse(body);
   }
 
@@ -561,8 +567,9 @@ Deno.serve(async (req) => {
   if (principalMatch && method === "PROPFIND") {
     const pEmail = decodeURIComponent(principalMatch[1]);
     if (pEmail !== email) return new Response("Forbidden", { status: 403 });
-    const homeHref = `/calendar-dav/calendars/${encodeURIComponent(email)}/`;
-    const body = `${MULTISTATUS_HEAD}<d:response><d:href>${xmlEscape(path + "/")}</d:href><d:propstat><d:prop><d:resourcetype><d:collection/><d:principal/></d:resourcetype><d:displayname>${xmlEscape(email)}</d:displayname><d:current-user-principal><d:href>${xmlEscape(path + "/")}</d:href></d:current-user-principal><c:calendar-home-set><d:href>${xmlEscape(homeHref)}</d:href></c:calendar-home-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>${MULTISTATUS_TAIL}`;
+    const selfHref = `${PUBLIC_BASE}${path}/`;
+    const homeHref = `${PUBLIC_BASE}/calendars/${encodeURIComponent(email)}/`;
+    const body = `${MULTISTATUS_HEAD}<d:response><d:href>${xmlEscape(selfHref)}</d:href><d:propstat><d:prop><d:resourcetype><d:collection/><d:principal/></d:resourcetype><d:displayname>${xmlEscape(email)}</d:displayname><d:current-user-principal><d:href>${xmlEscape(selfHref)}</d:href></d:current-user-principal><c:calendar-home-set><d:href>${xmlEscape(homeHref)}</d:href></c:calendar-home-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>${MULTISTATUS_TAIL}`;
     return multistatusResponse(body);
   }
 
@@ -572,9 +579,9 @@ Deno.serve(async (req) => {
     const pEmail = decodeURIComponent(homeMatch[1]);
     if (pEmail !== email) return new Response("Forbidden", { status: 403 });
     const depth = req.headers.get("Depth") || "0";
-    let body = `${MULTISTATUS_HEAD}<d:response><d:href>${xmlEscape(path + "/")}</d:href><d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`;
+    let body = `${MULTISTATUS_HEAD}<d:response><d:href>${xmlEscape(`${PUBLIC_BASE}${path}/`)}</d:href><d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`;
     if (depth === "1") {
-      const eventsHref = `${path}/events/`;
+      const eventsHref = `${PUBLIC_BASE}${path}/events/`;
       body += `<d:response><d:href>${xmlEscape(eventsHref)}</d:href><d:propstat><d:prop><d:resourcetype><d:collection/><c:calendar/></d:resourcetype><d:displayname>Insta Grup — Acasă</d:displayname><c:supported-calendar-component-set><c:comp name="VEVENT"/></c:supported-calendar-component-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`;
     }
     body += MULTISTATUS_TAIL;
@@ -591,7 +598,7 @@ Deno.serve(async (req) => {
       const depth = req.headers.get("Depth") || "0";
       const events = await visibleEventsFor(email);
       const ctag = events.length ? String(Math.max(...events.map((e) => new Date(e.updated_at).getTime()))) : "0";
-      let body = `${MULTISTATUS_HEAD}<d:response><d:href>${xmlEscape(path + "/")}</d:href><d:propstat><d:prop><d:resourcetype><d:collection/><c:calendar/></d:resourcetype><d:displayname>Insta Grup — Acasă</d:displayname><cs:getctag>${xmlEscape(ctag)}</cs:getctag><d:sync-token>${xmlEscape(ctag)}</d:sync-token><c:supported-calendar-component-set><c:comp name="VEVENT"/></c:supported-calendar-component-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`;
+      let body = `${MULTISTATUS_HEAD}<d:response><d:href>${xmlEscape(`${PUBLIC_BASE}${path}/`)}</d:href><d:propstat><d:prop><d:resourcetype><d:collection/><c:calendar/></d:resourcetype><d:displayname>Insta Grup — Acasă</d:displayname><cs:getctag>${xmlEscape(ctag)}</cs:getctag><d:sync-token>${xmlEscape(ctag)}</d:sync-token><c:supported-calendar-component-set><c:comp name="VEVENT"/></c:supported-calendar-component-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`;
       if (depth === "1") {
         body += events.map((e) => eventResponseXml(email, e, false)).join("");
       }
