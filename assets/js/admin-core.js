@@ -33,7 +33,45 @@
 
   const SUPABASE_URL = "https://ebuigyyjifnjiuzsgpih.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_aXC8Q_v2faRB0uEAlZYFog_JreYGXvq";
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Auto-recovers from "JWT issued at future" -- a device's clock being
+  // briefly ahead of real time (common right after waking from sleep,
+  // before it's re-synced) makes the session token Supabase silently
+  // auto-refreshes in the background look like it was minted in the
+  // future from the server's point of view, so every request using it
+  // gets rejected until the clock settles or the page is reloaded. Seen
+  // recurring in app_error_log (loadTickets/loadCalendarEvents failing
+  // with this exact message, different users, different days/tabs) with
+  // nothing retrying at the time. Every panel in admin-3.html -- vanilla
+  // and React alike -- shares this one client (see mount.tsx's own
+  // comment), so wrapping its fetch here covers all of them from one
+  // place: on this specific rejection, refresh the session and retry
+  // the SAME request once with the new token, instead of surfacing the
+  // failure. refreshPromise is shared across concurrent failures (e.g.
+  // several panels loading at once hit this in the same instant) so a
+  // single clock-skew blip triggers one refresh, not one per request;
+  // the refresh endpoint itself is excluded below so a refresh that
+  // fails the same way can't retry into itself.
+  let clockSkewRefreshPromise = null;
+  async function fetchWithClockSkewRetry(url, options){
+    const res = await fetch(url, options);
+    if (res.ok || res.status !== 401) return res;
+    const urlStr = typeof url === 'string' ? url : (url && url.toString ? url.toString() : '');
+    if (urlStr.includes('/auth/v1/token')) return res;
+    let bodyText = '';
+    try { bodyText = await res.clone().text(); } catch (e) { return res; }
+    if (!bodyText.includes('issued at future')) return res;
+    if (!clockSkewRefreshPromise) {
+      clockSkewRefreshPromise = supabaseClient.auth.refreshSession().finally(() => { clockSkewRefreshPromise = null; });
+    }
+    const { data, error: refreshError } = await clockSkewRefreshPromise;
+    if (refreshError || !data.session) return res;
+    const headers = new Headers((options && options.headers) || {});
+    headers.set('Authorization', `Bearer ${data.session.access_token}`);
+    return fetch(url, Object.assign({}, options, { headers }));
+  }
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { fetch: fetchWithClockSkewRetry },
+  });
 
   const loginWrap = document.getElementById('loginWrap');
   const dash = document.getElementById('dash');
