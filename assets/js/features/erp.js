@@ -178,6 +178,7 @@
     fuel_tank_capacity_l: 'Capacitate rezervor', fuel_initial_km: 'Km inițial',
     fuel_initial_hours: 'Ore inițiale', fuel_service_interval_km: 'Interval revizie (km)',
     fuel_service_interval_hours: 'Interval revizie (ore)', quantity: 'Litri',
+    reservoir_baseline_year: 'An referință', reservoir_baseline_month: 'Lună referință',
   };
   function describeVehicleFieldChanges(before, after){
     const changes = [];
@@ -277,7 +278,21 @@
   // BACKWARD from the live number: undo whatever was added/removed
   // AFTER the requested month, the same "no separate snapshot per
   // month" approach a vehicle's own leftover chain already uses.
+  // The month its "Litri" value is recorded as-of (see the reservoir
+  // form's own "Litrii de mai sus sunt valabili la sfârșitul lunii"
+  // field) -- any month before this one genuinely has no data to show,
+  // rather than silently repeating that same baseline number. Falls
+  // back to the current month for a reservoir saved before this field
+  // existed, same default its own form picker uses.
+  function reservoirBaselineMonth(eq){
+    if (eq.reservoir_baseline_year != null && eq.reservoir_baseline_month != null) {
+      return { year: eq.reservoir_baseline_year, month: eq.reservoir_baseline_month };
+    }
+    return { year: erpLoadedAt.getFullYear(), month: erpLoadedAt.getMonth() + 1 };
+  }
   function reservoirBalanceAtMonth(eq, year, month){
+    const baseline = reservoirBaselineMonth(eq);
+    if (year < baseline.year || (year === baseline.year && month < baseline.month)) return null;
     const futureDelta = reservoirLedgerEntries(eq.id)
       .filter(e => e.year > year || (e.year === year && e.month > month))
       .reduce((sum, e) => sum + e.delta, 0);
@@ -710,6 +725,7 @@
     tbody.innerHTML = rowsToRender.map(eq => {
       if (isReservoir(eq)) {
         const reservoirAdded = fuelPurchaseSum(eq.id, fuelReportYear, fuelReportMonth);
+        const reservoirBalance = reservoirBalanceAtMonth(eq, fuelReportYear, fuelReportMonth);
         return `
           <tr>
             <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div></td>
@@ -717,7 +733,7 @@
             <td>${na}</td>
             <td>${na}</td>
             <td>${reservoirAdded > 0 ? escapeHtml(String(reservoirAdded)) + ' L' : na}</td>
-            <td>${escapeHtml(reservoirBalanceAtMonth(eq, fuelReportYear, fuelReportMonth).toLocaleString('ro-RO'))} L</td>
+            <td>${reservoirBalance == null ? na : escapeHtml(reservoirBalance.toLocaleString('ro-RO')) + ' L'}</td>
             <td>${na}</td>
             <td>${na}</td>
             <td><button type="button" class="mt-row-icon-btn fuel-log-edit-btn" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
@@ -1207,6 +1223,7 @@
     document.getElementById('vf-chassis-field').style.display = reservoirMode ? 'none' : '';
     document.getElementById('vf-assigned-field').style.display = reservoirMode ? 'none' : '';
     document.getElementById('vf-reservoir-liters-field').style.display = reservoirMode ? '' : 'none';
+    document.getElementById('vf-reservoir-baseline-field').style.display = reservoirMode ? '' : 'none';
     document.getElementById('vf-fuel-section').style.display = reservoirMode ? 'none' : '';
     document.getElementById('vf-docs-section').style.display = reservoirMode ? 'none' : '';
     if (reservoirMode) return;
@@ -1254,6 +1271,10 @@
     document.getElementById('vf-service-due-km').value = '';
     document.getElementById('vf-service-due-hours').value = '';
     document.getElementById('vf-reservoir-liters').value = '';
+    // Defaults to the current month -- a brand-new reservoir's own
+    // liters figure is, by definition, as-of right now, same as every
+    // other "current" value in this form.
+    document.getElementById('vf-reservoir-baseline').value = `${erpLoadedAt.getFullYear()}-${String(erpLoadedAt.getMonth() + 1).padStart(2, '0')}`;
     syncVehicleFormFields();
     const titleEl = document.getElementById('vehicleFormSheetTitle');
     if (titleEl) titleEl.textContent = 'Adaugă mașină';
@@ -1285,6 +1306,12 @@
     document.getElementById('vf-service-due-km').value = eq.fuel_service_interval_km ?? '';
     document.getElementById('vf-service-due-hours').value = eq.fuel_service_interval_hours ?? '';
     document.getElementById('vf-reservoir-liters').value = eq.quantity ?? '';
+    // Falls back to the current month for a reservoir that predates
+    // this field (never had a baseline recorded) -- same default as a
+    // brand-new one, rather than leaving the picker blank.
+    document.getElementById('vf-reservoir-baseline').value = (eq.reservoir_baseline_year != null && eq.reservoir_baseline_month != null)
+      ? `${eq.reservoir_baseline_year}-${String(eq.reservoir_baseline_month).padStart(2, '0')}`
+      : `${erpLoadedAt.getFullYear()}-${String(erpLoadedAt.getMonth() + 1).padStart(2, '0')}`;
     syncVehicleFormFields();
     const titleEl = document.getElementById('vehicleFormSheetTitle');
     if (titleEl) titleEl.textContent = `Editează — ${eq.name}`;
@@ -1317,9 +1344,18 @@
       const litersInput = document.getElementById('vf-reservoir-liters').value;
       if (litersInput === '') { alert('Completați litrii din rezervor.'); return; }
       const liters = Number(litersInput);
+      // "YYYY-MM" from the <input type="month"> -- the month the
+      // "Litri" value above is as-of. Raport lunar consum shows "—" for
+      // any month before this one instead of repeating this same
+      // number, since there's genuinely no tracked data before it (see
+      // reservoirBalanceAtMonth).
+      const baselineInput = document.getElementById('vf-reservoir-baseline').value;
+      if (baselineInput === '') { alert('Completați luna de referință a rezervorului.'); return; }
+      const [baselineYear, baselineMonth] = baselineInput.split('-').map(Number);
       const name = title || 'Rezervor motorină';
       const reservoirPayload = {
         name, category: subcat, quantity: liters, unit: 'L', notes: notes || null,
+        reservoir_baseline_year: baselineYear, reservoir_baseline_month: baselineMonth,
         plate_number: null, serial_number: null, assigned_to: null,
         itp_expires_on: null, insurance_expires_on: null, transport_license_expires_on: null,
         parking_ticket_expires_on: null, vignette_expires_on: null, tachograph_expires_on: null,
