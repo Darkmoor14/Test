@@ -1350,6 +1350,20 @@
   @media(min-width:901px){
     .priority-grid{margin-top:28px;}
   }
+  /* Rezervorul de motorină -- deliberately not a .priority-card (it's
+     not a filterable subcategory count) nor a .vehicle-big-card (no
+     documents/km to show), just name + current liters + edit/delete. */
+  .reservoir-summary{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;}
+  .reservoir-card{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:14px 16px;border:1px solid var(--line-strong);border-radius:9px;background:var(--paper-000);
+  }
+  .reservoir-card-main{display:flex;align-items:baseline;gap:12px;min-width:0;}
+  .reservoir-card-main .k{
+    font-family:var(--mono);font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink-600);
+  }
+  .reservoir-card-liters{font-family:var(--display);font-weight:700;font-size:20px;color:var(--ink-900);}
+  .reservoir-card-actions{display:flex;gap:6px;flex-shrink:0;}
   .priority-card{
     border:1px solid var(--line-strong);border-radius:9px;
     padding:16px 18px;background:var(--paper-050);

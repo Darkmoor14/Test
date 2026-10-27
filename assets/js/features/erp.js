@@ -75,8 +75,13 @@
   const EQUIPMENT_STATUS_LABEL = { 'Disponibil': 'Disponibil', 'In folosinta': 'În folosință', 'Service': 'Service', 'Indisponibil': 'Indisponibil' };
   // Parc Auto se împarte în 4 subcategorii fixe, distribuite automat după
   // câmpul "Subcategorie" ales la adăugare — Camion are în plus
-  // Licență transport/Tahograf, celelalte 3 nu.
-  const VEHICLE_SUBCAT_LABEL = { masina_mica: 'Mașină mică', autoutilitara: 'Autoutilitară', camion: 'Camion', utilaj: 'Utilaj' };
+  // Licență transport/Tahograf, celelalte 3 nu. "rezervor" (rezervor de
+  // motorină) e o a 5-a, deliberat separată: n-are plan/șasiu/documente/
+  // km/ore, doar un nivel de litri -- vezi isReservoir() mai jos pentru
+  // toate locurile unde se exclude din tabelul/cardurile/filtrele restului
+  // Parc Auto (nu e o "mașină" de contorizat alături de ele).
+  const VEHICLE_SUBCAT_LABEL = { masina_mica: 'Mașină mică', autoutilitara: 'Autoutilitară', camion: 'Camion', utilaj: 'Utilaj', rezervor: 'Rezervor motorină' };
+  function isReservoir(eq){ return eq.category === 'rezervor'; }
   let machinesSubcatFilter = 'Toate';
   // machinesSidebarKey tracks which sidebar sub-item is lit up, separate
   // from machinesSubcatFilter: navigating via the sidebar itself (default)
@@ -166,7 +171,7 @@
     fuel_rated_consumption_km: 'Consum normat (km)', fuel_rated_consumption_hours: 'Consum normat (ore)',
     fuel_tank_capacity_l: 'Capacitate rezervor', fuel_initial_km: 'Km inițial',
     fuel_initial_hours: 'Ore inițiale', fuel_service_interval_km: 'Interval revizie (km)',
-    fuel_service_interval_hours: 'Interval revizie (ore)',
+    fuel_service_interval_hours: 'Interval revizie (ore)', quantity: 'Litri',
   };
   function describeVehicleFieldChanges(before, after){
     const changes = [];
@@ -218,12 +223,67 @@
     { key: 'notificari', label: 'Notificări' },
   ];
   function machinesFilterCounts(){
-    const allVehicles = allEquipment.filter(eq => eq.erp_category === 'masina');
+    // Rezervorul nu e o "mașină" de contorizat/filtrat alături de restul
+    // Parc Auto -- exclus aici o singură dată, astfel încât tabelul
+    // Prezentare generală, Raport lunar consum, cardurile de filtrare și
+    // Notificările (documente/service) îl ignoră automat pe toate.
+    const allVehicles = allEquipment.filter(eq => eq.erp_category === 'masina' && !isReservoir(eq));
     const urgentVehicles = allVehicles.filter(eq => vehicleHasUrgentDocs(eq) || vehicleHasUrgentService(eq));
     const subcatCounts = { masina_mica: 0, autoutilitara: 0, camion: 0, utilaj: 0 };
     allVehicles.forEach(eq => { if (subcatCounts[eq.category] != null) subcatCounts[eq.category]++; });
     return { allVehicles, urgentVehicles, subcatCounts };
   }
+  function allReservoirs(){
+    return allEquipment.filter(eq => eq.erp_category === 'masina' && isReservoir(eq));
+  }
+  // Rezervorul (rezervoarele) de motorină -- afișate ca un card simplu
+  // (nume + litri + editează/șterge), nu în tabelul/cardurile Parc Auto
+  // de mai sus. Același card apare identic pe Prezentare generală și pe
+  // Raport lunar consum (motorina rămasă e relevantă în amândouă), deci
+  // randat o dată și injectat în ambele containere.
+  function reservoirCardHtml(eq){
+    const liters = eq.quantity != null ? Number(eq.quantity).toLocaleString('ro-RO') : '0';
+    return `
+      <div class="reservoir-card">
+        <div class="reservoir-card-main">
+          <span class="k">${escapeHtml(eq.name)}</span>
+          <div class="reservoir-card-liters">${liters} L</div>
+        </div>
+        <div class="reservoir-card-actions">
+          <button type="button" class="mt-row-icon-btn mt-edit-icon" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+          </button>
+          <button type="button" class="mt-row-icon-btn danger mt-delete-icon" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Șterge" aria-label="Șterge ${escapeHtml(eq.name)}">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  function renderReservoirSummary(){
+    const reservoirs = allReservoirs();
+    ['machinesReservoirSummary', 'machinesFuelReportReservoirSummary'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (!reservoirs.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+      el.style.display = '';
+      el.innerHTML = reservoirs.map(reservoirCardHtml).join('');
+    });
+  }
+  ['machinesReservoirSummary', 'machinesFuelReportReservoirSummary'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('click', (e) => {
+      const editIcon = e.target.closest('.mt-edit-icon');
+      if (editIcon) {
+        const eq = allEquipment.find(v => v.id === editIcon.dataset.vehicleId);
+        if (eq) openVehicleEdit(eq);
+        return;
+      }
+      const deleteIcon = e.target.closest('.mt-delete-icon');
+      if (deleteIcon) deleteVehicle(deleteIcon.dataset.vehicleId);
+    });
+  });
   // Shared by the Prezentare generală cards and the Raport lunar
   // consum cards below -- same defs, same counts, same toggle-off
   // behaviour, just a different active key and a different callback
@@ -979,6 +1039,7 @@
   function renderEquipment(){
     renderMachinesOverview();
     renderMachinesFuelReport();
+    renderReservoirSummary();
   }
 
   // vehicleFormSheet is the one merged vehicle form — identity (Titlu,
@@ -987,8 +1048,19 @@
   // "+ Adaugă mașină" (vf-id blank → insert) and for "Editează" on the
   // detail card (vf-id set → update). Licență transport/Tahograf only
   // apply to Camion, and toggle live as the Subcategorie select changes.
-  function syncVehicleFormCamionFields(){
+  // Rezervor is the odd one out: it skips identity (plate/chassis/
+  // assigned), the whole "Consum carburant"/"Documente" sections, and
+  // shows only Nume + Litri -- a tank has none of the rest.
+  function syncVehicleFormFields(){
     const subcat = document.getElementById('vf-subcat').value;
+    const reservoirMode = subcat === 'rezervor';
+    document.getElementById('vf-plate-field').style.display = reservoirMode ? 'none' : '';
+    document.getElementById('vf-chassis-field').style.display = reservoirMode ? 'none' : '';
+    document.getElementById('vf-assigned-field').style.display = reservoirMode ? 'none' : '';
+    document.getElementById('vf-reservoir-liters-field').style.display = reservoirMode ? '' : 'none';
+    document.getElementById('vf-fuel-section').style.display = reservoirMode ? 'none' : '';
+    document.getElementById('vf-docs-section').style.display = reservoirMode ? 'none' : '';
+    if (reservoirMode) return;
     const isCamion = subcat === 'camion';
     document.getElementById('vf-transport-license-field').style.display = isCamion ? '' : 'none';
     document.getElementById('vf-tachograph-field').style.display = isCamion ? '' : 'none';
@@ -1009,7 +1081,7 @@
     document.getElementById('vf-service-due-hours-field').style.display = tracksHours ? '' : 'none';
   }
   const vfSubcatSelect = document.getElementById('vf-subcat');
-  if (vfSubcatSelect) vfSubcatSelect.addEventListener('change', syncVehicleFormCamionFields);
+  if (vfSubcatSelect) vfSubcatSelect.addEventListener('change', syncVehicleFormFields);
   const addMachineBtn = document.getElementById('addMachineBtn');
   if (addMachineBtn) addMachineBtn.addEventListener('click', () => {
     document.getElementById('vf-id').value = '';
@@ -1032,7 +1104,8 @@
     document.getElementById('vf-fuel-initial-hours').value = '';
     document.getElementById('vf-service-due-km').value = '';
     document.getElementById('vf-service-due-hours').value = '';
-    syncVehicleFormCamionFields();
+    document.getElementById('vf-reservoir-liters').value = '';
+    syncVehicleFormFields();
     const titleEl = document.getElementById('vehicleFormSheetTitle');
     if (titleEl) titleEl.textContent = 'Adaugă mașină';
     const saveBtn = document.getElementById('vfSaveBtn');
@@ -1060,7 +1133,8 @@
     document.getElementById('vf-fuel-initial-hours').value = eq.fuel_initial_hours ?? '';
     document.getElementById('vf-service-due-km').value = eq.fuel_service_interval_km ?? '';
     document.getElementById('vf-service-due-hours').value = eq.fuel_service_interval_hours ?? '';
-    syncVehicleFormCamionFields();
+    document.getElementById('vf-reservoir-liters').value = eq.quantity ?? '';
+    syncVehicleFormFields();
     const titleEl = document.getElementById('vehicleFormSheetTitle');
     if (titleEl) titleEl.textContent = `Editează — ${eq.name}`;
     const saveBtn = document.getElementById('vfSaveBtn');
@@ -1076,6 +1150,32 @@
     const subcat = document.getElementById('vf-subcat').value;
     const assigned = document.getElementById('vf-assigned').value.trim();
     const notes = document.getElementById('vf-notes').value.trim();
+    if (subcat === 'rezervor') {
+      const litersInput = document.getElementById('vf-reservoir-liters').value;
+      if (litersInput === '') { alert('Completați litrii din rezervor.'); return; }
+      const liters = Number(litersInput);
+      const name = title || 'Rezervor motorină';
+      const reservoirPayload = { name, category: subcat, quantity: liters, unit: 'L', notes: notes || null };
+      if (id) {
+        const original = allEquipment.find(v => v.id === id);
+        const { error } = await AppDataServices.erp.saveVehicle(supabaseClient, reservoirPayload, id);
+        if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+        const changeSummary = original ? describeVehicleFieldChanges(original, reservoirPayload) : '';
+        logEntityActivity('masina', id, changeSummary ? `Rezervorul a fost actualizat — ${changeSummary}.` : 'Rezervorul a fost actualizat (fără modificări de câmp).');
+        setSheetOpen('vehicleFormSheet', false);
+        showToast('Rezervorul a fost actualizat.');
+        loadEquipment();
+      } else {
+        const payload = Object.assign({ item_type: 'echipament', erp_category: 'masina', status: 'Disponibil' }, reservoirPayload);
+        const { data, error } = await AppDataServices.erp.saveVehicle(supabaseClient, payload, null);
+        if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+        if (data && data[0]) logEntityActivity('masina', data[0].id, 'Rezervor adăugat.');
+        setSheetOpen('vehicleFormSheet', false);
+        showToast('Rezervorul a fost adăugat.');
+        loadEquipment();
+      }
+      return;
+    }
     if (!plate) { alert('Completați numărul de înmatriculare.'); return; }
     const normalizedPlate = plate.toUpperCase().replace(/[\s-]+/g, '');
     const duplicatePlate = allEquipment.find(vehicle =>
@@ -1279,7 +1379,8 @@
   // Shared by the row delete icon — one confirm/delete/refresh path.
   async function deleteVehicle(id){
     const eq = allEquipment.find(v => v.id === id);
-    if (!confirm(`Ștergeți mașina${eq ? ' „' + eq.name + '"' : ''}? Această acțiune nu poate fi anulată.`)) return false;
+    const noun = eq && isReservoir(eq) ? 'rezervorul' : 'mașina';
+    if (!confirm(`Ștergeți ${noun}${eq ? ' „' + eq.name + '"' : ''}? Această acțiune nu poate fi anulată.`)) return false;
     const result = await AppDataServices.erp.deleteVehicle(supabaseClient, id);
     if (result.blockedByHistory) {
       alert('Mașina are rezervări LPS asociate. Păstrează istoricul: schimbă starea în „Indisponibil” în ERP în loc să o ștergi.');
@@ -1287,8 +1388,8 @@
     }
     const { error } = result;
     if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return false; }
-    logEntityActivity('masina', id, 'Mașina a fost ștearsă.');
-    showToast('Mașina a fost ștearsă.');
+    logEntityActivity('masina', id, eq && isReservoir(eq) ? 'Rezervorul a fost șters.' : 'Mașina a fost ștearsă.');
+    showToast(eq && isReservoir(eq) ? 'Rezervorul a fost șters.' : 'Mașina a fost ștearsă.');
     loadEquipment();
     return true;
   }

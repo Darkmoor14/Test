@@ -31,6 +31,10 @@ export function ErpHomePanel() {
   const counts = { echipament: 0, masina: 0, material: 0, produs: 0 } as Record<string, number>;
   store.equipment.forEach((eq) => {
     const cat = eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material');
+    // The diesel reservoir lives under erp_category 'masina' but isn't a
+    // vehicle to count alongside them -- same exclusion as erp.js's
+    // machinesFilterCounts() for Parc Auto's own table/cards.
+    if (cat === 'masina' && eq.category === 'rezervor') return;
     if (counts[cat] != null) counts[cat]++;
   });
   const lowStockItems = store.equipment.filter(isLowStock);

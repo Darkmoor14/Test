@@ -40,6 +40,11 @@
   function buildSearchIndex(){
     const index = [];
     (typeof allEquipment !== 'undefined' ? allEquipment : []).forEach(eq => {
+      // The diesel reservoir (erp_category 'masina', category 'rezervor')
+      // has no plate/km/ITP -- none of describeErpMatch's vehicle
+      // questions apply to it, so it's left out of search entirely
+      // rather than matching and answering with nonsense.
+      if (eq.erp_category === 'masina' && eq.category === 'rezervor') return;
       const cat = eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material');
       index.push({ collection: 'erp_' + cat, id: eq.id, title: eq.name, searchText: [eq.name, eq.plate_number, eq.serial_number, eq.assigned_to, eq.location, eq.category].filter(Boolean).join(' '), tab: tabForErpCategory(cat), item: eq });
     });
@@ -244,7 +249,7 @@
         if (matchedCategory !== 'masina') {
           for (const status of Object.keys(SEARCH_STATUS_WORDS)) { if (SEARCH_STATUS_WORDS[status].some(w => q.includes(w))) { matchedStatus = status; break; } }
         }
-        let items = (allEquipment || []).filter(e => (e.erp_category || '') === matchedCategory);
+        let items = (allEquipment || []).filter(e => (e.erp_category || '') === matchedCategory && e.category !== 'rezervor');
         if (matchedStatus) items = items.filter(e => e.status === matchedStatus);
         const catLabel = { echipament: 'echipamente', masina: 'mașini', material: 'materiale', produs: 'produse' }[matchedCategory];
         const statusLabel = matchedStatus ? ' ' + (EQUIPMENT_STATUS_LABEL[matchedStatus] || matchedStatus).toLowerCase() : '';
