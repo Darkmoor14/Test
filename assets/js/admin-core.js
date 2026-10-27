@@ -543,7 +543,16 @@
      within the same authenticated dashboard (no second login needed).
      ============================================================ */
   document.querySelectorAll('.admin-tab').forEach(tab => {
-    tab.addEventListener('click', () => openAdminTab(tab.dataset.tab));
+    tab.addEventListener('click', () => {
+      openAdminTab(tab.dataset.tab);
+      // Picking a tab from inside an open dropdown (e.g. "Raport lunar
+      // consum" under Parc Auto) should close it, same as clicking
+      // anywhere else outside it already does (see lps.js) -- without
+      // this, a tab click INSIDE the dropdown left it open since it
+      // never counts as "outside".
+      document.querySelectorAll('.category-topbar .docs-nav-toggle.open').forEach(btn => btn.classList.remove('open'));
+      document.querySelectorAll('.category-topbar .docs-nav-subgroup.open').forEach(sg => sg.classList.remove('open'));
+    });
   });
 
   /* ============================================================

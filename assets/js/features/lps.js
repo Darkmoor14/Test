@@ -941,12 +941,6 @@
     else if (tabKey === 'hr-home' || tabKey === 'hr-employees') { if (typeof loadHrEmployees === 'function') loadHrEmployees(); }
     else if (tabKey === 'hr-worktime') { if (typeof loadHrWorktime === 'function') loadHrWorktime(); }
     else if (tabKey === 'hr-vacation') { if (typeof loadHrVacation === 'function') loadHrVacation(); }
-    if (tabKey === 'machines' || tabKey === 'machines-fuel-report') {
-      const sg = document.querySelector('[data-erp-subgroup="machines"]');
-      const tg = document.querySelector('[data-erp-toggle="machines"]');
-      if (sg) sg.classList.add('open');
-      if (tg) tg.classList.add('open');
-    }
     // A reload, browser back/forward, or a direct hash landing calls
     // openAdminTab without ever going through an .erp-machines-subcat-btn
     // click, so nothing has told it which subcategory button to light up

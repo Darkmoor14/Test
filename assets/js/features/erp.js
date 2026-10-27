@@ -1600,6 +1600,8 @@
       btn.addEventListener('click', () => {
         openAdminTab('machines');
         setMachinesSubcatFilter(btn.dataset.subcat);
+        erpMachinesSubgroup.classList.remove('open');
+        erpMachinesToggle.classList.remove('open');
       });
     });
   }
