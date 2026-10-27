@@ -652,8 +652,18 @@
       const purchased = fuelPurchaseSum(eq.id, m.year, m.month);
       const theoretical = realRate * delta / (unit === 'hours' ? 1 : 100);
       const leftoverIn = leftover;
-      const leftoverOut = Math.max(0, Math.min(capacity, leftoverIn + purchased - theoretical));
-      chain.set(`${m.year}-${m.month}`, { leftoverIn, leftoverOut, delta, purchased, theoretical });
+      const rawLeftoverOut = leftoverIn + purchased - theoretical;
+      const leftoverOut = Math.max(0, Math.min(capacity, rawLeftoverOut));
+      // The clamp above is what the comment on this function means by
+      // "catches fuel-card skimming or a misdeclared fill-up" -- but
+      // clamping alone never SHOWED that anything was caught, it just
+      // silently capped the number. capacityOverflow (bought more than
+      // the tank could have held) and capacityDeficit (would have
+      // needed to burn more than was ever in the tank) carry that
+      // signal out to the table/card so it's actually visible.
+      const capacityOverflow = rawLeftoverOut > capacity;
+      const capacityDeficit = rawLeftoverOut < 0;
+      chain.set(`${m.year}-${m.month}`, { leftoverIn, leftoverOut, delta, purchased, theoretical, capacityOverflow, capacityDeficit });
       leftover = leftoverOut;
     });
     return chain;
@@ -686,7 +696,9 @@
     const rated = eq[ratedFieldFor(unit)] != null ? Number(eq[ratedFieldFor(unit)]) : null;
     const overLimit = actual != null && rated != null && actual > rated * 1.5;
     const leftoverOut = leftoverEntry != null ? leftoverEntry.leftoverOut : null;
-    return { unit: unitLbl, unitRateLabel, reading, baseline, delta, totalAdded, actual, rated, overLimit, leftoverOut };
+    const capacityOverflow = leftoverEntry != null ? leftoverEntry.capacityOverflow : false;
+    const capacityDeficit = leftoverEntry != null ? leftoverEntry.capacityDeficit : false;
+    return { unit: unitLbl, unitRateLabel, reading, baseline, delta, totalAdded, actual, rated, overLimit, leftoverOut, capacityOverflow, capacityDeficit };
   }
   // Across every unit this vehicle tracks (one for most, two for
   // Camion/Autoutilitara).
@@ -773,7 +785,21 @@
       // vehicle both branches compute the identical leftoverOut, so show
       // it once rather than joining a duplicate.
       const leftoverVal = [kmC, hC].map(c => c && c.leftoverOut).find(v => v != null);
-      const leftoverCell = leftoverVal == null ? na : (leftoverVal < 0.05 ? '0.0 L' : `-${leftoverVal.toFixed(1)} L`);
+      // leftoverOut is the fuel actually left in the tank at month's
+      // end (see vehicleFuelLeftoverChain) -- a positive quantity, same
+      // meaning the reservoir's own row shows in this exact column
+      // (e.g. "364 L"). A minus sign here was showing that same
+      // positive balance as if it were a deficit (e.g. "-35.2 L" for a
+      // tank that actually HAD 35.2 L left), backwards from what the
+      // column means and inconsistent with the reservoir's own row.
+      const leftoverCell = leftoverVal == null ? na : (leftoverVal < 0.05 ? '0.0 L' : `${leftoverVal.toFixed(1)} L`);
+      // Surfaces what the capacity clamp inside vehicleFuelLeftoverChain
+      // otherwise catches silently: more was bought that month than the
+      // tank could have held (capacityOverflow), or the theoretical
+      // burn implies more fuel than was ever in it (capacityDeficit) --
+      // either way a sign the fuel bills or the reading are off.
+      const capacityFlag = [kmC, hC].some(c => c && (c.capacityOverflow || c.capacityDeficit));
+      const leftoverTitle = capacityFlag ? ' title="Alimentare peste capacitatea rezervorului sau consum peste ce ar fi putut exista în rezervor — verificați bonurile sau citirea."' : '';
       return `
         <tr class="${overLimit ? 'row-error' : ''}">
           <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div></td>
@@ -781,7 +807,7 @@
           <td>${kmC && kmC.delta != null ? escapeHtml(String(kmC.delta)) + ' km' : na}</td>
           <td>${hC && hC.delta != null ? escapeHtml(String(hC.delta)) + ' h' : na}</td>
           <td>${totalAdded > 0 ? escapeHtml(String(totalAdded)) + ' L' : na}</td>
-          <td>${leftoverCell}</td>
+          <td class="${capacityFlag ? 'mt-warn' : ''}"${leftoverTitle}>${leftoverCell}${capacityFlag ? ' ⚠' : ''}</td>
           <td class="${overLimit ? 'mt-warn' : ''}">${joinPair(c => c.actual != null ? `${c.actual.toFixed(1)} ${c.unitRateLabel}${c.overLimit ? ' ⚠' : ''}` : null)}</td>
           <td>${joinPair(c => c.rated != null ? `${c.rated} ${c.unitRateLabel}` : null)}</td>
           <td><button type="button" class="mt-row-icon-btn fuel-log-edit-btn" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
@@ -1148,7 +1174,7 @@
         kmC && kmC.delta != null ? kmC.delta : '',
         hC && hC.delta != null ? hC.delta : '',
         totalAdded > 0 ? totalAdded : '',
-        leftoverVal == null ? '' : (leftoverVal < 0.05 ? 0 : -Number(leftoverVal.toFixed(1))),
+        leftoverVal == null ? '' : (leftoverVal < 0.05 ? 0 : Number(leftoverVal.toFixed(1))),
         joinPair(c => c.actual != null ? `${c.actual.toFixed(1)} ${c.unitRateLabel}` : ''),
         joinPair(c => c.rated != null ? `${c.rated} ${c.unitRateLabel}` : ''),
       ]);
