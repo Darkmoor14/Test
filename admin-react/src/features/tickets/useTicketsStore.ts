@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
+import { useRealtimeReload } from '../../lib/useRealtimeReload';
 import { ticketData } from '../../lib/dataServices';
 import { createLogEntityActivity, describeFieldChanges } from '../shared/entityLogClient';
 import type {
@@ -120,6 +121,11 @@ export function useTicketsStore(sessionEmail: string | null) {
   }, [supabase]);
 
   useEffect(() => { if (sessionEmail) reload(); }, [sessionEmail, reload]);
+
+  // Keeps the list live across staff/devices -- draftEditsRef (above)
+  // is what stops this from wiping out whatever the person is
+  // mid-typing into an open TicketCard when it fires.
+  useRealtimeReload(supabase, 'tickets', reload, !!sessionEmail);
 
   // Years actually present (by effective year), newest first -- drives
   // the year filter's own option list. The current year is force-added

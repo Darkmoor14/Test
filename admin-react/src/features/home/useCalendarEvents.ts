@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
+import { useRealtimeReload } from '../../lib/useRealtimeReload';
 import type { CalendarEvent } from './calendarUtils';
 
 export interface CalendarEventInput {
@@ -43,6 +44,14 @@ export function useCalendarEvents(sessionEmail: string | null) {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  // Lets a change made on the CalDAV side (a phone/Mac calendar
+  // account writing straight to this table) or by another staff
+  // member show up here without reopening Acasă -- safe from clobbering
+  // an open CalendarEventFormSheet, since that sheet is handed a
+  // snapshot captured when it was opened (HomePage's formEvent), not a
+  // live reference into this array.
+  useRealtimeReload(supabase, 'calendar_events', reload);
 
   const saveEvent = useCallback(async (id: string | null, payload: CalendarEventInput): Promise<boolean> => {
     try {

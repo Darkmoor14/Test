@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
+import { useRealtimeReload } from '../../lib/useRealtimeReload';
 import { createLogEntityActivity, describeFieldChanges } from '../shared/entityLogClient';
 import { erpData } from '../../lib/dataServices';
 import type { EquipmentItem, NonVehicleCategory, ResourceAssignment } from './types';
@@ -63,6 +64,7 @@ export function useErpStore(sessionEmail: string | null) {
   }, [supabase]);
 
   useEffect(() => { if (sessionEmail) reloadEquipment(); }, [sessionEmail, reloadEquipment]);
+  useRealtimeReload(supabase, ['equipment_inventory', 'lps_resource_assignments'], reloadEquipment, !!sessionEmail);
 
   useEffect(() => {
     const onTabChange = (event: Event) => {

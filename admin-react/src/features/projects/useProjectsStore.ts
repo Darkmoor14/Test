@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
+import { useRealtimeReload } from '../../lib/useRealtimeReload';
 import { createLogEntityActivity } from '../shared/entityLogClient';
 import { projectData, saveChecklist as persistChecklist } from '../../lib/dataServices';
 import type { BacklogProject, BacklogFilterKey, Project, ProjectsFilterKey, WorkOrder } from './types';
@@ -43,6 +44,7 @@ export function useProjectsStore(sessionEmail: string | null) {
   }, [supabase]);
 
   useEffect(() => { if (sessionEmail) reloadProjects(); }, [sessionEmail, reloadProjects]);
+  useRealtimeReload(supabase, 'current_projects', reloadProjects, !!sessionEmail);
 
   const projectAvailableYears = useMemo(() => {
     const years = new Set<number>();
@@ -147,6 +149,7 @@ export function useProjectsStore(sessionEmail: string | null) {
   }, [supabase]);
 
   useEffect(() => { if (sessionEmail) reloadBacklog(); }, [sessionEmail, reloadBacklog]);
+  useRealtimeReload(supabase, 'backlog_projects', reloadBacklog, !!sessionEmail);
 
   const setBacklogFilter = useCallback((key: BacklogFilterKey) => setBacklogFilterState(key), []);
 
@@ -209,6 +212,7 @@ export function useProjectsStore(sessionEmail: string | null) {
   }, [supabase]);
 
   useEffect(() => { if (sessionEmail) reloadWorkOrders(); }, [sessionEmail, reloadWorkOrders]);
+  useRealtimeReload(supabase, 'work_orders', reloadWorkOrders, !!sessionEmail);
 
   // Supabase is shared across staff accounts. Refresh when returning to a
   // module so edits made by another person do not remain invisible until
