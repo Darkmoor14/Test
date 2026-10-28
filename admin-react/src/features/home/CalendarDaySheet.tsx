@@ -2,11 +2,12 @@ import { HOME_CLOCK_DAY_NAMES, HOME_CLOCK_MONTH_NAMES, eventsOnDate, type Calend
 import { EventListOrEmpty } from './EventCard';
 
 export function CalendarDaySheet({
-  open, dateKeyStr, calendarEvents, onClose, onAddEvent, onEventClick,
+  open, dateKeyStr, calendarEvents, now, onClose, onAddEvent, onEventClick,
 }: {
   open: boolean;
   dateKeyStr: string | null;
   calendarEvents: CalendarEvent[];
+  now: Date;
   onClose: () => void;
   onAddEvent: () => void;
   onEventClick: (e: CalendarEvent) => void;
@@ -28,7 +29,7 @@ export function CalendarDaySheet({
             <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
           </div>
           <div className="calendar-day-events">
-            <EventListOrEmpty events={events} now={new Date()} onEventClick={onEventClick} emptyLabel="Nicio programare în această zi." />
+            <EventListOrEmpty events={events} now={now} onEventClick={onEventClick} emptyLabel="Nicio programare în această zi." />
           </div>
           <div className="sheet-actions">
             <button type="button" className="btn btn-primary" onClick={onAddEvent}>+ Eveniment nou</button>

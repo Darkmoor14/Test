@@ -3,6 +3,7 @@ import { dateKey, eventsOnDate, isEventVisibleTo, type CalendarEvent } from './c
 import { useCalendarEvents } from './useCalendarEvents';
 import { useStaffRoster } from './useStaffRoster';
 import { useReminders } from './useReminders';
+import { useNow } from './useNow';
 import { HomeClock } from './HomeClock';
 import { MiniCalendar } from './MiniCalendar';
 import { FullMonthCalendar } from './FullMonthCalendar';
@@ -24,6 +25,7 @@ export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | 
     [events, sessionEmail],
   );
   useReminders(visibleEvents);
+  const now = useNow();
 
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [daySheetOpen, setDaySheetOpen] = useState(false);
@@ -61,7 +63,7 @@ export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | 
           <div className="home-cal-today">
             <span className="k">Astăzi</span>
             <div className="calendar-day-events">
-              <EventListOrEmpty events={todayEvents} now={new Date()} onEventClick={openEditEvent} emptyLabel="Nicio programare azi." />
+              <EventListOrEmpty events={todayEvents} now={now} onEventClick={openEditEvent} emptyLabel="Nicio programare azi." />
             </div>
           </div>
           <button type="button" className="btn home-cal-add-btn" onClick={() => openNewEvent(dateKey(new Date()))}>+ Eveniment</button>
@@ -79,6 +81,7 @@ export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | 
         open={daySheetOpen}
         dateKeyStr={selectedDay}
         calendarEvents={visibleEvents}
+        now={now}
         onClose={() => setDaySheetOpen(false)}
         onAddEvent={() => openNewEvent(selectedDay || dateKey(new Date()))}
         onEventClick={openEditEvent}
