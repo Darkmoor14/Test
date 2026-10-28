@@ -10,16 +10,30 @@
 //
 // Protocol surface implemented (RFC 4791 calendaring extensions to
 // RFC 4918 WebDAV), deliberately the smallest set real clients (iOS
-// Calendar, DAVx⁵) actually exercise during discovery + sync, not the
-// full spec:
+// Calendar, macOS Calendar, DAVx⁵) actually exercise during discovery
+// + sync, not the full spec:
 //   OPTIONS   — capability advertisement
 //   PROPFIND  — discovery chain: root -> principal -> calendar home ->
 //               calendar collection (Depth 0) -> child event hrefs
-//               (Depth 1)
+//               (Depth 1). The calendar home (/calendars/<email>/) and
+//               the dedicated events collection (/calendars/<email>/
+//               events/) BOTH answer as a full working calendar --
+//               observed live, both iOS and macOS sync directly
+//               against the home URL rather than following it down to
+//               a child "events" collection, even though RFC 4791
+//               models calendar-home-set as a container, not a
+//               calendar itself.
 //   REPORT    — calendar-multiget, calendar-query (treated as "all
 //               visible events", no real time-range filtering), and
 //               sync-collection (incremental sync via an opaque
 //               timestamp token)
+//   PROPPATCH — a client setting its own display properties (calendar
+//               color/order) on the collection. These persist in
+//               calendar_feed_tokens.dav_properties (20261027173813)
+//               since they're genuinely per-person state the client
+//               expects to read back on the next PROPFIND, not just
+//               an empty acknowledgment. Honors `Prefer: return=
+//               minimal` with a bare 204, which iOS/macOS send.
 //   GET       — one event as a VCALENDAR/VEVENT, with an ETag
 //   PUT       — create or update one event from a client-sent VEVENT
 //   DELETE    — remove one event (logged to calendar_events_tombstones
@@ -40,9 +54,11 @@
 // Supabase account password is ever sent to a calendar client.
 //
 // Needs calendar_events.updated_at (20261027120000_calendar_events_
-// updated_at.sql) for ETags/sync tokens, and calendar_events_
-// tombstones (same migration) so deletions can be reported to
-// sync-collection instead of silently vanishing with no trace.
+// updated_at.sql) for ETags/sync tokens, calendar_events_tombstones
+// (same migration) so deletions can be reported to sync-collection
+// instead of silently vanishing with no trace, and calendar_feed_
+// tokens.dav_properties (20261027173813) for the PROPPATCH-set
+// calendar color/order.
 //
 // DEPLOYED WITH verify_jwt = false: CalDAV clients send HTTP Basic
 // auth, never a Supabase session or anon-key header, so the platform-
@@ -50,7 +66,10 @@
 //
 // DEPLOY: via the Supabase MCP deploy_edge_function tool (project has
 // no supabase/config.toml -- functions here are deployed that way, not
-// via `supabase functions deploy`).
+// via `supabase functions deploy`). This is the ONLY calendar-dav
+// deployment -- a short-lived "calendar-dav-ios" fork existed for
+// troubleshooting and was merged back in here, then deleted, so there
+// is exactly one function for every client to point at.
 // ---------------------------------------------------------------
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -507,18 +526,16 @@ function extractSyncToken(body: string): string | null {
 }
 
 // PROPPATCH -- a client setting its own display properties on the
-// calendar collection (iOS sets its chosen calendar-color here right
-// after the first successful sync; observed live as a 405 before this
-// was implemented, which iOS surfaces as "Unable to update calendars"
-// even though discovery and the actual event fetch both succeeded).
-// There's nothing to persist server-side -- the color is a per-client
-// display preference, not app state -- so every property the client
-// tries to set or remove is just acknowledged as done. Each opening
-// tag is captured whole (including any inline xmlns attribute, which
-// is how clients typically declare a custom property's namespace) and
-// echoed back verbatim as a self-closing element, so the response
-// stays valid even for a namespace this document's own head doesn't
-// declare.
+// calendar collection (iOS/macOS set their chosen calendar-color here
+// right after the first successful sync; observed live as a 405
+// before this was implemented, which iOS surfaced as "Unable to
+// update calendars" even though discovery and the actual event fetch
+// both succeeded). calendar-color and calendar-order are persisted
+// (see persistCalendarProperties/calendarPropertiesXml below) since
+// the client reads them back on every subsequent PROPFIND and a client
+// that doesn't get its own color echoed back keeps re-sending it.
+// Every other property a PROPPATCH tries to set or remove is just
+// acknowledged, nothing to persist for it.
 function parsePropPatchPropTags(body: string): string[] {
   const tags: string[] = [];
   const blockRe = /<(?:[a-zA-Z0-9_]+:)?(?:set|remove)[^>]*>([\s\S]*?)<\/(?:[a-zA-Z0-9_]+:)?(?:set|remove)>/gi;
@@ -535,9 +552,79 @@ function parsePropPatchPropTags(body: string): string[] {
   return tags;
 }
 
-function proppatchResponseBody(selfHref: string, propTags: string[]): string {
+// Property QNames in a PROPPATCH response need the same namespace
+// bindings as the request -- Apple declares its calendar-color
+// namespace on the request root, so every nonstandard xmlns
+// declaration from the request is echoed onto our multistatus root
+// too, rather than returning a prefix this document never declared.
+function proppatchResponseBody(selfHref: string, propTags: string[], requestBody: string): string {
   const propsXml = propTags.join("");
-  return `${MULTISTATUS_HEAD}<d:response><d:href>${xmlEscape(selfHref)}</d:href><d:propstat><d:prop>${propsXml}</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>${MULTISTATUS_TAIL}`;
+  const namespaceAttributes = new Map<string, string>();
+  const declarationRe = /\b(xmlns(?::[A-Za-z_][A-Za-z0-9_.-]*)?)=(["'])([^"']*)\2/g;
+  let declaration: RegExpExecArray | null;
+  while ((declaration = declarationRe.exec(requestBody))) {
+    const name = declaration[1];
+    if (name === "xmlns:d" || name === "xmlns:cs" || name === "xmlns:c") continue;
+    namespaceAttributes.set(name, `${name}=${declaration[2]}${declaration[3]}${declaration[2]}`);
+  }
+  const responseHead = MULTISTATUS_HEAD.replace(/>$/, `${namespaceAttributes.size ? " " : ""}${[...namespaceAttributes.values()].join(" ")}>`);
+  return `${responseHead}<d:response><d:href>${xmlEscape(selfHref)}</d:href><d:propstat><d:prop>${propsXml}</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>${MULTISTATUS_TAIL}`;
+}
+
+async function persistCalendarProperties(email: string, requestBody: string): Promise<void> {
+  const updates: Record<string, string> = {};
+  const propertyRe = /<(?:[A-Za-z_][A-Za-z0-9_.-]*:)?(calendar-order|calendar-color)\b[^>]*>([\s\S]*?)<\/(?:[A-Za-z_][A-Za-z0-9_.-]*:)?\1\s*>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = propertyRe.exec(requestBody))) {
+    const name = match[1].toLowerCase();
+    const value = match[2].replace(/<[^>]*>/g, "").trim()
+      .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+    if (name === "calendar-order" && /^\d{1,6}$/.test(value)) updates[name] = value;
+    if (name === "calendar-color" && /^#?[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(value)) updates[name] = value;
+  }
+  if (!Object.keys(updates).length) return;
+
+  const { data, error: readError } = await admin
+    .from("calendar_feed_tokens")
+    .select("dav_properties")
+    .eq("email", email)
+    .single();
+  if (readError) throw readError;
+
+  const current = data?.dav_properties && typeof data.dav_properties === "object"
+    ? data.dav_properties as Record<string, unknown>
+    : {};
+  const { error: writeError } = await admin
+    .from("calendar_feed_tokens")
+    .update({ dav_properties: { ...current, ...updates } })
+    .eq("email", email);
+  if (writeError) throw writeError;
+}
+
+async function calendarPropertiesXml(email: string): Promise<string> {
+  const { data, error } = await admin
+    .from("calendar_feed_tokens")
+    .select("dav_properties")
+    .eq("email", email)
+    .single();
+  if (error) throw error;
+  const props = data?.dav_properties && typeof data.dav_properties === "object"
+    ? data.dav_properties as Record<string, unknown>
+    : {};
+  const namespace = ' xmlns:A="http://apple.com/ns/ical/"';
+  let xml = "";
+  if (typeof props["calendar-order"] === "string") {
+    xml += "<A:calendar-order" + namespace + ">" + xmlEscape(props["calendar-order"] as string) + "</A:calendar-order>";
+  }
+  if (typeof props["calendar-color"] === "string") {
+    xml += "<A:calendar-color" + namespace + ">" + xmlEscape(props["calendar-color"] as string) + "</A:calendar-color>";
+  }
+  return xml;
+}
+
+function prefersMinimalProppatch(req: Request): boolean {
+  return /return\s*=\s*"?minimal"?/i.test(req.headers.get("Prefer") || "");
 }
 
 // ================================================================
@@ -568,16 +655,14 @@ function eventResponseXml(email: string, e: CalendarEventRow, includeData: boole
 
 // ================================================================
 // Shared PROPFIND/REPORT bodies for "a resource that IS the calendar
-// collection" -- used at BOTH the real collection path
-// (/calendars/<email>/events) and at root. Root needs this too
-// because a CalDAV account added on iOS with just a bare
-// Server/User/Password (no separate calendar path) sometimes treats
-// the exact URL typed into "Server" as the calendar collection
-// itself, syncing (REPORT) directly against it rather than following
-// the principal -> calendar-home-set discovery chain all the way
-// down -- observed live: every daemon successfully PROPFINDs root,
-// but none ever follow up with a request to the real collection path.
-// Answering both ways here means it works under either behavior.
+// collection" -- used at root, at the calendar home (/calendars/
+// <email>/), and at the dedicated events collection (/calendars/
+// <email>/events/). All three are kept working as a full calendar:
+// some clients treat the bare Server URL as the calendar itself
+// without following discovery any further, both iOS and macOS sync
+// directly against the home URL rather than its "events" child, and
+// the dedicated events path stays there for any client that does
+// follow discovery all the way down.
 // ================================================================
 async function calendarCollectionPropfindBody(email: string, selfHref: string, depth: string, extraProps: string): Promise<string> {
   const events = await visibleEventsFor(email);
@@ -661,7 +746,7 @@ Deno.serve(async (req) => {
   if (path === "/" && method === "PROPFIND") {
     const depth = req.headers.get("Depth") || "0";
     const principalHref = `${PUBLIC_BASE}/principals/${encodeURIComponent(email)}/`;
-    const extraProps = `<d:current-user-principal><d:href>${xmlEscape(principalHref)}</d:href></d:current-user-principal><d:principal-URL><d:href>${xmlEscape(principalHref)}</d:href></d:principal-URL>`;
+    const extraProps = `<d:current-user-principal><d:href>${xmlEscape(principalHref)}</d:href></d:current-user-principal><d:principal-URL><d:href>${xmlEscape(principalHref)}</d:href></d:principal-URL>${await calendarPropertiesXml(email)}`;
     const body = await calendarCollectionPropfindBody(email, `${PUBLIC_BASE}/`, depth, extraProps);
     return multistatusResponse(body);
   }
@@ -672,7 +757,11 @@ Deno.serve(async (req) => {
   }
   if (path === "/" && method === "PROPPATCH") {
     const reqBody = await req.text();
-    const body = proppatchResponseBody(`${PUBLIC_BASE}/`, parsePropPatchPropTags(reqBody));
+    await persistCalendarProperties(email, reqBody);
+    if (prefersMinimalProppatch(req)) {
+      return new Response(null, { status: 204, headers: { "Preference-Applied": "return=minimal" } });
+    }
+    const body = proppatchResponseBody(`${PUBLIC_BASE}/`, parsePropPatchPropTags(reqBody), reqBody);
     return multistatusResponse(body);
   }
 
@@ -687,30 +776,19 @@ Deno.serve(async (req) => {
     return multistatusResponse(body);
   }
 
-  // --- calendar home (parent of the one calendar collection) ---
+  // --- calendar home -- also answers as a full working calendar, not
+  // just a container pointing at "events/" (see calendarCollection*
+  // header comment for why: both iOS and macOS sync directly against
+  // this URL in practice) ---
   const homeMatch = path.match(/^\/calendars\/([^/]+)$/);
-  if (homeMatch && method === "PROPFIND") {
+  if (homeMatch) {
     const pEmail = decodeURIComponent(homeMatch[1]);
     if (pEmail !== email) return new Response("Forbidden", { status: 403 });
-    const depth = req.headers.get("Depth") || "0";
-    let body = `${MULTISTATUS_HEAD}<d:response><d:href>${xmlEscape(`${PUBLIC_BASE}${path}/`)}</d:href><d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`;
-    if (depth === "1") {
-      const eventsHref = `${PUBLIC_BASE}${path}/events/`;
-      body += `<d:response><d:href>${xmlEscape(eventsHref)}</d:href><d:propstat><d:prop><d:resourcetype><d:collection/><c:calendar/></d:resourcetype><d:displayname>Insta Grup — Acasă</d:displayname><c:supported-calendar-component-set><c:comp name="VEVENT"/></c:supported-calendar-component-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`;
-    }
-    body += MULTISTATUS_TAIL;
-    return multistatusResponse(body);
-  }
-
-  // --- the calendar collection itself ---
-  const collMatch = path.match(/^\/calendars\/([^/]+)\/events$/);
-  if (collMatch) {
-    const pEmail = decodeURIComponent(collMatch[1]);
-    if (pEmail !== email) return new Response("Forbidden", { status: 403 });
+    const selfHref = `${PUBLIC_BASE}${path}/`;
 
     if (method === "PROPFIND") {
       const depth = req.headers.get("Depth") || "0";
-      const body = await calendarCollectionPropfindBody(email, `${PUBLIC_BASE}${path}/`, depth, "");
+      const body = await calendarCollectionPropfindBody(email, selfHref, depth, await calendarPropertiesXml(email));
       return multistatusResponse(body);
     }
 
@@ -722,7 +800,46 @@ Deno.serve(async (req) => {
 
     if (method === "PROPPATCH") {
       const reqBody = await req.text();
-      const body = proppatchResponseBody(`${PUBLIC_BASE}${path}/`, parsePropPatchPropTags(reqBody));
+      await persistCalendarProperties(email, reqBody);
+      if (prefersMinimalProppatch(req)) {
+        return new Response(null, { status: 204, headers: { "Preference-Applied": "return=minimal" } });
+      }
+      const body = proppatchResponseBody(selfHref, parsePropPatchPropTags(reqBody), reqBody);
+      return multistatusResponse(body);
+    }
+
+    return new Response("Method Not Allowed", { status: 405, headers: { Allow: "PROPFIND, PROPPATCH, REPORT" } });
+  }
+
+  // --- the dedicated events collection -- kept working for any client
+  // that follows discovery all the way down to it ---
+  const collMatch = path.match(/^\/calendars\/([^/]+)\/events$/);
+  if (collMatch) {
+    const pEmail = decodeURIComponent(collMatch[1]);
+    if (pEmail !== email) return new Response("Forbidden", { status: 403 });
+
+    if (method === "PROPFIND") {
+      const depth = req.headers.get("Depth") || "0";
+      const principalHref = `${PUBLIC_BASE}/principals/${encodeURIComponent(email)}/`;
+      const homeHref = `${PUBLIC_BASE}/calendars/${encodeURIComponent(email)}/`;
+      const extraProps = `<d:current-user-principal><d:href>${xmlEscape(principalHref)}</d:href></d:current-user-principal><d:principal-URL><d:href>${xmlEscape(principalHref)}</d:href></d:principal-URL><c:calendar-home-set><d:href>${xmlEscape(homeHref)}</d:href></c:calendar-home-set>${await calendarPropertiesXml(email)}`;
+      const body = await calendarCollectionPropfindBody(email, `${PUBLIC_BASE}${path}/`, depth, extraProps);
+      return multistatusResponse(body);
+    }
+
+    if (method === "REPORT") {
+      const reqBody = await req.text();
+      const body = await calendarCollectionReportBody(email, reqBody);
+      return multistatusResponse(body);
+    }
+
+    if (method === "PROPPATCH") {
+      const reqBody = await req.text();
+      await persistCalendarProperties(email, reqBody);
+      if (prefersMinimalProppatch(req)) {
+        return new Response(null, { status: 204, headers: { "Preference-Applied": "return=minimal" } });
+      }
+      const body = proppatchResponseBody(`${PUBLIC_BASE}${path}/`, parsePropPatchPropTags(reqBody), reqBody);
       return multistatusResponse(body);
     }
 
