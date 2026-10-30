@@ -8,7 +8,6 @@ import { AutoImprove } from './features/status/AutoImprove';
 import { AuditLog } from './features/status/AuditLog';
 import { SiteStats } from './features/status/SiteStats';
 import { Roles } from './features/status/Roles';
-import { DocsKbPanel } from './features/docs/DocsKbPanel';
 import { HomePage } from './features/home/HomePage';
 import type { HomeNavKey } from './features/home/NavGrid';
 import { TicketsRoot, type TicketsMountTargets } from './features/tickets/TicketsRoot';
@@ -34,7 +33,6 @@ declare global {
       mountAuditLog: (el: HTMLElement, client: SupabaseClient) => void;
       mountSiteStats: (el: HTMLElement, client: SupabaseClient) => void;
       mountRoles: (el: HTMLElement, client: SupabaseClient) => void;
-      mountDocsKb: (el: HTMLElement, client: SupabaseClient) => void;
       mountHome: (el: HTMLElement, client: SupabaseClient) => void;
       mountTickets: (overviewPanelRootEl: HTMLElement, targets: TicketsMountTargets, client: SupabaseClient) => void;
       mountProjects: (projectsHomeRootEl: HTMLElement, targets: ProjectsMountTargets, client: SupabaseClient) => void;
@@ -129,15 +127,6 @@ function RolesRoot({ client }: { client: SupabaseClient }) {
   );
 }
 
-function DocsKbRoot({ client }: { client: SupabaseClient }) {
-  const sessionEmail = useSessionEmail(client);
-  return (
-    <SupabaseProvider client={client}>
-      <DocsKbPanel sessionEmail={sessionEmail} />
-    </SupabaseProvider>
-  );
-}
-
 function HomeRoot({ client }: { client: SupabaseClient }) {
   const sessionEmail = useSessionEmail(client);
   return (
@@ -208,9 +197,6 @@ window.AdminReactStatus = {
   },
   mountRoles(el, client) {
     getRoot(el).render(<RolesRoot client={client} />);
-  },
-  mountDocsKb(el, client) {
-    getRoot(el).render(<DocsKbRoot client={client} />);
   },
   mountHome(el, client) {
     getRoot(el).render(<HomeRoot client={client} />);

@@ -754,7 +754,6 @@
     'status-stats': 'Statistici site',
     'status-roles': 'Roluri',
     docs: 'Documentație',
-    'docs-kb': 'Bază de cunoștințe',
   };
   // Which rail category each tab belongs to, and each category's
   // default landing tab (used when a rail icon itself is clicked,
@@ -765,7 +764,7 @@
     overview: 'tickets', 'tickets-functional': 'tickets', 'tickets-accident': 'tickets', reports: 'tickets',
     'projects-home': 'projects', projects: 'projects', backlog: 'projects', lps: 'projects', workorders: 'projects',
     'erp-home': 'erp', equipment: 'erp', machines: 'erp', 'machines-fuel-report': 'erp', materials: 'erp', products: 'erp',
-    'hr-home': 'hr', 'hr-employees': 'hr', 'hr-worktime': 'hr', 'hr-vacation': 'hr', docs: 'docs', 'docs-kb': 'docs',
+    'hr-home': 'hr', 'hr-employees': 'hr', 'hr-worktime': 'hr', 'hr-vacation': 'hr', docs: 'docs',
     status: 'status', 'status-improve': 'status', 'status-audit': 'status', 'status-stats': 'status', 'status-roles': 'status',
   };
   const CATEGORY_DEFAULT_TAB = {
@@ -890,7 +889,7 @@
       'tickets-functional': true, 'tickets-accident': true, reports: true,
       equipment: true, machines: true, materials: true, products: true, 'machines-fuel-report': true,
       'status-improve': true, 'status-audit': true, 'status-stats': true, 'status-roles': true,
-      'hr-employees': true, 'hr-worktime': true, 'hr-vacation': true, 'docs-kb': true,
+      'hr-employees': true, 'hr-worktime': true, 'hr-vacation': true,
       // 'projects' and 'backlog' were the only two tabs with a topbar
       // icon cluster (+/search/filter) missing from here -- without
       // blanking the title, "Proiecte publice"/"Avarii rețele" showed
