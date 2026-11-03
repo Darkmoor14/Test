@@ -76,7 +76,7 @@ export function DuplicateLinkSheet() {
   };
 
   return (
-    <div className="mobile-sheet show" aria-hidden="false">
+    <div id="duplicateLinkSheet" className="mobile-sheet show" aria-hidden="false">
       <div className="mobile-sheet-backdrop" onClick={close} />
       <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="duplicateLinkSheetTitle">
         <div className="mobile-sheet-panel-scroll">

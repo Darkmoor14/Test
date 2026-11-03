@@ -1114,7 +1114,8 @@
     #recurrenceSheet .mobile-sheet-panel,
     #hrEmployeeFormSheet .mobile-sheet-panel,
     #hrWorktimeFormSheet .mobile-sheet-panel,
-    #hrVacationFormSheet .mobile-sheet-panel{
+    #hrVacationFormSheet .mobile-sheet-panel,
+    #duplicateLinkSheet .mobile-sheet-panel{
       position:fixed;top:50%;left:50%;right:auto;bottom:auto;
       transform:translate(-50%,-50%);
       width:420px;max-width:calc(100vw - 40px);
@@ -1152,7 +1153,8 @@
     #hrWorktimeFormSheet .mobile-sheet-panel-scroll,
     #hrVacationFormSheet .mobile-sheet-panel-scroll,
     #reportMonthSheet .mobile-sheet-panel-scroll,
-    #fuelReportExportFilterSheet .mobile-sheet-panel-scroll{padding:18px 20px;}
+    #fuelReportExportFilterSheet .mobile-sheet-panel-scroll,
+    #duplicateLinkSheet .mobile-sheet-panel-scroll{padding:18px 20px;}
     #reportTypeSheet .sheet-handle,
     #repairScopeSheet .sheet-handle,
     #reportYearSheet .sheet-handle,
@@ -1161,7 +1163,8 @@
     #hrWorktimeFormSheet .sheet-handle,
     #hrVacationFormSheet .sheet-handle,
     #reportMonthSheet .sheet-handle,
-    #fuelReportExportFilterSheet .sheet-handle{display:none;}
+    #fuelReportExportFilterSheet .sheet-handle,
+    #duplicateLinkSheet .sheet-handle{display:none;}
   }
   .home-todo-card{
     background:var(--paper-000);border:1px solid var(--line-strong);border-radius:9px;
