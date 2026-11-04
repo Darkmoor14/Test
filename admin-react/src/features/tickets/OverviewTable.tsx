@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo } from 'react';
 import { useTickets } from './TicketsContext';
 import { useStaffRoster } from '../home/useStaffRoster';
 import {
@@ -58,12 +58,7 @@ export function OverviewTable({ sessionEmail }: { sessionEmail: string | null })
   const { isGod, modulePermission } = useStaffRoster(sessionEmail);
   const canWriteTickets = isGod || modulePermission('tickets') === 'write';
   const ordered = useOverviewVisibleTickets();
-  const [expandedNoteIds, setExpandedNoteIds] = useState<Set<string>>(new Set());
-  const toggleNote = (id: string) => setExpandedNoteIds((prev) => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
+  const { expandedNoteIds, toggleNote } = store;
 
   if (ordered.length === 0) {
     return (
@@ -148,6 +143,7 @@ export function OverviewTable({ sessionEmail }: { sessionEmail: string | null })
 
 export function OverviewCardsMobile() {
   const store = useTickets();
+  const { expandedNoteIds, toggleNote } = store;
   const ordered = useOverviewVisibleTickets();
   if (ordered.length === 0) return <div className="overview-cards-mobile"><div className="overview-empty">Nicio sesizare de afișat.</div></div>;
   return (
@@ -160,6 +156,7 @@ export function OverviewCardsMobile() {
         const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on).getTime()) / 86400000 : 0;
         const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
         const selected = store.overviewShareSelectedIds.has(t.id);
+        const noteExpanded = expandedNoteIds.has(t.id);
         return (
           <div
             key={t.id} role="button" tabIndex={0}
@@ -197,25 +194,27 @@ export function OverviewCardsMobile() {
             ) : isDone ? (
               <div
                 role="button" tabIndex={0}
+                aria-expanded={noteExpanded}
                 className="ov-card-resolved resolved-date-toggle-mobile"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const el = document.getElementById('resnote-mobile-' + t.id);
-                  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
-                }}
+                onClick={(e) => { e.stopPropagation(); toggleNote(t.id); }}
                 onKeyDown={(e) => {
                   if (e.key !== 'Enter' && e.key !== ' ') return;
                   e.preventDefault();
                   e.stopPropagation();
-                  const el = document.getElementById('resnote-mobile-' + t.id);
-                  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+                  toggleNote(t.id);
                 }}
               >
                 Soluționat: {fmtDateOnly(t.resolved_on)}
               </div>
             ) : null}
             {isDone && !isDuplicate && (
-              <div id={'resnote-mobile-' + t.id} className="resnote-expand-mobile" style={{ display: 'none' }}>
+              // Same expandedNoteIds React state as the desktop toggle above
+              // -- a raw document.getElementById(...).style.display write
+              // here (the vanilla-DOM original) kept its own state out of
+              // React entirely, so it didn't survive a re-render recreating
+              // this node and didn't agree with the desktop toggle for the
+              // same ticket (CLICK-PATH-105).
+              <div className="resnote-expand-mobile" style={{ display: noteExpanded ? 'block' : 'none' }}>
                 <strong>Ce s-a făcut:</strong> {t.resolution_note || <em>Nu a fost completat încă.</em>}
               </div>
             )}

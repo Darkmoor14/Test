@@ -126,14 +126,29 @@ export function useErpStore(sessionEmail: string | null) {
     return true;
   }, [supabase, editingItem, logEntityActivity, logStockLedger, reloadEquipment]);
 
+  const [cyclingIds, setCyclingIds] = useState<Set<string>>(new Set());
   const cycleStatus = useCallback(async (eq: EquipmentItem) => {
+    // Without this guard, a second rapid click (before `equipment` state
+    // has refreshed from the first) computed nextStatus from the same
+    // stale eq.status both times -- the second click's write was a
+    // no-op duplicate, advancing the cycle once instead of twice, with
+    // no indication to the user that their second click didn't count
+    // (CLICK-PATH-203).
+    if (cyclingIds.has(eq.id)) return;
+    setCyclingIds((prev) => new Set(prev).add(eq.id));
     const erpCategory = eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material');
     const nextStatus = EQUIPMENT_STATUS_CYCLE[eq.status] || 'Disponibil';
     const { error } = await erpData.updateInventory(supabase, eq.id, { status: nextStatus });
-    if (error) { console.error(error); alert('Eroare la actualizare. Încercați din nou.'); return; }
+    if (error) {
+      console.error(error);
+      alert('Eroare la actualizare. Încercați din nou.');
+      setCyclingIds((prev) => { const next = new Set(prev); next.delete(eq.id); return next; });
+      return;
+    }
     logEntityActivity(erpCategory, eq.id, `Stare schimbată: „${eq.status}” → „${nextStatus}”.`);
     await reloadEquipment();
-  }, [supabase, logEntityActivity, reloadEquipment]);
+    setCyclingIds((prev) => { const next = new Set(prev); next.delete(eq.id); return next; });
+  }, [supabase, logEntityActivity, reloadEquipment, cyclingIds]);
 
   const deleteItem = useCallback(async (eq: EquipmentItem) => {
     if (!confirm(`Ștergeți definitiv „${eq.name}” din inventar?`)) return;
@@ -146,7 +161,7 @@ export function useErpStore(sessionEmail: string | null) {
 
   return {
     equipment, equipmentLoading, reloadEquipment, resourceAssignments, itemsByCategory,
-    formOpen, editingItem, presetCategory, openForm, closeForm,
+    formOpen, editingItem, presetCategory, openForm, closeForm, cyclingIds,
     saveItem, cycleStatus, deleteItem,
   };
 }

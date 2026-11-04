@@ -1,4 +1,5 @@
 import { useEffect, useState, useId } from 'react';
+import { useModalSheet } from '../../lib/useModalSheet';
 import { dateKey, isoWeekday, RECUR_INTERVAL_UNITS, type RecurrenceEndType, type RecurrenceFreq, type RecurrencePattern } from './calendarUtils';
 
 const WEEKDAYS: { value: number; label: string }[] = [
@@ -48,6 +49,8 @@ export function RecurrenceSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  const { panelRef, handleKeyDown, backdropOnClick } = useModalSheet({ open, onClose });
+
   if (!open) return null;
 
   const intervalUnit = RECUR_INTERVAL_UNITS[freq](interval);
@@ -77,9 +80,9 @@ export function RecurrenceSheet({
   };
 
   return (
-    <div id="recurrenceSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
-      <div className="mobile-sheet-backdrop" onClick={onClose} />
-      <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="recurrenceSheetTitle">
+    <div id="recurrenceSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={handleKeyDown}>
+      <div className="mobile-sheet-backdrop" onClick={backdropOnClick} />
+      <div ref={panelRef} tabIndex={-1} className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="recurrenceSheetTitle">
         <div className="mobile-sheet-panel-scroll">
           <div className="sheet-handle" />
           <div className="sheet-head">

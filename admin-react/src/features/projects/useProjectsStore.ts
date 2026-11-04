@@ -176,14 +176,22 @@ export function useProjectsStore(sessionEmail: string | null) {
 
   const toggleBacklogStatus = useCallback(async (p: BacklogProject) => {
     const isDone = (p.status || 'Ongoing') === 'Terminat';
-    const nextStatus = isDone ? 'Ongoing' : 'Terminat';
     const question = isDone ? `Reactivați lucrarea "${p.title}"?` : `Marcați lucrarea "${p.title}" ca soluționată? Va fi mutată în tab-ul „Soluționate”.`;
     if (!confirm(question)) return;
-    const { error } = await projectData.updateBacklog(supabase, p.id, { status: nextStatus, resolved_on: isDone ? null : new Date().toISOString() });
+    // confirm() blocks for an indeterminate time -- another staff member's
+    // edit (realtime) or a pending reload could land while it's open.
+    // Re-deriving from the live list right before the write (rather than
+    // trusting the possibly-stale `p` the dialog was opened with) means the
+    // transition reflects the item's actual current status, not whatever
+    // it was a moment ago (CLICK-PATH-303).
+    const live = backlogProjects.find((x) => x.id === p.id) || p;
+    const liveIsDone = (live.status || 'Ongoing') === 'Terminat';
+    const nextStatus = liveIsDone ? 'Ongoing' : 'Terminat';
+    const { error } = await projectData.updateBacklog(supabase, p.id, { status: nextStatus, resolved_on: liveIsDone ? null : new Date().toISOString() });
     if (error) { console.error(error); alert('Eroare la actualizarea lucrării. Încercați din nou.'); return; }
-    logEntityActivity('backlog', p.id, isDone ? 'Lucrarea a fost reactivată.' : 'Lucrarea a fost marcată ca soluționată.');
+    logEntityActivity('backlog', p.id, liveIsDone ? 'Lucrarea a fost reactivată.' : 'Lucrarea a fost marcată ca soluționată.');
     await reloadBacklog();
-  }, [supabase, reloadBacklog, logEntityActivity]);
+  }, [supabase, backlogProjects, reloadBacklog, logEntityActivity]);
 
   const saveBacklogChecklist = useCallback(async (id: string, items: BacklogProject['checklist']) => {
     const { error } = await persistChecklist(supabase, 'backlog_projects', id, items || []);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTickets } from './TicketsContext';
 import type { Ticket } from './types';
+import { useModalSheet } from '../../lib/useModalSheet';
 
 declare global {
   interface Window { showToast?: (message: string) => void; }
@@ -19,8 +20,23 @@ export function DuplicateLinkSheet() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (sheet) { setQuery(''); setCheckedIds(new Set()); }
+    if (!sheet) return;
+    setQuery('');
+    // Non-anchor mode opens from a pre-existing multi-select ("Marchează ca
+    // duplicate" with 2+ tickets already checked in the main list) -- seed
+    // from that selection so "Alege" has something to act on. Anchor mode
+    // (opened from one ticket's own "Leagă duplicate") has no prior
+    // selection to carry over, so it starts empty as before. Deliberately
+    // not re-running this when store.selectedIds changes afterward -- that
+    // would wipe out whatever the user has since checked inside this sheet.
+    setCheckedIds(sheet.excludeTicketId ? new Set() : new Set(store.selectedIds));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sheet]);
+
+  const { panelRef, handleKeyDown, backdropOnClick } = useModalSheet({
+    open: !!sheet,
+    onClose: () => store.setDuplicateSheet(null),
+  });
 
   if (!sheet) return null;
 
@@ -76,9 +92,9 @@ export function DuplicateLinkSheet() {
   };
 
   return (
-    <div id="duplicateLinkSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={(e) => { if (e.key === 'Escape') close(); }}>
-      <div className="mobile-sheet-backdrop" onClick={close} />
-      <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="duplicateLinkSheetTitle">
+    <div id="duplicateLinkSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={handleKeyDown}>
+      <div className="mobile-sheet-backdrop" onClick={backdropOnClick} />
+      <div ref={panelRef} tabIndex={-1} className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="duplicateLinkSheetTitle">
         <div className="mobile-sheet-panel-scroll">
           <div className="sheet-handle" />
           <div className="sheet-head">
@@ -115,7 +131,7 @@ export function DuplicateLinkSheet() {
                 <label className="duplicate-link-result-checkwrap">
                   <input type="checkbox" className="duplicate-link-result-check" checked={checkedIds.has(t.id)} onChange={() => toggleChecked(t.id)} aria-label="Bifează ca duplicat suplimentar" />
                 </label>
-                <button type="button" className="duplicate-link-result-pickbtn" onClick={() => finalizePick(t.id)}>
+                <button type="button" className="duplicate-link-result-pickbtn" disabled={checkedIds.size === 0} onClick={() => finalizePick(t.id)}>
                   <span className="duplicate-link-result-num">{t.ticket_number || '—'}</span>
                   <span className="duplicate-link-result-address">{t.address || '—'}</span>
                   <span className="duplicate-link-result-pick">Alege</span>

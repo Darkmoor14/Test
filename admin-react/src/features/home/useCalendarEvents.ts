@@ -42,8 +42,8 @@ export function useCalendarEvents(sessionEmail: string | null) {
   }, [supabase]);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    if (sessionEmail) reload();
+  }, [sessionEmail, reload]);
 
   // Lets a change made on the CalDAV side (a phone/Mac calendar
   // account writing straight to this table) or by another staff
@@ -51,7 +51,12 @@ export function useCalendarEvents(sessionEmail: string | null) {
   // an open CalendarEventFormSheet, since that sheet is handed a
   // snapshot captured when it was opened (HomePage's formEvent), not a
   // live reference into this array.
-  useRealtimeReload(supabase, 'calendar_events', reload);
+  // Gated on sessionEmail for the same reason every sibling store
+  // (tickets/erp/projects/staffRoster) already is -- this one previously
+  // wasn't, which was harmless only because both entry points already
+  // keep HomePage unmounted until login (CLICK-PATH-503), not because an
+  // anonymous fetch/subscribe attempt here would have been safe on its own.
+  useRealtimeReload(supabase, 'calendar_events', reload, !!sessionEmail);
 
   const saveEvent = useCallback(async (id: string | null, payload: CalendarEventInput): Promise<boolean> => {
     try {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { clearStatusHistory, loadStatusHistory, STATUS_CHECK_LABELS, type StatusHistoryEntry } from './useStatusHistory';
 import { downloadJson, formatLogTimeRO } from '../../lib/format';
+import { useModalSheet } from '../../lib/useModalSheet';
 
 export function StatusHistorySheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [history, setHistory] = useState<StatusHistoryEntry[]>([]);
@@ -9,12 +10,14 @@ export function StatusHistorySheet({ open, onClose }: { open: boolean; onClose: 
     if (open) setHistory(loadStatusHistory().slice().reverse());
   }, [open]);
 
+  const { panelRef, handleKeyDown, backdropOnClick } = useModalSheet({ open, onClose });
+
   if (!open) return null;
 
   return (
-    <div className="mobile-sheet show" aria-hidden="false" onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
-      <div className="mobile-sheet-backdrop" onClick={onClose} />
-      <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="statusHistorySheetTitle">
+    <div className="mobile-sheet show" aria-hidden="false" onKeyDown={handleKeyDown}>
+      <div className="mobile-sheet-backdrop" onClick={backdropOnClick} />
+      <div ref={panelRef} tabIndex={-1} className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="statusHistorySheetTitle">
         <div className="mobile-sheet-panel-scroll">
           <div className="sheet-header">
             <div>

@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react';
+import { useModalSheet } from '../../lib/useModalSheet';
 import { useSupabase } from '../../lib/supabaseContext';
 
 declare global {
@@ -49,6 +50,8 @@ export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: (
     });
   }, [open, supabase]);
 
+  const { panelRef, handleKeyDown, backdropOnClick } = useModalSheet({ open, onClose, guard: regenerating });
+
   if (!open) return null;
 
   const baseUrl = (supabase as unknown as { supabaseUrl?: string }).supabaseUrl || 'https://ebuigyyjifnjiuzsgpih.supabase.co';
@@ -83,9 +86,9 @@ export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: (
   };
 
   return (
-    <div id="calendarSyncSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
-      <div className="mobile-sheet-backdrop" onClick={onClose} />
-      <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="calendarSyncSheetTitle">
+    <div id="calendarSyncSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={handleKeyDown}>
+      <div className="mobile-sheet-backdrop" onClick={backdropOnClick} />
+      <div ref={panelRef} tabIndex={-1} className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="calendarSyncSheetTitle">
         <div className="mobile-sheet-panel-scroll">
           <div className="sheet-handle" />
           <div className="sheet-head">
@@ -95,7 +98,7 @@ export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: (
                 ? 'Cont de calendar complet — adaugi sau editezi un eveniment pe telefon și apare și aici, nu doar invers.'
                 : 'Evenimentele tale apar automat pe telefon, dar doar într-un singur sens — editarea unui eveniment pe telefon nu se întoarce aici.'}</p>
             </div>
-            <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
+            <button type="button" className="sheet-close" aria-label="Închide" disabled={regenerating} onClick={onClose}>×</button>
           </div>
 
           <div className="ticket-type-switch" style={{ marginBottom: 14 }}>

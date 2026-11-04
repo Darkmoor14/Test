@@ -1,4 +1,5 @@
 import { useEffect, useState, useId } from 'react';
+import { useModalSheet } from '../../lib/useModalSheet';
 import { pad2 } from '../../lib/format';
 import { buildEventIcs, dateKey, describeRecurrence, isoWeekday, type CalendarEvent, type RecurrenceFreq, type RecurrencePattern } from './calendarUtils';
 import { RecurrenceSheet } from './RecurrenceSheet';
@@ -171,6 +172,8 @@ export function CalendarEventFormSheet({
     } : null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, event, defaultDateKey]);
+
+  const { panelRef, handleKeyDown, backdropOnClick } = useModalSheet({ open, onClose, guard: saving });
 
   if (!open) return null;
 
@@ -352,14 +355,14 @@ export function CalendarEventFormSheet({
 
   return (
     <>
-      <div id="calendarEventFormSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
-        <div className="mobile-sheet-backdrop" onClick={onClose} />
-        <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="calendarEventFormSheetTitle">
+      <div id="calendarEventFormSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={handleKeyDown}>
+        <div className="mobile-sheet-backdrop" onClick={backdropOnClick} />
+        <div ref={panelRef} tabIndex={-1} className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="calendarEventFormSheetTitle">
           <div className="mobile-sheet-panel-scroll">
             <div className="sheet-handle" />
             <div className="sheet-head">
               <div><h3 id="calendarEventFormSheetTitle">{event ? 'Editează eveniment' : 'Eveniment nou'}</h3></div>
-              <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
+              <button type="button" className="sheet-close" aria-label="Închide" disabled={saving} onClick={onClose}>×</button>
             </div>
 
             <div className="ctrl-field">

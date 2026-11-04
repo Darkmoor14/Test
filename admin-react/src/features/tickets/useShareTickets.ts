@@ -20,21 +20,28 @@ function ticketShareText(t: Ticket): string {
   return lines.join('\n');
 }
 
-async function shareText(title: string, text: string, itemLabel: string) {
+// Returns whether the data actually left this device (shared or copied) --
+// the caller uses this to decide whether to clear the selection that led
+// here. Cancelling the native share sheet shared nothing, so the selection
+// a user might want to share again, or add to, should survive (CLICK-PATH-103).
+async function shareText(title: string, text: string, itemLabel: string): Promise<boolean> {
   if (navigator.share) {
     try {
       await navigator.share({ title, text });
+      return true;
     } catch (err) {
       if ((err as Error).name !== 'AbortError') console.error(err);
+      return false;
     }
-    return;
   }
   try {
     await navigator.clipboard.writeText(text);
     showToast(`Datele ${itemLabel} au fost copiate.`);
+    return true;
   } catch (err) {
     console.error(err);
     alert(`Nu am putut partaja sau copia datele ${itemLabel}.`);
+    return false;
   }
 }
 
@@ -43,13 +50,14 @@ export function useShareTickets() {
   const shareSelected = async () => {
     const selected = Array.from(store.overviewShareSelectedIds).map((id) => store.tickets.find((t) => t.id === id)).filter(Boolean) as Ticket[];
     if (selected.length === 0) return;
+    let didShare: boolean;
     if (selected.length === 1) {
-      await shareText(`Sesizare ${selected[0].ticket_number || ''}`, ticketShareText(selected[0]), 'acestei sesizări');
+      didShare = await shareText(`Sesizare ${selected[0].ticket_number || ''}`, ticketShareText(selected[0]), 'acestei sesizări');
     } else {
       const text = selected.map(ticketShareText).join('\n\n---\n\n');
-      await shareText(`${selected.length} sesizări`, text, 'sesizărilor');
+      didShare = await shareText(`${selected.length} sesizări`, text, 'sesizărilor');
     }
-    store.clearShareSelection();
+    if (didShare) store.clearShareSelection();
   };
   return { shareSelected };
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useId } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { useSupabase } from '../../lib/supabaseContext';
+import { useModalSheet } from '../../lib/useModalSheet';
 
 const STAFF_ROLE_KEYS = ['tickets', 'proiecte', 'erp', 'hr', 'docs', 'god'] as const;
 type RoleKey = (typeof STAFF_ROLE_KEYS)[number];
@@ -43,6 +44,9 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
   const [resetPassword, setResetPassword] = useState('');
   const [resetSaving, setResetSaving] = useState(false);
 
+  const { panelRef: addPanelRef, handleKeyDown: addHandleKeyDown, backdropOnClick: addBackdropOnClick } = useModalSheet({ open: addOpen, onClose: () => setAddOpen(false), guard: addSaving });
+  const { panelRef: resetPanelRef, handleKeyDown: resetHandleKeyDown, backdropOnClick: resetBackdropOnClick } = useModalSheet({ open: resetOpen, onClose: () => setResetOpen(false), guard: resetSaving });
+
   const load = useCallback(async () => {
     setLoading(true);
     const [{ data: roleRows, error }, { data: subRows }] = await Promise.all([
@@ -62,7 +66,18 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
 
   useEffect(() => { void load(); }, [load]);
 
+  const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
   const toggleRole = async (email: string, role: RoleKey, checked: boolean) => {
+    const key = `${email}:${role}`;
+    // Without this guard, toggling the same checkbox on and off again
+    // before the first request resolved fired an insert() and a delete()
+    // for the same (email, role) pair with no ordering guarantee between
+    // them -- if they landed out of order, the database ended up opposite
+    // to what the checkbox showed, until the next full reload happened to
+    // correct it (CLICK-PATH-404).
+    if (pendingToggles.has(key)) return;
+    setPendingToggles((prev) => new Set(prev).add(key));
+
     const prev = new Map(rolesByEmail);
     const roles = new Set(prev.get(email) || []);
     if (checked) roles.add(role); else roles.delete(role);
@@ -76,6 +91,7 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
       alert('Eroare la salvare. Încercați din nou.');
       load();
     }
+    setPendingToggles((prevSet) => { const next = new Set(prevSet); next.delete(key); return next; });
   };
 
   const removePerson = async (email: string) => {
@@ -148,12 +164,13 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
                         <td>{email}{isSelf && <span className="backlog-tag">tu</span>}</td>
                         {(['tickets', 'proiecte', 'erp', 'hr', 'docs', 'god'] as RoleKey[]).map((role) => {
                           const lockedSelf = isSelf && role === 'god';
+                          const togglePending = pendingToggles.has(`${email}:${role}`);
                           return (
                             <td key={role}>
                               <input
                                 type="checkbox"
                                 checked={roles.has(role)}
-                                disabled={lockedSelf}
+                                disabled={lockedSelf || togglePending}
                                 title={lockedSelf ? 'Nu îți poți elimina propriul rol God' : undefined}
                                 onChange={(e) => toggleRole(email, role, e.target.checked)}
                               />
@@ -186,13 +203,13 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
       </div>
 
       {addOpen && (
-        <div className="mobile-sheet show" aria-hidden="false" onKeyDown={(e) => { if (e.key === 'Escape') setAddOpen(false); }}>
-          <div className="mobile-sheet-backdrop" onClick={() => setAddOpen(false)} />
-          <div className="mobile-sheet-panel" role="dialog" aria-modal="true">
+        <div className="mobile-sheet show" aria-hidden="false" onKeyDown={addHandleKeyDown}>
+          <div className="mobile-sheet-backdrop" onClick={addBackdropOnClick} />
+          <div ref={addPanelRef} tabIndex={-1} className="mobile-sheet-panel" role="dialog" aria-modal="true">
             <div className="mobile-sheet-panel-scroll">
               <div className="sheet-header">
                 <div><h3>Adaugă persoană</h3></div>
-                <button type="button" className="sheet-close" aria-label="Închide" onClick={() => setAddOpen(false)}>×</button>
+                <button type="button" className="sheet-close" aria-label="Închide" disabled={addSaving} onClick={() => setAddOpen(false)}>×</button>
               </div>
               <div className="ctrl-field">
                 <label htmlFor={`${a11yId}-email`}>Email</label>
@@ -251,13 +268,13 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
       )}
 
       {resetOpen && (
-        <div className="mobile-sheet show" aria-hidden="false" onKeyDown={(e) => { if (e.key === 'Escape') setResetOpen(false); }}>
-          <div className="mobile-sheet-backdrop" onClick={() => setResetOpen(false)} />
-          <div className="mobile-sheet-panel" role="dialog" aria-modal="true">
+        <div className="mobile-sheet show" aria-hidden="false" onKeyDown={resetHandleKeyDown}>
+          <div className="mobile-sheet-backdrop" onClick={resetBackdropOnClick} />
+          <div ref={resetPanelRef} tabIndex={-1} className="mobile-sheet-panel" role="dialog" aria-modal="true">
             <div className="mobile-sheet-panel-scroll">
               <div className="sheet-header">
                 <div><h3>Schimbă parola — {resetEmail}</h3></div>
-                <button type="button" className="sheet-close" aria-label="Închide" onClick={() => setResetOpen(false)}>×</button>
+                <button type="button" className="sheet-close" aria-label="Închide" disabled={resetSaving} onClick={() => setResetOpen(false)}>×</button>
               </div>
               <div className="ctrl-field">
                 <label htmlFor={`${a11yId}-parol-nou`}>Parolă nouă</label>

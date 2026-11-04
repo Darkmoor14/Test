@@ -47,9 +47,15 @@ export function WorkOrdersCalendar() {
   const goNext = () => { if (monthIdx === 11) { setMonthIdx(0); setYear(year + 1); } else setMonthIdx(monthIdx + 1); };
   const goToday = () => { setYear(now.getFullYear()); setMonthIdx(now.getMonth()); };
   const download = () => {
+    // Listener registered before print(), not after -- window.print() is
+    // blocking in mainstream browsers and 'afterprint' can fire right
+    // around its own dismissal, so attaching the listener only once
+    // print() already returned was a race: if 'afterprint' fired first,
+    // print-calendar-only was never removed and the UI stayed stuck in
+    // print layout until a full reload (CLICK-PATH-301).
+    window.addEventListener('afterprint', () => document.body.classList.remove('print-calendar-only'), { once: true });
     document.body.classList.add('print-calendar-only');
     window.print();
-    window.addEventListener('afterprint', () => document.body.classList.remove('print-calendar-only'), { once: true });
   };
 
   return (

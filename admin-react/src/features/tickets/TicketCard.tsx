@@ -83,6 +83,11 @@ export function TicketCard({ t, sessionEmail }: { t: Ticket; sessionEmail: strin
       if (normalized !== submittedDateVal) {
         submittedDateVal = normalized;
         setSubmittedDate(normalized);
+        // Without this, the draft ref still held the uncorrected value --
+        // a later realtime reload re-reading the draft (see the [t]-effect
+        // above) would silently revert the field right back after the
+        // toast already said it was fixed (CLICK-PATH-106).
+        draftField('.f-submitted-date', normalized);
         showToast(`Anul din data trimiterii a fost corectat automat la ${normalized.slice(0, 4)}.`);
       }
     }
@@ -102,6 +107,7 @@ export function TicketCard({ t, sessionEmail }: { t: Ticket; sessionEmail: strin
       if (normalizedResolved !== resolvedDateVal) {
         resolvedDateVal = normalizedResolved;
         setResolvedDate(normalizedResolved);
+        draftField('.f-resolved-date', normalizedResolved);
         showToast(`Anul din data soluționării a fost corectat automat la ${normalizedResolved.slice(0, 4)}.`);
       }
       if (hasSuspiciousYear(resolvedDateVal)) {

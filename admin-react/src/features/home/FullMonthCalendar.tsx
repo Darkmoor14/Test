@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { dateKey, eventsByDateInRange, HOME_CLOCK_MONTH_NAMES, type CalendarEvent } from './calendarUtils';
+import { useModalSheet } from '../../lib/useModalSheet';
 
 const MAX_CHIPS = 3;
 
@@ -16,6 +17,8 @@ export function FullMonthCalendar({
   const today0 = new Date();
   const [year, setYear] = useState(today0.getFullYear());
   const [monthIdx, setMonthIdx] = useState(today0.getMonth());
+
+  const { panelRef, handleKeyDown, backdropOnClick } = useModalSheet({ open, onClose });
 
   if (!open) return null;
 
@@ -52,9 +55,9 @@ export function FullMonthCalendar({
   const goToday = () => { setYear(today0.getFullYear()); setMonthIdx(today0.getMonth()); };
 
   return (
-    <div id="homeFullMonthSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
-      <div className="mobile-sheet-backdrop" onClick={onClose} />
-      <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="homeFullMonthSheetTitle">
+    <div id="homeFullMonthSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={handleKeyDown}>
+      <div className="mobile-sheet-backdrop" onClick={backdropOnClick} />
+      <div ref={panelRef} tabIndex={-1} className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="homeFullMonthSheetTitle">
         <div className="mobile-sheet-panel-scroll">
           <div className="sheet-head">
             <div><h3 id="homeFullMonthSheetTitle">Calendar — lună completă</h3></div>

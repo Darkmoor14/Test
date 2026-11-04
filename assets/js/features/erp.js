@@ -1032,15 +1032,23 @@
       if (qError) console.error(qError);
       else logEntityActivity('masina', sourceReservoir.id, `S-au scăzut ${liters} L (alimentare ${eq.name}) — total ${newQuantity.toLocaleString('ro-RO')} L.`);
     }
-    vflPurchaseAddBtn.disabled = false;
     litersInput.value = '';
     noteInput.value = '';
     if (fromReservoirCheckbox) fromReservoirCheckbox.checked = false;
     const reservoirSelectField = document.getElementById('vfl-reservoir-select-field');
     if (reservoirSelectField) reservoirSelectField.style.display = 'none';
     await loadVehicleFuelPurchases();
+    // Re-enabling the button only after loadEquipment() resolves (not right
+    // after the insert above) matters specifically for the reservoir-balance
+    // branches above: allReservoirs()/eq.quantity -- read at the very top of
+    // this handler, before any of this click's own awaits -- are what a
+    // second rapid click would compute its own newQuantity from. Letting
+    // the button go live again before that balance has actually been
+    // refreshed let a second "Adaugă alimentare" overwrite the first
+    // deduction/addition instead of compounding it (CLICK-PATH-202).
     if (isRes || fromReservoir) await loadEquipment();
     else renderMachinesFuelReport();
+    vflPurchaseAddBtn.disabled = false;
     renderFuelPurchaseList();
   });
   const vflPurchaseList = document.getElementById('vflPurchaseList');

@@ -2,6 +2,7 @@ import { useEffect, useState, useId } from 'react';
 import { useErp } from './ErpContext';
 import { ERP_ITEM_FORM_TITLE } from './erpUtils';
 import type { NonVehicleCategory } from './types';
+import { useModalSheet } from '../../lib/useModalSheet';
 
 export function EquipmentForm() {
   const a11yId = useId();
@@ -35,6 +36,8 @@ export function EquipmentForm() {
     setNotes(eq ? (eq.notes || '') : '');
   }, [store.formOpen, store.editingItem, store.presetCategory]);
 
+  const { panelRef, handleKeyDown, backdropOnClick } = useModalSheet({ open: store.formOpen, onClose: store.closeForm, guard: saving });
+
   if (!store.formOpen) return null;
 
   const isStockTracked = erpCategory === 'material' || erpCategory === 'produs';
@@ -52,14 +55,14 @@ export function EquipmentForm() {
   };
 
   return (
-    <div id="erpItemFormSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={(e) => { if (e.key === 'Escape') store.closeForm(); }}>
-      <div className="mobile-sheet-backdrop" onClick={store.closeForm} />
-      <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="erpItemFormSheetTitle">
+    <div id="erpItemFormSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={handleKeyDown}>
+      <div className="mobile-sheet-backdrop" onClick={backdropOnClick} />
+      <div ref={panelRef} tabIndex={-1} className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="erpItemFormSheetTitle">
         <div className="mobile-sheet-panel-scroll">
           <div className="sheet-handle" />
           <div className="sheet-head">
             <div><h3 id="erpItemFormSheetTitle">{(store.editingItem ? 'Editează ' : 'Adaugă ') + ERP_ITEM_FORM_TITLE[erpCategory]}</h3></div>
-            <button type="button" className="sheet-close" aria-label="Închide" onClick={store.closeForm}>×</button>
+            <button type="button" className="sheet-close" aria-label="Închide" disabled={saving} onClick={store.closeForm}>×</button>
           </div>
           <div className="pf-grid">
             <div className="ctrl-field">
