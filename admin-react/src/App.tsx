@@ -101,7 +101,7 @@ function LoginScreen({ onLoggedIn }: { onLoggedIn: () => void }) {
       <div className="login-card">
         <h2>Admin — Stare sistem (pilot React)</h2>
         <p className="sub">Autentificare pentru echipa Insta Grup</p>
-        {error && <div className="login-error">{error}</div>}
+        {error && <div className="login-error" role="alert">{error}</div>}
         <form onSubmit={submit}>
           <div className="field">
             <label htmlFor={`${a11yId}-email`}>Email</label>

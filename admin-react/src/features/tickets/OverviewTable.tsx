@@ -121,7 +121,12 @@ export function OverviewTable({ sessionEmail }: { sessionEmail: string | null })
                     </>
                   ) : (
                     <>
-                      <td>{isDone ? <span className="resolved-date-toggle" title="Vezi ce s-a făcut" onClick={() => toggleNote(t.id)}>{fmtDateOnly(t.resolved_on)}</span> : '—'}</td>
+                      <td>{isDone ? (
+                        <span
+                          role="button" tabIndex={0} className="resolved-date-toggle" title="Vezi ce s-a făcut" onClick={() => toggleNote(t.id)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleNote(t.id); } }}
+                        >{fmtDateOnly(t.resolved_on)}</span>
+                      ) : '—'}</td>
                       <td>{resolutionDays !== null ? formatDurationDays(resolutionDays) : '—'}</td>
                     </>
                   )}
@@ -156,10 +161,11 @@ export function OverviewCardsMobile() {
         const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
         const selected = store.overviewShareSelectedIds.has(t.id);
         return (
-          <button
-            key={t.id} type="button"
+          <div
+            key={t.id} role="button" tabIndex={0}
             className={`ov-card ${isDone ? 'done' : ''} ${isUrgent && !isDone ? 'urgent' : ''} ${isDuplicate ? 'duplicate' : ''}`}
             onClick={() => store.goToTicket(t.id)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); store.goToTicket(t.id); } }}
           >
             <div className="ov-card-top">
               <span className={`status-bubble ${isDone ? 'done' : 'active'}`} />
@@ -167,8 +173,9 @@ export function OverviewCardsMobile() {
               <span className="ov-card-num">{t.ticket_number || '—'}</span>
               {isDuplicate && <span className="duplicate-badge">Duplicat</span>}
               <span
-                className={`ov-card-share ${selected ? 'selected' : ''}`} role="checkbox" aria-checked={selected} aria-label="Selectează pentru trimitere"
+                tabIndex={0} className={`ov-card-share ${selected ? 'selected' : ''}`} role="checkbox" aria-checked={selected} aria-label="Selectează pentru trimitere"
                 onClick={(e) => { e.stopPropagation(); store.toggleShareSelected(t.id); }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); store.toggleShareSelected(t.id); } }}
               >
                 <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
               </span>
@@ -179,13 +186,26 @@ export function OverviewCardsMobile() {
               <span>{t.name || '—'} · {t.phone || '—'}</span>
             </div>
             {isDuplicate ? (
-              <div className="ov-card-resolved duplicate-link-note" onClick={(e) => { if (canonicalTicket) { e.stopPropagation(); store.goToTicket(canonicalTicket.id); } }}>
+              <div
+                className="ov-card-resolved duplicate-link-note"
+                role={canonicalTicket ? 'button' : undefined} tabIndex={canonicalTicket ? 0 : undefined}
+                onClick={(e) => { if (canonicalTicket) { e.stopPropagation(); store.goToTicket(canonicalTicket.id); } }}
+                onKeyDown={(e) => { if (canonicalTicket && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); store.goToTicket(canonicalTicket.id); } }}
+              >
                 Duplicat al {canonicalTicket ? (canonicalTicket.ticket_number || '—') : '—'}{canonicalTicket ? ' — Mergi la original' : ''}
               </div>
             ) : isDone ? (
               <div
+                role="button" tabIndex={0}
                 className="ov-card-resolved resolved-date-toggle-mobile"
                 onClick={(e) => {
+                  e.stopPropagation();
+                  const el = document.getElementById('resnote-mobile-' + t.id);
+                  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+                }}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter' && e.key !== ' ') return;
+                  e.preventDefault();
                   e.stopPropagation();
                   const el = document.getElementById('resnote-mobile-' + t.id);
                   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
@@ -199,7 +219,7 @@ export function OverviewCardsMobile() {
                 <strong>Ce s-a făcut:</strong> {t.resolution_note || <em>Nu a fost completat încă.</em>}
               </div>
             )}
-          </button>
+          </div>
         );
       })}
     </div>

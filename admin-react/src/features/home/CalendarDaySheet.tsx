@@ -19,7 +19,7 @@ export function CalendarDaySheet({
   const events = eventsOnDate(calendarEvents, dateKeyStr);
 
   return (
-    <div id="calendarDaySheet" className="mobile-sheet show" aria-hidden="false">
+    <div id="calendarDaySheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
       <div className="mobile-sheet-backdrop" onClick={onClose} />
       <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="calendarDaySheetTitle">
         <div className="mobile-sheet-panel-scroll">

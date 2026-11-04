@@ -83,7 +83,7 @@ export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: (
   };
 
   return (
-    <div id="calendarSyncSheet" className="mobile-sheet show" aria-hidden="false">
+    <div id="calendarSyncSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
       <div className="mobile-sheet-backdrop" onClick={onClose} />
       <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="calendarSyncSheetTitle">
         <div className="mobile-sheet-panel-scroll">

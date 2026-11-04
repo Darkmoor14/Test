@@ -43,7 +43,10 @@ export function TodoWidget({
         {linkedEvents.map((e) => {
           const timeLabel = e.all_day ? 'Toată ziua' : `${pad2(new Date(e.start_time).getHours())}:${pad2(new Date(e.start_time).getMinutes())}`;
           return (
-            <div key={e.id} className="home-todo-note-calendar" onClick={() => onLinkedEventClick(e)}>
+            <div
+              key={e.id} role="button" tabIndex={0} className="home-todo-note-calendar" onClick={() => onLinkedEventClick(e)}
+              onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onLinkedEventClick(e); } }}
+            >
               <span className="home-todo-note-calendar-badge"><InfoIcon /> Din calendar</span>
               <p className="home-todo-note-calendar-text">{e.title || 'Eveniment'}</p>
               <span className="home-todo-note-calendar-time">Azi · {timeLabel}</span>

@@ -186,7 +186,7 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
       </div>
 
       {addOpen && (
-        <div className="mobile-sheet show" aria-hidden="false">
+        <div className="mobile-sheet show" aria-hidden="false" onKeyDown={(e) => { if (e.key === 'Escape') setAddOpen(false); }}>
           <div className="mobile-sheet-backdrop" onClick={() => setAddOpen(false)} />
           <div className="mobile-sheet-panel" role="dialog" aria-modal="true">
             <div className="mobile-sheet-panel-scroll">
@@ -251,7 +251,7 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
       )}
 
       {resetOpen && (
-        <div className="mobile-sheet show" aria-hidden="false">
+        <div className="mobile-sheet show" aria-hidden="false" onKeyDown={(e) => { if (e.key === 'Escape') setResetOpen(false); }}>
           <div className="mobile-sheet-backdrop" onClick={() => setResetOpen(false)} />
           <div className="mobile-sheet-panel" role="dialog" aria-modal="true">
             <div className="mobile-sheet-panel-scroll">

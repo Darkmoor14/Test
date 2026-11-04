@@ -74,22 +74,24 @@ export function WorkOrdersCalendar() {
           const shown = cell.orders.slice(0, MAX_CHIPS);
           const extra = cell.orders.length - shown.length;
           return (
-            <button
-              type="button" key={`${cell.key}-${i}`}
+            <div
+              role="button" tabIndex={0} key={`${cell.key}-${i}`}
               className={`wo-cal-day${cell.outside ? ' outside' : ''}${cell.key === todayKey ? ' today' : ''}`}
               onClick={() => store.openWorkOrderForm(null, cell.key)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); store.openWorkOrderForm(null, cell.key); } }}
             >
               <span className="wo-cal-day-num">{cell.dNum}</span>
               <span className="wo-cal-day-chips">
                 {shown.map((w) => (
                   <span
-                    key={w.id} className={`wo-cal-chip status-${w.status.replace(/\s+/g, '-')}`} title={w.title}
+                    key={w.id} role="button" tabIndex={0} className={`wo-cal-chip status-${w.status.replace(/\s+/g, '-')}`} title={w.title}
                     onClick={(e) => { e.stopPropagation(); store.openWorkOrderForm(w); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); store.openWorkOrderForm(w); } }}
                   >{w.title}</span>
                 ))}
                 {extra > 0 && <span className="wo-cal-chip-more">+{extra} mai multe</span>}
               </span>
-            </button>
+            </div>
           );
         })}
       </div>

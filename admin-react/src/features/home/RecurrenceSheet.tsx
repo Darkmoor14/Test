@@ -77,7 +77,7 @@ export function RecurrenceSheet({
   };
 
   return (
-    <div id="recurrenceSheet" className="mobile-sheet show" aria-hidden="false">
+    <div id="recurrenceSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
       <div className="mobile-sheet-backdrop" onClick={onClose} />
       <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="recurrenceSheetTitle">
         <div className="mobile-sheet-panel-scroll">

@@ -162,9 +162,16 @@ export function FilterPopover<K extends string>({
             <label id={`${a11yId}-vizualizari-salvate-label`}>Vizualizări salvate</label>
             <div className="saved-views-chips" role="group" aria-labelledby={`${a11yId}-vizualizari-salvate-label`}>
               {views.map((v) => (
-                <span key={v.id} className="saved-view-chip" onClick={() => applyView(v)}>
+                <span
+                  key={v.id} role="button" tabIndex={0} className="saved-view-chip" onClick={() => applyView(v)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyView(v); } }}
+                >
                   <span>{v.name}</span>
-                  <span className="saved-view-chip-remove" aria-label="Șterge vizualizarea" onClick={(e) => { e.stopPropagation(); remove(v.id); }}>×</span>
+                  <span
+                    role="button" tabIndex={0} className="saved-view-chip-remove" aria-label="Șterge vizualizarea"
+                    onClick={(e) => { e.stopPropagation(); remove(v.id); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); remove(v.id); } }}
+                  >×</span>
                 </span>
               ))}
             </div>

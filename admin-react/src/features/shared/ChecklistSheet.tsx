@@ -84,7 +84,7 @@ export function ChecklistSheet({ current, onClose }: { current: ChecklistSheetSt
   const doneCount = items.filter((i) => i.done).length;
 
   return (
-    <div className="mobile-sheet show" aria-hidden="false">
+    <div className="mobile-sheet show" aria-hidden="false" onKeyDown={(e) => { if (e.key === 'Escape' && !saving) onClose(); }}>
       <div className="mobile-sheet-backdrop" onClick={saving ? undefined : onClose} />
       <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="checklistSheetTitle">
         <div className="mobile-sheet-panel-scroll">
