@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
 
 declare global {
@@ -25,6 +25,7 @@ declare global {
 // panel) and opened via window.openCalendarSync -- its trigger button
 // is on the Documentație page now, not Acasă's calendar card.
 export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const a11yId = useId();
   const supabase = useSupabase();
   const [token, setToken] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
@@ -107,23 +108,23 @@ export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: (
           {!loading && token && mode === 'caldav' && (
             <>
               <div className="ctrl-field">
-                <label>Adresă server</label>
+                <label htmlFor={`${a11yId}-dav-host`}>Adresă server</label>
                 <div className="cal-sync-link-row">
-                  <input type="text" readOnly value={davHost} onFocus={(e) => e.target.select()} />
+                  <input id={`${a11yId}-dav-host`} type="text" readOnly value={davHost} onFocus={(e) => e.target.select()} />
                   <button type="button" className="btn" onClick={() => copy('url', davHost)}>{copiedField === 'url' ? 'Copiat ✓' : 'Copiază'}</button>
                 </div>
               </div>
               <div className="ctrl-field">
-                <label>Utilizator</label>
+                <label htmlFor={`${a11yId}-dav-user`}>Utilizator</label>
                 <div className="cal-sync-link-row">
-                  <input type="text" readOnly value={email || ''} onFocus={(e) => e.target.select()} />
+                  <input id={`${a11yId}-dav-user`} type="text" readOnly value={email || ''} onFocus={(e) => e.target.select()} />
                   <button type="button" className="btn" onClick={() => copy('user', email || '')}>{copiedField === 'user' ? 'Copiat ✓' : 'Copiază'}</button>
                 </div>
               </div>
               <div className="ctrl-field">
-                <label>Parolă</label>
+                <label htmlFor={`${a11yId}-dav-pass`}>Parolă</label>
                 <div className="cal-sync-link-row">
-                  <input type="text" readOnly value={token} onFocus={(e) => e.target.select()} />
+                  <input id={`${a11yId}-dav-pass`} type="text" readOnly value={token} onFocus={(e) => e.target.select()} />
                   <button type="button" className="btn" onClick={() => copy('pass', token)}>{copiedField === 'pass' ? 'Copiat ✓' : 'Copiază'}</button>
                 </div>
               </div>
@@ -151,9 +152,9 @@ export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: (
           {!loading && token && mode === 'feed' && (
             <>
               <div className="ctrl-field">
-                <label>Link abonament calendar</label>
+                <label htmlFor={`${a11yId}-feed-url`}>Link abonament calendar</label>
                 <div className="cal-sync-link-row">
-                  <input type="text" readOnly value={httpsUrl} onFocus={(e) => e.target.select()} />
+                  <input id={`${a11yId}-feed-url`} type="text" readOnly value={httpsUrl} onFocus={(e) => e.target.select()} />
                   <button type="button" className="btn" onClick={() => copy('feed', httpsUrl)}>{copiedField === 'feed' ? 'Copiat ✓' : 'Copiază'}</button>
                 </div>
               </div>

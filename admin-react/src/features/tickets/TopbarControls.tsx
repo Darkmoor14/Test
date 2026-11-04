@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, useId } from 'react';
 import { useTickets } from './TicketsContext';
 import { FilterPopover, type ChipDef } from './FilterPopover';
 import { SearchToggle } from './SearchToggle';
@@ -21,18 +21,19 @@ const SESIZARI_CHIP_DEFS: ChipDef<StatusFilterKey>[] = [
 ];
 
 export function YearMonthBarInner() {
+  const a11yId = useId();
   const store = useTickets();
   const now = new Date();
   const isPastYear = store.ticketYearFilter !== 'all' && store.ticketYearFilter !== String(now.getFullYear());
   return (
     <Fragment>
-      <label>An:</label>
-      <select className={isPastYear ? 'not-current-year' : ''} value={store.ticketYearFilter} onChange={(e) => store.setTicketYearFilter(e.target.value)}>
+      <label htmlFor={`${a11yId}-an`}>An:</label>
+      <select className={isPastYear ? 'not-current-year' : ''} value={store.ticketYearFilter} onChange={(e) => store.setTicketYearFilter(e.target.value)} id={`${a11yId}-an`}>
         <option value="all">Toate anii</option>
         {store.availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
       </select>
-      <label>Lună:</label>
-      <select className={isPastYear ? 'not-current-year' : ''} value={store.ticketMonthFilter} onChange={(e) => store.setTicketMonthFilter(e.target.value)}>
+      <label htmlFor={`${a11yId}-lun`}>Lună:</label>
+      <select className={isPastYear ? 'not-current-year' : ''} value={store.ticketMonthFilter} onChange={(e) => store.setTicketMonthFilter(e.target.value)} id={`${a11yId}-lun`}>
         <option value="all">Toate lunile</option>
         {['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie', 'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie'].map((name, i) => (
           <option key={i} value={i + 1}>{name}</option>

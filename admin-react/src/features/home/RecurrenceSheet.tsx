@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useId } from 'react';
 import { dateKey, isoWeekday, RECUR_INTERVAL_UNITS, type RecurrenceEndType, type RecurrenceFreq, type RecurrencePattern } from './calendarUtils';
 
 const WEEKDAYS: { value: number; label: string }[] = [
@@ -16,6 +16,7 @@ export function RecurrenceSheet({
   onRemove: () => void;
   onSave: (pattern: RecurrencePattern) => void;
 }) {
+  const a11yId = useId();
   const [freq, setFreq] = useState<RecurrenceFreq>('weekly');
   const [interval, setInterval_] = useState(1);
   const [weekdays, setWeekdays] = useState<Set<number>>(new Set());
@@ -114,8 +115,8 @@ export function RecurrenceSheet({
           <div className="recur-section">
             <label className="recur-section-label">Interval de recurență</label>
             <div className="ctrl-field">
-              <label>Start</label>
-              <input type="date" value={eventDateKey} disabled readOnly />
+              <label htmlFor={`${a11yId}-start`}>Start</label>
+              <input type="date" value={eventDateKey} disabled readOnly id={`${a11yId}-start`}/>
             </div>
             <label className="recur-radio-row">
               <input type="radio" name="recur-end" checked={endType === 'date'} onChange={() => setEndType('date')} /> Se termină la{' '}

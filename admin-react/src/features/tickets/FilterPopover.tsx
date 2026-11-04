@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useId } from 'react';
 import { MONTH_FILTER_NAMES } from './ticketUtils';
 import { MiniDayCalendar } from './MiniDayCalendar';
 import { useSavedFilterViews, type SavedFilterView } from './useSavedFilterViews';
@@ -26,6 +26,7 @@ export function FilterPopover<K extends string>({
   day: number | null; setDay: (v: number | null) => void;
   noteClassName?: string; icon?: 'funnel' | 'calendar';
 }) {
+  const a11yId = useId();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const { views, load, save, remove } = useSavedFilterViews(scope, sessionEmail);
@@ -112,15 +113,15 @@ export function FilterPopover<K extends string>({
           {showDateFilters && (
             <div className="sheet-grid popover-yearmonth">
               <div className="ctrl-field">
-                <label>An</label>
-                <select value={year} onChange={(e) => narrowingSetYear(e.target.value)}>
+                <label htmlFor={`${a11yId}-an`}>An</label>
+                <select value={year} onChange={(e) => narrowingSetYear(e.target.value)} id={`${a11yId}-an`}>
                   <option value="all">Toate anii</option>
                   {availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
                 </select>
               </div>
               <div className="ctrl-field">
-                <label>Lună</label>
-                <select value={month} onChange={(e) => narrowingSetMonth(e.target.value)}>
+                <label htmlFor={`${a11yId}-lun`}>Lună</label>
+                <select value={month} onChange={(e) => narrowingSetMonth(e.target.value)} id={`${a11yId}-lun`}>
                   <option value="all">Toate lunile</option>
                   {MONTH_FILTER_NAMES.map((name, i) => <option key={i} value={i + 1}>{name}</option>)}
                 </select>
@@ -149,8 +150,8 @@ export function FilterPopover<K extends string>({
           )}
           {chipDefs && (
             <div className="sheet-filter-status">
-              <label>Stare listă</label>
-              <div className="chips">
+              <label id={`${a11yId}-stare-lista-label`}>Stare listă</label>
+              <div className="chips" role="group" aria-labelledby={`${a11yId}-stare-lista-label`}>
                 {chipDefs.map((c) => (
                   <button key={c.key} type="button" className={`chip${c.key === status ? ' active' : ''}`} onClick={() => setStatus?.(c.key)}>{c.label}</button>
                 ))}
@@ -158,8 +159,8 @@ export function FilterPopover<K extends string>({
             </div>
           )}
           <div className="popover-saved-views">
-            <label>Vizualizări salvate</label>
-            <div className="saved-views-chips">
+            <label id={`${a11yId}-vizualizari-salvate-label`}>Vizualizări salvate</label>
+            <div className="saved-views-chips" role="group" aria-labelledby={`${a11yId}-vizualizari-salvate-label`}>
               {views.map((v) => (
                 <span key={v.id} className="saved-view-chip" onClick={() => applyView(v)}>
                   <span>{v.name}</span>

@@ -26,11 +26,11 @@
     <div class="login-error" id="loginError"></div>
     <form id="loginForm">
       <div class="field">
-        <label>Email</label>
+        <label for="loginEmail">Email</label>
         <input type="email" id="loginEmail" required autocomplete="username">
       </div>
       <div class="field">
-        <label>Parolă</label>
+        <label for="loginPassword">Parolă</label>
         <input type="password" id="loginPassword" required autocomplete="current-password">
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;" id="loginBtn">Autentificare</button>
@@ -314,12 +314,12 @@
             <div class="lps-guide"><h3>Regula de calitate</h3><ol><li>Fiecare promisiune are un responsabil și o zi clară.</li><li>O lucrare intră în plan doar dacă este definită, în secvență și pregătită.</li><li>O promisiune ratată primește un motiv de variație.</li><li>Folosește PPC și tendințele de variație pentru îmbunătățire.</li></ol></div>
           </div>
         </section>
-        <section class="lps-section" data-lps-section="milestones"><div class="lps-section-head"><div><h3>Repere de proiect</h3><p>Rezultate sau momente contractuale care definesc începutul ori sfârșitul unei faze.</p></div></div><form class="lps-form" id="lpsMilestoneForm"><div class="lps-form-grid"><div class="ctrl-field"><label>Reper</label><input name="title" required placeholder="ex: Recepție materiale"></div><div class="ctrl-field"><label>Dată țintă</label><input name="due_date" type="date"></div><div class="ctrl-field"><label>Responsabil</label><input name="owner" placeholder="Nume / echipă"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Adaugă reper</button></div></form><div class="lps-list" id="lpsMilestonesList"></div></section>
-        <section class="lps-section" data-lps-section="pull"><div class="lps-section-head"><div><h3>Handoff-uri / pull plan</h3><p>Definește ce trebuie predat, de cine și cui, pentru ca următoarea activitate să poată începe.</p></div></div><form class="lps-form" id="lpsPullForm"><div class="lps-form-grid"><div class="ctrl-field"><label>Predare / rezultat</label><input name="title" required placeholder="ex: Desen aprobat pentru montaj"></div><div class="ctrl-field"><label>De la</label><input name="from_owner" placeholder="Echipă / responsabil"></div><div class="ctrl-field"><label>Către</label><input name="to_owner" placeholder="Următorul responsabil"></div><div class="ctrl-field full"><label>Condiție de satisfacție</label><input name="condition" placeholder="Ce înseamnă că predarea este utilizabilă"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Adaugă handoff</button></div></form><div class="lps-list" id="lpsPullList"></div></section>
-        <section class="lps-section" data-lps-section="lookahead"><div class="lps-section-head"><div><h3>Look-ahead și Make Ready</h3><p>Urmărește lucrările din următoarele 6 săptămâni. Marchează „Pregătit” numai când pot fi începute fără blocaj.</p></div></div><form class="lps-form" id="lpsLookaheadForm"><div class="lps-form-grid"><div class="ctrl-field"><label>Lucrare</label><input name="title" required placeholder="ex: Montaj tablou electric"></div><div class="ctrl-field"><label>Responsabil</label><input name="owner" placeholder="Nume / echipă"></div><div class="ctrl-field"><label>Început planificat</label><input name="start_date" type="date"></div><div class="ctrl-field"><label>Finalizare planificată</label><input name="due_date" type="date"></div><div class="ctrl-field"><label>Pregătit?</label><select name="ready"><option value="false">Nu - are constrângeri</option><option value="true">Da - poate fi promis</option></select></div><div class="ctrl-field"><label>Loc / zonă</label><input name="location" placeholder="ex: PT 12, Str. X"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Adaugă în look-ahead</button></div></form><div class="lps-list" id="lpsLookaheadList"></div></section>
-        <section class="lps-section" data-lps-section="constraints"><div class="lps-section-head"><div><h3>Registru constrângeri</h3><p>Fiecare blocaj are proprietar și termen de rezolvare înainte să oprească lucrarea din teren.</p></div></div><form class="lps-form" id="lpsConstraintForm"><div class="lps-form-grid"><div class="ctrl-field"><label>Constrângere</label><input name="title" required placeholder="ex: Aviz de acces lipsă"></div><div class="ctrl-field"><label>Categorie</label><select name="category"><option>Materiale</option><option>Acces</option><option>Aviz / proiectare</option><option>Resurse</option><option>Predecesor</option><option>Vreme</option><option>Altul</option></select></div><div class="ctrl-field"><label>Responsabil</label><input name="owner" placeholder="Nume / echipă"></div><div class="ctrl-field"><label>Termen eliminare</label><input name="due_date" type="date"></div><div class="ctrl-field full"><label>Acțiune pentru eliminare</label><input name="action" placeholder="ex: Confirmă avizul cu beneficiarul"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Înregistrează constrângerea</button></div></form><div class="lps-list" id="lpsConstraintsList"></div></section>
-        <section class="lps-section" data-lps-section="weekly"><div class="lps-section-head"><div><h3>Plan săptămânal și promisiuni</h3><p>Promite doar activități pregătite. La finalul săptămânii, evaluează fiecare promisiune pentru calculul PPC.</p><p class="lps-live-note" id="lpsWeeklyLiveNote"></p></div></div><form class="lps-form" id="lpsWeeklyForm"><div class="lps-form-grid"><div class="ctrl-field"><label>Promisiune</label><input name="title" required placeholder="ex: Finalizez cablarea tabloului T1"></div><div class="ctrl-field"><label>Last Planner</label><input name="owner" required placeholder="Persoana care promite"></div><div class="ctrl-field"><label>Săptămâna începe</label><input name="week_start" type="date" required></div><div class="ctrl-field"><label>Zi planificată</label><input name="planned_date" type="date"></div><div class="ctrl-field full"><label>Condiție de satisfacție</label><input name="condition" placeholder="Cum știm că promisiunea este completă?"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Adaugă promisiune</button></div></form><div class="lps-list" id="lpsWeeklyList"></div></section>
-        <section class="lps-section" data-lps-section="learning"><div class="lps-section-head"><div><h3>Huddle și învățare</h3><p>Notează discuția scurtă de teren. Analizează PPC și motivele de variație în fiecare săptămână.</p></div></div><div class="lps-variance-breakdown" id="lpsVarianceBreakdown"></div><form class="lps-form" id="lpsHuddleForm"><div class="lps-form-grid"><div class="ctrl-field"><label>Data huddle</label><input name="huddle_date" type="date" required></div><div class="ctrl-field"><label>Facilitator</label><input name="facilitator" placeholder="Nume"></div><div class="ctrl-field full"><label>Blocaje și decizii</label><input name="notes" placeholder="Ce trebuie rezolvat înainte de următoarea întâlnire?"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Salvează huddle</button></div></form><div class="lps-list" id="lpsHuddleList"></div></section>
+        <section class="lps-section" data-lps-section="milestones"><div class="lps-section-head"><div><h3>Repere de proiect</h3><p>Rezultate sau momente contractuale care definesc începutul ori sfârșitul unei faze.</p></div></div><form class="lps-form" id="lpsMilestoneForm"><div class="lps-form-grid"><div class="ctrl-field"><label for="lpsMilestoneForm-title">Reper</label><input name="title" required placeholder="ex: Recepție materiale" id="lpsMilestoneForm-title"></div><div class="ctrl-field"><label for="lpsMilestoneForm-due-date">Dată țintă</label><input name="due_date" type="date" id="lpsMilestoneForm-due-date"></div><div class="ctrl-field"><label for="lpsMilestoneForm-owner">Responsabil</label><input name="owner" placeholder="Nume / echipă" id="lpsMilestoneForm-owner"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Adaugă reper</button></div></form><div class="lps-list" id="lpsMilestonesList"></div></section>
+        <section class="lps-section" data-lps-section="pull"><div class="lps-section-head"><div><h3>Handoff-uri / pull plan</h3><p>Definește ce trebuie predat, de cine și cui, pentru ca următoarea activitate să poată începe.</p></div></div><form class="lps-form" id="lpsPullForm"><div class="lps-form-grid"><div class="ctrl-field"><label for="lpsPullForm-title">Predare / rezultat</label><input name="title" required placeholder="ex: Desen aprobat pentru montaj" id="lpsPullForm-title"></div><div class="ctrl-field"><label for="lpsPullForm-from-owner">De la</label><input name="from_owner" placeholder="Echipă / responsabil" id="lpsPullForm-from-owner"></div><div class="ctrl-field"><label for="lpsPullForm-to-owner">Către</label><input name="to_owner" placeholder="Următorul responsabil" id="lpsPullForm-to-owner"></div><div class="ctrl-field full"><label for="lpsPullForm-condition">Condiție de satisfacție</label><input name="condition" placeholder="Ce înseamnă că predarea este utilizabilă" id="lpsPullForm-condition"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Adaugă handoff</button></div></form><div class="lps-list" id="lpsPullList"></div></section>
+        <section class="lps-section" data-lps-section="lookahead"><div class="lps-section-head"><div><h3>Look-ahead și Make Ready</h3><p>Urmărește lucrările din următoarele 6 săptămâni. Marchează „Pregătit” numai când pot fi începute fără blocaj.</p></div></div><form class="lps-form" id="lpsLookaheadForm"><div class="lps-form-grid"><div class="ctrl-field"><label for="lpsLookaheadForm-title">Lucrare</label><input name="title" required placeholder="ex: Montaj tablou electric" id="lpsLookaheadForm-title"></div><div class="ctrl-field"><label for="lpsLookaheadForm-owner">Responsabil</label><input name="owner" placeholder="Nume / echipă" id="lpsLookaheadForm-owner"></div><div class="ctrl-field"><label for="lpsLookaheadForm-start-date">Început planificat</label><input name="start_date" type="date" id="lpsLookaheadForm-start-date"></div><div class="ctrl-field"><label for="lpsLookaheadForm-due-date">Finalizare planificată</label><input name="due_date" type="date" id="lpsLookaheadForm-due-date"></div><div class="ctrl-field"><label for="lpsLookaheadForm-ready">Pregătit?</label><select name="ready" id="lpsLookaheadForm-ready"><option value="false">Nu - are constrângeri</option><option value="true">Da - poate fi promis</option></select></div><div class="ctrl-field"><label for="lpsLookaheadForm-location">Loc / zonă</label><input name="location" placeholder="ex: PT 12, Str. X" id="lpsLookaheadForm-location"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Adaugă în look-ahead</button></div></form><div class="lps-list" id="lpsLookaheadList"></div></section>
+        <section class="lps-section" data-lps-section="constraints"><div class="lps-section-head"><div><h3>Registru constrângeri</h3><p>Fiecare blocaj are proprietar și termen de rezolvare înainte să oprească lucrarea din teren.</p></div></div><form class="lps-form" id="lpsConstraintForm"><div class="lps-form-grid"><div class="ctrl-field"><label for="lpsConstraintForm-title">Constrângere</label><input name="title" required placeholder="ex: Aviz de acces lipsă" id="lpsConstraintForm-title"></div><div class="ctrl-field"><label for="lpsConstraintForm-category">Categorie</label><select name="category" id="lpsConstraintForm-category"><option>Materiale</option><option>Acces</option><option>Aviz / proiectare</option><option>Resurse</option><option>Predecesor</option><option>Vreme</option><option>Altul</option></select></div><div class="ctrl-field"><label for="lpsConstraintForm-owner">Responsabil</label><input name="owner" placeholder="Nume / echipă" id="lpsConstraintForm-owner"></div><div class="ctrl-field"><label for="lpsConstraintForm-due-date">Termen eliminare</label><input name="due_date" type="date" id="lpsConstraintForm-due-date"></div><div class="ctrl-field full"><label for="lpsConstraintForm-action">Acțiune pentru eliminare</label><input name="action" placeholder="ex: Confirmă avizul cu beneficiarul" id="lpsConstraintForm-action"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Înregistrează constrângerea</button></div></form><div class="lps-list" id="lpsConstraintsList"></div></section>
+        <section class="lps-section" data-lps-section="weekly"><div class="lps-section-head"><div><h3>Plan săptămânal și promisiuni</h3><p>Promite doar activități pregătite. La finalul săptămânii, evaluează fiecare promisiune pentru calculul PPC.</p><p class="lps-live-note" id="lpsWeeklyLiveNote"></p></div></div><form class="lps-form" id="lpsWeeklyForm"><div class="lps-form-grid"><div class="ctrl-field"><label for="lpsWeeklyForm-title">Promisiune</label><input name="title" required placeholder="ex: Finalizez cablarea tabloului T1" id="lpsWeeklyForm-title"></div><div class="ctrl-field"><label for="lpsWeeklyForm-owner">Last Planner</label><input name="owner" required placeholder="Persoana care promite" id="lpsWeeklyForm-owner"></div><div class="ctrl-field"><label for="lpsWeeklyForm-week-start">Săptămâna începe</label><input name="week_start" type="date" required id="lpsWeeklyForm-week-start"></div><div class="ctrl-field"><label for="lpsWeeklyForm-planned-date">Zi planificată</label><input name="planned_date" type="date" id="lpsWeeklyForm-planned-date"></div><div class="ctrl-field full"><label for="lpsWeeklyForm-condition">Condiție de satisfacție</label><input name="condition" placeholder="Cum știm că promisiunea este completă?" id="lpsWeeklyForm-condition"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Adaugă promisiune</button></div></form><div class="lps-list" id="lpsWeeklyList"></div></section>
+        <section class="lps-section" data-lps-section="learning"><div class="lps-section-head"><div><h3>Huddle și învățare</h3><p>Notează discuția scurtă de teren. Analizează PPC și motivele de variație în fiecare săptămână.</p></div></div><div class="lps-variance-breakdown" id="lpsVarianceBreakdown"></div><form class="lps-form" id="lpsHuddleForm"><div class="lps-form-grid"><div class="ctrl-field"><label for="lpsHuddleForm-huddle-date">Data huddle</label><input name="huddle_date" type="date" required id="lpsHuddleForm-huddle-date"></div><div class="ctrl-field"><label for="lpsHuddleForm-facilitator">Facilitator</label><input name="facilitator" placeholder="Nume" id="lpsHuddleForm-facilitator"></div><div class="ctrl-field full"><label for="lpsHuddleForm-notes">Blocaje și decizii</label><input name="notes" placeholder="Ce trebuie rezolvat înainte de următoarea întâlnire?" id="lpsHuddleForm-notes"></div></div><div class="pf-actions"><button class="btn btn-primary" type="submit">Salvează huddle</button></div></form><div class="lps-list" id="lpsHuddleList"></div></section>
       </div>
     </div>
     <div class="admin-panel" id="panel-overview">
@@ -875,27 +875,27 @@
     </div>
     <input type="hidden" id="ares-lookahead-id">
     <div class="ctrl-field">
-      <label>Tip</label>
+      <label for="ares-type">Tip</label>
       <select id="ares-type">
         <option value="material">Material (consumabil — se scade din stoc)</option>
         <option value="echipament">Echipament (se rezervă pe perioadă)</option>
       </select>
     </div>
     <div class="ctrl-field">
-      <label>Element din inventar</label>
+      <label for="ares-item">Element din inventar</label>
       <select id="ares-item"></select>
     </div>
     <div class="ctrl-field" id="ares-quantity-field">
-      <label>Cantitate necesară</label>
+      <label for="ares-quantity">Cantitate necesară</label>
       <input type="number" id="ares-quantity" min="0" step="0.1">
     </div>
     <div class="sheet-grid" id="ares-dates-field">
       <div class="ctrl-field">
-        <label>De la</label>
+        <label for="ares-from">De la</label>
         <input type="date" id="ares-from">
       </div>
       <div class="ctrl-field">
-        <label>Până la</label>
+        <label for="ares-to">Până la</label>
         <input type="date" id="ares-to">
       </div>
     </div>
@@ -918,19 +918,19 @@
     <input type="hidden" id="vf-id">
     <div class="pf-grid">
       <div class="ctrl-field" style="grid-column:1/-1;">
-        <label>Titlu</label>
+        <label for="vf-title">Titlu</label>
         <input type="text" id="vf-title" placeholder="ex: Dacia Logan — Șantier Nord">
       </div>
       <div class="ctrl-field" id="vf-plate-field">
-        <label>Nr. înmatriculare</label>
+        <label for="vf-plate">Nr. înmatriculare</label>
         <input type="text" id="vf-plate" placeholder="ex: CJ 01 ABC">
       </div>
       <div class="ctrl-field" id="vf-chassis-field">
-        <label>Serie șasiu</label>
+        <label for="vf-chassis">Serie șasiu</label>
         <input type="text" id="vf-chassis" placeholder="ex: SASIU-4471">
       </div>
       <div class="ctrl-field" style="grid-column:1/-1;">
-        <label>Subcategorie</label>
+        <label for="vf-subcat">Subcategorie</label>
         <select id="vf-subcat">
           <option value="masina_mica">Mașină mică</option>
           <option value="autoutilitara">Autoutilitară</option>
@@ -940,19 +940,19 @@
         </select>
       </div>
       <div class="ctrl-field" id="vf-assigned-field">
-        <label>Alocat la</label>
+        <label for="vf-assigned">Alocat la</label>
         <input type="text" id="vf-assigned" placeholder="ex: Echipa 2 / Ionel Ghiurchi">
       </div>
       <div class="ctrl-field" id="vf-reservoir-liters-field" style="display:none;">
-        <label>Litri</label>
+        <label for="vf-reservoir-liters">Litri</label>
         <input type="number" id="vf-reservoir-liters" min="0" step="1" placeholder="ex: 1000">
       </div>
       <div class="ctrl-field" id="vf-reservoir-baseline-field" style="display:none;">
-        <label>Litrii de mai sus sunt valabili la sfârșitul lunii</label>
+        <label for="vf-reservoir-baseline">Litrii de mai sus sunt valabili la sfârșitul lunii</label>
         <input type="month" id="vf-reservoir-baseline">
       </div>
       <div class="ctrl-field">
-        <label>Notițe</label>
+        <label for="vf-notes">Notițe</label>
         <input type="text" id="vf-notes" placeholder="Detalii suplimentare">
       </div>
     </div>
@@ -960,31 +960,31 @@
       <p class="status-note vf-docs-divider">Consum carburant</p>
       <div class="pf-grid">
         <div class="ctrl-field" id="vf-fuel-rated-km-field">
-          <label>Consum normat (L/100km)</label>
+          <label for="vf-fuel-rated-km">Consum normat (L/100km)</label>
           <input type="number" id="vf-fuel-rated-km" min="0" step="0.1" placeholder="ex: 8">
         </div>
         <div class="ctrl-field" id="vf-fuel-rated-hours-field" style="display:none;">
-          <label>Consum normat (L/H)</label>
+          <label for="vf-fuel-rated-hours">Consum normat (L/H)</label>
           <input type="number" id="vf-fuel-rated-hours" min="0" step="0.1" placeholder="ex: 3">
         </div>
         <div class="ctrl-field">
-          <label>Capacitate rezervor (L)</label>
+          <label for="vf-fuel-tank-capacity">Capacitate rezervor (L)</label>
           <input type="number" id="vf-fuel-tank-capacity" min="0" step="1" placeholder="ex: 60">
         </div>
         <div class="ctrl-field" id="vf-fuel-initial-km-field">
-          <label>Km inițial</label>
+          <label for="vf-fuel-initial-km">Km inițial</label>
           <input type="number" id="vf-fuel-initial-km" min="0" step="1" placeholder="ex: 40000">
         </div>
         <div class="ctrl-field" id="vf-service-due-km-field">
-          <label>Interval service (km)</label>
+          <label for="vf-service-due-km">Interval service (km)</label>
           <input type="number" id="vf-service-due-km" min="0" step="1" placeholder="ex: 10000">
         </div>
         <div class="ctrl-field" id="vf-fuel-initial-hours-field" style="display:none;">
-          <label>Ore inițiale</label>
+          <label for="vf-fuel-initial-hours">Ore inițiale</label>
           <input type="number" id="vf-fuel-initial-hours" min="0" step="1" placeholder="ex: 1200">
         </div>
         <div class="ctrl-field" id="vf-service-due-hours-field" style="display:none;">
-          <label>Interval service (ore)</label>
+          <label for="vf-service-due-hours">Interval service (ore)</label>
           <input type="number" id="vf-service-due-hours" min="0" step="1" placeholder="ex: 500">
         </div>
       </div>
@@ -993,27 +993,27 @@
       <p class="status-note vf-docs-divider">Documente — date de expirare</p>
       <div class="pf-grid">
         <div class="ctrl-field">
-          <label>ITP</label>
+          <label for="vf-itp-expires">ITP</label>
           <input type="date" id="vf-itp-expires">
         </div>
         <div class="ctrl-field">
-          <label>Asigurare</label>
+          <label for="vf-insurance-expires">Asigurare</label>
           <input type="date" id="vf-insurance-expires">
         </div>
         <div class="ctrl-field" id="vf-transport-license-field" style="display:none;">
-          <label>Licență transport</label>
+          <label for="vf-transport-license-expires">Licență transport</label>
           <input type="date" id="vf-transport-license-expires">
         </div>
         <div class="ctrl-field">
-          <label>Tichete parcare</label>
+          <label for="vf-parking-ticket-expires">Tichete parcare</label>
           <input type="date" id="vf-parking-ticket-expires">
         </div>
         <div class="ctrl-field">
-          <label>Rovinietă</label>
+          <label for="vf-vignette-expires">Rovinietă</label>
           <input type="date" id="vf-vignette-expires">
         </div>
         <div class="ctrl-field" id="vf-tachograph-field" style="display:none;">
-          <label>Tahograf</label>
+          <label for="vf-tachograph-expires">Tahograf</label>
           <input type="date" id="vf-tachograph-expires">
         </div>
       </div>
@@ -1041,16 +1041,16 @@
       <p class="status-note vf-docs-divider" style="margin-top:0;">Citire Km</p>
       <div class="pf-grid">
         <div class="ctrl-field">
-          <label>Citire anterioară</label>
-          <div class="vfl-readonly-value" id="vfl-previous-reading-km">—</div>
+          <label id="vfl-previous-reading-km-label">Citire anterioară</label>
+          <div class="vfl-readonly-value" id="vfl-previous-reading-km" aria-labelledby="vfl-previous-reading-km-label">—</div>
         </div>
         <div class="ctrl-field">
-          <label>Km nou</label>
+          <label for="vfl-reading-km">Km nou</label>
           <input type="number" id="vfl-reading-km" min="0" step="1" placeholder="ex: 42150">
         </div>
         <div class="ctrl-field" style="grid-column:1/-1;">
-          <label>Diferență (luna aceasta)</label>
-          <div class="vfl-readonly-value" id="vfl-diff-display-km">—</div>
+          <label id="vfl-diff-display-km-label">Diferență (luna aceasta)</label>
+          <div class="vfl-readonly-value" id="vfl-diff-display-km" aria-labelledby="vfl-diff-display-km-label">—</div>
         </div>
       </div>
     </div>
@@ -1058,16 +1058,16 @@
       <p class="status-note vf-docs-divider">Citire Ore</p>
       <div class="pf-grid">
         <div class="ctrl-field">
-          <label>Citire anterioară</label>
-          <div class="vfl-readonly-value" id="vfl-previous-reading-hours">—</div>
+          <label id="vfl-previous-reading-hours-label">Citire anterioară</label>
+          <div class="vfl-readonly-value" id="vfl-previous-reading-hours" aria-labelledby="vfl-previous-reading-hours-label">—</div>
         </div>
         <div class="ctrl-field">
-          <label>Ore noi</label>
+          <label for="vfl-reading-hours">Ore noi</label>
           <input type="number" id="vfl-reading-hours" min="0" step="1" placeholder="ex: 1450">
         </div>
         <div class="ctrl-field" style="grid-column:1/-1;">
-          <label>Diferență (luna aceasta)</label>
-          <div class="vfl-readonly-value" id="vfl-diff-display-hours">—</div>
+          <label id="vfl-diff-display-hours-label">Diferență (luna aceasta)</label>
+          <div class="vfl-readonly-value" id="vfl-diff-display-hours" aria-labelledby="vfl-diff-display-hours-label">—</div>
         </div>
       </div>
     </div>
@@ -1078,11 +1078,11 @@
     <div class="entity-log-list" id="vflPurchaseList"></div>
     <div class="pf-grid">
       <div class="ctrl-field">
-        <label>Litri</label>
+        <label for="vfl-purchase-liters">Litri</label>
         <input type="number" id="vfl-purchase-liters" min="0" step="0.1" placeholder="ex: 50">
       </div>
       <div class="ctrl-field">
-        <label>Notă (opțional)</label>
+        <label for="vfl-purchase-note">Notă (opțional)</label>
         <input type="text" id="vfl-purchase-note" placeholder="ex: bon nr. 123">
       </div>
     </div>
@@ -1092,7 +1092,7 @@
         Din rezervorul propriu
       </label>
       <div class="ctrl-field" id="vfl-reservoir-select-field" style="display:none;">
-        <label>Care rezervor</label>
+        <label for="vfl-reservoir-select">Care rezervor</label>
         <select id="vfl-reservoir-select"></select>
       </div>
     </div>
@@ -1161,19 +1161,19 @@
     <input type="hidden" id="hrEf-id">
     <div class="pf-grid">
       <div class="ctrl-field" style="grid-column:1/-1;">
-        <label>Nume</label>
+        <label for="hrEf-name">Nume</label>
         <input type="text" id="hrEf-name" placeholder="ex: Ion Popescu">
       </div>
       <div class="ctrl-field">
-        <label>Data nașterii</label>
+        <label for="hrEf-dob">Data nașterii</label>
         <input type="date" id="hrEf-dob">
       </div>
       <div class="ctrl-field">
-        <label>Zile de concediu alocate</label>
+        <label for="hrEf-vacation-allowed">Zile de concediu alocate</label>
         <input type="number" id="hrEf-vacation-allowed" min="0" step="1" value="21">
       </div>
       <div class="ctrl-field" style="grid-column:1/-1;">
-        <label>Adresă</label>
+        <label for="hrEf-address">Adresă</label>
         <input type="text" id="hrEf-address" placeholder="ex: Str. X nr. 1, Cluj-Napoca">
       </div>
     </div>
@@ -1194,24 +1194,24 @@
     </div>
     <input type="hidden" id="hrWf-id">
     <div class="ctrl-field">
-      <label>Angajat</label>
+      <label for="hrWf-employee">Angajat</label>
       <select id="hrWf-employee"></select>
     </div>
     <div class="pf-grid">
       <div class="ctrl-field">
-        <label>Data</label>
+        <label for="hrWf-date">Data</label>
         <input type="date" id="hrWf-date">
       </div>
       <div class="ctrl-field">
-        <label>Ora început</label>
+        <label for="hrWf-start-time">Ora început</label>
         <input type="time" id="hrWf-start-time">
       </div>
       <div class="ctrl-field">
-        <label>Ora sfârșit</label>
+        <label for="hrWf-end-time">Ora sfârșit</label>
         <input type="time" id="hrWf-end-time">
       </div>
       <div class="ctrl-field" style="grid-column:1/-1;">
-        <label>Notițe</label>
+        <label for="hrWf-notes">Notițe</label>
         <input type="text" id="hrWf-notes" placeholder="Detalii suplimentare">
       </div>
     </div>
@@ -1232,22 +1232,22 @@
     </div>
     <input type="hidden" id="hrVf-id">
     <div class="ctrl-field">
-      <label>Angajat</label>
+      <label for="hrVf-employee">Angajat</label>
       <select id="hrVf-employee"></select>
     </div>
     <div class="sheet-grid">
       <div class="ctrl-field">
-        <label>De la</label>
+        <label for="hrVf-start">De la</label>
         <input type="date" id="hrVf-start">
       </div>
       <div class="ctrl-field">
-        <label>Până la</label>
+        <label for="hrVf-end">Până la</label>
         <input type="date" id="hrVf-end">
       </div>
     </div>
     <div class="pf-grid">
       <div class="ctrl-field" style="grid-column:1/-1;">
-        <label>Notițe</label>
+        <label for="hrVf-notes">Notițe</label>
         <input type="text" id="hrVf-notes" placeholder="Detalii suplimentare">
       </div>
     </div>

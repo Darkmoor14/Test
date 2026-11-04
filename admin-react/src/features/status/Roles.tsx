@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useId } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { useSupabase } from '../../lib/supabaseContext';
 
@@ -28,6 +28,7 @@ async function setStaffAuthPassword(supabase: SupabaseClient, email: string, pas
 }
 
 export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
+  const a11yId = useId();
   const supabase = useSupabase();
   const [rolesByEmail, setRolesByEmail] = useState<Map<string, Set<RoleKey>>>(new Map());
   const [notifiedEmails, setNotifiedEmails] = useState<Set<string>>(new Set());
@@ -194,16 +195,16 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
                 <button type="button" className="sheet-close" aria-label="Închide" onClick={() => setAddOpen(false)}>×</button>
               </div>
               <div className="ctrl-field">
-                <label>Email</label>
-                <input type="email" placeholder="ex: nume@insta-grup.ro" value={addEmail} onChange={(e) => setAddEmail(e.target.value)} />
+                <label htmlFor={`${a11yId}-email`}>Email</label>
+                <input type="email" placeholder="ex: nume@insta-grup.ro" value={addEmail} onChange={(e) => setAddEmail(e.target.value)} id={`${a11yId}-email`}/>
               </div>
               <div className="ctrl-field">
-                <label>Parolă</label>
-                <input type="text" placeholder="ex: parola generată sau aleasă" value={addPassword} onChange={(e) => setAddPassword(e.target.value)} />
+                <label htmlFor={`${a11yId}-parol`}>Parolă</label>
+                <input type="text" placeholder="ex: parola generată sau aleasă" value={addPassword} onChange={(e) => setAddPassword(e.target.value)} id={`${a11yId}-parol`}/>
                 <button type="button" className="btn" onClick={() => setAddPassword(generateStaffPassword())}>Generează</button>
               </div>
-              <div className="ctrl-field">
-                <label>Roluri</label>
+              <div className="ctrl-field" role="group" aria-labelledby={`${a11yId}-roluri-label`}>
+                <label id={`${a11yId}-roluri-label`}>Roluri</label>
                 {STAFF_ROLE_KEYS.map((r) => (
                   <label key={r} className="recur-radio">
                     <input
@@ -259,8 +260,8 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
                 <button type="button" className="sheet-close" aria-label="Închide" onClick={() => setResetOpen(false)}>×</button>
               </div>
               <div className="ctrl-field">
-                <label>Parolă nouă</label>
-                <input type="text" placeholder="ex: parola generată sau aleasă" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} />
+                <label htmlFor={`${a11yId}-parol-nou`}>Parolă nouă</label>
+                <input type="text" placeholder="ex: parola generată sau aleasă" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} id={`${a11yId}-parol-nou`}/>
                 <button type="button" className="btn" onClick={() => setResetPassword(generateStaffPassword())}>Generează</button>
               </div>
               <div className="sheet-actions">

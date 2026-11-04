@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useId } from 'react';
 import { useTickets } from './TicketsContext';
 import { useStaffRoster } from '../home/useStaffRoster';
 import {
@@ -15,6 +15,7 @@ function showToast(message: string) {
 }
 
 export function TicketCard({ t, sessionEmail }: { t: Ticket; sessionEmail: string | null }) {
+  const a11yId = useId();
   const store = useTickets();
   const { isGod, modulePermission } = useStaffRoster(sessionEmail);
   const canWriteTickets = isGod || modulePermission('tickets') === 'write';
@@ -174,12 +175,12 @@ export function TicketCard({ t, sessionEmail }: { t: Ticket; sessionEmail: strin
       <div className="ticket-body">
         {isEditing ? (
           <>
-            <div className="ctrl-field"><label>Nume reclamant</label><input type="text" value={name} disabled={isArchived || isDuplicate} onChange={(e) => { setName(e.target.value); draftField('.f-name', e.target.value); }} /></div>
-            <div className="ctrl-field"><label>Telefon</label><input type="text" value={phone} disabled={isArchived || isDuplicate} onChange={(e) => { setPhone(e.target.value); draftField('.f-phone', e.target.value); }} /></div>
-            <div className="ctrl-field"><label>Email</label><input type="email" value={email} disabled={isArchived || isDuplicate} onChange={(e) => { setEmail(e.target.value); draftField('.f-email', e.target.value); }} /></div>
-            <div className="ctrl-field"><label>Adresă identificare loc defect</label><input type="text" value={address} disabled={isArchived || isDuplicate} onChange={(e) => { setAddress(e.target.value); draftField('.f-address', e.target.value); }} /></div>
-            <div className="ctrl-field"><label>Data trimiterii</label><input type="date" value={submittedDate} disabled={isArchived || isDuplicate} onChange={(e) => { setSubmittedDate(e.target.value); draftField('.f-submitted-date', e.target.value); }} /></div>
-            <div className="ctrl-field"><label>Descriere</label><input type="text" value={description} disabled={isArchived || isDuplicate} onChange={(e) => { setDescription(e.target.value); draftField('.f-description', e.target.value); }} /></div>
+            <div className="ctrl-field"><label htmlFor={`${a11yId}-nume-reclamant`}>Nume reclamant</label><input type="text" value={name} disabled={isArchived || isDuplicate} onChange={(e) => { setName(e.target.value); draftField('.f-name', e.target.value); }} id={`${a11yId}-nume-reclamant`}/></div>
+            <div className="ctrl-field"><label htmlFor={`${a11yId}-telefon`}>Telefon</label><input type="text" value={phone} disabled={isArchived || isDuplicate} onChange={(e) => { setPhone(e.target.value); draftField('.f-phone', e.target.value); }} id={`${a11yId}-telefon`}/></div>
+            <div className="ctrl-field"><label htmlFor={`${a11yId}-email`}>Email</label><input type="email" value={email} disabled={isArchived || isDuplicate} onChange={(e) => { setEmail(e.target.value); draftField('.f-email', e.target.value); }} id={`${a11yId}-email`}/></div>
+            <div className="ctrl-field"><label htmlFor={`${a11yId}-adres-identificare-loc-defect`}>Adresă identificare loc defect</label><input type="text" value={address} disabled={isArchived || isDuplicate} onChange={(e) => { setAddress(e.target.value); draftField('.f-address', e.target.value); }} id={`${a11yId}-adres-identificare-loc-defect`}/></div>
+            <div className="ctrl-field"><label htmlFor={`${a11yId}-data-trimiterii`}>Data trimiterii</label><input type="date" value={submittedDate} disabled={isArchived || isDuplicate} onChange={(e) => { setSubmittedDate(e.target.value); draftField('.f-submitted-date', e.target.value); }} id={`${a11yId}-data-trimiterii`}/></div>
+            <div className="ctrl-field"><label htmlFor={`${a11yId}-descriere`}>Descriere</label><input type="text" value={description} disabled={isArchived || isDuplicate} onChange={(e) => { setDescription(e.target.value); draftField('.f-description', e.target.value); }} id={`${a11yId}-descriere`}/></div>
           </>
         ) : (
           <>
@@ -200,30 +201,30 @@ export function TicketCard({ t, sessionEmail }: { t: Ticket; sessionEmail: strin
       <div className="ticket-controls">
         {isDone && !isEditing ? (
           <>
-            <div className="ctrl-field stare-field"><label>Stare</label><div className="resnote-readonly">Soluționat</div></div>
-            <div className="ctrl-field resolver-field"><label>Soluționat de</label><div className="resnote-readonly">{t.resolved_by || '—'}</div></div>
-            <div className="ctrl-field resnote-field"><label>Ce s-a făcut</label><div className="resnote-readonly">{t.resolution_note || '—'}</div></div>
-            <div className="ctrl-field resolved-date-field"><label>Data soluționării</label><div className="resnote-readonly">{resolvedDateParts.date || '—'}</div></div>
+            <div className="ctrl-field stare-field"><label id={`${a11yId}-stare-ro-label`}>Stare</label><div className="resnote-readonly" aria-labelledby={`${a11yId}-stare-ro-label`}>Soluționat</div></div>
+            <div className="ctrl-field resolver-field"><label id={`${a11yId}-resolver-ro-label`}>Soluționat de</label><div className="resnote-readonly" aria-labelledby={`${a11yId}-resolver-ro-label`}>{t.resolved_by || '—'}</div></div>
+            <div className="ctrl-field resnote-field"><label id={`${a11yId}-resnote-ro-label`}>Ce s-a făcut</label><div className="resnote-readonly" aria-labelledby={`${a11yId}-resnote-ro-label`}>{t.resolution_note || '—'}</div></div>
+            <div className="ctrl-field resolved-date-field"><label id={`${a11yId}-resolved-date-ro-label`}>Data soluționării</label><div className="resnote-readonly" aria-labelledby={`${a11yId}-resolved-date-ro-label`}>{resolvedDateParts.date || '—'}</div></div>
           </>
         ) : (
           <>
             <div className="ctrl-field stare-field">
-              <label>Stare</label>
-              <select className="f-status" disabled={isArchived || isDuplicate} value={status} onChange={(e) => { setStatus(e.target.value); draftField('.f-status', e.target.value); }}>
+              <label htmlFor={`${a11yId}-stare`}>Stare</label>
+              <select className="f-status" disabled={isArchived || isDuplicate} value={status} onChange={(e) => { setStatus(e.target.value); draftField('.f-status', e.target.value); }} id={`${a11yId}-stare`}>
                 <option value="Ongoing">Activ</option>
                 <option value="Terminat">Soluționat</option>
               </select>
             </div>
             <div className="ctrl-field resolver-field">
-              <label>Soluționat de</label>
-              <input type="text" placeholder="Nume angajat" disabled={isArchived || isDuplicate} value={resolver} onChange={(e) => { setResolver(e.target.value); draftField('.f-resolver', e.target.value); }} />
+              <label htmlFor={`${a11yId}-solu-ionat-de`}>Soluționat de</label>
+              <input type="text" placeholder="Nume angajat" disabled={isArchived || isDuplicate} value={resolver} onChange={(e) => { setResolver(e.target.value); draftField('.f-resolver', e.target.value); }} id={`${a11yId}-solu-ionat-de`}/>
             </div>
             {t.resolution_note && (
-              <div className="ctrl-field resnote-field"><label>Ce s-a făcut</label><div className="resnote-readonly">{t.resolution_note}</div></div>
+              <div className="ctrl-field resnote-field"><label id={`${a11yId}-resnote-edit-ro-label`}>Ce s-a făcut</label><div className="resnote-readonly" aria-labelledby={`${a11yId}-resnote-edit-ro-label`}>{t.resolution_note}</div></div>
             )}
             <div className="ctrl-field resolved-date-field">
-              <label>Data soluționării</label>
-              <input type="date" disabled={isArchived || isDuplicate || status !== 'Terminat'} value={resolvedDate} onChange={(e) => { setResolvedDate(e.target.value); draftField('.f-resolved-date', e.target.value); }} />
+              <label htmlFor={`${a11yId}-data-solu-ion-rii`}>Data soluționării</label>
+              <input type="date" disabled={isArchived || isDuplicate || status !== 'Terminat'} value={resolvedDate} onChange={(e) => { setResolvedDate(e.target.value); draftField('.f-resolved-date', e.target.value); }} id={`${a11yId}-data-solu-ion-rii`}/>
             </div>
           </>
         )}

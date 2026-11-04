@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useId } from 'react';
 import { pad2 } from '../../lib/format';
 import { buildEventIcs, dateKey, describeRecurrence, isoWeekday, type CalendarEvent, type RecurrenceFreq, type RecurrencePattern } from './calendarUtils';
 import { RecurrenceSheet } from './RecurrenceSheet';
@@ -82,6 +82,7 @@ export function CalendarEventFormSheet({
   onSave: (id: string | null, payload: CalendarEventInput) => Promise<boolean>;
   onDelete: (event: CalendarEvent, staffRecipients: string[]) => Promise<boolean>;
 }) {
+  const a11yId = useId();
   const [title, setTitle] = useState('');
   const [allDay, setAllDay] = useState(false);
   const [startDateVal, setStartDateVal] = useState('');
@@ -362,12 +363,12 @@ export function CalendarEventFormSheet({
             </div>
 
             <div className="ctrl-field">
-              <label>Titlu</label>
-              <input type="text" placeholder="ex: Întâlnire șantier" autoComplete="off" value={title} onChange={(e) => setTitle(e.target.value)} />
+              <label htmlFor={`${a11yId}-titlu`}>Titlu</label>
+              <input type="text" placeholder="ex: Întâlnire șantier" autoComplete="off" value={title} onChange={(e) => setTitle(e.target.value)} id={`${a11yId}-titlu`}/>
             </div>
 
-            <div className="ctrl-field">
-              <label>Începe</label>
+            <div className="ctrl-field" role="group" aria-labelledby={`${a11yId}-incepe-label`}>
+              <label id={`${a11yId}-incepe-label`}>Începe</label>
               <div className="cef-date-time-row">
                 <input type="date" value={startDateVal} onChange={(e) => onStartDateChange(e.target.value)} />
                 {!allDay && (
@@ -394,8 +395,8 @@ export function CalendarEventFormSheet({
               </div>
             </div>
 
-            <div className="ctrl-field">
-              <label>Se termină</label>
+            <div className="ctrl-field" role="group" aria-labelledby={`${a11yId}-se-termin-label`}>
+              <label id={`${a11yId}-se-termin-label`}>Se termină</label>
               <div className="cef-date-time-row">
                 <input type="date" value={endDateVal} min={startDateVal} onChange={(e) => setEndDateVal(e.target.value)} />
                 {!allDay && (
@@ -426,8 +427,8 @@ export function CalendarEventFormSheet({
               <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} /> Toată ziua
             </label>
 
-            <div className="ctrl-field">
-              <label>Repetare</label>
+            <div className="ctrl-field" role="group" aria-labelledby={`${a11yId}-repetare-label`}>
+              <label id={`${a11yId}-repetare-label`}>Repetare</label>
               <div className="cef-time-row">
                 <select value={repeatPreset} onChange={(e) => onRepeatChange(e.target.value as RepeatPreset)}>
                   {REPEAT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -442,12 +443,12 @@ export function CalendarEventFormSheet({
             </div>
 
             <div className="ctrl-field">
-              <label>Locație (opțional)</label>
-              <input type="text" placeholder="ex: Str. Gh. Doja nr. 4" autoComplete="off" value={location} onChange={(e) => setLocation(e.target.value)} />
+              <label htmlFor={`${a11yId}-loca-ie-op-ional`}>Locație (opțional)</label>
+              <input type="text" placeholder="ex: Str. Gh. Doja nr. 4" autoComplete="off" value={location} onChange={(e) => setLocation(e.target.value)} id={`${a11yId}-loca-ie-op-ional`}/>
             </div>
 
-            <div className="ctrl-field">
-              <label>Invitați (opțional)</label>
+            <div className="ctrl-field" role="group" aria-labelledby={`${a11yId}-invita-i-op-ional-label`}>
+              <label id={`${a11yId}-invita-i-op-ional-label`}>Invitați (opțional)</label>
               <div className="cef-invitee-input-row">
                 <input
                   type="text" placeholder="Nume sau email" autoComplete="off" value={attendeeInput}
@@ -498,27 +499,27 @@ export function CalendarEventFormSheet({
             </div>
 
             <div className="ctrl-field">
-              <label>Memento</label>
-              <select value={reminder} onChange={(e) => setReminder(e.target.value)}>
+              <label htmlFor={`${a11yId}-memento`}>Memento</label>
+              <select value={reminder} onChange={(e) => setReminder(e.target.value)} id={`${a11yId}-memento`}>
                 {REMINDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
 
             <div className="ctrl-field">
-              <label>Timp de deplasare</label>
-              <select value={travelTime} onChange={(e) => setTravelTime(e.target.value)}>
+              <label htmlFor={`${a11yId}-timp-de-deplasare`}>Timp de deplasare</label>
+              <select value={travelTime} onChange={(e) => setTravelTime(e.target.value)} id={`${a11yId}-timp-de-deplasare`}>
                 {TRAVEL_TIME_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
 
             <div className="ctrl-field">
-              <label>Note (opțional)</label>
-              <input type="text" placeholder="Detalii" autoComplete="off" value={description} onChange={(e) => setDescription(e.target.value)} />
+              <label htmlFor={`${a11yId}-note-op-ional`}>Note (opțional)</label>
+              <input type="text" placeholder="Detalii" autoComplete="off" value={description} onChange={(e) => setDescription(e.target.value)} id={`${a11yId}-note-op-ional`}/>
             </div>
 
             <div className="ctrl-field">
-              <label>Link (opțional)</label>
-              <input type="url" placeholder="https://…" autoComplete="off" value={url} onChange={(e) => setUrl(e.target.value)} />
+              <label htmlFor={`${a11yId}-link-op-ional`}>Link (opțional)</label>
+              <input type="url" placeholder="https://…" autoComplete="off" value={url} onChange={(e) => setUrl(e.target.value)} id={`${a11yId}-link-op-ional`}/>
             </div>
 
             <div className="sheet-actions cef-actions">
