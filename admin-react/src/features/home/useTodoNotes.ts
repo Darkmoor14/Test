@@ -28,6 +28,7 @@ export function useTodoNotes() {
 
   const addNote = (): string => {
     const note: TodoNote = { id: 'todo-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7), text: '' };
+    if (saveTimer.current) clearTimeout(saveTimer.current);
     setNotes((prev) => {
       const next = [note, ...prev];
       persist(next);
@@ -46,6 +47,13 @@ export function useTodoNotes() {
   };
 
   const deleteNote = (id: string) => {
+    // Without clearing a pending debounced save here, deleting a note
+    // within 400ms of editing it let that stale timer fire afterward and
+    // persist its own (pre-delete) snapshot of `notes`, silently
+    // resurrecting the just-deleted note in localStorage -- it reappeared
+    // on the next reload despite React state correctly showing it gone
+    // (CLICK-PATH-401).
+    if (saveTimer.current) clearTimeout(saveTimer.current);
     setNotes((prev) => {
       const next = prev.filter((n) => n.id !== id);
       persist(next);

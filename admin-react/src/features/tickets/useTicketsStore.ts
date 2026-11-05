@@ -96,6 +96,17 @@ export function useTicketsStore(sessionEmail: string | null) {
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [overviewShareSelectedIds, setOverviewShareSelectedIds] = useState<Set<string>>(new Set());
+  // Shared between OverviewTable (desktop) and OverviewCardsMobile -- these
+  // are two separate components, both shown/hidden by a CSS breakpoint
+  // rather than mounted/unmounted, so a per-component useState here used to
+  // let each one's "resolution note" expand state disagree for the same
+  // ticket depending on viewport width (CLICK-PATH-105).
+  const [expandedNoteIds, setExpandedNoteIds] = useState<Set<string>>(new Set());
+  const toggleNote = useCallback((id: string) => setExpandedNoteIds((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  }), []);
   const [editingTicketId, setEditingTicketId] = useState<string | null>(null);
   const draftEditsRef = useRef<Record<string, Record<string, string>>>({});
 
@@ -561,6 +572,7 @@ export function useTicketsStore(sessionEmail: string | null) {
     overviewSearchQuery, setOverviewSearchQuery,
     overviewCardFilter, applyOverviewCardFilter, clearOverviewCardFilter,
     selectedIds, toggleSelected, clearSelection,
+    expandedNoteIds, toggleNote,
     overviewShareSelectedIds, toggleShareSelected, clearShareSelection,
     editingTicketId, startEditSelected, cancelEdit, setEditingTicketId,
     setDraftField, getDraft, clearDraft,

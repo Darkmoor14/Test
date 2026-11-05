@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { dateKey, eventsByDateInRange, HOME_CLOCK_MONTH_NAMES, type CalendarEvent } from './calendarUtils';
+import { useModalSheet } from '../../lib/useModalSheet';
 
 const MAX_CHIPS = 3;
 
@@ -16,6 +17,8 @@ export function FullMonthCalendar({
   const today0 = new Date();
   const [year, setYear] = useState(today0.getFullYear());
   const [monthIdx, setMonthIdx] = useState(today0.getMonth());
+
+  const { panelRef, handleKeyDown, backdropOnClick } = useModalSheet({ open, onClose });
 
   if (!open) return null;
 
@@ -52,9 +55,9 @@ export function FullMonthCalendar({
   const goToday = () => { setYear(today0.getFullYear()); setMonthIdx(today0.getMonth()); };
 
   return (
-    <div id="homeFullMonthSheet" className="mobile-sheet show" aria-hidden="false">
-      <div className="mobile-sheet-backdrop" onClick={onClose} />
-      <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="homeFullMonthSheetTitle">
+    <div id="homeFullMonthSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={handleKeyDown}>
+      <div className="mobile-sheet-backdrop" onClick={backdropOnClick} />
+      <div ref={panelRef} tabIndex={-1} className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="homeFullMonthSheetTitle">
         <div className="mobile-sheet-panel-scroll">
           <div className="sheet-head">
             <div><h3 id="homeFullMonthSheetTitle">Calendar — lună completă</h3></div>
@@ -77,24 +80,26 @@ export function FullMonthCalendar({
                 const shown = dayEvents.slice(0, MAX_CHIPS);
                 const extra = dayEvents.length - shown.length;
                 return (
-                  <button
-                    type="button" key={`${cell.key}-${i}`}
+                  <div
+                    role="button" tabIndex={0} key={`${cell.key}-${i}`}
                     className={`home-full-cal-day${cell.outside ? ' outside' : ''}${cell.key === todayKey ? ' today' : ''}`}
                     onClick={() => onDayClick(cell.key)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onDayClick(cell.key); } }}
                   >
                     <span className="home-full-cal-day-num">{cell.dNum}</span>
                     <span className="home-full-cal-day-chips">
                       {shown.map((e) => (
                         <span
-                          key={e.id + e.start_time} className="home-full-cal-chip" title={e.title}
+                          key={e.id + e.start_time} role="button" tabIndex={0} className="home-full-cal-chip" title={e.title}
                           onClick={(ev) => { ev.stopPropagation(); onEventClick(e); }}
+                          onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); onEventClick(e); } }}
                         >
                           {(e.recurrence_freq || e.is_recurring_occurrence) ? '🔁 ' : ''}{e.title}
                         </span>
                       ))}
                       {extra > 0 && <span className="home-full-cal-chip-more">+{extra} mai multe</span>}
                     </span>
-                  </button>
+                  </div>
                 );
               })}
             </div>

@@ -7,7 +7,10 @@ export function EventCard({ event, now, onClick }: { event: CalendarEvent; now: 
   const active = isEventHappeningNow(event, now);
   const recurIcon = event.recurrence_freq || event.is_recurring_occurrence ? '🔁 ' : '';
   return (
-    <div className={`calendar-day-event${active ? ' happening-now' : ''}`} onClick={onClick}>
+    <div
+      role="button" tabIndex={0} className={`calendar-day-event${active ? ' happening-now' : ''}`} onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+    >
       <div>
         <div className="calendar-day-event-title">{recurIcon}{event.title}</div>
         {event.location && <div className="calendar-day-event-meta">📍 {event.location}</div>}

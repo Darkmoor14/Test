@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useId } from 'react';
 import { useProjects } from './ProjectsContext';
 
 export function BacklogForm() {
+  const a11yId = useId();
   const store = useProjects();
   const [title, setTitle] = useState('');
   const [address, setAddress] = useState('');
@@ -33,11 +34,11 @@ export function BacklogForm() {
   return (
     <div className="project-form" style={{ display: 'block' }}>
       <div className="pf-grid">
-        <div className="ctrl-field"><label>Tipul lucrării</label><input type="text" placeholder="ex: Extindere rețea electrică" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-        <div className="ctrl-field"><label>Adresă</label><input type="text" placeholder="ex: Str. Gh. Doja, Târgu-Mureș" value={address} onChange={(e) => setAddress(e.target.value)} /></div>
-        <div className="ctrl-field"><label>Nume angajat</label><input type="text" placeholder="ex: Ionel Ghiurchi" value={employee} onChange={(e) => setEmployee(e.target.value)} /></div>
-        <div className="ctrl-field"><label>Data înregistrării</label><input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></div>
-        <div className="ctrl-field" style={{ gridColumn: '1/-1' }}><label>Descriere</label><input type="text" placeholder="Detalii despre lucrare" value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+        <div className="ctrl-field"><label htmlFor={`${a11yId}-tipul-lucr-rii`}>Tipul lucrării</label><input type="text" placeholder="ex: Extindere rețea electrică" value={title} onChange={(e) => setTitle(e.target.value)} id={`${a11yId}-tipul-lucr-rii`}/></div>
+        <div className="ctrl-field"><label htmlFor={`${a11yId}-adres`}>Adresă</label><input type="text" placeholder="ex: Str. Gh. Doja, Târgu-Mureș" value={address} onChange={(e) => setAddress(e.target.value)} id={`${a11yId}-adres`}/></div>
+        <div className="ctrl-field"><label htmlFor={`${a11yId}-nume-angajat`}>Nume angajat</label><input type="text" placeholder="ex: Ionel Ghiurchi" value={employee} onChange={(e) => setEmployee(e.target.value)} id={`${a11yId}-nume-angajat`}/></div>
+        <div className="ctrl-field"><label htmlFor={`${a11yId}-data-nregistr-rii`}>Data înregistrării</label><input type="date" value={start} onChange={(e) => setStart(e.target.value)} id={`${a11yId}-data-nregistr-rii`}/></div>
+        <div className="ctrl-field" style={{ gridColumn: '1/-1' }}><label htmlFor={`${a11yId}-descriere`}>Descriere</label><input type="text" placeholder="Detalii despre lucrare" value={description} onChange={(e) => setDescription(e.target.value)} id={`${a11yId}-descriere`}/></div>
       </div>
       <div className="pf-actions">
         <button className="btn" type="button" onClick={store.closeBacklogForm}>Anulează</button>

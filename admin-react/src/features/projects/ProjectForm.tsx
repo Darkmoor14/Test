@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useId } from 'react';
 import { useProjects } from './ProjectsContext';
 
 export function ProjectForm() {
+  const a11yId = useId();
   const store = useProjects();
   const [title, setTitle] = useState('');
   const [address, setAddress] = useState('');
@@ -34,11 +35,11 @@ export function ProjectForm() {
   return (
     <div className="project-form" style={{ display: 'block' }}>
       <div className="pf-grid">
-        <div className="ctrl-field"><label>Tip lucrare / Titlu</label><input type="text" placeholder="ex: Reabilitare rețea electrică" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-        <div className="ctrl-field"><label>Adresă</label><input type="text" placeholder="ex: Str. Gh. Doja, Târgu-Mureș" value={address} onChange={(e) => setAddress(e.target.value)} /></div>
-        <div className="ctrl-field"><label>Data început</label><input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></div>
-        <div className="ctrl-field"><label>Data finalizare estimată</label><input type="date" value={due} onChange={(e) => setDue(e.target.value)} /></div>
-        <div className="ctrl-field" style={{ gridColumn: '1/-1' }}><label>Note (opțional, intern)</label><input type="text" placeholder="Vizibil doar aici, nu pe site" value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+        <div className="ctrl-field"><label htmlFor={`${a11yId}-tip-lucrare-titlu`}>Tip lucrare / Titlu</label><input type="text" placeholder="ex: Reabilitare rețea electrică" value={title} onChange={(e) => setTitle(e.target.value)} id={`${a11yId}-tip-lucrare-titlu`}/></div>
+        <div className="ctrl-field"><label htmlFor={`${a11yId}-adres`}>Adresă</label><input type="text" placeholder="ex: Str. Gh. Doja, Târgu-Mureș" value={address} onChange={(e) => setAddress(e.target.value)} id={`${a11yId}-adres`}/></div>
+        <div className="ctrl-field"><label htmlFor={`${a11yId}-data-nceput`}>Data început</label><input type="date" value={start} onChange={(e) => setStart(e.target.value)} id={`${a11yId}-data-nceput`}/></div>
+        <div className="ctrl-field"><label htmlFor={`${a11yId}-data-finalizare-estimat`}>Data finalizare estimată</label><input type="date" value={due} onChange={(e) => setDue(e.target.value)} id={`${a11yId}-data-finalizare-estimat`}/></div>
+        <div className="ctrl-field" style={{ gridColumn: '1/-1' }}><label htmlFor={`${a11yId}-note-op-ional-intern`}>Note (opțional, intern)</label><input type="text" placeholder="Vizibil doar aici, nu pe site" value={notes} onChange={(e) => setNotes(e.target.value)} id={`${a11yId}-note-op-ional-intern`}/></div>
       </div>
       <div className="pf-actions">
         <button className="btn" type="button" onClick={store.closeProjectForm}>Anulează</button>

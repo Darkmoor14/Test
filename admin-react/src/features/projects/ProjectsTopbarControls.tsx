@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState, useId } from 'react';
 import { useProjects } from './ProjectsContext';
 import { SearchToggle } from '../tickets/SearchToggle';
 import { useSavedFilterViews, type SavedFilterView } from '../tickets/useSavedFilterViews';
@@ -25,6 +25,7 @@ function SimpleFilterPopover<K extends string>({
   status: K; setStatus: (v: K) => void; defaultStatus: K;
   noteClassName?: string;
 }) {
+  const a11yId = useId();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const { views, load, save, remove } = useSavedFilterViews(scope, sessionEmail);
@@ -75,8 +76,8 @@ function SimpleFilterPopover<K extends string>({
           {setYear && (
             <div className="sheet-grid popover-yearmonth">
               <div className="ctrl-field">
-                <label>An</label>
-                <select value={year} onChange={(e) => setYear(e.target.value)}>
+                <label htmlFor={`${a11yId}-an`}>An</label>
+                <select value={year} onChange={(e) => setYear(e.target.value)} id={`${a11yId}-an`}>
                   <option value="all">Toate anii</option>
                   {(availableYears || []).map((y) => <option key={y} value={y}>{y}</option>)}
                 </select>
@@ -84,20 +85,27 @@ function SimpleFilterPopover<K extends string>({
             </div>
           )}
           <div className="sheet-filter-status">
-            <label>Stare listă</label>
-            <div className="chips">
+            <label id={`${a11yId}-stare-lista-label`}>Stare listă</label>
+            <div className="chips" role="group" aria-labelledby={`${a11yId}-stare-lista-label`}>
               {STATUS_CHIP_DEFS.map((c) => (
                 <button key={c.key} type="button" className={`chip${c.key === status ? ' active' : ''}`} onClick={() => setStatus(c.key as K)}>{c.label}</button>
               ))}
             </div>
           </div>
           <div className="popover-saved-views">
-            <label>Vizualizări salvate</label>
-            <div className="saved-views-chips">
+            <label id={`${a11yId}-vizualizari-salvate-label`}>Vizualizări salvate</label>
+            <div className="saved-views-chips" role="group" aria-labelledby={`${a11yId}-vizualizari-salvate-label`}>
               {views.map((v) => (
-                <span key={v.id} className="saved-view-chip" onClick={() => applyView(v)}>
+                <span
+                  key={v.id} role="button" tabIndex={0} className="saved-view-chip" onClick={() => applyView(v)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyView(v); } }}
+                >
                   <span>{v.name}</span>
-                  <span className="saved-view-chip-remove" aria-label="Șterge vizualizarea" onClick={(e) => { e.stopPropagation(); remove(v.id); }}>×</span>
+                  <span
+                    role="button" tabIndex={0} className="saved-view-chip-remove" aria-label="Șterge vizualizarea"
+                    onClick={(e) => { e.stopPropagation(); remove(v.id); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); remove(v.id); } }}
+                  >×</span>
                 </span>
               ))}
             </div>
@@ -125,13 +133,14 @@ function SimpleFilterPopover<K extends string>({
 }
 
 export function ProjectsYearBarInner() {
+  const a11yId = useId();
   const store = useProjects();
   const now = new Date();
   const isPastYear = store.projectYearFilter !== 'all' && store.projectYearFilter !== String(now.getFullYear());
   return (
     <Fragment>
-      <label>An:</label>
-      <select className={isPastYear ? 'not-current-year' : ''} value={store.projectYearFilter} onChange={(e) => store.setProjectYearFilter(e.target.value)}>
+      <label htmlFor={`${a11yId}-an`}>An:</label>
+      <select className={isPastYear ? 'not-current-year' : ''} value={store.projectYearFilter} onChange={(e) => store.setProjectYearFilter(e.target.value)} id={`${a11yId}-an`}>
         <option value="all">Toate anii</option>
         {store.projectAvailableYears.map((y) => <option key={y} value={y}>{y}</option>)}
       </select>

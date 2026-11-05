@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
+import { useModalSheet } from '../../lib/useModalSheet';
 import { useSupabase } from '../../lib/supabaseContext';
 
 declare global {
@@ -25,6 +26,7 @@ declare global {
 // panel) and opened via window.openCalendarSync -- its trigger button
 // is on the Documentație page now, not Acasă's calendar card.
 export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const a11yId = useId();
   const supabase = useSupabase();
   const [token, setToken] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
@@ -47,6 +49,8 @@ export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: (
       setEmail(sessionRes.data.session?.user.email ?? null);
     });
   }, [open, supabase]);
+
+  const { panelRef, handleKeyDown, backdropOnClick } = useModalSheet({ open, onClose, guard: regenerating });
 
   if (!open) return null;
 
@@ -82,9 +86,9 @@ export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: (
   };
 
   return (
-    <div id="calendarSyncSheet" className="mobile-sheet show" aria-hidden="false">
-      <div className="mobile-sheet-backdrop" onClick={onClose} />
-      <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="calendarSyncSheetTitle">
+    <div id="calendarSyncSheet" className="mobile-sheet show" aria-hidden="false" onKeyDown={handleKeyDown}>
+      <div className="mobile-sheet-backdrop" onClick={backdropOnClick} />
+      <div ref={panelRef} tabIndex={-1} className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="calendarSyncSheetTitle">
         <div className="mobile-sheet-panel-scroll">
           <div className="sheet-handle" />
           <div className="sheet-head">
@@ -94,7 +98,7 @@ export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: (
                 ? 'Cont de calendar complet — adaugi sau editezi un eveniment pe telefon și apare și aici, nu doar invers.'
                 : 'Evenimentele tale apar automat pe telefon, dar doar într-un singur sens — editarea unui eveniment pe telefon nu se întoarce aici.'}</p>
             </div>
-            <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
+            <button type="button" className="sheet-close" aria-label="Închide" disabled={regenerating} onClick={onClose}>×</button>
           </div>
 
           <div className="ticket-type-switch" style={{ marginBottom: 14 }}>
@@ -107,23 +111,23 @@ export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: (
           {!loading && token && mode === 'caldav' && (
             <>
               <div className="ctrl-field">
-                <label>Adresă server</label>
+                <label htmlFor={`${a11yId}-dav-host`}>Adresă server</label>
                 <div className="cal-sync-link-row">
-                  <input type="text" readOnly value={davHost} onFocus={(e) => e.target.select()} />
+                  <input id={`${a11yId}-dav-host`} type="text" readOnly value={davHost} onFocus={(e) => e.target.select()} />
                   <button type="button" className="btn" onClick={() => copy('url', davHost)}>{copiedField === 'url' ? 'Copiat ✓' : 'Copiază'}</button>
                 </div>
               </div>
               <div className="ctrl-field">
-                <label>Utilizator</label>
+                <label htmlFor={`${a11yId}-dav-user`}>Utilizator</label>
                 <div className="cal-sync-link-row">
-                  <input type="text" readOnly value={email || ''} onFocus={(e) => e.target.select()} />
+                  <input id={`${a11yId}-dav-user`} type="text" readOnly value={email || ''} onFocus={(e) => e.target.select()} />
                   <button type="button" className="btn" onClick={() => copy('user', email || '')}>{copiedField === 'user' ? 'Copiat ✓' : 'Copiază'}</button>
                 </div>
               </div>
               <div className="ctrl-field">
-                <label>Parolă</label>
+                <label htmlFor={`${a11yId}-dav-pass`}>Parolă</label>
                 <div className="cal-sync-link-row">
-                  <input type="text" readOnly value={token} onFocus={(e) => e.target.select()} />
+                  <input id={`${a11yId}-dav-pass`} type="text" readOnly value={token} onFocus={(e) => e.target.select()} />
                   <button type="button" className="btn" onClick={() => copy('pass', token)}>{copiedField === 'pass' ? 'Copiat ✓' : 'Copiază'}</button>
                 </div>
               </div>
@@ -151,9 +155,9 @@ export function CalendarSyncSheet({ open, onClose }: { open: boolean; onClose: (
           {!loading && token && mode === 'feed' && (
             <>
               <div className="ctrl-field">
-                <label>Link abonament calendar</label>
+                <label htmlFor={`${a11yId}-feed-url`}>Link abonament calendar</label>
                 <div className="cal-sync-link-row">
-                  <input type="text" readOnly value={httpsUrl} onFocus={(e) => e.target.select()} />
+                  <input id={`${a11yId}-feed-url`} type="text" readOnly value={httpsUrl} onFocus={(e) => e.target.select()} />
                   <button type="button" className="btn" onClick={() => copy('feed', httpsUrl)}>{copiedField === 'feed' ? 'Copiat ✓' : 'Copiază'}</button>
                 </div>
               </div>

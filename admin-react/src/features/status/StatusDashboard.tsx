@@ -10,7 +10,7 @@ function StatusDot({ state }: { state: 'ok' | 'bad' | 'checking' | null }) {
 }
 
 export function StatusDashboard({ sessionEmail, landingPage }: { sessionEmail: string | null; landingPage?: string }) {
-  const { state, loadSystemStatus, checkSystem } = useStatusChecks(sessionEmail);
+  const { state, loadSystemStatus, checkSystem, refreshing } = useStatusChecks(sessionEmail);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [enabling, setEnabling] = useState(false);
   const subscribeToPush = useSubscribeToPush(sessionEmail, landingPage);
@@ -188,7 +188,7 @@ export function StatusDashboard({ sessionEmail, landingPage }: { sessionEmail: s
       </div>
       <div className="status-refresh-row">
         <span>{state.lastCheckedLabel}</span>
-        <button type="button" className="btn" onClick={loadSystemStatus}>
+        <button type="button" className="btn" disabled={refreshing} onClick={loadSystemStatus}>
           Reîmprospătează
         </button>
       </div>
