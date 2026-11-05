@@ -590,32 +590,39 @@
   // uptoYear/uptoMonth (leftover starts at 0 -- some vehicles already had
   // fuel in the tank before tracking began, but that's unknowable and
   // self-corrects over a few months same as any other baseline-less first
-  // reading in this file). Each month's "theoretical" burn is the
-  // vehicle's manufacturer-RATED consumption (fuel_rated_consumption_km/
-  // hours, the same figure used for the over-limit alert) applied to that
-  // month's km/hours -- comparing against what was actually purchased
-  // gives a surplus/deficit, which carries into the next month capped by
-  // the tank's physical capacity (fuel_tank_capacity_l). A month whose
-  // balance would overflow that cap means more was bought than could
-  // possibly have fit, which is exactly the signal that catches
-  // fuel-card skimming or a misdeclared fill-up.
+  // reading in this file). Each month's "theoretical" burn is a
+  // consumption RATE applied to that month's km/hours -- comparing
+  // against what was actually purchased gives a surplus/deficit, which
+  // carries into the next month capped by the tank's physical capacity
+  // (fuel_tank_capacity_l). A month whose balance would overflow that cap
+  // means more was bought than could possibly have fit, which is exactly
+  // the signal that catches fuel-card skimming or a misdeclared fill-up.
   //
-  // Deliberately the RATED figure, not a self-calibrated "real" average
-  // (purchased ÷ driven, over this same vehicle's own history) -- that
-  // was tried first and is mathematically circular: a rate calibrated
-  // FROM total-purchased-over-total-driven, then applied back against
-  // those exact same totals, forces purchased minus theoretical-burn to
-  // net to ~0 by construction, for whichever month is the most recently
-  // tracked one. The displayed leftover would show ~0 regardless of the
-  // vehicle's real tank level, moving away from zero only as an artifact
-  // of an earlier month's capacity clamp -- not a genuine signal. The
-  // rated figure is independent of the purchase/distance totals it's
-  // compared against, so it doesn't have this problem.
+  // The rate for month M is this vehicle's own observed average (total
+  // purchased ÷ total driven) over every month STRICTLY BEFORE M --
+  // never including M's own purchased/driven figures. That excluding is
+  // what makes this safe to self-calibrate from the vehicle's actual
+  // history instead of a manufacturer spec sheet: a rate computed FROM
+  // the same totals it's then measured against would force purchased
+  // minus theoretical-burn to net to ~0 by construction for whichever
+  // month is most recently tracked (tried first, and that's exactly what
+  // happened -- the displayed leftover was ~0 no matter the vehicle's
+  // real tank level). Comparing month M against a rate built only from
+  // what came before it has no such identity -- a real deviation (this
+  // month burned more/less than the vehicle has been trending) shows up
+  // as a genuine surplus or deficit. Before any prior month exists (a
+  // vehicle's very first tracked month) there's nothing to average yet,
+  // so that one month falls back to the manufacturer-rated figure
+  // (fuel_rated_consumption_km/hours, same one used for the over-limit
+  // alert) if set, or otherwise assumes that month's own purchase was
+  // exactly consumed (no error either way, same as the existing
+  // leftover-starts-at-0 assumption two paragraphs up) -- accuracy here
+  // is expected to be rough until a few months of real history accumulate.
   function vehicleFuelLeftoverChain(eq, unit, uptoYear, uptoMonth){
     const chain = new Map();
     const capacity = eq.fuel_tank_capacity_l != null ? Number(eq.fuel_tank_capacity_l) : null;
+    if (capacity == null) return chain;
     const rated = eq[ratedFieldFor(unit)] != null ? Number(eq[ratedFieldFor(unit)]) : null;
-    if (capacity == null || rated == null) return chain;
     const field = readingFieldFor(unit);
     const months = allVehicleFuelLogs
       .filter(l => l.vehicle_id === eq.id && l[field] != null
@@ -623,6 +630,7 @@
       .map(l => ({ year: l.year, month: l.month }))
       .sort((a, b) => (a.year - b.year) || (a.month - b.month));
     let leftover = 0;
+    let priorDelta = 0, priorPurchased = 0; // every STRICTLY earlier month only
     months.forEach(m => {
       const log = fuelLogFor(eq.id, m.year, m.month);
       const baseline = previousFuelReadingFor(eq, unit, m.year, m.month);
@@ -635,7 +643,9 @@
       // excluded (treated as 0 so it doesn't corrupt the chain).
       const delta = (reading != null && baseline != null && reading - baseline >= 0) ? reading - baseline : 0;
       const purchased = fuelPurchaseSum(eq.id, m.year, m.month);
-      const theoretical = rated * delta / (unit === 'hours' ? 1 : 100);
+      const trailingRate = priorDelta > 0 ? (priorPurchased / priorDelta) * (unit === 'hours' ? 1 : 100) : null;
+      const rate = trailingRate != null ? trailingRate : rated;
+      const theoretical = rate != null ? rate * delta / (unit === 'hours' ? 1 : 100) : purchased;
       const leftoverIn = leftover;
       const rawLeftoverOut = leftoverIn + purchased - theoretical;
       const leftoverOut = Math.max(0, Math.min(capacity, rawLeftoverOut));
@@ -650,6 +660,8 @@
       const capacityDeficit = rawLeftoverOut < 0;
       chain.set(`${m.year}-${m.month}`, { leftoverIn, leftoverOut, delta, purchased, theoretical, capacityOverflow, capacityDeficit });
       leftover = leftoverOut;
+      priorDelta += delta;
+      priorPurchased += purchased;
     });
     return chain;
   }
@@ -668,9 +680,9 @@
     const totalAdded = fuelPurchaseSum(eq.id, year, month);
     // Adjusted for the running tank balance when one can be computed
     // (see vehicleFuelLeftoverChain) -- falls back to the raw
-    // liters-purchased figure otherwise (no tank capacity or no rated
-    // consumption set on the vehicle). Locked to THIS month's own
-    // cutoff, so it never moves once computed.
+    // liters-purchased figure otherwise (no tank capacity set on the
+    // vehicle at all). Locked to THIS month's own cutoff, so it never
+    // moves once computed.
     const leftoverEntry = vehicleFuelLeftoverChain(eq, unit, year, month).get(`${year}-${month}`) || null;
     const consumedBasis = leftoverEntry != null ? (leftoverEntry.leftoverIn + totalAdded - leftoverEntry.leftoverOut) : totalAdded;
     // delta > 0 (not just != null) -- a 0-distance month can't have a
