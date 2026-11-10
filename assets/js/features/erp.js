@@ -579,100 +579,22 @@
   // (there's only one tank) -- each is "what this would be if all of
   // it went to that use", not a true split, since the data doesn't
   // distinguish which liters went where.
-  // vehicle_dual_unit_consumption_trigger migration mirrors this exact
-  // logic server-side (check_vehicle_month_fuel_consumption) for the
-  // >50% alert, so this is display-only here. REPORT_MONTHS comes from
-  // excel.js (shared top-level script scope, same cross-file pattern
-  // already used throughout this app) — only referenced inside
-  // functions, never at load time, so file load order doesn't matter.
-  // Month-by-month running fuel-tank balance for one vehicle+unit, chained
-  // chronologically from its first tracked month up to and including
-  // uptoYear/uptoMonth (leftover starts at 0 -- some vehicles already had
-  // fuel in the tank before tracking began, but that's unknowable and
-  // self-corrects over a few months same as any other baseline-less first
-  // reading in this file). Each month's "theoretical" burn is a
-  // consumption RATE applied to that month's km/hours -- comparing
-  // against what was actually purchased gives a surplus/deficit, which
-  // carries into the next month capped by the tank's physical capacity
-  // (fuel_tank_capacity_l) -- a tank can't carry forward more than it
-  // physically holds, so a month that comes out above capacity just
-  // means it ended full, not that anything's wrong (equipment with a
-  // small tank gets topped up more than once a month as a matter of
-  // course, so a MONTH's total purchases routinely exceed what the tank
-  // holds in one sitting -- that alone proves nothing). A deficit is the
-  // genuine signal: burning more than was ever available, even granting
-  // every liter bought that month, isn't explained away by how many
-  // times it was refueled -- that one still means the fuel bills or the
-  // reading are off.
+  // REPORT_MONTHS comes from excel.js (shared top-level script scope,
+  // same cross-file pattern already used throughout this app) — only
+  // referenced inside functions, never at load time, so file load
+  // order doesn't matter.
   //
-  // The rate for month M is this vehicle's own observed average (total
-  // purchased ÷ total driven) over every month STRICTLY BEFORE M --
-  // never including M's own purchased/driven figures. That excluding is
-  // what makes this safe to self-calibrate from the vehicle's actual
-  // history instead of a manufacturer spec sheet: a rate computed FROM
-  // the same totals it's then measured against would force purchased
-  // minus theoretical-burn to net to ~0 by construction for whichever
-  // month is most recently tracked (tried first, and that's exactly what
-  // happened -- the displayed leftover was ~0 no matter the vehicle's
-  // real tank level). Comparing month M against a rate built only from
-  // what came before it has no such identity -- a real deviation (this
-  // month burned more/less than the vehicle has been trending) shows up
-  // as a genuine surplus or deficit. Before any prior month exists (a
-  // vehicle's very first tracked month) there's nothing to average yet,
-  // so that one month falls back to the manufacturer-rated figure
-  // (fuel_rated_consumption_km/hours, same one used for the over-limit
-  // alert) if set, or otherwise assumes that month's own purchase was
-  // exactly consumed (no error either way, same as the existing
-  // leftover-starts-at-0 assumption two paragraphs up) -- accuracy here
-  // is expected to be rough until a few months of real history accumulate.
-  function vehicleFuelLeftoverChain(eq, unit, uptoYear, uptoMonth){
-    const chain = new Map();
-    const capacity = eq.fuel_tank_capacity_l != null ? Number(eq.fuel_tank_capacity_l) : null;
-    if (capacity == null) return chain;
-    const rated = eq[ratedFieldFor(unit)] != null ? Number(eq[ratedFieldFor(unit)]) : null;
-    const field = readingFieldFor(unit);
-    const months = allVehicleFuelLogs
-      .filter(l => l.vehicle_id === eq.id && l[field] != null
-        && (l.year < uptoYear || (l.year === uptoYear && l.month <= uptoMonth)))
-      .map(l => ({ year: l.year, month: l.month }))
-      .sort((a, b) => (a.year - b.year) || (a.month - b.month));
-    let leftover = 0;
-    let priorDelta = 0, priorPurchased = 0; // every STRICTLY earlier month only
-    months.forEach(m => {
-      const log = fuelLogFor(eq.id, m.year, m.month);
-      const baseline = previousFuelReadingFor(eq, unit, m.year, m.month);
-      const reading = log && log[field] != null ? Number(log[field]) : null;
-      // >= 0, not > 0 -- a vehicle that was read but genuinely sat idle
-      // (0 km/0 h that month) is real data, not "nothing logged", and
-      // contributes a real 0 delta (0 theoretical burn) rather than
-      // being excluded; only an actual decrease (bad data -- a typo'd
-      // reading below the last one, already flagged at save time) is
-      // excluded (treated as 0 so it doesn't corrupt the chain).
-      const delta = (reading != null && baseline != null && reading - baseline >= 0) ? reading - baseline : 0;
-      const purchased = fuelPurchaseSum(eq.id, m.year, m.month);
-      const trailingRate = priorDelta > 0 ? (priorPurchased / priorDelta) * (unit === 'hours' ? 1 : 100) : null;
-      const rate = trailingRate != null ? trailingRate : rated;
-      const theoretical = rate != null ? rate * delta / (unit === 'hours' ? 1 : 100) : purchased;
-      const leftoverIn = leftover;
-      const rawLeftoverOut = leftoverIn + purchased - theoretical;
-      const leftoverOut = Math.max(0, Math.min(capacity, rawLeftoverOut));
-      // Clamping alone never SHOWS that a deficit was caught, it just
-      // silently floors the number at 0 -- capacityDeficit carries that
-      // signal out to the table/card so it's actually visible. (The
-      // overflow side doesn't get an equivalent flag -- see the comment
-      // on this function for why going over capacity isn't a signal of
-      // anything by itself.)
-      const capacityDeficit = rawLeftoverOut < 0;
-      chain.set(`${m.year}-${m.month}`, { leftoverIn, leftoverOut, delta, purchased, theoretical, capacityDeficit });
-      leftover = leftoverOut;
-      priorDelta += delta;
-      priorPurchased += purchased;
-    });
-    return chain;
-  }
-  function vehicleFuelConsumptionFor(eq, unit, year, month){
-    const unitLbl = unitLabel(unit);
-    const unitRateLabel = unit === 'hours' ? 'L/H' : 'L/100km';
+  // This month's own ratio: total liters bought THIS month, divided by
+  // THIS month's own km/hours, alone -- no other month's figures ever
+  // enter into it. An earlier version of this file compared each month
+  // against a "theoretical burn" rate carried forward from its OWN
+  // history (self-calibrated trailing average, or a manufacturer-rated
+  // fallback) -- meant to catch skimming/misdeclared fill-ups, but it
+  // meant one off month (a missing fill-up, a typo'd odometer reading)
+  // corrupted every month that came after it, sometimes for years.
+  // Keeping each month's own figure strictly self-contained is what
+  // fixes that -- a bad month now stays contained to itself.
+  function vehicleMonthlyRatio(eq, unit, year, month){
     const field = readingFieldFor(unit);
     const log = fuelLogFor(eq.id, year, month);
     const reading = (log && log[field] != null) ? Number(log[field]) : null;
@@ -682,25 +604,113 @@
     // reading at all; only an actual decrease (bad data) falls back to
     // null delta instead.
     const delta = (reading != null && baseline != null && reading - baseline >= 0) ? (reading - baseline) : null;
-    const totalAdded = fuelPurchaseSum(eq.id, year, month);
-    // Adjusted for the running tank balance when one can be computed
-    // (see vehicleFuelLeftoverChain) -- falls back to the raw
-    // liters-purchased figure otherwise (no tank capacity set on the
-    // vehicle at all). Locked to THIS month's own cutoff, so it never
-    // moves once computed.
-    const leftoverEntry = vehicleFuelLeftoverChain(eq, unit, year, month).get(`${year}-${month}`) || null;
-    const consumedBasis = leftoverEntry != null ? (leftoverEntry.leftoverIn + totalAdded - leftoverEntry.leftoverOut) : totalAdded;
+    const purchased = fuelPurchaseSum(eq.id, year, month);
     // delta > 0 (not just != null) -- a 0-distance month can't have a
     // per-km/per-hour rate; dividing by that zero delta would otherwise
     // produce Infinity instead of the "—" this correctly falls back to.
-    const actual = (delta != null && delta > 0 && consumedBasis > 0)
-      ? (unit === 'hours' ? consumedBasis / delta : consumedBasis / delta * 100)
-      : null;
+    const ratio = (delta != null && delta > 0) ? purchased / delta * (unit === 'hours' ? 1 : 100) : null;
+    return { delta, purchased, ratio };
+  }
+  function daysInMonth(year, month){ return new Date(year, month, 0).getDate(); }
+  // Midnight on a month's last day -- the fallback "day of fill-up" for
+  // any purchase with no purchase_date on record (logged before that
+  // column existed, or never corrected). A fill-up with no known day
+  // is treated as having happened at the very end of its month, i.e.
+  // zero days before whatever cutoff is asking "how long since this
+  // vehicle was last fueled" -- the tank reads as still full rather
+  // than guessing at a day it was never actually filled.
+  function lastDayOfMonth(year, month){ return new Date(year, month, 0); }
+  function effectivePurchaseDate(p){
+    return p.purchase_date ? new Date(p.purchase_date + 'T00:00:00') : lastDayOfMonth(p.year, p.month);
+  }
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  // The single most recent fill-up on record for this vehicle, as of
+  // (year, month) inclusive -- across this vehicle's ENTIRE history,
+  // not just this one month, since a month with no purchase at all
+  // (it just kept running on whatever was already in the tank) still
+  // needs to know how long it's been since fuel was last added.
+  function mostRecentPurchaseUpTo(vehicleId, year, month){
+    const candidates = allVehicleFuelPurchases.filter(p => p.vehicle_id === vehicleId
+      && (p.year < year || (p.year === year && p.month <= month)));
+    if (!candidates.length) return null;
+    let best = null, bestDate = null;
+    candidates.forEach(p => {
+      const d = effectivePurchaseDate(p);
+      if (!bestDate || d > bestDate) { bestDate = d; best = p; }
+    });
+    return { purchase: best, date: bestDate };
+  }
+  // Estimated fuel left in the tank at the END of (year, month) --
+  // assumes the LAST actual fill-up on record topped the tank to full
+  // (a normal fleet habit, and there's no data here to tell a full
+  // top-up apart from a partial one anyway), then estimates how much
+  // of that has burned off between that fill-up's day and this
+  // month's last day: this vehicle's own average daily km/hours for
+  // the month, times the days since that fill-up, times a consumption
+  // rate. That rate is THIS month's own ratio if this month had a
+  // fill-up to compute one from, or otherwise the most recent EARLIER
+  // month that did -- a month with no purchase says nothing about how
+  // fast the vehicle burns fuel, so the last known rate is still the
+  // best available estimate for that (same "carry the last known
+  // value forward" reasoning previousFuelReadingFor already uses for
+  // a reading baseline).
+  function estimatedLeftoverFor(eq, unit, year, month){
+    const capacity = eq.fuel_tank_capacity_l != null ? Number(eq.fuel_tank_capacity_l) : null;
+    if (capacity == null) return null;
+    const { delta } = vehicleMonthlyRatio(eq, unit, year, month);
+    if (delta == null) return null; // no reading this month -- nothing to project from
+    const last = mostRecentPurchaseUpTo(eq.id, year, month);
+    if (!last) return null; // never once fueled -- no fill-up to measure days since
+    let rateYear = year, rateMonth = month, rate = null;
+    for (let i = 0; i < 36 && rate == null; i++) {
+      const r = vehicleMonthlyRatio(eq, unit, rateYear, rateMonth).ratio;
+      if (r != null) { rate = r; break; }
+      if (rateYear < last.purchase.year || (rateYear === last.purchase.year && rateMonth <= last.purchase.month)) break;
+      rateMonth -= 1;
+      if (rateMonth < 1) { rateMonth = 12; rateYear -= 1; }
+    }
+    if (rate == null) return null;
+    const avgDailyUnit = delta / daysInMonth(year, month); // km/day or hours/day
+    const monthEnd = lastDayOfMonth(year, month);
+    const daysSinceFillUp = Math.max(0, Math.round((monthEnd - last.date) / MS_PER_DAY));
+    const unitsSinceFillUp = avgDailyUnit * daysSinceFillUp;
+    const burnedSinceFillUp = rate * unitsSinceFillUp / (unit === 'hours' ? 1 : 100);
+    const rawLeftover = capacity - burnedSinceFillUp;
+    // A negative raw value means even a full tank at the last fill-up
+    // couldn't cover what the estimate says was burned since -- that's
+    // the genuine signal (fuel bills or a reading are off), same
+    // meaning capacityDeficit always carried in the old model.
+    return { leftover: Math.max(0, Math.min(capacity, rawLeftover)), deficit: rawLeftover < 0 };
+  }
+  // Fraud/anomaly flag: this month's own ratio against the average of
+  // up to the 3 most recent EARLIER months that each had a computable
+  // ratio of their own -- fewer than 3 if the vehicle doesn't have
+  // that much history yet (still a signal, just a noisier one, rather
+  // than staying silent until a 4th month exists).
+  function vehicleConsumptionSpikeFlag(eq, unit, year, month, thisRatio){
+    if (thisRatio == null) return false;
+    const priorRatios = [];
+    let y = year, m = month;
+    for (let i = 0; i < 36 && priorRatios.length < 3; i++) {
+      m -= 1;
+      if (m < 1) { m = 12; y -= 1; }
+      const r = vehicleMonthlyRatio(eq, unit, y, m).ratio;
+      if (r != null) priorRatios.push(r);
+    }
+    if (!priorRatios.length) return false;
+    const avg = priorRatios.reduce((a, b) => a + b, 0) / priorRatios.length;
+    return thisRatio > avg * 1.20;
+  }
+  function vehicleFuelConsumptionFor(eq, unit, year, month){
+    const unitLbl = unitLabel(unit);
+    const unitRateLabel = unit === 'hours' ? 'L/H' : 'L/100km';
+    const { delta, purchased: totalAdded, ratio: actual } = vehicleMonthlyRatio(eq, unit, year, month);
     const rated = eq[ratedFieldFor(unit)] != null ? Number(eq[ratedFieldFor(unit)]) : null;
-    const overLimit = actual != null && rated != null && actual > rated * 1.5;
-    const leftoverOut = leftoverEntry != null ? leftoverEntry.leftoverOut : null;
-    const capacityDeficit = leftoverEntry != null ? leftoverEntry.capacityDeficit : false;
-    return { unit: unitLbl, unitRateLabel, reading, baseline, delta, totalAdded, actual, rated, overLimit, leftoverOut, capacityDeficit };
+    const overLimit = vehicleConsumptionSpikeFlag(eq, unit, year, month, actual);
+    const leftoverEntry = estimatedLeftoverFor(eq, unit, year, month);
+    const leftoverOut = leftoverEntry ? leftoverEntry.leftover : null;
+    const capacityDeficit = leftoverEntry ? leftoverEntry.deficit : false;
+    return { unit: unitLbl, unitRateLabel, delta, totalAdded, actual, rated, overLimit, leftoverOut, capacityDeficit };
   }
   // Across every unit this vehicle tracks (one for most, two for
   // Camion/Autoutilitara).
@@ -726,9 +736,11 @@
     if (!tbody) return;
     if (labelEl) labelEl.textContent = `${REPORT_MONTHS[fuelReportMonth - 1]} ${fuelReportYear}`;
     const { allVehicles } = machinesFilterCounts();
-    // This page's own "Notificări" — vehicles over 50% of normat for
-    // the month currently displayed, not the doc-expiry warnings
-    // Prezentare generală's identical-looking card means.
+    // This page's own "Notificări" — vehicles whose consumption this
+    // month spiked more than 20% above their own recent average for
+    // the month currently displayed (see vehicleConsumptionSpikeFlag),
+    // not the doc-expiry warnings Prezentare generală's
+    // identical-looking card means.
     const fuelUrgentVehicles = allVehicles.filter(eq => vehicleFuelOverLimit(eq, fuelReportYear, fuelReportMonth));
     renderMachinesFilterCardsInto(cardsWrap, fuelReportSubcatFilter, (nextKey) => {
       fuelReportSubcatFilter = nextKey;
@@ -787,21 +799,15 @@
       // vehicle both branches compute the identical leftoverOut, so show
       // it once rather than joining a duplicate.
       const leftoverVal = [kmC, hC].map(c => c && c.leftoverOut).find(v => v != null);
-      // leftoverOut is the fuel actually left in the tank at month's
-      // end (see vehicleFuelLeftoverChain) -- a positive quantity, same
+      // leftoverOut is the estimated fuel left in the tank at month's
+      // end (see estimatedLeftoverFor) -- a positive quantity, same
       // meaning the reservoir's own row shows in this exact column
-      // (e.g. "364 L"). A minus sign here was showing that same
-      // positive balance as if it were a deficit (e.g. "-35.2 L" for a
-      // tank that actually HAD 35.2 L left), backwards from what the
-      // column means and inconsistent with the reservoir's own row.
+      // (e.g. "364 L").
       const leftoverCell = leftoverVal == null ? na : (leftoverVal < 0.05 ? '0.0 L' : `${leftoverVal.toFixed(1)} L`);
-      // Surfaces what the capacity clamp inside vehicleFuelLeftoverChain
-      // otherwise catches silently: the theoretical burn implies more
-      // fuel than was ever available, even granting every liter bought
-      // that month (capacityDeficit) -- a sign the fuel bills or the
-      // reading are off. Landing AT capacity isn't flagged -- that's
-      // just a full tank, completely normal for equipment topped up
-      // more than once a month (see vehicleFuelLeftoverChain's comment).
+      // Surfaces what estimatedLeftoverFor otherwise catches silently:
+      // even a full tank at the last fill-up couldn't cover what the
+      // estimate says was burned since (capacityDeficit) -- a sign the
+      // fuel bills or a reading are off.
       const capacityFlag = [kmC, hC].some(c => c && c.capacityDeficit);
       const leftoverTitle = capacityFlag ? ' title="Consum peste ce ar fi putut exista în rezervor — verificați bonurile sau citirea."' : '';
       return `
@@ -895,7 +901,7 @@
     listEl.innerHTML = entries.map(p => `
       <div class="fuel-purchase-item">
         <div>
-          <div class="fuel-purchase-item-main">${escapeHtml(String(p.liters))} L${p.source_reservoir_id ? ' <span class="fuel-purchase-item-tag">din rezervor</span>' : ''}</div>
+          <div class="fuel-purchase-item-main">${escapeHtml(String(p.liters))} L${p.source_reservoir_id ? ' <span class="fuel-purchase-item-tag">din rezervor</span>' : ''}${p.purchase_date ? ` · ${escapeHtml(formatWoDateRO(p.purchase_date))}` : ''}</div>
           ${p.note ? `<div class="fuel-purchase-item-note">${escapeHtml(p.note)}</div>` : ''}
         </div>
         <button type="button" class="fuel-purchase-delete" data-id="${escapeHtml(p.id)}" data-requires-write="erp" aria-label="Șterge alimentarea">×</button>
@@ -937,6 +943,18 @@
     renderFuelPurchaseList();
     document.getElementById('vfl-purchase-liters').value = '';
     document.getElementById('vfl-purchase-note').value = '';
+    // Defaults to today when adding to the current real month (the
+    // common case -- logging a fill-up as it happens), or to that
+    // month's last day when the sheet is opened for a past month --
+    // "today" would be a date outside the month being edited, which
+    // the date input would reject/mislead on. Either way it's just a
+    // starting point; estimatedLeftoverFor (see the consumption-report
+    // code) needs the REAL day, so staff should correct it for
+    // anything entered after the fact.
+    const now = new Date();
+    const isCurrentRealMonth = fuelReportYear === now.getFullYear() && fuelReportMonth === now.getMonth() + 1;
+    const defaultDate = isCurrentRealMonth ? now : new Date(fuelReportYear, fuelReportMonth, 0);
+    document.getElementById('vfl-purchase-date').value = defaultDate.toISOString().slice(0, 10);
     // "Din rezervorul propriu" only makes sense for a real vehicle's own
     // fill-up (the reservoir logging fuel against itself would be
     // circular) and only when there's actually a reservoir to draw
@@ -989,8 +1007,10 @@
     if (!fuelLogSheetContext) return;
     const litersInput = document.getElementById('vfl-purchase-liters');
     const noteInput = document.getElementById('vfl-purchase-note');
+    const dateInput = document.getElementById('vfl-purchase-date');
     const liters = Number(litersInput.value);
     if (!liters || liters <= 0) { alert('Introduceți o cantitate validă de litri.'); return; }
+    if (!dateInput.value) { alert('Introduceți data alimentării.'); return; }
     const { vehicleId, year, month } = fuelLogSheetContext;
     const eq = allEquipment.find(v => v.id === vehicleId);
     // A vehicle's own tank balance is always computed from readings/
@@ -1020,6 +1040,7 @@
     vflPurchaseAddBtn.disabled = true;
     const { error } = await supabaseClient.from('vehicle_fuel_purchases').insert({
       vehicle_id: vehicleId, year, month, liters,
+      purchase_date: dateInput.value,
       note: noteInput.value.trim() || null,
       user_email: currentSessionEmail || null,
       source_reservoir_id: fromReservoir ? sourceReservoir.id : null,
