@@ -251,53 +251,6 @@
   function reservoirLitersLabel(eq){
     return `${eq.quantity != null ? Number(eq.quantity).toLocaleString('ro-RO') : '0'} L`;
   }
-  // Every dated event that ever changed this reservoir's own level:
-  // fuel delivered straight into it (its own "Alimentări" entries,
-  // vehicle_id === reservoir.id) and fuel drawn out of it for another
-  // vehicle's fill-up ("din rezervorul propriu", source_reservoir_id
-  // === reservoir.id). Raport lunar consum needs both to reconstruct
-  // what the level actually was in a past month -- see
-  // reservoirBalanceAtMonth below.
-  function reservoirLedgerEntries(reservoirId){
-    const additions = allVehicleFuelPurchases
-      .filter(p => p.vehicle_id === reservoirId)
-      .map(p => ({ year: p.year, month: p.month, delta: Number(p.liters) }));
-    const deductions = allVehicleFuelPurchases
-      .filter(p => p.source_reservoir_id === reservoirId)
-      .map(p => ({ year: p.year, month: p.month, delta: -Number(p.liters) }));
-    return additions.concat(deductions);
-  }
-  // eq.quantity is always the reservoir's live, present-day level --
-  // the one number every save actually writes, so it's the one
-  // guaranteed accurate. A past month's row showed that SAME live
-  // number no matter which month was selected, since nothing else was
-  // ever computed for it -- wrong the moment more than one month had
-  // gone by, e.g. still showing September's 364 L under August even
-  // though some of that 364 L was only added or drawn out later, in
-  // September itself. Reconstructed instead by walking the ledger
-  // BACKWARD from the live number: undo whatever was added/removed
-  // AFTER the requested month, the same "no separate snapshot per
-  // month" approach a vehicle's own leftover chain already uses.
-  // The month its "Litri" value is recorded as-of (see the reservoir
-  // form's own "Litrii de mai sus sunt valabili la sfârșitul lunii"
-  // field) -- any month before this one genuinely has no data to show,
-  // rather than silently repeating that same baseline number. Falls
-  // back to the current month for a reservoir saved before this field
-  // existed, same default its own form picker uses.
-  function reservoirBaselineMonth(eq){
-    if (eq.reservoir_baseline_year != null && eq.reservoir_baseline_month != null) {
-      return { year: eq.reservoir_baseline_year, month: eq.reservoir_baseline_month };
-    }
-    return { year: erpLoadedAt.getFullYear(), month: erpLoadedAt.getMonth() + 1 };
-  }
-  function reservoirBalanceAtMonth(eq, year, month){
-    const baseline = reservoirBaselineMonth(eq);
-    if (year < baseline.year || (year === baseline.year && month < baseline.month)) return null;
-    const futureDelta = reservoirLedgerEntries(eq.id)
-      .filter(e => e.year > year || (e.year === year && e.month > month))
-      .reduce((sum, e) => sum + e.delta, 0);
-    return round2(Number(eq.quantity || 0) - futureDelta);
-  }
   // Shared by the Prezentare generală cards and the Raport lunar
   // consum cards below -- same defs, same counts, same toggle-off
   // behaviour, just a different active key and a different callback
@@ -611,77 +564,6 @@
     const ratio = (delta != null && delta > 0) ? purchased / delta * (unit === 'hours' ? 1 : 100) : null;
     return { delta, purchased, ratio };
   }
-  function daysInMonth(year, month){ return new Date(year, month, 0).getDate(); }
-  // Midnight on a month's last day -- the fallback "day of fill-up" for
-  // any purchase with no purchase_date on record (logged before that
-  // column existed, or never corrected). A fill-up with no known day
-  // is treated as having happened at the very end of its month, i.e.
-  // zero days before whatever cutoff is asking "how long since this
-  // vehicle was last fueled" -- the tank reads as still full rather
-  // than guessing at a day it was never actually filled.
-  function lastDayOfMonth(year, month){ return new Date(year, month, 0); }
-  function effectivePurchaseDate(p){
-    return p.purchase_date ? new Date(p.purchase_date + 'T00:00:00') : lastDayOfMonth(p.year, p.month);
-  }
-  const MS_PER_DAY = 24 * 60 * 60 * 1000;
-  // The single most recent fill-up on record for this vehicle, as of
-  // (year, month) inclusive -- across this vehicle's ENTIRE history,
-  // not just this one month, since a month with no purchase at all
-  // (it just kept running on whatever was already in the tank) still
-  // needs to know how long it's been since fuel was last added.
-  function mostRecentPurchaseUpTo(vehicleId, year, month){
-    const candidates = allVehicleFuelPurchases.filter(p => p.vehicle_id === vehicleId
-      && (p.year < year || (p.year === year && p.month <= month)));
-    if (!candidates.length) return null;
-    let best = null, bestDate = null;
-    candidates.forEach(p => {
-      const d = effectivePurchaseDate(p);
-      if (!bestDate || d > bestDate) { bestDate = d; best = p; }
-    });
-    return { purchase: best, date: bestDate };
-  }
-  // Estimated fuel left in the tank at the END of (year, month) --
-  // assumes the LAST actual fill-up on record topped the tank to full
-  // (a normal fleet habit, and there's no data here to tell a full
-  // top-up apart from a partial one anyway), then estimates how much
-  // of that has burned off between that fill-up's day and this
-  // month's last day: this vehicle's own average daily km/hours for
-  // the month, times the days since that fill-up, times a consumption
-  // rate. That rate is THIS month's own ratio if this month had a
-  // fill-up to compute one from, or otherwise the most recent EARLIER
-  // month that did -- a month with no purchase says nothing about how
-  // fast the vehicle burns fuel, so the last known rate is still the
-  // best available estimate for that (same "carry the last known
-  // value forward" reasoning previousFuelReadingFor already uses for
-  // a reading baseline).
-  function estimatedLeftoverFor(eq, unit, year, month){
-    const capacity = eq.fuel_tank_capacity_l != null ? Number(eq.fuel_tank_capacity_l) : null;
-    if (capacity == null) return null;
-    const { delta } = vehicleMonthlyRatio(eq, unit, year, month);
-    if (delta == null) return null; // no reading this month -- nothing to project from
-    const last = mostRecentPurchaseUpTo(eq.id, year, month);
-    if (!last) return null; // never once fueled -- no fill-up to measure days since
-    let rateYear = year, rateMonth = month, rate = null;
-    for (let i = 0; i < 36 && rate == null; i++) {
-      const r = vehicleMonthlyRatio(eq, unit, rateYear, rateMonth).ratio;
-      if (r != null) { rate = r; break; }
-      if (rateYear < last.purchase.year || (rateYear === last.purchase.year && rateMonth <= last.purchase.month)) break;
-      rateMonth -= 1;
-      if (rateMonth < 1) { rateMonth = 12; rateYear -= 1; }
-    }
-    if (rate == null) return null;
-    const avgDailyUnit = delta / daysInMonth(year, month); // km/day or hours/day
-    const monthEnd = lastDayOfMonth(year, month);
-    const daysSinceFillUp = Math.max(0, Math.round((monthEnd - last.date) / MS_PER_DAY));
-    const unitsSinceFillUp = avgDailyUnit * daysSinceFillUp;
-    const burnedSinceFillUp = rate * unitsSinceFillUp / (unit === 'hours' ? 1 : 100);
-    const rawLeftover = capacity - burnedSinceFillUp;
-    // A negative raw value means even a full tank at the last fill-up
-    // couldn't cover what the estimate says was burned since -- that's
-    // the genuine signal (fuel bills or a reading are off), same
-    // meaning capacityDeficit always carried in the old model.
-    return { leftover: Math.max(0, Math.min(capacity, rawLeftover)), deficit: rawLeftover < 0 };
-  }
   // Fraud/anomaly flag: this month's own ratio against the average of
   // up to the 3 most recent EARLIER months that each had a computable
   // ratio of their own -- fewer than 3 if the vehicle doesn't have
@@ -701,16 +583,42 @@
     const avg = priorRatios.reduce((a, b) => a + b, 0) / priorRatios.length;
     return thisRatio > avg * 1.20;
   }
+  // The "Notificări" column's other check: this vehicle's own ratio
+  // averaged over the 3 months strictly before (year, month) -- never
+  // the displayed month itself -- against the manufacturer-rated
+  // figure (fuel_rated_consumption_km/hours, otherwise just a display
+  // value everywhere else in this file). Needs all three of those
+  // months to have a computable ratio of their own -- a vehicle
+  // without that much real history yet gets no notification rather
+  // than a guess off partial data -- and a rated figure to compare
+  // against.
+  function vehicleRatedTrendFor(eq, unit, year, month){
+    const rated = eq[ratedFieldFor(unit)] != null ? Number(eq[ratedFieldFor(unit)]) : null;
+    if (rated == null) return null;
+    let y = year, m = month;
+    const ratios = [];
+    for (let i = 0; i < 3; i++) {
+      m -= 1;
+      if (m < 1) { m = 12; y -= 1; }
+      const r = vehicleMonthlyRatio(eq, unit, y, m).ratio;
+      if (r == null) return null;
+      ratios.push(r);
+    }
+    const avg = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+    return { avg, rated, overLimit: avg > rated * 1.5 };
+  }
   function vehicleFuelConsumptionFor(eq, unit, year, month){
     const unitLbl = unitLabel(unit);
     const unitRateLabel = unit === 'hours' ? 'L/H' : 'L/100km';
     const { delta, purchased: totalAdded, ratio: actual } = vehicleMonthlyRatio(eq, unit, year, month);
     const rated = eq[ratedFieldFor(unit)] != null ? Number(eq[ratedFieldFor(unit)]) : null;
     const overLimit = vehicleConsumptionSpikeFlag(eq, unit, year, month, actual);
-    const leftoverEntry = estimatedLeftoverFor(eq, unit, year, month);
-    const leftoverOut = leftoverEntry ? leftoverEntry.leftover : null;
-    const capacityDeficit = leftoverEntry ? leftoverEntry.deficit : false;
-    return { unit: unitLbl, unitRateLabel, delta, totalAdded, actual, rated, overLimit, leftoverOut, capacityDeficit };
+    const trend = vehicleRatedTrendFor(eq, unit, year, month);
+    return {
+      unit: unitLbl, unitRateLabel, delta, totalAdded, actual, rated, overLimit,
+      trendAvg: trend ? trend.avg : null,
+      trendOverLimit: trend ? trend.overLimit : false,
+    };
   }
   // Across every unit this vehicle tracks (one for most, two for
   // Camion/Autoutilitara).
@@ -719,6 +627,9 @@
   }
   function vehicleFuelOverLimit(eq, year, month){
     return vehicleFuelConsumptions(eq, year, month).some(c => c.overLimit);
+  }
+  function vehicleFuelRatedTrendFlag(eq, year, month){
+    return vehicleFuelConsumptions(eq, year, month).some(c => c.trendOverLimit);
   }
   const erpLoadedAt = new Date();
   let fuelReportYear = erpLoadedAt.getFullYear();
@@ -737,11 +648,15 @@
     if (labelEl) labelEl.textContent = `${REPORT_MONTHS[fuelReportMonth - 1]} ${fuelReportYear}`;
     const { allVehicles } = machinesFilterCounts();
     // This page's own "Notificări" — vehicles whose consumption this
-    // month spiked more than 20% above their own recent average for
-    // the month currently displayed (see vehicleConsumptionSpikeFlag),
-    // not the doc-expiry warnings Prezentare generală's
-    // identical-looking card means.
-    const fuelUrgentVehicles = allVehicles.filter(eq => vehicleFuelOverLimit(eq, fuelReportYear, fuelReportMonth));
+    // month spiked more than 20% above their own recent average (see
+    // vehicleConsumptionSpikeFlag), OR whose own average over the 3
+    // months before the one displayed sits more than 50% over the
+    // manufacturer-rated figure (vehicleRatedTrendFor, the Notificări
+    // column's triangle) -- not the doc-expiry warnings Prezentare
+    // generală's identical-looking card means.
+    const fuelUrgentVehicles = allVehicles.filter(eq =>
+      vehicleFuelOverLimit(eq, fuelReportYear, fuelReportMonth) ||
+      vehicleFuelRatedTrendFlag(eq, fuelReportYear, fuelReportMonth));
     renderMachinesFilterCardsInto(cardsWrap, fuelReportSubcatFilter, (nextKey) => {
       fuelReportSubcatFilter = nextKey;
       renderMachinesFuelReport();
@@ -753,10 +668,10 @@
       .sort((a, b) => (a.plate_number || '').localeCompare(b.plate_number || '', 'ro'));
     if (countEl) countEl.textContent = vehicles.length + (vehicles.length === 1 ? ' mașină' : ' mașini');
     // Same rule as Prezentare generală: the reservoir only shows on
-    // "Toate" nefiltrat, in the "L (diferență)" column -- the one slot
-    // here that already means "fuel currently in the tank" for a real
-    // vehicle (its leftoverOut), just showing the bulk tank's own level
-    // instead of a per-vehicle computed one.
+    // "Toate" nefiltrat. It doesn't track km/hours, Consum efectiv,
+    // Consum normat, or a trend, so every one of those columns is just
+    // "—" for it; its own running level is Prezentare generală's job
+    // (reservoirLitersLabel), not this report's.
     const reservoirRows = fuelReportSubcatFilter === 'Toate' ? allReservoirs() : [];
     const rowsToRender = vehicles.concat(reservoirRows);
     if (!rowsToRender.length) {
@@ -767,7 +682,6 @@
     tbody.innerHTML = rowsToRender.map(eq => {
       if (isReservoir(eq)) {
         const reservoirAdded = fuelPurchaseSum(eq.id, fuelReportYear, fuelReportMonth);
-        const reservoirBalance = reservoirBalanceAtMonth(eq, fuelReportYear, fuelReportMonth);
         return `
           <tr>
             <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div></td>
@@ -775,7 +689,7 @@
             <td>${na}</td>
             <td>${na}</td>
             <td>${reservoirAdded > 0 ? escapeHtml(String(reservoirAdded)) + ' L' : na}</td>
-            <td>${reservoirBalance == null ? na : escapeHtml(reservoirBalance.toLocaleString('ro-RO')) + ' L'}</td>
+            <td>${na}</td>
             <td>${na}</td>
             <td>${na}</td>
             <td><button type="button" class="mt-row-icon-btn fuel-log-edit-btn" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
@@ -788,6 +702,7 @@
       const kmC = cs.find(c => c.unit === 'km');
       const hC = cs.find(c => c.unit === 'h');
       const overLimit = cs.some(c => c.overLimit);
+      const trendFlagged = cs.some(c => c.trendOverLimit);
       const totalAdded = fuelPurchaseSum(eq.id, fuelReportYear, fuelReportMonth);
       // Camion/Autoutilitara track both -- join whichever of the two
       // have a value into one cell instead of adding more columns.
@@ -795,31 +710,24 @@
         const parts = [kmC, hC].filter(Boolean).map(fmt).filter(Boolean);
         return parts.length ? parts.join(' · ') : na;
       };
-      // km and hours share the same tank/balance -- on a dual-tracked
-      // vehicle both branches compute the identical leftoverOut, so show
-      // it once rather than joining a duplicate.
-      const leftoverVal = [kmC, hC].map(c => c && c.leftoverOut).find(v => v != null);
-      // leftoverOut is the estimated fuel left in the tank at month's
-      // end (see estimatedLeftoverFor) -- a positive quantity, same
-      // meaning the reservoir's own row shows in this exact column
-      // (e.g. "364 L").
-      const leftoverCell = leftoverVal == null ? na : (leftoverVal < 0.05 ? '0.0 L' : `${leftoverVal.toFixed(1)} L`);
-      // Surfaces what estimatedLeftoverFor otherwise catches silently:
-      // even a full tank at the last fill-up couldn't cover what the
-      // estimate says was burned since (capacityDeficit) -- a sign the
-      // fuel bills or a reading are off.
-      const capacityFlag = [kmC, hC].some(c => c && c.capacityDeficit);
-      const leftoverTitle = capacityFlag ? ' title="Consum peste ce ar fi putut exista în rezervor — verificați bonurile sau citirea."' : '';
+      // Tooltip text for the Notificări triangle -- names which unit(s)
+      // tripped the 3-month-average-vs-normat check and by how much.
+      const trendTitle = [kmC, hC].filter(c => c && c.trendOverLimit)
+        .map(c => `Consum mediu ultimele 3 luni: ${c.trendAvg.toFixed(1)} ${c.unitRateLabel} — normat: ${c.rated} ${c.unitRateLabel}`)
+        .join(' · ');
+      const notifCell = trendFlagged
+        ? `<span class="mt-trend-flag" title="${escapeHtml(trendTitle)}">⚠</span>`
+        : na;
       return `
-        <tr class="${overLimit ? 'row-error' : ''}">
+        <tr class="${(overLimit || trendFlagged) ? 'row-error' : ''}">
           <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div></td>
           <td><a href="#" class="ticket-link" data-vehicle-id="${escapeHtml(eq.id)}">${escapeHtml(eq.plate_number || '—')}</a></td>
           <td>${kmC && kmC.delta != null ? escapeHtml(String(kmC.delta)) + ' km' : na}</td>
           <td>${hC && hC.delta != null ? escapeHtml(String(hC.delta)) + ' h' : na}</td>
           <td>${totalAdded > 0 ? escapeHtml(String(totalAdded)) + ' L' : na}</td>
-          <td class="${capacityFlag ? 'mt-warn' : ''}"${leftoverTitle}>${leftoverCell}${capacityFlag ? ' ⚠' : ''}</td>
           <td class="${overLimit ? 'mt-warn' : ''}">${joinPair(c => c.actual != null ? `${c.actual.toFixed(1)} ${c.unitRateLabel}${c.overLimit ? ' ⚠' : ''}` : null)}</td>
           <td>${joinPair(c => c.rated != null ? `${c.rated} ${c.unitRateLabel}` : null)}</td>
+          <td>${notifCell}</td>
           <td><button type="button" class="mt-row-icon-btn fuel-log-edit-btn" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
           </button></td>
@@ -948,9 +856,9 @@
     // month's last day when the sheet is opened for a past month --
     // "today" would be a date outside the month being edited, which
     // the date input would reject/mislead on. Either way it's just a
-    // starting point; estimatedLeftoverFor (see the consumption-report
-    // code) needs the REAL day, so staff should correct it for
-    // anything entered after the fact.
+    // starting point, purely informational (shown in the purchase
+    // list below) -- staff should correct it to the real day when
+    // entering a fill-up after the fact.
     const now = new Date();
     const isCurrentRealMonth = fuelReportYear === now.getFullYear() && fuelReportMonth === now.getMonth() + 1;
     const defaultDate = isCurrentRealMonth ? now : new Date(fuelReportYear, fuelReportMonth, 0);
@@ -1192,7 +1100,7 @@
     return [...years].sort((a, b) => b - a);
   }
   function fuelReportAoaForPeriod(vehicles, year, month){
-    const header = ['Mașină', 'Nr. înmatriculare', 'Km (diferență)', 'Timp (diferență)', 'Total alimentare (L)', 'L (diferență)', 'Consum efectiv', 'Consum normat'];
+    const header = ['Mașină', 'Nr. înmatriculare', 'Km (diferență)', 'Timp (diferență)', 'Total alimentare (L)', 'Consum efectiv', 'Consum normat', 'Notificări'];
     const rows = [header];
     vehicles.forEach(eq => {
       const cs = vehicleFuelConsumptions(eq, year, month);
@@ -1200,16 +1108,16 @@
       const hC = cs.find(c => c.unit === 'h');
       const totalAdded = fuelPurchaseSum(eq.id, year, month);
       const joinPair = (fmt) => [kmC, hC].filter(Boolean).map(fmt).filter(Boolean).join(' · ');
-      const leftoverVal = [kmC, hC].map(c => c && c.leftoverOut).find(v => v != null);
+      const trendFlagged = cs.some(c => c.trendOverLimit);
       rows.push([
         eq.name || '',
         eq.plate_number || '',
         kmC && kmC.delta != null ? kmC.delta : '',
         hC && hC.delta != null ? hC.delta : '',
         totalAdded > 0 ? totalAdded : '',
-        leftoverVal == null ? '' : (leftoverVal < 0.05 ? 0 : Number(leftoverVal.toFixed(1))),
         joinPair(c => c.actual != null ? `${c.actual.toFixed(1)} ${c.unitRateLabel}` : ''),
         joinPair(c => c.rated != null ? `${c.rated} ${c.unitRateLabel}` : ''),
+        trendFlagged ? 'Peste normat (3 luni)' : '',
       ]);
     });
     return rows;
@@ -1420,10 +1328,7 @@
       if (litersInput === '') { alert('Completați litrii din rezervor.'); return; }
       const liters = Number(litersInput);
       // "YYYY-MM" from the <input type="month"> -- the month the
-      // "Litri" value above is as-of. Raport lunar consum shows "—" for
-      // any month before this one instead of repeating this same
-      // number, since there's genuinely no tracked data before it (see
-      // reservoirBalanceAtMonth).
+      // "Litri" value above is as-of.
       const baselineInput = document.getElementById('vf-reservoir-baseline').value;
       if (baselineInput === '') { alert('Completați luna de referință a rezervorului.'); return; }
       const [baselineYear, baselineMonth] = baselineInput.split('-').map(Number);

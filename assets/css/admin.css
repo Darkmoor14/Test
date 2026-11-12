@@ -1412,6 +1412,7 @@
   .mt-row-actions{display:flex;gap:6px;justify-content:flex-end;}
   #machinesFuelReportTable tr.row-error td{background:var(--signal-red-bg);color:var(--signal-red);}
   #machinesFuelReportTable .mt-warn{color:var(--signal-orange);font-weight:600;}
+  #machinesFuelReportTable .mt-trend-flag{color:var(--signal-red);font-weight:700;font-size:16px;cursor:help;}
   #machinesFuelReportTable .mt-name{font-weight:600;color:var(--ink-900);}
   #machinesFuelReportTable .fuel-log-edit-btn{margin-left:auto;}
   /* Same row/font sizing as Prezentare generală's table (shared
