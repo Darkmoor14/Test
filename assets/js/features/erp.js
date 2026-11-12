@@ -564,26 +564,7 @@
     const ratio = (delta != null && delta > 0) ? purchased / delta * (unit === 'hours' ? 1 : 100) : null;
     return { delta, purchased, ratio };
   }
-  // Fraud/anomaly flag: this month's own ratio against the average of
-  // up to the 3 most recent EARLIER months that each had a computable
-  // ratio of their own -- fewer than 3 if the vehicle doesn't have
-  // that much history yet (still a signal, just a noisier one, rather
-  // than staying silent until a 4th month exists).
-  function vehicleConsumptionSpikeFlag(eq, unit, year, month, thisRatio){
-    if (thisRatio == null) return false;
-    const priorRatios = [];
-    let y = year, m = month;
-    for (let i = 0; i < 36 && priorRatios.length < 3; i++) {
-      m -= 1;
-      if (m < 1) { m = 12; y -= 1; }
-      const r = vehicleMonthlyRatio(eq, unit, y, m).ratio;
-      if (r != null) priorRatios.push(r);
-    }
-    if (!priorRatios.length) return false;
-    const avg = priorRatios.reduce((a, b) => a + b, 0) / priorRatios.length;
-    return thisRatio > avg * 1.20;
-  }
-  // The "Notificări" column's other check: this vehicle's own ratio
+  // The "Notificări" column's check: this vehicle's own ratio
   // averaged over the 3 months strictly before (year, month) -- never
   // the displayed month itself -- against the manufacturer-rated
   // figure (fuel_rated_consumption_km/hours, otherwise just a display
@@ -612,10 +593,9 @@
     const unitRateLabel = unit === 'hours' ? 'L/H' : 'L/100km';
     const { delta, purchased: totalAdded, ratio: actual } = vehicleMonthlyRatio(eq, unit, year, month);
     const rated = eq[ratedFieldFor(unit)] != null ? Number(eq[ratedFieldFor(unit)]) : null;
-    const overLimit = vehicleConsumptionSpikeFlag(eq, unit, year, month, actual);
     const trend = vehicleRatedTrendFor(eq, unit, year, month);
     return {
-      unit: unitLbl, unitRateLabel, delta, totalAdded, actual, rated, overLimit,
+      unit: unitLbl, unitRateLabel, delta, totalAdded, actual, rated,
       trendAvg: trend ? trend.avg : null,
       trendOverLimit: trend ? trend.overLimit : false,
     };
@@ -624,9 +604,6 @@
   // Camion/Autoutilitara).
   function vehicleFuelConsumptions(eq, year, month){
     return vehicleUnits(eq).map(u => vehicleFuelConsumptionFor(eq, u, year, month));
-  }
-  function vehicleFuelOverLimit(eq, year, month){
-    return vehicleFuelConsumptions(eq, year, month).some(c => c.overLimit);
   }
   function vehicleFuelRatedTrendFlag(eq, year, month){
     return vehicleFuelConsumptions(eq, year, month).some(c => c.trendOverLimit);
@@ -647,16 +624,12 @@
     if (!tbody) return;
     if (labelEl) labelEl.textContent = `${REPORT_MONTHS[fuelReportMonth - 1]} ${fuelReportYear}`;
     const { allVehicles } = machinesFilterCounts();
-    // This page's own "Notificări" — vehicles whose consumption this
-    // month spiked more than 20% above their own recent average (see
-    // vehicleConsumptionSpikeFlag), OR whose own average over the 3
-    // months before the one displayed sits more than 50% over the
-    // manufacturer-rated figure (vehicleRatedTrendFor, the Notificări
-    // column's triangle) -- not the doc-expiry warnings Prezentare
-    // generală's identical-looking card means.
-    const fuelUrgentVehicles = allVehicles.filter(eq =>
-      vehicleFuelOverLimit(eq, fuelReportYear, fuelReportMonth) ||
-      vehicleFuelRatedTrendFlag(eq, fuelReportYear, fuelReportMonth));
+    // This page's own "Notificări" — vehicles whose own average over
+    // the 3 months before the one displayed sits more than 50% over
+    // the manufacturer-rated figure (vehicleRatedTrendFor, the
+    // Notificări column's triangle) -- not the doc-expiry warnings
+    // Prezentare generală's identical-looking card means.
+    const fuelUrgentVehicles = allVehicles.filter(eq => vehicleFuelRatedTrendFlag(eq, fuelReportYear, fuelReportMonth));
     renderMachinesFilterCardsInto(cardsWrap, fuelReportSubcatFilter, (nextKey) => {
       fuelReportSubcatFilter = nextKey;
       renderMachinesFuelReport();
@@ -701,7 +674,6 @@
       const cs = vehicleFuelConsumptions(eq, fuelReportYear, fuelReportMonth);
       const kmC = cs.find(c => c.unit === 'km');
       const hC = cs.find(c => c.unit === 'h');
-      const overLimit = cs.some(c => c.overLimit);
       const trendFlagged = cs.some(c => c.trendOverLimit);
       const totalAdded = fuelPurchaseSum(eq.id, fuelReportYear, fuelReportMonth);
       // Camion/Autoutilitara track both -- join whichever of the two
@@ -719,13 +691,13 @@
         ? `<span class="mt-trend-flag" title="${escapeHtml(trendTitle)}">⚠</span>`
         : na;
       return `
-        <tr class="${(overLimit || trendFlagged) ? 'row-error' : ''}">
+        <tr class="${trendFlagged ? 'row-error' : ''}">
           <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div></td>
           <td><a href="#" class="ticket-link" data-vehicle-id="${escapeHtml(eq.id)}">${escapeHtml(eq.plate_number || '—')}</a></td>
           <td>${kmC && kmC.delta != null ? escapeHtml(String(kmC.delta)) + ' km' : na}</td>
           <td>${hC && hC.delta != null ? escapeHtml(String(hC.delta)) + ' h' : na}</td>
           <td>${totalAdded > 0 ? escapeHtml(String(totalAdded)) + ' L' : na}</td>
-          <td class="${overLimit ? 'mt-warn' : ''}">${joinPair(c => c.actual != null ? `${c.actual.toFixed(1)} ${c.unitRateLabel}${c.overLimit ? ' ⚠' : ''}` : null)}</td>
+          <td>${joinPair(c => c.actual != null ? `${c.actual.toFixed(1)} ${c.unitRateLabel}` : null)}</td>
           <td>${joinPair(c => c.rated != null ? `${c.rated} ${c.unitRateLabel}` : null)}</td>
           <td>${notifCell}</td>
           <td><button type="button" class="mt-row-icon-btn fuel-log-edit-btn" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
@@ -1490,12 +1462,12 @@
       });
       const c = log ? vehicleFuelConsumptionFor(eq, unit, log.year, log.month) : null;
       const consumptionVal = c && c.actual != null
-        ? `${c.actual.toFixed(1)} ${c.unitRateLabel}${c.rated != null ? ` (normat ${c.rated} ${c.unitRateLabel})` : ''}${c.overLimit ? ' ⚠' : ''}`
+        ? `${c.actual.toFixed(1)} ${c.unitRateLabel}${c.rated != null ? ` (normat ${c.rated} ${c.unitRateLabel})` : ''}${c.trendOverLimit ? ' ⚠' : ''}`
         : '—';
       items.push({
         label: unit === 'hours' ? 'Consum efectiv (ore)' : 'Consum efectiv',
         value: consumptionVal,
-        cls: c && c.overLimit ? 'mt-warn' : '',
+        cls: c && c.trendOverLimit ? 'mt-warn' : '',
       });
       const service = vehicleServiceCountdownFor(eq, unit);
       if (service != null) {
