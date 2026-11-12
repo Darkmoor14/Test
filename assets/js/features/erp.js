@@ -1152,6 +1152,266 @@
   }
   const fuelReportExportBtn = document.getElementById('fuelReportExportBtn');
   if (fuelReportExportBtn) fuelReportExportBtn.addEventListener('click', exportFuelReportToExcel);
+
+  /* ============================================================
+     ROMPETROL PDF IMPORT — "List Transactions" exports are a real
+     text layer (Crystal Reports), not a scan, so this reads them
+     directly via pdf.js rather than asking staff to retype every
+     line. Via Oil's own export is a genuine scanned image with zero
+     extractable text (checked directly -- a plain text pull gets
+     nothing back from it), so it gets no auto-import here and still
+     goes in by hand; this importer only ever claims to handle the
+     Rompetrol format, never silently no-ops on a different one.
+     ============================================================ */
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  }
+  // Reconstructs each page's visual rows from pdf.js's text items, which
+  // otherwise come back in whatever order the PDF's content stream drew
+  // them in -- for this Crystal Reports export that's column-by-column
+  // across the whole page, not row-by-row (confirmed directly: a plain
+  // in-order text pull interleaves unrelated rows). Grouping by y
+  // (±2pt, same row) and sorting each group by x rebuilds the row left-
+  // to-right, same result as a layout-aware text extraction would give,
+  // without needing to replicate exact column spacing -- the row
+  // parser below only cares about token order, not alignment.
+  async function pdfFileToLines(file){
+    const buf = await file.arrayBuffer();
+    const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+    const lines = [];
+    for (let p = 1; p <= doc.numPages; p++) {
+      const page = await doc.getPage(p);
+      const content = await page.getTextContent();
+      const items = content.items
+        .filter(it => it.str && it.str.trim() !== '')
+        .map(it => ({ str: it.str, x: it.transform[4], y: it.transform[5] }));
+      const rows = [];
+      items.forEach(it => {
+        let row = rows.find(r => Math.abs(r.y - it.y) <= 2);
+        if (!row) { row = { y: it.y, items: [] }; rows.push(row); }
+        row.items.push(it);
+      });
+      rows.sort((a, b) => b.y - a.y);
+      rows.forEach(r => {
+        const line = r.items.sort((a, b) => a.x - b.x).map(i => i.str.trim()).join(' ').replace(/\s+/g, ' ').trim();
+        if (line) lines.push(line);
+      });
+    }
+    return lines;
+  }
+  // Matches one real transaction line: idx, date, time, then a middle
+  // blob (station name + plate + km -- free text, so pulled as one
+  // group and split below rather than fought over in the regex itself),
+  // the device type (a fixed "Pass/Tag" or "Card", the one stable
+  // anchor between the free-text station/plate and the numeric tail),
+  // the fuel type, and the five trailing numeric columns. "Total
+  // vehicul :" subtotal lines, section headers (a plate alone), page
+  // headers/footers and the final "Total alocare/general" lines all
+  // simply don't match this shape, so they're skipped with no explicit
+  // exclusion list needed.
+  const ROMPETROL_ROW_RE = /^\d+\s+(\d{2}\/\d{2}\/\d{4})\s+\d{1,2}:\d{2}\s+(.+?)\s+(?:Pass\/Tag|Card)\s+.+?\s+([\d,]+\.\d+)\s+[\d,]+\.\d+\s+[\d,]+\.\d+\s+[\d,]+\.\d+\s+[\d,]+\s+(\d+)\s*$/;
+  function parseRompetrolLines(lines){
+    const rows = [];
+    lines.forEach(line => {
+      const m = line.match(ROMPETROL_ROW_RE);
+      if (!m) return;
+      const [, dateStr, middleBlob, qtyStr, nrTranz] = m;
+      // The middle blob is "<station words...> <plate> <km>" -- station
+      // is free text (sometimes with its own digits, e.g. "A3 Lot 2"),
+      // so splitting from the RIGHT (km is always last, plate always
+      // second-to-last) is the only reliable split, regardless of what
+      // the station name itself contains.
+      const tokens = middleBlob.trim().split(/\s+/);
+      tokens.pop(); // km -- not imported (see note above the button)
+      const rawPlate = tokens.pop();
+      const [mm, dd, yyyy] = dateStr.split('/');
+      rows.push({
+        rawPlate, qty: Number(qtyStr.replace(/,/g, '')),
+        date: `${yyyy}-${mm}-${dd}`, year: Number(yyyy), month: Number(mm),
+        nrTranz,
+      });
+    });
+    return rows;
+  }
+  let pendingFuelImportRows = [];
+  function fuelImportVehicleOptions(selectedId){
+    const vehicles = allEquipment.filter(eq => eq.erp_category === 'masina')
+      .slice().sort((a, b) => (a.plate_number || a.name || '').localeCompare(b.plate_number || b.name || '', 'ro'));
+    const opts = vehicles.map(eq => `<option value="${escapeHtml(eq.id)}"${eq.id === selectedId ? ' selected' : ''}>${escapeHtml(eq.plate_number ? `${eq.plate_number} — ${eq.name}` : eq.name)}</option>`);
+    return `<option value=""${selectedId ? '' : ' selected'}>— alege mașina —</option>` + opts.join('');
+  }
+  function renderFuelImportPreview(){
+    const table = document.getElementById('fuelImportPreviewTable');
+    const wrap = document.getElementById('fuelImportPreview');
+    const toImportCount = pendingFuelImportRows.filter(r => r.include && r.vehicleId).length;
+    const dupCount = pendingFuelImportRows.filter(r => r.alreadyImported).length;
+    table.innerHTML = `
+      <thead><tr>
+        <th></th><th>Data</th><th>Litri</th><th>Marcaj fișier</th><th>Mașină</th>
+      </tr></thead>
+      <tbody>
+        ${pendingFuelImportRows.map((r, i) => `
+          <tr class="${r.alreadyImported ? 'row-duplicate' : (r.possibleDuplicate || r.monthHasManualData) ? 'row-warning' : !r.vehicleId ? 'row-error' : ''}">
+            <td><input type="checkbox" class="fuel-import-row-include" data-idx="${i}" ${r.include ? 'checked' : ''} ${(r.vehicleId && !r.alreadyImported) ? '' : 'disabled'}></td>
+            <td>${formatWoDateRO(r.date)}</td>
+            <td>${r.qty} L</td>
+            <td>${escapeHtml(r.rawPlate)}${r.alreadyImported ? ' <strong>(deja importat)</strong>'
+              : r.possibleDuplicate ? ' <strong>(posibil deja introdus manual — verificați)</strong>'
+              : r.monthHasManualData ? ' <strong>(mașina are deja alimentări introduse manual luna asta — verificați să nu dublați)</strong>'
+              : ''}</td>
+            <td><select class="fuel-import-select" data-idx="${i}" ${r.alreadyImported ? 'disabled' : ''}>${fuelImportVehicleOptions(r.vehicleId)}</select></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    `;
+    document.getElementById('fuelImportPreviewNote').textContent =
+      `Previzualizare — ${toImportCount} din ${pendingFuelImportRows.length} rânduri vor fi importate.`
+      + (dupCount > 0 ? ` (${dupCount} deja importate anterior, omise automat.)` : '')
+      + ' Alegeți mașina pentru rândurile nerecunoscute, sau debifați un rând pentru a-l exclude.';
+    table.querySelectorAll('.fuel-import-row-include').forEach(cb => {
+      cb.addEventListener('change', () => { pendingFuelImportRows[Number(cb.dataset.idx)].include = cb.checked; });
+    });
+    table.querySelectorAll('.fuel-import-select').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const idx = Number(sel.dataset.idx);
+        const row = pendingFuelImportRows[idx];
+        const rawPlate = row.rawPlate;
+        row.vehicleId = sel.value || null;
+        row.include = !!row.vehicleId;
+        // Fixing one occurrence of an unrecognized plate (e.g.
+        // "KATERPIL", a fuel-card label rather than a real plate) almost
+        // always means every other row with that exact same raw text
+        // is the same vehicle too -- applied to the rest of them
+        // automatically so a multi-fill-up month doesn't need the same
+        // fix repeated by hand. Only touches rows that are themselves
+        // still unresolved, never overriding a different, already-made
+        // choice elsewhere.
+        pendingFuelImportRows.forEach(other => {
+          if (other !== row && other.rawPlate === rawPlate && !other.vehicleId && !other.alreadyImported) {
+            other.vehicleId = row.vehicleId;
+            other.include = true;
+          }
+        });
+        renderFuelImportPreview();
+      });
+    });
+    wrap.style.display = 'block';
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  const fuelImportBtn = document.getElementById('fuelImportBtn');
+  const fuelImportFileInput = document.getElementById('fuelImportFileInput');
+  if (fuelImportBtn && fuelImportFileInput) {
+    fuelImportBtn.addEventListener('click', () => fuelImportFileInput.click());
+    fuelImportFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const lines = await pdfFileToLines(file);
+        if (lines.join('').trim().length < 50) {
+          alert('Acest fișier pare să fie un document scanat (fără text selectabil) — doar exporturile Rompetrol „List Transactions" pot fi importate automat. Introduceți datele din acest fișier manual.');
+          return;
+        }
+        const parsed = parseRompetrolLines(lines);
+        if (!parsed.length) {
+          alert('Nu am recunoscut niciun rând de tranzacție în acest fișier. Verificați că e un export Rompetrol „List Transactions".');
+          return;
+        }
+        const plateIndex = {};
+        allEquipment.filter(eq => eq.erp_category === 'masina' && eq.plate_number).forEach(eq => {
+          plateIndex[eq.plate_number.trim().toUpperCase()] = eq.id;
+        });
+        const existingTranzIds = new Set(allVehicleFuelPurchases.map(p => p.external_transaction_id).filter(Boolean));
+        pendingFuelImportRows = parsed.map(r => {
+          const vehicleId = plateIndex[r.rawPlate.trim().toUpperCase()] || null;
+          const alreadyImported = existingTranzIds.has(r.nrTranz);
+          // Rows entered manually before this importer existed have no
+          // external_transaction_id to match against at all -- this
+          // catches that case by date+vehicle+amount instead, so a
+          // month that's already been typed in by hand doesn't get
+          // silently double-counted just because it predates this
+          // feature. A real same-day, same-liters second fill-up is
+          // rare enough that flagging it for a human glance is the
+          // safer default over trusting it blindly either way.
+          const possibleDuplicate = !alreadyImported && vehicleId && allVehicleFuelPurchases.some(p =>
+            p.vehicle_id === vehicleId && p.year === r.year && p.month === r.month
+            && p.purchase_date === r.date && Math.abs(Number(p.liters) - r.qty) < 0.02);
+          // Broader net for the same legacy-data gap: most months
+          // entered before this importer existed were typed in as ONE
+          // lump sum for the whole month, not per fill-up -- which
+          // possibleDuplicate above can't catch at all (different date,
+          // different amount, same real fuel). Any pre-existing,
+          // non-imported row at all for this vehicle+month is enough to
+          // hold this one back for a manual look, since there's no way
+          // to tell "additional, real fill-up" apart from "the same fuel
+          // already counted" from the data alone.
+          const monthHasManualData = !alreadyImported && !possibleDuplicate && vehicleId && allVehicleFuelPurchases.some(p =>
+            p.vehicle_id === vehicleId && p.year === r.year && p.month === r.month && !p.external_transaction_id);
+          return {
+            ...r, vehicleId,
+            alreadyImported,
+            possibleDuplicate,
+            monthHasManualData,
+            include: !!vehicleId && !alreadyImported && !possibleDuplicate && !monthHasManualData,
+          };
+        });
+        renderFuelImportPreview();
+      } catch (err) {
+        console.error('Fuel import PDF parse failed:', err);
+        alert('Eroare la citirea fișierului PDF: ' + (err && err.message ? err.message : 'motiv necunoscut'));
+      } finally {
+        fuelImportFileInput.value = '';
+      }
+    });
+  }
+  const fuelImportCancelBtn = document.getElementById('fuelImportCancelBtn');
+  if (fuelImportCancelBtn) fuelImportCancelBtn.addEventListener('click', () => {
+    pendingFuelImportRows = [];
+    document.getElementById('fuelImportPreview').style.display = 'none';
+  });
+  const fuelImportConfirmBtn = document.getElementById('fuelImportConfirmBtn');
+  if (fuelImportConfirmBtn) fuelImportConfirmBtn.addEventListener('click', async () => {
+    const toSave = pendingFuelImportRows.filter(r => r.include && r.vehicleId && !r.alreadyImported);
+    if (!toSave.length) { alert('Niciun rând selectat de importat.'); return; }
+    fuelImportConfirmBtn.disabled = true;
+    fuelImportConfirmBtn.textContent = 'Se importă...';
+    const payload = toSave.map(r => ({
+      vehicle_id: r.vehicleId, year: r.year, month: r.month, liters: r.qty,
+      purchase_date: r.date, note: `Import Rompetrol (${r.rawPlate})`,
+      user_email: currentSessionEmail || null,
+      external_transaction_id: r.nrTranz,
+    }));
+    const { error } = await supabaseClient.from('vehicle_fuel_purchases').insert(payload);
+    fuelImportConfirmBtn.disabled = false;
+    fuelImportConfirmBtn.textContent = 'Confirmă și salvează';
+    if (error) {
+      console.error(error);
+      alert('Eroare la import: ' + (error.message || 'motiv necunoscut'));
+      return;
+    }
+    // The reservoir's "quantity" is its own live level, not something
+    // computed from readings like a real vehicle -- same rule the
+    // manual "Adaugă alimentare" flow already follows, so an import
+    // that resolved to the reservoir has to raise it too, in one lump
+    // sum rather than per transaction.
+    const reservoirTotals = {};
+    toSave.forEach(r => {
+      const eq = allEquipment.find(v => v.id === r.vehicleId);
+      if (eq && isReservoir(eq)) reservoirTotals[eq.id] = (reservoirTotals[eq.id] || 0) + r.qty;
+    });
+    for (const [reservoirId, added] of Object.entries(reservoirTotals)) {
+      const eq = allEquipment.find(v => v.id === reservoirId);
+      const newQuantity = round2(Number(eq.quantity || 0) + added);
+      const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, reservoirId);
+      if (qError) console.error(qError);
+      else logEntityActivity('masina', reservoirId, `S-au adăugat ${round2(added)} L din import Rompetrol (total ${newQuantity.toLocaleString('ro-RO')} L).`);
+    }
+    pendingFuelImportRows = [];
+    document.getElementById('fuelImportPreview').style.display = 'none';
+    showToast(`${toSave.length} alimentări importate.`);
+    await loadVehicleFuelPurchases();
+    if (Object.keys(reservoirTotals).length) await loadEquipment();
+    else renderMachinesFuelReport();
+  });
   // Echipamente/Materiale/Produse's own list rows, the ERP Home stats
   // card + alert banner, and the shared add/edit sheet (erpItemFormSheet)
   // are now admin-react/'s EquipmentRow/ErpHomePanel/EquipmentForm -- all

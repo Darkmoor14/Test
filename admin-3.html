@@ -212,6 +212,10 @@
         </button>
       </div>
       <div class="overview-quick-filters" data-year-panel="machines-fuel-report">
+        <button type="button" class="overview-icon-btn" id="fuelImportBtn" data-requires-write="erp" title="Importă bon Rompetrol (PDF)" aria-label="Importă bon Rompetrol (PDF)">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
+        <input type="file" id="fuelImportFileInput" accept="application/pdf" style="display:none;">
         <button type="button" class="overview-icon-btn excel-icon-btn" id="fuelReportExportBtn" title="Raport Excel" aria-label="Raport Excel">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </button>
@@ -251,6 +255,18 @@
       <div class="pf-actions">
         <button class="btn" id="repairSheetCancelBtn" type="button">Anulează</button>
         <button class="btn btn-primary" id="repairSheetConfirmBtn" type="button">Confirmă și salvează</button>
+      </div>
+    </div>
+
+    <!-- Same standalone reasoning as repairSheetPreview above -- lives
+         outside panel-machines-fuel-report so it survives being toggled
+         by erp.js regardless of which sub-page is currently active. -->
+    <div class="excel-preview" id="fuelImportPreview" style="display:none;">
+      <p class="excel-preview-note" id="fuelImportPreviewNote">Previzualizare — verificați rândurile înainte de a confirma.</p>
+      <div class="excel-preview-table-wrap"><table class="excel-preview-table" id="fuelImportPreviewTable"></table></div>
+      <div class="pf-actions">
+        <button class="btn" id="fuelImportCancelBtn" type="button">Anulează</button>
+        <button class="btn btn-primary" id="fuelImportConfirmBtn" type="button">Confirmă și salvează</button>
       </div>
     </div>
 
@@ -1386,6 +1402,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="assets/js/data-services.js?v=20261019a"></script>
 <script src="assets/js/admin-core.js?v=20261027b"></script>
 <!-- Built from admin-react/ (source: admin-react/src/mount.tsx) — do not
@@ -1486,7 +1503,7 @@
      (see mountProjects() above) -- nothing in either file was shared
      bootstrap, unlike tickets.js, so both were fully replaced rather
      than trimmed. -->
-<script src="assets/js/features/erp.js?v=20261112b"></script>
+<script src="assets/js/features/erp.js?v=20261112c"></script>
 <script src="assets/js/features/hr.js?v=20261022c"></script>
 <script src="assets/js/features/excel.js?v=20261021b"></script>
 <script src="assets/js/features/search.js?v=20261027a"></script>

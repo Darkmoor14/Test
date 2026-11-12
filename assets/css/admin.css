@@ -1919,6 +1919,10 @@
     border:1px solid var(--line-strong);border-radius:9px;resize:vertical;color:var(--ink-900);
   }
   .repair-note-input:disabled{background:var(--paper-050);color:var(--ink-600);}
+  .fuel-import-select{
+    width:100%;font:inherit;font-size:13px;padding:6px 8px;
+    border:1px solid var(--line-strong);border-radius:9px;color:var(--ink-900);background:var(--paper-000);
+  }
   .chips{display:flex;gap:8px;flex-wrap:wrap;}
   .chip{
     font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:20px;
