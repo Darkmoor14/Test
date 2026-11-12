@@ -609,8 +609,14 @@
     return vehicleFuelConsumptions(eq, year, month).some(c => c.trendOverLimit);
   }
   const erpLoadedAt = new Date();
+  // Defaults to LAST month, not the current one -- this month's fuel
+  // bills are still trickling in as it goes, so the one month that's
+  // actually finished and worth reviewing is always the previous one.
+  // getMonth() (0-based) already equals the previous month's 1-based
+  // number; only January needs to wrap to December of the prior year.
   let fuelReportYear = erpLoadedAt.getFullYear();
-  let fuelReportMonth = erpLoadedAt.getMonth() + 1; // 1-12, matches vehicle_fuel_logs.month
+  let fuelReportMonth = erpLoadedAt.getMonth();
+  if (fuelReportMonth < 1) { fuelReportMonth = 12; fuelReportYear -= 1; }
   // Independent of machinesSubcatFilter (Prezentare generală's own
   // quick-filter) -- the two pages can be filtered to different
   // subcategories at the same time, same as their sidebar entries are
