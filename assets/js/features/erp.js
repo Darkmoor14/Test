@@ -1320,6 +1320,14 @@
         allEquipment.filter(eq => eq.erp_category === 'masina' && eq.plate_number).forEach(eq => {
           plateIndex[eq.plate_number.trim().toUpperCase()] = eq.id;
         });
+        // "REZERVIG" is Rompetrol's own fixed label for the on-site
+        // diesel reservoir -- unlike a fuel-card nickname (KATERPI2/
+        // KATERPIL), which could in principle move to a different
+        // piece of equipment, there's only ever one reservoir and this
+        // label always means it, so it's a permanent rule rather than
+        // something to re-ask for on every upload.
+        const reservoir = allReservoirs()[0];
+        if (reservoir) plateIndex['REZERVIG'] = reservoir.id;
         const existingTranzIds = new Set(allVehicleFuelPurchases.map(p => p.external_transaction_id).filter(Boolean));
         pendingFuelImportRows = parsed.map(r => {
           const vehicleId = plateIndex[r.rawPlate.trim().toUpperCase()] || null;
