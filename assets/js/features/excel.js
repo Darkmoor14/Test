@@ -35,12 +35,21 @@
       .replace(/[șş]/g, 's')
       .replace(/[țţ]/g, 't');
   }
-  function isWhitelistedReporterName(name){
+  // Which of the three whitelisted institutional reporters a ticket's
+  // name matches, or null for anyone else (a real person's name, kept
+  // out of this export entirely -- see the whitelist's other use
+  // below). Also the single source of truth for isWhitelistedReporterName,
+  // so the "is it one of the three" check and "which one is it" check
+  // can't drift apart from each other.
+  function whitelistedReporterCategory(name){
     const normalized = normalizeRomanianText(name);
-    if (normalized.includes('politia') && normalized.includes('locala')) return true;
-    if (normalized.includes('birou') && normalized.includes('energetic')) return true;
-    if (normalized.includes('autosesizare')) return true;
-    return false;
+    if (normalized.includes('politia') && normalized.includes('locala')) return 'Poliția locală';
+    if (normalized.includes('birou') && normalized.includes('energetic')) return 'Birou energetic';
+    if (normalized.includes('autosesizare')) return 'Autosesizare';
+    return null;
+  }
+  function isWhitelistedReporterName(name){
+    return whitelistedReporterCategory(name) !== null;
   }
 
   function reportTicketType(ticket){
@@ -964,28 +973,26 @@
       ]);
     });
 
-    // Sesizări de la instituții — tickets whose reporter name matches
-    // the whitelist (Poliția locală / Biroul energetic / Autosesizare).
-    // Only these three specifically are ever named here; every other
-    // ticket's real reporter name stays out of this export entirely,
-    // matching the same restriction already enforced for the public
-    // website (see public-tickets-name-whitelist.sql).
-    const institutionalTickets = statsTickets.filter(ticket => isWhitelistedReporterName(ticket.name));
+    // Sesizări de la instituții — a count per whitelisted institutional
+    // reporter (Poliția locală / Biroul energetic / Autosesizare), not
+    // the individual tickets themselves: Coperta is a quick-glance
+    // summary page, and a full per-ticket list for a busy category ran
+    // to dozens of rows, defeating that. Only these three specifically
+    // are ever counted here; every other ticket's real reporter name
+    // stays out of this export entirely, matching the same restriction
+    // already enforced for the public website (see
+    // public-tickets-name-whitelist.sql).
+    const institutionalCounts = { 'Poliția locală': 0, 'Birou energetic': 0, 'Autosesizare': 0 };
+    statsTickets.forEach(ticket => {
+      const category = whitelistedReporterCategory(ticket.name);
+      if (category) institutionalCounts[category]++;
+    });
     coverRows.push([]);
     coverRows.push(['Sesizări de la instituții']);
-    coverRows.push(['Nr. sesizare', 'Raportat de', 'Adresă', 'Data']);
-    if (institutionalTickets.length === 0) {
-      coverRows.push(['Nicio sesizare de la instituții în această perioadă.']);
-    } else {
-      institutionalTickets.forEach(ticket => {
-        coverRows.push([
-          ticket.ticket_number || '',
-          ticket.name || '',
-          ticket.address || '',
-          reportDateLabel(ticket.submitted_on),
-        ]);
-      });
-    }
+    coverRows.push(['Instituție', 'Total sesizări']);
+    Object.entries(institutionalCounts).forEach(([category, count]) => {
+      coverRows.push([category, count]);
+    });
 
     const coverSheet = XLSX.utils.aoa_to_sheet(coverRows);
     coverSheet['!freeze'] = { xSplit: 0, ySplit: 15 };
