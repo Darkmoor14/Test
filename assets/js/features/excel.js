@@ -85,7 +85,7 @@
     // everywhere else in the app — a duplicate isn't a separately
     // occurring issue, just a second report of one already counted.
     // `tickets` itself keeps every ticket including duplicates, since
-    // the per-ticket table in makeMonthlyWorksheet lists them all
+    // the per-ticket table in addMonthlyWorksheet lists them all
     // (marked via the "Duplicat" column) rather than hiding them.
     const nonDuplicateTickets = monthTickets.filter(ticket => !isDuplicateTicket(ticket));
     const active = nonDuplicateTickets.filter(ticket => reportTicketStatus(ticket) === 'Activ');
@@ -105,6 +105,10 @@
     };
   }
 
+  // ExcelJS-flavored (column.width, not SheetJS's '!cols'/wch) --
+  // the yearly report switched to ExcelJS (see buildYearlyWorkbookBinary's
+  // own comment) specifically so Coperta's new graphs could be embedded
+  // as real images, which the free SheetJS build can't write at all.
   function autosizeWorksheet(ws, rows){
     const widths = [];
     rows.forEach(row => {
@@ -113,10 +117,12 @@
         widths[index] = Math.max(widths[index] || 0, text.length);
       });
     });
-    ws['!cols'] = widths.map(width => ({ wch: Math.min(Math.max(width + 2, 12), 40) }));
+    widths.forEach((width, index) => {
+      ws.getColumn(index + 1).width = Math.min(Math.max(width + 2, 12), 40);
+    });
   }
 
-  function makeMonthlyWorksheet(stats, year){
+  function addMonthlyWorksheet(workbook, stats, year){
     const rows = [
       [`Sesizări ${stats.name} ${year}`],
       [],
@@ -154,13 +160,164 @@
       });
     }
 
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!freeze'] = { xSplit: 0, ySplit: 11 };
+    const ws = workbook.addWorksheet(`${stats.name} ${year}`.slice(0, 31));
+    ws.addRows(rows);
+    ws.views = [{ state: 'frozen', ySplit: 11 }];
     if (stats.tickets.length > 0) {
-      ws['!autofilter'] = { ref: `A11:M${rows.length}` };
+      ws.autoFilter = `A11:M${rows.length}`;
     }
     autosizeWorksheet(ws, rows);
     return ws;
+  }
+
+  // ---- The 7 Coperta charts -- same datasets/visual style as Rapoarte's
+  // own charts (ReportsPanel.tsx). 3 of them (volume-by-month, the
+  // monthly trend line, and weekday breakdown) deliberately ignore this
+  // export's own year/month scope and always cover the full multi-year
+  // ticket history, exactly like they do live; the other 4 are scoped
+  // to statsTickets -- this export's own selected period, the same
+  // ticket set the summary table above is built from.
+  function reportVolumeByMonth(tickets){
+    const counts = {};
+    tickets.forEach(ticket => {
+      if (!ticket.submitted_on) return;
+      const d = parseTicketDate(ticket.submitted_on);
+      if (Number.isNaN(d.getTime())) return;
+      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    const sortedKeys = Object.keys(counts).sort();
+    return {
+      labels: sortedKeys.map(key => {
+        const [y, m] = key.split('-');
+        return REPORT_MONTHS[Number(m) - 1].slice(0, 3) + ' ' + y.slice(2);
+      }),
+      data: sortedKeys.map(key => counts[key]),
+    };
+  }
+  function reportWeekdayCounts(tickets){
+    const counts = [0, 0, 0, 0, 0, 0, 0]; // Luni..Duminică
+    tickets.forEach(ticket => {
+      if (!ticket.submitted_on) return;
+      const d = parseTicketDate(ticket.submitted_on);
+      if (Number.isNaN(d.getTime())) return;
+      counts[(d.getDay() + 6) % 7]++;
+    });
+    return counts;
+  }
+  // Calendar days (not hours -- see the summary table above, which
+  // dropped hours entirely), same calendarDaysBetween/formatDays logic
+  // ReportsPanel.tsx uses for its own "Timp mediu de rezolvare" chart.
+  function reportDaysToResolve(tickets){
+    const resolved = tickets.filter(ticket => ticket.submitted_on && ticket.resolved_on);
+    const daysFor = ticket => {
+      const submitted = parseTicketDate(ticket.submitted_on);
+      const resolvedDate = parseTicketDate(ticket.resolved_on);
+      const submittedDateOnly = new Date(submitted.getFullYear(), submitted.getMonth(), submitted.getDate());
+      const resolvedDateOnly = new Date(resolvedDate.getFullYear(), resolvedDate.getMonth(), resolvedDate.getDate());
+      return Math.round((resolvedDateOnly - submittedDateOnly) / 86400000) + 1;
+    };
+    const avg = arr => arr.length ? arr.reduce((sum, ticket) => sum + daysFor(ticket), 0) / arr.length : 0;
+    const funcResolved = resolved.filter(ticket => reportTicketType(ticket) !== 'Accident');
+    const accResolved = resolved.filter(ticket => reportTicketType(ticket) === 'Accident');
+    return { funcAvg: Math.round(avg(funcResolved) * 10) / 10, accAvg: Math.round(avg(accResolved) * 10) / 10 };
+  }
+  const REPORT_CHART_COLORS = { red: '#D11F24', brown: '#B5502F', purple: '#7C5CBF', blue: '#2F6FB5', green: '#3E7A57', orange: '#B5792F' };
+  // Fixed {label, color} order regardless of which categories actually
+  // have tickets -- zero-count ones are filtered out AFTER pairing, so
+  // a label/color/count can never drift out of alignment with each
+  // other the way filtering three separate parallel arrays would risk.
+  function reportSourceBreakdown(tickets){
+    const order = [
+      { key: 'public', label: 'Public', color: REPORT_CHART_COLORS.red },
+      { key: 'autosesizare', label: 'Autosesizare', color: REPORT_CHART_COLORS.purple },
+      { key: 'politia-locala', label: 'Poliția locală', color: REPORT_CHART_COLORS.blue },
+      { key: 'biroul-energetic', label: 'Biroul energetic', color: REPORT_CHART_COLORS.orange },
+    ];
+    const counts = { public: 0, autosesizare: 0, 'politia-locala': 0, 'biroul-energetic': 0 };
+    tickets.forEach(ticket => {
+      const category = whitelistedReporterCategory(ticket.name);
+      const key = category === 'Poliția locală' ? 'politia-locala'
+        : category === 'Birou energetic' ? 'biroul-energetic'
+        : category === 'Autosesizare' ? 'autosesizare' : 'public';
+      counts[key]++;
+    });
+    return order.map(o => ({ ...o, count: counts[o.key] })).filter(o => o.count > 0);
+  }
+  function reportStatusCounts(tickets){
+    let active = 0, doneWithReport = 0, awaitingReport = 0;
+    tickets.forEach(ticket => {
+      if (reportTicketStatus(ticket) !== 'Terminat') active++;
+      else if (ticket.resolution_note) doneWithReport++;
+      else awaitingReport++;
+    });
+    return { active, doneWithReport, awaitingReport };
+  }
+  // Chart.js (the global, auto-registering UMD build loaded in
+  // admin-3.html, same `Chart` ReportsPanel.tsx's own react-chartjs-2
+  // wraps) onto a detached canvas, animation off so the full chart is
+  // already drawn by the time the constructor returns -- toDataURL()
+  // right after would otherwise risk capturing a part-way animation
+  // frame instead of the finished chart.
+  function renderChartPng(config, width, height){
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const chart = new Chart(canvas, {
+      ...config,
+      options: { ...config.options, responsive: false, maintainAspectRatio: false, animation: false },
+    });
+    const url = canvas.toDataURL('image/png');
+    chart.destroy();
+    return url;
+  }
+  function buildReportChartImages(allNonDupTickets, statsTickets){
+    const volume = reportVolumeByMonth(allNonDupTickets);
+    const weekdayCounts = reportWeekdayCounts(allNonDupTickets);
+    const resolveDays = reportDaysToResolve(statsTickets);
+    const sourceBreakdown = reportSourceBreakdown(statsTickets);
+    const statusCounts = reportStatusCounts(statsTickets);
+    const defectCount = statsTickets.filter(ticket => reportTicketType(ticket) === 'Defect').length;
+    const accidentCount = statsTickets.filter(ticket => reportTicketType(ticket) === 'Accident').length;
+    const W = 760, H = 420;
+
+    return [
+      { title: 'Sesizări pe an', url: renderChartPng({
+        type: 'bar',
+        data: { labels: volume.labels, datasets: [{ data: volume.data, backgroundColor: REPORT_CHART_COLORS.red, borderRadius: 3 }] },
+        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+      }, W, H) },
+      { title: 'Evoluție lunară a sesizărilor', url: renderChartPng({
+        type: 'line',
+        data: { labels: volume.labels, datasets: [{ data: volume.data, borderColor: REPORT_CHART_COLORS.red, backgroundColor: 'rgba(209,31,36,0.12)', fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: REPORT_CHART_COLORS.red }] },
+        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+      }, W, H) },
+      { title: 'Sesizări pe zi a săptămânii', url: renderChartPng({
+        type: 'bar',
+        data: { labels: ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'], datasets: [{ data: weekdayCounts, backgroundColor: REPORT_CHART_COLORS.red, borderRadius: 3 }] },
+        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+      }, W, H) },
+      { title: 'Timp mediu de rezolvare (zile)', url: renderChartPng({
+        type: 'bar',
+        data: { labels: ['Defect', 'Accident'], datasets: [{ data: [resolveDays.funcAvg, resolveDays.accAvg], backgroundColor: [REPORT_CHART_COLORS.red, REPORT_CHART_COLORS.brown], borderRadius: 3 }] },
+        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, title: { display: true, text: 'zile' } } } },
+      }, W, H) },
+      { title: 'Sursa sesizărilor', url: renderChartPng({
+        type: 'pie',
+        data: { labels: sourceBreakdown.map(o => o.label), datasets: [{ data: sourceBreakdown.map(o => o.count), backgroundColor: sourceBreakdown.map(o => o.color) }] },
+        options: { plugins: { legend: { position: 'bottom' } } },
+      }, W, H) },
+      { title: 'Tip sesizare', url: renderChartPng({
+        type: 'pie',
+        data: { labels: ['Defecte', 'Accidente'], datasets: [{ data: [defectCount, accidentCount], backgroundColor: [REPORT_CHART_COLORS.red, REPORT_CHART_COLORS.brown] }] },
+        options: { plugins: { legend: { position: 'bottom' } } },
+      }, W, H) },
+      { title: 'Stare sesizări', url: renderChartPng({
+        type: 'pie',
+        data: { labels: ['Active', 'Soluționate', 'Așteaptă raport'], datasets: [{ data: [statusCounts.active, statusCounts.doneWithReport, statusCounts.awaitingReport], backgroundColor: [REPORT_CHART_COLORS.blue, REPORT_CHART_COLORS.green, REPORT_CHART_COLORS.orange] }] },
+        options: { plugins: { legend: { position: 'bottom' } } },
+      }, W, H) },
+    ];
   }
 
   function setSheetOpen(sheetId, open){
@@ -907,8 +1064,14 @@
     });
   }
 
-  function buildYearlyWorkbookBinary(yearTickets, year, monthSelection){
-    const workbook = XLSX.utils.book_new();
+  // Switched to ExcelJS (same reasoning as the repair-template export
+  // above) once Coperta needed to embed real chart images -- the free
+  // SheetJS build this used to use can only write plain values/widths/
+  // merges, no images, so there was no way to keep using it once images
+  // were a requirement.
+  async function buildYearlyWorkbookBinary(yearTickets, year, monthSelection){
+    await loadExcelJs();
+    const workbook = new ExcelJS.Workbook();
     const monthlyBuckets = Array.from({ length: 12 }, () => []);
 
     yearTickets
@@ -939,9 +1102,7 @@
     const resolvedCount = statsTickets.filter(ticket => reportTicketStatus(ticket) === 'Terminat').length;
     const defectCount = statsTickets.filter(ticket => reportTicketType(ticket) === 'Defect').length;
     const accidentCount = statsTickets.filter(ticket => reportTicketType(ticket) === 'Accident').length;
-    const avgHours = reportHoursToResolve(statsTickets);
     const busiestMonth = selectedMonths.reduce((best, current) => current.total > best.total ? current : best, selectedMonths[0]);
-    const slowestMonth = selectedMonths.reduce((best, current) => current.avgHours > best.avgHours ? current : best, selectedMonths[0]);
 
     const coverRows = [
       [monthSelection === 'all' ? `Raport anual sesizări ${year}` : `Raport sesizări ${scopeLabel}`],
@@ -954,11 +1115,9 @@
       ['Sesizări soluționate', resolvedCount],
       ['Defecte', defectCount],
       ['Accidente', accidentCount],
-      ['Ore medii de soluționare', avgHours],
       ['Luna cu cele mai multe sesizări', `${busiestMonth.name} (${busiestMonth.total})`],
-      ['Luna cu timpul mediu cel mai mare', `${slowestMonth.name} (${slowestMonth.avgHours} ore)`],
       [],
-      ['Lună', 'Total', 'Active', 'Soluționate', 'Defecte', 'Accidente', 'Ore medii'],
+      ['Lună', 'Total', 'Active', 'Soluționate', 'Defecte', 'Accidente'],
     ];
 
     selectedMonths.forEach(month => {
@@ -969,7 +1128,6 @@
         month.resolved,
         month.defects,
         month.accidents,
-        month.avgHours,
       ]);
     });
 
@@ -994,17 +1152,36 @@
       coverRows.push([category, count]);
     });
 
-    const coverSheet = XLSX.utils.aoa_to_sheet(coverRows);
-    coverSheet['!freeze'] = { xSplit: 0, ySplit: 15 };
+    const coverSheet = workbook.addWorksheet(`Coperta ${year}`.slice(0, 31));
+    coverSheet.addRows(coverRows);
+    coverSheet.views = [{ state: 'frozen', ySplit: 13 }];
     autosizeWorksheet(coverSheet, coverRows);
-    XLSX.utils.book_append_sheet(workbook, coverSheet, `Coperta ${year}`.slice(0, 31));
 
-    selectedMonths.forEach(month => {
-      const ws = makeMonthlyWorksheet(month, year);
-      XLSX.utils.book_append_sheet(workbook, ws, `${month.name} ${year}`.slice(0, 31));
+    // Graphs -- same 7 charts as Rapoarte (see buildReportChartImages).
+    // Stacked one below another rather than side by side, so the layout
+    // never depends on how wide these particular table columns end up
+    // auto-sizing to (narrow columns + a side-by-side grid risks visual
+    // overlap; a single column never does, whatever the widths are).
+    const allNonDupTickets = allTickets.filter(ticket => !isDuplicateTicket(ticket));
+    const chartImages = buildReportChartImages(allNonDupTickets, statsTickets);
+    let chartRow = coverSheet.rowCount + 3;
+    coverSheet.getCell(chartRow, 1).value = 'Grafice';
+    coverSheet.getCell(chartRow, 1).font = { bold: true, size: 13 };
+    chartRow += 1;
+    const CHART_W = 760, CHART_H = 420, ROWS_PER_CHART = 23;
+    chartImages.forEach(chart => {
+      coverSheet.getCell(chartRow, 1).value = chart.title;
+      coverSheet.getCell(chartRow, 1).font = { bold: true, size: 11 };
+      const imageId = workbook.addImage({ base64: chart.url, extension: 'png' });
+      coverSheet.addImage(imageId, { tl: { col: 0, row: chartRow }, ext: { width: CHART_W, height: CHART_H } });
+      chartRow += ROWS_PER_CHART;
     });
 
-    return XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    selectedMonths.forEach(month => {
+      addMonthlyWorksheet(workbook, month, year);
+    });
+
+    return workbook.xlsx.writeBuffer();
   }
 
   async function handleExcelExport(triggerButton){
@@ -1071,7 +1248,7 @@
             return !Number.isNaN(submitted.getTime()) && monthSelection.includes(submitted.getMonth());
           });
 
-      const bytes = buildYearlyWorkbookBinary(yearTickets, year, monthSelection);
+      const bytes = await buildYearlyWorkbookBinary(yearTickets, year, monthSelection);
       const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
