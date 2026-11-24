@@ -39,7 +39,7 @@ export function ProjectForm() {
         <div className="ctrl-field"><label htmlFor={`${a11yId}-adres`}>Adresă</label><input type="text" placeholder="ex: Str. Gh. Doja, Târgu-Mureș" value={address} onChange={(e) => setAddress(e.target.value)} id={`${a11yId}-adres`}/></div>
         <div className="ctrl-field"><label htmlFor={`${a11yId}-data-nceput`}>Data început</label><input type="date" value={start} onChange={(e) => setStart(e.target.value)} id={`${a11yId}-data-nceput`}/></div>
         <div className="ctrl-field"><label htmlFor={`${a11yId}-data-finalizare-estimat`}>Data finalizare estimată</label><input type="date" value={due} onChange={(e) => setDue(e.target.value)} id={`${a11yId}-data-finalizare-estimat`}/></div>
-        <div className="ctrl-field" style={{ gridColumn: '1/-1' }}><label htmlFor={`${a11yId}-note-op-ional-intern`}>Note (opțional, intern)</label><input type="text" placeholder="Vizibil doar aici, nu pe site" value={notes} onChange={(e) => setNotes(e.target.value)} id={`${a11yId}-note-op-ional-intern`}/></div>
+        <div className="ctrl-field" style={{ gridColumn: '1/-1' }}><label htmlFor={`${a11yId}-note-op-ional-intern`}>Note (opțional)</label><input type="text" placeholder="Apare și pe site, sub proiect, dacă este completat" value={notes} onChange={(e) => setNotes(e.target.value)} id={`${a11yId}-note-op-ional-intern`}/></div>
       </div>
       <div className="pf-actions">
         <button className="btn" type="button" onClick={store.closeProjectForm}>Anulează</button>

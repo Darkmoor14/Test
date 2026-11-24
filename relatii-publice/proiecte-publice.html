@@ -183,15 +183,10 @@
   .cc-status.done{background:var(--signal-green-bg);color:var(--signal-green);}
   .cc-address{font-size:13.5px;color:var(--ink-900);margin-bottom:18px;display:flex;align-items:center;gap:6px;}
   .cc-address svg{width:14px;height:14px;flex-shrink:0;color:var(--ink-400);}
-  .cc-bar-track{width:100%;height:6px;background:var(--paper-100);border-radius:4px;overflow:hidden;margin-bottom:8px;}
-  .cc-bar-fill{height:100%;background:var(--copper-500);border-radius:4px;transition:width .4s ease;}
-  .cc-bar-label{
-    display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;
-    color:var(--ink-900);margin-bottom:16px;
-  }
-  .cc-bar-label .pct{color:var(--copper-600);font-weight:600;}
   .cc-dates{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-900);}
   .cc-dates .k{font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--ink-900);letter-spacing:0.04em;display:block;margin-bottom:2px;}
+  .cc-notes{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-size:13.5px;color:var(--ink-700);line-height:1.5;}
+  .cc-notes .k{font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--ink-900);letter-spacing:0.04em;display:block;margin-bottom:4px;}
   .current-empty{text-align:center;padding:50px 0;color:var(--ink-900);font-size:14.5px;}
 
   footer{background:var(--paper-050);color:var(--ink-900);padding:32px 0;font-size:12.5px;border-top:1px solid var(--line);}
@@ -427,15 +422,6 @@
 
   let currentProjectsData = [];
 
-  function calcProgress(startISO, dueISO){
-    const now = new Date();
-    const start = new Date(startISO);
-    const due = new Date(dueISO);
-    if (now <= start) return 0;
-    if (now >= due) return 100;
-    return Math.round(((now - start) / (due - start)) * 100);
-  }
-
   function calcStatus(startISO, dueISO){
     const now = new Date();
     const start = new Date(startISO);
@@ -445,11 +431,14 @@
     return 'progress';
   }
 
-  function fmtDateShort(iso){
+  // Public card shows just month + year (no day) for start/due -- the
+  // exact day isn't meaningful to a site visitor and admin's own
+  // ProjectCard still shows the full date for staff who need it.
+  function fmtMonthYear(iso){
     if (!iso) return '—';
     const d = new Date(iso);
     const locale = getLang() === 'ro' ? 'ro-RO' : (getLang() === 'hu' ? 'hu-HU' : 'en-GB');
-    return d.toLocaleDateString(locale, {day:'2-digit', month:'2-digit', year:'numeric'});
+    return d.toLocaleDateString(locale, {month:'long', year:'numeric'});
   }
 
   const STATUS_LABEL_KEY = {
@@ -480,7 +469,6 @@
     empty.style.display = 'none';
 
     grid.innerHTML = currentProjectsData.map(p => {
-      const pct = calcProgress(p.start_date, p.due_date);
       const status = calcStatus(p.start_date, p.due_date);
       return `
         <div class="current-card">
@@ -492,12 +480,11 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
             ${escapeHtmlCP(p.address)}
           </div>
-          <div class="cc-bar-track"><div class="cc-bar-fill" style="width:${pct}%;"></div></div>
-          <div class="cc-bar-label"><span>${t('current_progress_label')}</span><span class="pct">${pct}%</span></div>
           <div class="cc-dates">
-            <div><span class="k">${t('current_k_start')}</span>${fmtDateShort(p.start_date)}</div>
-            <div style="text-align:right;"><span class="k">${t('current_k_due')}</span>${fmtDateShort(p.due_date)}</div>
+            <div><span class="k">${t('current_k_start')}</span>${fmtMonthYear(p.start_date)}</div>
+            <div style="text-align:right;"><span class="k">${t('current_k_due')}</span>${fmtMonthYear(p.due_date)}</div>
           </div>
+          ${p.notes ? `<div class="cc-notes"><span class="k">${t('current_k_notes')}</span>${escapeHtmlCP(p.notes)}</div>` : ''}
         </div>
       `;
     }).join('');
