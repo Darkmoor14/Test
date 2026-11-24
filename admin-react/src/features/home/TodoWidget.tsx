@@ -10,18 +10,17 @@ const InfoIcon = () => (
 );
 
 export function TodoWidget({
-  calendarEvents, sessionEmail, onLinkedEventClick,
+  calendarEvents, onLinkedEventClick,
 }: {
   calendarEvents: CalendarEvent[];
-  sessionEmail: string | null;
   onLinkedEventClick: (e: CalendarEvent) => void;
 }) {
   const { notes, addNote, updateNoteText, deleteNote } = useTodoNotes();
   const newNoteIdRef = useRef<string | null>(null);
 
-  const linkedEvents = eventsOnDate(calendarEvents, dateKey(new Date())).filter(
-    (e) => !Array.isArray(e.attendees) || e.attendees.length === 0 || e.attendees.includes(sessionEmail || ''),
-  );
+  // calendarEvents is already scoped to "visible to me" by the caller
+  // (HomePage) -- no attendee filtering needed here on top of that.
+  const linkedEvents = eventsOnDate(calendarEvents, dateKey(new Date()));
 
   const handleAdd = () => {
     const id = addNote();
@@ -44,7 +43,10 @@ export function TodoWidget({
         {linkedEvents.map((e) => {
           const timeLabel = e.all_day ? 'Toată ziua' : `${pad2(new Date(e.start_time).getHours())}:${pad2(new Date(e.start_time).getMinutes())}`;
           return (
-            <div key={e.id} className="home-todo-note-calendar" onClick={() => onLinkedEventClick(e)}>
+            <div
+              key={e.id} role="button" tabIndex={0} className="home-todo-note-calendar" onClick={() => onLinkedEventClick(e)}
+              onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onLinkedEventClick(e); } }}
+            >
               <span className="home-todo-note-calendar-badge"><InfoIcon /> Din calendar</span>
               <p className="home-todo-note-calendar-text">{e.title || 'Eveniment'}</p>
               <span className="home-todo-note-calendar-time">Azi · {timeLabel}</span>

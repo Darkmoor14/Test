@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { dateKey, eventsOnDate, type CalendarEvent } from './calendarUtils';
+import { useMemo, useState } from 'react';
+import { dateKey, eventsOnDate, isEventVisibleTo, type CalendarEvent } from './calendarUtils';
 import { useCalendarEvents } from './useCalendarEvents';
 import { useStaffRoster } from './useStaffRoster';
 import { useReminders } from './useReminders';
+import { useNow } from './useNow';
 import { HomeClock } from './HomeClock';
 import { MiniCalendar } from './MiniCalendar';
 import { FullMonthCalendar } from './FullMonthCalendar';
@@ -15,7 +16,16 @@ import { NavGrid, type HomeNavKey } from './NavGrid';
 export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | null; onNavigate: (key: HomeNavKey) => void }) {
   const { events, saveEvent, deleteEvent } = useCalendarEvents(sessionEmail);
   const { isGod, modulePermission, allStaffEmails } = useStaffRoster(sessionEmail);
-  useReminders(events);
+  // A no-invitees event is private to whoever created it; adding
+  // invitees shares it with exactly those people plus the creator.
+  // Filtered once here so every view (mini calendar, full month,
+  // day sheets, De făcut, reminders) agrees on what "visible" means.
+  const visibleEvents = useMemo(
+    () => events.filter((e) => isEventVisibleTo(e, sessionEmail)),
+    [events, sessionEmail],
+  );
+  useReminders(visibleEvents);
+  const now = useNow();
 
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [daySheetOpen, setDaySheetOpen] = useState(false);
@@ -32,14 +42,14 @@ export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | 
   const openEditEventFromFullMonth = (e: CalendarEvent) => { setFullMonthOpen(false); openEditEvent(e); };
   const openNewEventFromFullMonth = (defaultDate: string) => { setFullMonthOpen(false); openNewEvent(defaultDate); };
 
-  const todayEvents = eventsOnDate(events, dateKey(new Date()));
+  const todayEvents = eventsOnDate(visibleEvents, dateKey(new Date()));
 
   const visibility: Record<HomeNavKey, boolean> = {
     tickets: isGod || modulePermission('tickets') === 'write',
     projects: isGod || modulePermission('proiecte') === 'write',
     erp: isGod || modulePermission('erp') === 'write',
     hr: isGod || modulePermission('hr') === 'write',
-    docs: isGod || modulePermission('hr') === 'write',
+    docs: isGod || modulePermission('docs') === 'write',
     status: isGod,
   };
 
@@ -48,12 +58,12 @@ export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | 
       <div className="home-start-grid">
         <div className="home-clock-card">
           <HomeClock />
-          <MiniCalendar calendarEvents={events} onDayClick={openDay} />
+          <MiniCalendar calendarEvents={visibleEvents} onDayClick={openDay} />
           <button type="button" className="home-mini-cal-expand-link" onClick={() => setFullMonthOpen(true)}>Vezi luna completă →</button>
           <div className="home-cal-today">
             <span className="k">Astăzi</span>
             <div className="calendar-day-events">
-              <EventListOrEmpty events={todayEvents} now={new Date()} onEventClick={openEditEvent} emptyLabel="Nicio programare azi." />
+              <EventListOrEmpty events={todayEvents} now={now} onEventClick={openEditEvent} emptyLabel="Nicio programare azi." />
             </div>
           </div>
           <button type="button" className="btn home-cal-add-btn" onClick={() => openNewEvent(dateKey(new Date()))}>+ Eveniment</button>
@@ -64,13 +74,14 @@ export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | 
           </div>
           <NavGrid visibility={visibility} onNavigate={onNavigate} />
         </div>
-        <TodoWidget calendarEvents={events} sessionEmail={sessionEmail} onLinkedEventClick={openEditEvent} />
+        <TodoWidget calendarEvents={visibleEvents} onLinkedEventClick={openEditEvent} />
       </div>
 
       <CalendarDaySheet
         open={daySheetOpen}
         dateKeyStr={selectedDay}
-        calendarEvents={events}
+        calendarEvents={visibleEvents}
+        now={now}
         onClose={() => setDaySheetOpen(false)}
         onAddEvent={() => openNewEvent(selectedDay || dateKey(new Date()))}
         onEventClick={openEditEvent}
@@ -86,7 +97,7 @@ export function HomePage({ sessionEmail, onNavigate }: { sessionEmail: string | 
       />
       <FullMonthCalendar
         open={fullMonthOpen}
-        calendarEvents={events}
+        calendarEvents={visibleEvents}
         onClose={() => setFullMonthOpen(false)}
         onDayClick={openDayFromFullMonth}
         onEventClick={openEditEventFromFullMonth}

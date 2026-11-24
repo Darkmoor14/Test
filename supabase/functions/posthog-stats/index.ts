@@ -142,8 +142,18 @@ Deno.serve(async (req) => {
     ]);
 
     const days = (pageviewResults[0]?.days || []).map((d) => d.slice(0, 10));
-    const totalSeries = pageviewResults.find((r) => !r.action?.math);
-    const uniqueSeries = pageviewResults.find((r) => r.action?.math === "dau");
+    // Prefer matching by action.math, but fall back to the series'
+    // fixed request order (index 0 = plain count, index 1 = math:
+    // "dau", per the runTrendsQuery call above) if PostHog doesn't
+    // echo math back the way expected -- when that happens, BOTH
+    // results satisfy `!r.action?.math`, so the find() for totalSeries
+    // still accidentally lands on the right one (index 0, first
+    // match), but uniqueSeries' find() never matches anything and
+    // silently comes back empty, which is exactly the bug this
+    // guards against ("Vizitatori unici" not rendering while "Afișări
+    // pagină" does).
+    const totalSeries = pageviewResults.find((r) => !r.action?.math) ?? pageviewResults[0];
+    const uniqueSeries = pageviewResults.find((r) => r.action?.math === "dau") ?? pageviewResults[1];
 
     const topPages = topPagesResults
       .map((r) => ({ path: breakdownValueToPath(r.breakdown_value), count: sum(r.data || []) }))

@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useId } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { useSupabase } from '../../lib/supabaseContext';
+import { useModalSheet } from '../../lib/useModalSheet';
 
-const STAFF_ROLE_KEYS = ['tickets', 'proiecte', 'erp', 'hr', 'god'] as const;
+const STAFF_ROLE_KEYS = ['tickets', 'proiecte', 'erp', 'hr', 'docs', 'god'] as const;
 type RoleKey = (typeof STAFF_ROLE_KEYS)[number];
-const ROLE_LABEL: Record<RoleKey, string> = { tickets: 'Sesizări', proiecte: 'Proiecte', erp: 'Resurse', hr: 'HR', god: 'God' };
+const ROLE_LABEL: Record<RoleKey, string> = { tickets: 'Sesizări', proiecte: 'Proiecte', erp: 'Resurse', hr: 'HR', docs: 'Documentație', god: 'God' };
 
 function generateStaffPassword(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
@@ -28,6 +29,7 @@ async function setStaffAuthPassword(supabase: SupabaseClient, email: string, pas
 }
 
 export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
+  const a11yId = useId();
   const supabase = useSupabase();
   const [rolesByEmail, setRolesByEmail] = useState<Map<string, Set<RoleKey>>>(new Map());
   const [notifiedEmails, setNotifiedEmails] = useState<Set<string>>(new Set());
@@ -41,6 +43,9 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
   const [resetEmail, setResetEmail] = useState('');
   const [resetPassword, setResetPassword] = useState('');
   const [resetSaving, setResetSaving] = useState(false);
+
+  const { panelRef: addPanelRef, handleKeyDown: addHandleKeyDown, backdropOnClick: addBackdropOnClick } = useModalSheet({ open: addOpen, onClose: () => setAddOpen(false), guard: addSaving });
+  const { panelRef: resetPanelRef, handleKeyDown: resetHandleKeyDown, backdropOnClick: resetBackdropOnClick } = useModalSheet({ open: resetOpen, onClose: () => setResetOpen(false), guard: resetSaving });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -61,7 +66,18 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
 
   useEffect(() => { void load(); }, [load]);
 
+  const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
   const toggleRole = async (email: string, role: RoleKey, checked: boolean) => {
+    const key = `${email}:${role}`;
+    // Without this guard, toggling the same checkbox on and off again
+    // before the first request resolved fired an insert() and a delete()
+    // for the same (email, role) pair with no ordering guarantee between
+    // them -- if they landed out of order, the database ended up opposite
+    // to what the checkbox showed, until the next full reload happened to
+    // correct it (CLICK-PATH-404).
+    if (pendingToggles.has(key)) return;
+    setPendingToggles((prev) => new Set(prev).add(key));
+
     const prev = new Map(rolesByEmail);
     const roles = new Set(prev.get(email) || []);
     if (checked) roles.add(role); else roles.delete(role);
@@ -75,6 +91,7 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
       alert('Eroare la salvare. Încercați din nou.');
       load();
     }
+    setPendingToggles((prevSet) => { const next = new Set(prevSet); next.delete(key); return next; });
   };
 
   const removePerson = async (email: string) => {
@@ -116,8 +133,8 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
           <div className="overview-table-wrap">
             <table className="overview-table" id="staffRolesTable">
               <colgroup>
-                <col style={{ width: '22%' }} /><col style={{ width: '11%' }} /><col style={{ width: '11%' }} /><col style={{ width: '10%' }} />
-                <col style={{ width: '8%' }} /><col style={{ width: '8%' }} /><col style={{ width: '12%' }} /><col style={{ width: '18%' }} />
+                <col style={{ width: '19%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10%' }} /><col style={{ width: '9%' }} />
+                <col style={{ width: '7%' }} /><col style={{ width: '10%' }} /><col style={{ width: '7%' }} /><col style={{ width: '11%' }} /><col style={{ width: '17%' }} />
               </colgroup>
               <thead>
                 <tr>
@@ -126,6 +143,7 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
                   <th>Proiecte</th>
                   <th>Resurse</th>
                   <th>HR</th>
+                  <th>Documentație</th>
                   <th>God</th>
                   <th>Notificări</th>
                   <th></th>
@@ -133,9 +151,9 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={8} className="no-results">Se încarcă…</td></tr>
+                  <tr><td colSpan={9} className="no-results">Se încarcă…</td></tr>
                 ) : emails.length === 0 ? (
-                  <tr><td colSpan={8} className="no-results">Nimeni încă — adaugă prima persoană.</td></tr>
+                  <tr><td colSpan={9} className="no-results">Nimeni încă — adaugă prima persoană.</td></tr>
                 ) : (
                   emails.map((email) => {
                     const roles = rolesByEmail.get(email) || new Set();
@@ -144,14 +162,15 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
                     return (
                       <tr key={email}>
                         <td>{email}{isSelf && <span className="backlog-tag">tu</span>}</td>
-                        {(['tickets', 'proiecte', 'erp', 'hr', 'god'] as RoleKey[]).map((role) => {
+                        {(['tickets', 'proiecte', 'erp', 'hr', 'docs', 'god'] as RoleKey[]).map((role) => {
                           const lockedSelf = isSelf && role === 'god';
+                          const togglePending = pendingToggles.has(`${email}:${role}`);
                           return (
                             <td key={role}>
                               <input
                                 type="checkbox"
                                 checked={roles.has(role)}
-                                disabled={lockedSelf}
+                                disabled={lockedSelf || togglePending}
                                 title={lockedSelf ? 'Nu îți poți elimina propriul rol God' : undefined}
                                 onChange={(e) => toggleRole(email, role, e.target.checked)}
                               />
@@ -184,25 +203,25 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
       </div>
 
       {addOpen && (
-        <div className="mobile-sheet show" aria-hidden="false">
-          <div className="mobile-sheet-backdrop" onClick={() => setAddOpen(false)} />
-          <div className="mobile-sheet-panel" role="dialog" aria-modal="true">
+        <div className="mobile-sheet show" aria-hidden="false" onKeyDown={addHandleKeyDown}>
+          <div className="mobile-sheet-backdrop" onClick={addBackdropOnClick} />
+          <div ref={addPanelRef} tabIndex={-1} className="mobile-sheet-panel" role="dialog" aria-modal="true">
             <div className="mobile-sheet-panel-scroll">
               <div className="sheet-header">
                 <div><h3>Adaugă persoană</h3></div>
-                <button type="button" className="sheet-close" aria-label="Închide" onClick={() => setAddOpen(false)}>×</button>
+                <button type="button" className="sheet-close" aria-label="Închide" disabled={addSaving} onClick={() => setAddOpen(false)}>×</button>
               </div>
               <div className="ctrl-field">
-                <label>Email</label>
-                <input type="email" placeholder="ex: nume@insta-grup.ro" value={addEmail} onChange={(e) => setAddEmail(e.target.value)} />
+                <label htmlFor={`${a11yId}-email`}>Email</label>
+                <input type="email" placeholder="ex: nume@insta-grup.ro" value={addEmail} onChange={(e) => setAddEmail(e.target.value)} id={`${a11yId}-email`}/>
               </div>
               <div className="ctrl-field">
-                <label>Parolă</label>
-                <input type="text" placeholder="ex: parola generată sau aleasă" value={addPassword} onChange={(e) => setAddPassword(e.target.value)} />
+                <label htmlFor={`${a11yId}-parol`}>Parolă</label>
+                <input type="text" placeholder="ex: parola generată sau aleasă" value={addPassword} onChange={(e) => setAddPassword(e.target.value)} id={`${a11yId}-parol`}/>
                 <button type="button" className="btn" onClick={() => setAddPassword(generateStaffPassword())}>Generează</button>
               </div>
-              <div className="ctrl-field">
-                <label>Roluri</label>
+              <div className="ctrl-field" role="group" aria-labelledby={`${a11yId}-roluri-label`}>
+                <label id={`${a11yId}-roluri-label`}>Roluri</label>
                 {STAFF_ROLE_KEYS.map((r) => (
                   <label key={r} className="recur-radio">
                     <input
@@ -249,17 +268,17 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
       )}
 
       {resetOpen && (
-        <div className="mobile-sheet show" aria-hidden="false">
-          <div className="mobile-sheet-backdrop" onClick={() => setResetOpen(false)} />
-          <div className="mobile-sheet-panel" role="dialog" aria-modal="true">
+        <div className="mobile-sheet show" aria-hidden="false" onKeyDown={resetHandleKeyDown}>
+          <div className="mobile-sheet-backdrop" onClick={resetBackdropOnClick} />
+          <div ref={resetPanelRef} tabIndex={-1} className="mobile-sheet-panel" role="dialog" aria-modal="true">
             <div className="mobile-sheet-panel-scroll">
               <div className="sheet-header">
                 <div><h3>Schimbă parola — {resetEmail}</h3></div>
-                <button type="button" className="sheet-close" aria-label="Închide" onClick={() => setResetOpen(false)}>×</button>
+                <button type="button" className="sheet-close" aria-label="Închide" disabled={resetSaving} onClick={() => setResetOpen(false)}>×</button>
               </div>
               <div className="ctrl-field">
-                <label>Parolă nouă</label>
-                <input type="text" placeholder="ex: parola generată sau aleasă" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} />
+                <label htmlFor={`${a11yId}-parol-nou`}>Parolă nouă</label>
+                <input type="text" placeholder="ex: parola generată sau aleasă" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} id={`${a11yId}-parol-nou`}/>
                 <button type="button" className="btn" onClick={() => setResetPassword(generateStaffPassword())}>Generează</button>
               </div>
               <div className="sheet-actions">

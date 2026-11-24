@@ -31,6 +31,10 @@ export function ErpHomePanel() {
   const counts = { echipament: 0, masina: 0, material: 0, produs: 0 } as Record<string, number>;
   store.equipment.forEach((eq) => {
     const cat = eq.erp_category || (eq.item_type === 'echipament' ? 'echipament' : 'material');
+    // The diesel reservoir lives under erp_category 'masina' but isn't a
+    // vehicle to count alongside them -- same exclusion as erp.js's
+    // machinesFilterCounts() for Parc Auto's own table/cards.
+    if (cat === 'masina' && eq.category === 'rezervor') return;
     if (counts[cat] != null) counts[cat]++;
   });
   const lowStockItems = store.equipment.filter(isLowStock);
@@ -66,7 +70,11 @@ export function ErpHomePanel() {
           <h3 className="status-subhead">Alerte stoc și revizii</h3>
           <div className="status-history-list">
             {lowStockItems.map((eq) => (
-              <div key={eq.id} className="status-history-item" onClick={() => goToItem(eq, eq.erp_category === 'produs' ? 'products' : 'materials')}>
+              <div
+                key={eq.id} role="button" tabIndex={0} className="status-history-item"
+                onClick={() => goToItem(eq, eq.erp_category === 'produs' ? 'products' : 'materials')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToItem(eq, eq.erp_category === 'produs' ? 'products' : 'materials'); } }}
+              >
                 <span className="status-history-time">{eq.erp_category === 'produs' ? 'PRODUS' : 'MATERIAL'}</span>
                 <span className="status-history-dot" />
                 <div>
@@ -76,7 +84,11 @@ export function ErpHomePanel() {
               </div>
             ))}
             {expiredDocsItems.map((eq) => (
-              <div key={eq.id} className="status-history-item" onClick={() => window.goToVehicle?.(eq)}>
+              <div
+                key={eq.id} role="button" tabIndex={0} className="status-history-item"
+                onClick={() => window.goToVehicle?.(eq)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.goToVehicle?.(eq); } }}
+              >
                 <span className="status-history-time">MAȘINĂ</span>
                 <span className="status-history-dot" />
                 <div>

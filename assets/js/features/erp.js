@@ -75,8 +75,19 @@
   const EQUIPMENT_STATUS_LABEL = { 'Disponibil': 'Disponibil', 'In folosinta': 'În folosință', 'Service': 'Service', 'Indisponibil': 'Indisponibil' };
   // Parc Auto se împarte în 4 subcategorii fixe, distribuite automat după
   // câmpul "Subcategorie" ales la adăugare — Camion are în plus
-  // Licență transport/Tahograf, celelalte 3 nu.
-  const VEHICLE_SUBCAT_LABEL = { masina_mica: 'Mașină mică', autoutilitara: 'Autoutilitară', camion: 'Camion', utilaj: 'Utilaj' };
+  // Licență transport/Tahograf, celelalte 3 nu. "rezervor" (rezervor de
+  // motorină) e o a 5-a, deliberat separată: n-are plan/șasiu/documente/
+  // km/ore, doar un nivel de litri -- vezi isReservoir() mai jos pentru
+  // toate locurile unde se exclude din tabelul/cardurile/filtrele restului
+  // Parc Auto (nu e o "mașină" de contorizat alături de ele).
+  const VEHICLE_SUBCAT_LABEL = { masina_mica: 'Mașină mică', autoutilitara: 'Autoutilitară', camion: 'Camion', utilaj: 'Utilaj', rezervor: 'Rezervor motorină' };
+  function isReservoir(eq){ return eq.category === 'rezervor'; }
+  // Liters are entered/added/subtracted as plain decimals in several
+  // places (reservoir quantity, fuel purchase sums) -- raw JS float
+  // arithmetic on them drifts into values like 85.25999999999999, which
+  // then get stored and displayed as-is. Round to 2dp at every such
+  // write/aggregate so neither the DB nor the UI ever shows the noise.
+  function round2(n){ return Math.round(Number(n) * 100) / 100; }
   let machinesSubcatFilter = 'Toate';
   // machinesSidebarKey tracks which sidebar sub-item is lit up, separate
   // from machinesSubcatFilter: navigating via the sidebar itself (default)
@@ -166,7 +177,8 @@
     fuel_rated_consumption_km: 'Consum normat (km)', fuel_rated_consumption_hours: 'Consum normat (ore)',
     fuel_tank_capacity_l: 'Capacitate rezervor', fuel_initial_km: 'Km inițial',
     fuel_initial_hours: 'Ore inițiale', fuel_service_interval_km: 'Interval revizie (km)',
-    fuel_service_interval_hours: 'Interval revizie (ore)',
+    fuel_service_interval_hours: 'Interval revizie (ore)', quantity: 'Litri',
+    reservoir_baseline_year: 'An referință', reservoir_baseline_month: 'Lună referință',
   };
   function describeVehicleFieldChanges(before, after){
     const changes = [];
@@ -218,11 +230,26 @@
     { key: 'notificari', label: 'Notificări' },
   ];
   function machinesFilterCounts(){
-    const allVehicles = allEquipment.filter(eq => eq.erp_category === 'masina');
+    // Rezervorul nu e o "mașină" de contorizat/filtrat alături de restul
+    // Parc Auto -- exclus aici o singură dată, astfel încât tabelul
+    // Prezentare generală, Raport lunar consum, cardurile de filtrare și
+    // Notificările (documente/service) îl ignoră automat pe toate.
+    const allVehicles = allEquipment.filter(eq => eq.erp_category === 'masina' && !isReservoir(eq));
     const urgentVehicles = allVehicles.filter(eq => vehicleHasUrgentDocs(eq) || vehicleHasUrgentService(eq));
     const subcatCounts = { masina_mica: 0, autoutilitara: 0, camion: 0, utilaj: 0 };
     allVehicles.forEach(eq => { if (subcatCounts[eq.category] != null) subcatCounts[eq.category]++; });
     return { allVehicles, urgentVehicles, subcatCounts };
+  }
+  // Rezervorul (rezervoarele) de motorină -- rânduri simple în același
+  // tabel ca restul Parc Auto (nu un card separat deasupra), cu „—"
+  // pentru orice coloană care nu i se aplică (documente/service/km).
+  // Apare doar pe „Toate" (nefiltrat) -- nicio subcategorie nu-l poate
+  // selecta, pentru că n-are propriul card de filtrare.
+  function allReservoirs(){
+    return allEquipment.filter(eq => eq.erp_category === 'masina' && isReservoir(eq));
+  }
+  function reservoirLitersLabel(eq){
+    return `${eq.quantity != null ? Number(eq.quantity).toLocaleString('ro-RO') : '0'} L`;
   }
   // Shared by the Prezentare generală cards and the Raport lunar
   // consum cards below -- same defs, same counts, same toggle-off
@@ -282,6 +309,11 @@
       : allVehicles.filter(eq => eq.category === machinesSubcatFilter))
       .slice()
       .sort((a, b) => (a.plate_number || '').localeCompare(b.plate_number || '', 'ro'));
+    // Rezervorul apare doar pe "Toate" nefiltrat -- n-are propriul card
+    // de filtrare, deci orice altă subcategorie sau "Notificări" îl
+    // exclude automat (allVehicles deja nu-l include).
+    const reservoirRows = machinesSubcatFilter === 'Toate' ? allReservoirs() : [];
+    const rowsToRender = filtered.concat(reservoirRows);
 
     const countEl = document.getElementById('machinesCount');
     if (countEl) countEl.textContent = machinesSubcatFilter === 'Toate'
@@ -300,7 +332,7 @@
     cardsList.style.display = onOverview ? 'none' : '';
 
     if (onOverview) {
-      if (!filtered.length) {
+      if (!rowsToRender.length) {
         tbody.innerHTML = `<tr><td colspan="9"><div class="machines-table-empty">Nicio mașină înregistrată.</div></td></tr>`;
         return;
       }
@@ -325,7 +357,22 @@
         if (!parts.length) return '<td class="mt-na">—</td>';
         return `<td>${parts.join(' · ')}</td>`;
       }
-      tbody.innerHTML = filtered.map(eq => {
+      tbody.innerHTML = rowsToRender.map(eq => {
+        if (isReservoir(eq)) {
+          return `
+            <tr>
+              <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div><div class="mt-subcat">${eq.notes ? escapeHtml(eq.notes) : ''}</div></td>
+              <td><a href="#" class="ticket-link" data-vehicle-id="${escapeHtml(eq.id)}">${escapeHtml(reservoirLitersLabel(eq))}</a></td>
+              <td class="mt-na">—</td>
+              <td class="mt-na">—</td>
+              <td class="mt-na">—</td>
+              <td class="mt-na">—</td>
+              <td class="mt-na">—</td>
+              <td class="mt-na">—</td>
+              <td class="mt-na">—</td>
+            </tr>
+          `;
+        }
         const isCamion = eq.category === 'camion';
         return `
           <tr>
@@ -397,9 +444,15 @@
     return initial != null ? Number(initial) : null;
   }
   function fuelPurchaseSum(vehicleId, year, month){
-    return allVehicleFuelPurchases
+    // Rounded to 2dp -- plain floating-point addition of several
+    // decimal liter amounts (e.g. 42.3 + 42.96) lands on values like
+    // 85.25999999999999 rather than 85.26, and that raw sum gets
+    // displayed as-is in a few places (this table, the reservoir row,
+    // the Excel export) with no further formatting of its own.
+    const sum = allVehicleFuelPurchases
       .filter(p => p.vehicle_id === vehicleId && p.year === year && p.month === month)
-      .reduce((sum, p) => sum + Number(p.liters), 0);
+      .reduce((acc, p) => acc + Number(p.liters), 0);
+    return round2(sum);
   }
   function fuelLogFor(vehicleId, year, month){
     return allVehicleFuelLogs.find(l => l.vehicle_id === vehicleId && l.year === year && l.month === month) || null;
@@ -479,110 +532,91 @@
   // (there's only one tank) -- each is "what this would be if all of
   // it went to that use", not a true split, since the data doesn't
   // distinguish which liters went where.
-  // vehicle_dual_unit_consumption_trigger migration mirrors this exact
-  // logic server-side (check_vehicle_month_fuel_consumption) for the
-  // >50% alert, so this is display-only here. REPORT_MONTHS comes from
-  // excel.js (shared top-level script scope, same cross-file pattern
-  // already used throughout this app) — only referenced inside
-  // functions, never at load time, so file load order doesn't matter.
-  // Real (observed) lifetime average for this vehicle+unit -- total liters
-  // ever purchased divided by total km/hours ever driven across every
-  // tracked month, deliberately NOT the manufacturer "rated" figure (that
-  // one stays below, as `rated`, purely for the over-limit alert
-  // threshold -- a different comparison). A single month's purchases
-  // rarely land exactly on what was burned that same month (see
-  // vehicleFuelLeftoverChain below), but averaged across a vehicle's
-  // whole history the two settle into agreement -- self-correcting as
-  // more months of data come in.
-  function vehicleRealRateFor(eq, unit){
-    const field = readingFieldFor(unit);
-    const months = allVehicleFuelLogs
-      .filter(l => l.vehicle_id === eq.id && l[field] != null)
-      .map(l => ({ year: l.year, month: l.month }));
-    if (!months.length) return null;
-    let totalDelta = 0, totalPurchased = 0;
-    months.forEach(m => {
-      const log = fuelLogFor(eq.id, m.year, m.month);
-      const baseline = previousFuelReadingFor(eq, unit, m.year, m.month);
-      const reading = log && log[field] != null ? Number(log[field]) : null;
-      const delta = (reading != null && baseline != null && reading - baseline > 0) ? reading - baseline : 0;
-      totalDelta += delta;
-      totalPurchased += fuelPurchaseSum(eq.id, m.year, m.month);
-    });
-    if (totalDelta <= 0) return null;
-    return totalPurchased / totalDelta * (unit === 'hours' ? 1 : 100);
-  }
-  // Month-by-month running fuel-tank balance for one vehicle+unit, chained
-  // chronologically from its first tracked month (leftover starts at 0 --
-  // some vehicles already had fuel in the tank before tracking began, but
-  // that's unknowable and self-corrects over a few months same as any
-  // other baseline-less first reading in this file). Each month's
-  // "theoretical" burn is the vehicle's own real lifetime rate (see
-  // vehicleRealRateFor) applied to that month's km/hours -- comparing
-  // against what was actually purchased gives a surplus/deficit, which
-  // carries into the next month capped by the tank's physical capacity
-  // (fuel_tank_capacity_l). A month whose balance would overflow that cap
-  // means more was bought than could possibly have fit, which is exactly
-  // the signal that catches fuel-card skimming or a misdeclared fill-up.
-  function vehicleFuelLeftoverChain(eq, unit){
-    const chain = new Map();
-    const capacity = eq.fuel_tank_capacity_l != null ? Number(eq.fuel_tank_capacity_l) : null;
-    const realRate = vehicleRealRateFor(eq, unit);
-    if (capacity == null || realRate == null) return chain;
-    const field = readingFieldFor(unit);
-    const months = allVehicleFuelLogs
-      .filter(l => l.vehicle_id === eq.id && l[field] != null)
-      .map(l => ({ year: l.year, month: l.month }))
-      .sort((a, b) => (a.year - b.year) || (a.month - b.month));
-    let leftover = 0;
-    months.forEach(m => {
-      const log = fuelLogFor(eq.id, m.year, m.month);
-      const baseline = previousFuelReadingFor(eq, unit, m.year, m.month);
-      const reading = log && log[field] != null ? Number(log[field]) : null;
-      const delta = (reading != null && baseline != null && reading - baseline > 0) ? reading - baseline : 0;
-      const purchased = fuelPurchaseSum(eq.id, m.year, m.month);
-      const theoretical = realRate * delta / (unit === 'hours' ? 1 : 100);
-      const leftoverIn = leftover;
-      const leftoverOut = Math.max(0, Math.min(capacity, leftoverIn + purchased - theoretical));
-      chain.set(`${m.year}-${m.month}`, { leftoverIn, leftoverOut, delta, purchased, theoretical });
-      leftover = leftoverOut;
-    });
-    return chain;
-  }
-  function vehicleFuelConsumptionFor(eq, unit, year, month){
-    const unitLbl = unitLabel(unit);
-    const unitRateLabel = unit === 'hours' ? 'L/H' : 'L/100km';
+  // REPORT_MONTHS comes from excel.js (shared top-level script scope,
+  // same cross-file pattern already used throughout this app) — only
+  // referenced inside functions, never at load time, so file load
+  // order doesn't matter.
+  //
+  // This month's own ratio: total liters bought THIS month, divided by
+  // THIS month's own km/hours, alone -- no other month's figures ever
+  // enter into it. An earlier version of this file compared each month
+  // against a "theoretical burn" rate carried forward from its OWN
+  // history (self-calibrated trailing average, or a manufacturer-rated
+  // fallback) -- meant to catch skimming/misdeclared fill-ups, but it
+  // meant one off month (a missing fill-up, a typo'd odometer reading)
+  // corrupted every month that came after it, sometimes for years.
+  // Keeping each month's own figure strictly self-contained is what
+  // fixes that -- a bad month now stays contained to itself.
+  function vehicleMonthlyRatio(eq, unit, year, month){
     const field = readingFieldFor(unit);
     const log = fuelLogFor(eq.id, year, month);
     const reading = (log && log[field] != null) ? Number(log[field]) : null;
     const baseline = previousFuelReadingFor(eq, unit, year, month);
-    const delta = (reading != null && baseline != null && reading - baseline > 0) ? (reading - baseline) : null;
-    const totalAdded = fuelPurchaseSum(eq.id, year, month);
-    // Adjusted for the running tank balance when there's enough history
-    // for one (see vehicleFuelLeftoverChain) -- falls back to the raw
-    // liters-purchased figure otherwise (no tank capacity set, or too few
-    // tracked months yet to establish a real rate).
-    const leftoverEntry = vehicleFuelLeftoverChain(eq, unit).get(`${year}-${month}`) || null;
-    const consumedBasis = leftoverEntry != null ? (leftoverEntry.leftoverIn + totalAdded - leftoverEntry.leftoverOut) : totalAdded;
-    const actual = (delta != null && consumedBasis > 0)
-      ? (unit === 'hours' ? consumedBasis / delta : consumedBasis / delta * 100)
-      : null;
+    // >= 0 -- a real 0 (read, but no movement that month) now displays
+    // as "0", not "—", which was previously indistinguishable from no
+    // reading at all; only an actual decrease (bad data) falls back to
+    // null delta instead.
+    const delta = (reading != null && baseline != null && reading - baseline >= 0) ? (reading - baseline) : null;
+    const purchased = fuelPurchaseSum(eq.id, year, month);
+    // delta > 0 (not just != null) -- a 0-distance month can't have a
+    // per-km/per-hour rate; dividing by that zero delta would otherwise
+    // produce Infinity instead of the "—" this correctly falls back to.
+    const ratio = (delta != null && delta > 0) ? purchased / delta * (unit === 'hours' ? 1 : 100) : null;
+    return { delta, purchased, ratio };
+  }
+  // The "Notificări" column's check: this vehicle's own ratio
+  // averaged over the 3 months strictly before (year, month) -- never
+  // the displayed month itself -- against the manufacturer-rated
+  // figure (fuel_rated_consumption_km/hours, otherwise just a display
+  // value everywhere else in this file). Needs all three of those
+  // months to have a computable ratio of their own -- a vehicle
+  // without that much real history yet gets no notification rather
+  // than a guess off partial data -- and a rated figure to compare
+  // against.
+  function vehicleRatedTrendFor(eq, unit, year, month){
     const rated = eq[ratedFieldFor(unit)] != null ? Number(eq[ratedFieldFor(unit)]) : null;
-    const overLimit = actual != null && rated != null && actual > rated * 1.5;
-    const leftoverOut = leftoverEntry != null ? leftoverEntry.leftoverOut : null;
-    return { unit: unitLbl, unitRateLabel, reading, baseline, delta, totalAdded, actual, rated, overLimit, leftoverOut };
+    if (rated == null) return null;
+    let y = year, m = month;
+    const ratios = [];
+    for (let i = 0; i < 3; i++) {
+      m -= 1;
+      if (m < 1) { m = 12; y -= 1; }
+      const r = vehicleMonthlyRatio(eq, unit, y, m).ratio;
+      if (r == null) return null;
+      ratios.push(r);
+    }
+    const avg = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+    return { avg, rated, overLimit: avg > rated * 1.5 };
+  }
+  function vehicleFuelConsumptionFor(eq, unit, year, month){
+    const unitLbl = unitLabel(unit);
+    const unitRateLabel = unit === 'hours' ? 'L/H' : 'L/100km';
+    const { delta, purchased: totalAdded, ratio: actual } = vehicleMonthlyRatio(eq, unit, year, month);
+    const rated = eq[ratedFieldFor(unit)] != null ? Number(eq[ratedFieldFor(unit)]) : null;
+    const trend = vehicleRatedTrendFor(eq, unit, year, month);
+    return {
+      unit: unitLbl, unitRateLabel, delta, totalAdded, actual, rated,
+      trendAvg: trend ? trend.avg : null,
+      trendOverLimit: trend ? trend.overLimit : false,
+    };
   }
   // Across every unit this vehicle tracks (one for most, two for
   // Camion/Autoutilitara).
   function vehicleFuelConsumptions(eq, year, month){
     return vehicleUnits(eq).map(u => vehicleFuelConsumptionFor(eq, u, year, month));
   }
-  function vehicleFuelOverLimit(eq, year, month){
-    return vehicleFuelConsumptions(eq, year, month).some(c => c.overLimit);
+  function vehicleFuelRatedTrendFlag(eq, year, month){
+    return vehicleFuelConsumptions(eq, year, month).some(c => c.trendOverLimit);
   }
   const erpLoadedAt = new Date();
+  // Defaults to LAST month, not the current one -- this month's fuel
+  // bills are still trickling in as it goes, so the one month that's
+  // actually finished and worth reviewing is always the previous one.
+  // getMonth() (0-based) already equals the previous month's 1-based
+  // number; only January needs to wrap to December of the prior year.
   let fuelReportYear = erpLoadedAt.getFullYear();
-  let fuelReportMonth = erpLoadedAt.getMonth() + 1; // 1-12, matches vehicle_fuel_logs.month
+  let fuelReportMonth = erpLoadedAt.getMonth();
+  if (fuelReportMonth < 1) { fuelReportMonth = 12; fuelReportYear -= 1; }
   // Independent of machinesSubcatFilter (Prezentare generală's own
   // quick-filter) -- the two pages can be filtered to different
   // subcategories at the same time, same as their sidebar entries are
@@ -596,10 +630,12 @@
     if (!tbody) return;
     if (labelEl) labelEl.textContent = `${REPORT_MONTHS[fuelReportMonth - 1]} ${fuelReportYear}`;
     const { allVehicles } = machinesFilterCounts();
-    // This page's own "Notificări" — vehicles over 50% of normat for
-    // the month currently displayed, not the doc-expiry warnings
+    // This page's own "Notificări" — vehicles whose own average over
+    // the 3 months before the one displayed sits more than 50% over
+    // the manufacturer-rated figure (vehicleRatedTrendFor, the
+    // Notificări column's triangle) -- not the doc-expiry warnings
     // Prezentare generală's identical-looking card means.
-    const fuelUrgentVehicles = allVehicles.filter(eq => vehicleFuelOverLimit(eq, fuelReportYear, fuelReportMonth));
+    const fuelUrgentVehicles = allVehicles.filter(eq => vehicleFuelRatedTrendFlag(eq, fuelReportYear, fuelReportMonth));
     renderMachinesFilterCardsInto(cardsWrap, fuelReportSubcatFilter, (nextKey) => {
       fuelReportSubcatFilter = nextKey;
       renderMachinesFuelReport();
@@ -610,38 +646,66 @@
       .slice()
       .sort((a, b) => (a.plate_number || '').localeCompare(b.plate_number || '', 'ro'));
     if (countEl) countEl.textContent = vehicles.length + (vehicles.length === 1 ? ' mașină' : ' mașini');
-    if (!vehicles.length) {
+    // Same rule as Prezentare generală: the reservoir only shows on
+    // "Toate" nefiltrat. It doesn't track km/hours, Consum efectiv,
+    // Consum normat, or a trend, so every one of those columns is just
+    // "—" for it; its own running level is Prezentare generală's job
+    // (reservoirLitersLabel), not this report's.
+    const reservoirRows = fuelReportSubcatFilter === 'Toate' ? allReservoirs() : [];
+    const rowsToRender = vehicles.concat(reservoirRows);
+    if (!rowsToRender.length) {
       tbody.innerHTML = `<tr><td colspan="9"><div class="machines-table-empty">Nicio mașină înregistrată.</div></td></tr>`;
       return;
     }
-    tbody.innerHTML = vehicles.map(eq => {
+    const na = '<span class="mt-na">—</span>';
+    tbody.innerHTML = rowsToRender.map(eq => {
+      if (isReservoir(eq)) {
+        const reservoirAdded = fuelPurchaseSum(eq.id, fuelReportYear, fuelReportMonth);
+        return `
+          <tr>
+            <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div></td>
+            <td>${na}</td>
+            <td>${na}</td>
+            <td>${na}</td>
+            <td>${reservoirAdded > 0 ? escapeHtml(String(reservoirAdded)) + ' L' : na}</td>
+            <td>${na}</td>
+            <td>${na}</td>
+            <td>${na}</td>
+            <td><button type="button" class="mt-row-icon-btn fuel-log-edit-btn" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+            </button></td>
+          </tr>
+        `;
+      }
       const cs = vehicleFuelConsumptions(eq, fuelReportYear, fuelReportMonth);
       const kmC = cs.find(c => c.unit === 'km');
       const hC = cs.find(c => c.unit === 'h');
-      const overLimit = cs.some(c => c.overLimit);
+      const trendFlagged = cs.some(c => c.trendOverLimit);
       const totalAdded = fuelPurchaseSum(eq.id, fuelReportYear, fuelReportMonth);
-      const na = '<span class="mt-na">—</span>';
       // Camion/Autoutilitara track both -- join whichever of the two
       // have a value into one cell instead of adding more columns.
       const joinPair = (fmt) => {
         const parts = [kmC, hC].filter(Boolean).map(fmt).filter(Boolean);
         return parts.length ? parts.join(' · ') : na;
       };
-      // km and hours share the same tank/balance -- on a dual-tracked
-      // vehicle both branches compute the identical leftoverOut, so show
-      // it once rather than joining a duplicate.
-      const leftoverVal = [kmC, hC].map(c => c && c.leftoverOut).find(v => v != null);
-      const leftoverCell = leftoverVal == null ? na : (leftoverVal < 0.05 ? '0.0 L' : `-${leftoverVal.toFixed(1)} L`);
+      // Tooltip text for the Notificări triangle -- names which unit(s)
+      // tripped the 3-month-average-vs-normat check and by how much.
+      const trendTitle = [kmC, hC].filter(c => c && c.trendOverLimit)
+        .map(c => `Consum mediu ultimele 3 luni: ${c.trendAvg.toFixed(1)} ${c.unitRateLabel} — normat: ${c.rated} ${c.unitRateLabel}`)
+        .join(' · ');
+      const notifCell = trendFlagged
+        ? `<span class="mt-trend-flag" title="${escapeHtml(trendTitle)}">⚠</span>`
+        : na;
       return `
-        <tr class="${overLimit ? 'row-error' : ''}">
+        <tr class="${trendFlagged ? 'row-error' : ''}">
           <td class="mt-name-cell"><div class="mt-name">${escapeHtml(eq.name)}</div></td>
           <td><a href="#" class="ticket-link" data-vehicle-id="${escapeHtml(eq.id)}">${escapeHtml(eq.plate_number || '—')}</a></td>
           <td>${kmC && kmC.delta != null ? escapeHtml(String(kmC.delta)) + ' km' : na}</td>
           <td>${hC && hC.delta != null ? escapeHtml(String(hC.delta)) + ' h' : na}</td>
           <td>${totalAdded > 0 ? escapeHtml(String(totalAdded)) + ' L' : na}</td>
-          <td>${leftoverCell}</td>
-          <td class="${overLimit ? 'mt-warn' : ''}">${joinPair(c => c.actual != null ? `${c.actual.toFixed(1)} ${c.unitRateLabel}${c.overLimit ? ' ⚠' : ''}` : null)}</td>
+          <td>${joinPair(c => c.actual != null ? `${c.actual.toFixed(1)} ${c.unitRateLabel}` : null)}</td>
           <td>${joinPair(c => c.rated != null ? `${c.rated} ${c.unitRateLabel}` : null)}</td>
+          <td>${notifCell}</td>
           <td><button type="button" class="mt-row-icon-btn fuel-log-edit-btn" data-requires-write="erp" data-vehicle-id="${escapeHtml(eq.id)}" title="Editează" aria-label="Editează ${escapeHtml(eq.name)}">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
           </button></td>
@@ -699,6 +763,13 @@
   if (vflReadingKmInput) vflReadingKmInput.addEventListener('input', updateVflDiffDisplay);
   const vflReadingHoursInput = document.getElementById('vfl-reading-hours');
   if (vflReadingHoursInput) vflReadingHoursInput.addEventListener('input', updateVflDiffDisplay);
+  const vflFromReservoirCheckbox = document.getElementById('vfl-from-reservoir');
+  if (vflFromReservoirCheckbox) vflFromReservoirCheckbox.addEventListener('change', () => {
+    const reservoirSelectField = document.getElementById('vfl-reservoir-select-field');
+    const reservoirSelect = document.getElementById('vfl-reservoir-select');
+    const showPicker = vflFromReservoirCheckbox.checked && reservoirSelect && reservoirSelect.options.length > 1;
+    if (reservoirSelectField) reservoirSelectField.style.display = showPicker ? '' : 'none';
+  });
   function renderFuelPurchaseList(){
     const listEl = document.getElementById('vflPurchaseList');
     const totalEl = document.getElementById('vfl-purchase-total');
@@ -707,7 +778,7 @@
     const entries = allVehicleFuelPurchases
       .filter(p => p.vehicle_id === vehicleId && p.year === year && p.month === month)
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    const total = entries.reduce((sum, p) => sum + Number(p.liters), 0);
+    const total = fuelPurchaseSum(vehicleId, year, month);
     if (totalEl) totalEl.textContent = `${total} L`;
     if (!entries.length) {
       listEl.innerHTML = '<p class="status-history-empty">Nicio alimentare înregistrată încă.</p>';
@@ -716,7 +787,7 @@
     listEl.innerHTML = entries.map(p => `
       <div class="fuel-purchase-item">
         <div>
-          <div class="fuel-purchase-item-main">${escapeHtml(String(p.liters))} L</div>
+          <div class="fuel-purchase-item-main">${escapeHtml(String(p.liters))} L${p.source_reservoir_id ? ' <span class="fuel-purchase-item-tag">din rezervor</span>' : ''}${p.purchase_date ? ` · ${escapeHtml(formatWoDateRO(p.purchase_date))}` : ''}</div>
           ${p.note ? `<div class="fuel-purchase-item-note">${escapeHtml(p.note)}</div>` : ''}
         </div>
         <button type="button" class="fuel-purchase-delete" data-id="${escapeHtml(p.id)}" data-requires-write="erp" aria-label="Șterge alimentarea">×</button>
@@ -727,9 +798,17 @@
   // rather than inline table inputs, same reasoning as every other
   // add/edit flow in this file (room for labels/validation).
   function openVehicleFuelLogForm(eq){
-    const log = fuelLogFor(eq.id, fuelReportYear, fuelReportMonth);
-    const tracksKm = vehicleTracksKm(eq);
-    const tracksHours = vehicleTracksHours(eq);
+    // The reservoir has no odometer/ore-meter and no computed
+    // consumption -- vfSubcatTracksKm/Hours only make sense for the 4
+    // real vehicle subcategories, so both are forced off here rather
+    // than asking them to classify a 5th category they don't know
+    // about. Its only use of this sheet is the "Alimentări" half below
+    // (logging fuel delivered into the tank), same mechanic as a
+    // vehicle's own fuel bills, just without a reading to save first.
+    const isRes = isReservoir(eq);
+    const log = isRes ? null : fuelLogFor(eq.id, fuelReportYear, fuelReportMonth);
+    const tracksKm = isRes ? false : vehicleTracksKm(eq);
+    const tracksHours = isRes ? false : vehicleTracksHours(eq);
     fuelLogSheetContext = {
       vehicleId: eq.id, year: fuelReportYear, month: fuelReportMonth, eq,
       baselineKm: tracksKm ? previousFuelReadingFor(eq, 'km', fuelReportYear, fuelReportMonth) : null,
@@ -740,14 +819,42 @@
     document.getElementById('vfl-month').value = fuelReportMonth;
     const kmSection = document.getElementById('vfl-km-section');
     const hoursSection = document.getElementById('vfl-hours-section');
+    const readingActions = document.getElementById('vfl-reading-actions');
     if (kmSection) kmSection.style.display = tracksKm ? '' : 'none';
     if (hoursSection) hoursSection.style.display = tracksHours ? '' : 'none';
+    if (readingActions) readingActions.style.display = isRes ? 'none' : '';
     document.getElementById('vfl-reading-km').value = (log && log.fuel_odometer_km != null) ? log.fuel_odometer_km : '';
     document.getElementById('vfl-reading-hours').value = (log && log.fuel_odometer_hours != null) ? log.fuel_odometer_hours : '';
     updateVflDiffDisplay();
     renderFuelPurchaseList();
     document.getElementById('vfl-purchase-liters').value = '';
     document.getElementById('vfl-purchase-note').value = '';
+    // Defaults to today when adding to the current real month (the
+    // common case -- logging a fill-up as it happens), or to that
+    // month's last day when the sheet is opened for a past month --
+    // "today" would be a date outside the month being edited, which
+    // the date input would reject/mislead on. Either way it's just a
+    // starting point, purely informational (shown in the purchase
+    // list below) -- staff should correct it to the real day when
+    // entering a fill-up after the fact.
+    const now = new Date();
+    const isCurrentRealMonth = fuelReportYear === now.getFullYear() && fuelReportMonth === now.getMonth() + 1;
+    const defaultDate = isCurrentRealMonth ? now : new Date(fuelReportYear, fuelReportMonth, 0);
+    document.getElementById('vfl-purchase-date').value = defaultDate.toISOString().slice(0, 10);
+    // "Din rezervorul propriu" only makes sense for a real vehicle's own
+    // fill-up (the reservoir logging fuel against itself would be
+    // circular) and only when there's actually a reservoir to draw
+    // from. With more than one, which tank it came from is ambiguous,
+    // so a picker shows up too -- with exactly one, it's assumed.
+    const reservoirs = allReservoirs();
+    const fromReservoirField = document.getElementById('vfl-from-reservoir-field');
+    const fromReservoirCheckbox = document.getElementById('vfl-from-reservoir');
+    const reservoirSelectField = document.getElementById('vfl-reservoir-select-field');
+    const reservoirSelect = document.getElementById('vfl-reservoir-select');
+    if (fromReservoirCheckbox) fromReservoirCheckbox.checked = false;
+    if (fromReservoirField) fromReservoirField.style.display = (!isRes && reservoirs.length) ? '' : 'none';
+    if (reservoirSelect) reservoirSelect.innerHTML = reservoirs.map(r => `<option value="${escapeHtml(r.id)}">${escapeHtml(r.name)}</option>`).join('');
+    if (reservoirSelectField) reservoirSelectField.style.display = 'none';
     const titleEl = document.getElementById('vehicleFuelLogFormSheetTitle');
     if (titleEl) titleEl.textContent = `${eq.name} — ${REPORT_MONTHS[fuelReportMonth - 1]} ${fuelReportYear}`;
     setSheetOpen('vehicleFuelLogFormSheet', true);
@@ -786,39 +893,119 @@
     if (!fuelLogSheetContext) return;
     const litersInput = document.getElementById('vfl-purchase-liters');
     const noteInput = document.getElementById('vfl-purchase-note');
+    const dateInput = document.getElementById('vfl-purchase-date');
     const liters = Number(litersInput.value);
     if (!liters || liters <= 0) { alert('Introduceți o cantitate validă de litri.'); return; }
+    if (!dateInput.value) { alert('Introduceți data alimentării.'); return; }
     const { vehicleId, year, month } = fuelLogSheetContext;
+    const eq = allEquipment.find(v => v.id === vehicleId);
+    // A vehicle's own tank balance is always computed from readings/
+    // rated consumption, but the reservoir's "quantity" IS its live
+    // level (set directly in its own edit form) -- so for it, and only
+    // it, logging fuel here has to raise that level too, or Prezentare
+    // generală would never show what was actually delivered.
+    const isRes = eq && isReservoir(eq);
+    // "Din rezervorul propriu" is the opposite direction -- a vehicle
+    // fueled from the on-site reservoir rather than an outside pump, so
+    // the SAME liters logged for the vehicle also has to come OFF the
+    // reservoir. Only offered for a real vehicle (see openVehicleFuelLogForm).
+    const fromReservoirCheckbox = document.getElementById('vfl-from-reservoir');
+    const fromReservoir = !isRes && fromReservoirCheckbox && fromReservoirCheckbox.checked;
+    let sourceReservoir = null;
+    if (fromReservoir) {
+      const reservoirSelect = document.getElementById('vfl-reservoir-select');
+      const reservoirId = reservoirSelect && reservoirSelect.value;
+      sourceReservoir = allReservoirs().find(r => r.id === reservoirId) || allReservoirs()[0];
+      if (!sourceReservoir) { alert('Nu există niciun rezervor de motorină configurat.'); return; }
+      const available = Number(sourceReservoir.quantity || 0);
+      if (liters > available) {
+        const proceed = confirm(`Rezervorul are doar ${available.toLocaleString('ro-RO')} L, dar se cer ${liters} L. Continui?`);
+        if (!proceed) return;
+      }
+    }
     vflPurchaseAddBtn.disabled = true;
     const { error } = await supabaseClient.from('vehicle_fuel_purchases').insert({
       vehicle_id: vehicleId, year, month, liters,
+      purchase_date: dateInput.value,
       note: noteInput.value.trim() || null,
       user_email: currentSessionEmail || null,
+      source_reservoir_id: fromReservoir ? sourceReservoir.id : null,
     });
-    vflPurchaseAddBtn.disabled = false;
-    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+    if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); vflPurchaseAddBtn.disabled = false; return; }
+    if (isRes) {
+      const newQuantity = round2(Number(eq.quantity || 0) + liters);
+      const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, vehicleId);
+      if (qError) console.error(qError);
+      else logEntityActivity('masina', vehicleId, `S-au adăugat ${liters} L (total ${newQuantity.toLocaleString('ro-RO')} L).`);
+    } else if (fromReservoir) {
+      const newQuantity = Math.max(0, round2(Number(sourceReservoir.quantity || 0) - liters));
+      const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, sourceReservoir.id);
+      if (qError) console.error(qError);
+      else logEntityActivity('masina', sourceReservoir.id, `S-au scăzut ${liters} L (alimentare ${eq.name}) — total ${newQuantity.toLocaleString('ro-RO')} L.`);
+    }
     litersInput.value = '';
     noteInput.value = '';
+    if (fromReservoirCheckbox) fromReservoirCheckbox.checked = false;
+    const reservoirSelectField = document.getElementById('vfl-reservoir-select-field');
+    if (reservoirSelectField) reservoirSelectField.style.display = 'none';
     await loadVehicleFuelPurchases();
+    // Re-enabling the button only after loadEquipment() resolves (not right
+    // after the insert above) matters specifically for the reservoir-balance
+    // branches above: allReservoirs()/eq.quantity -- read at the very top of
+    // this handler, before any of this click's own awaits -- are what a
+    // second rapid click would compute its own newQuantity from. Letting
+    // the button go live again before that balance has actually been
+    // refreshed let a second "Adaugă alimentare" overwrite the first
+    // deduction/addition instead of compounding it (CLICK-PATH-202).
+    if (isRes || fromReservoir) await loadEquipment();
+    else renderMachinesFuelReport();
+    vflPurchaseAddBtn.disabled = false;
     renderFuelPurchaseList();
-    renderMachinesFuelReport();
   });
   const vflPurchaseList = document.getElementById('vflPurchaseList');
   if (vflPurchaseList) vflPurchaseList.addEventListener('click', async (e) => {
     const delBtn = e.target.closest('.fuel-purchase-delete');
     if (!delBtn || !fuelLogSheetContext) return;
     if (!confirm('Ștergeți această alimentare?')) return;
+    const { vehicleId } = fuelLogSheetContext;
+    const eq = allEquipment.find(v => v.id === vehicleId);
+    const purchase = allVehicleFuelPurchases.find(p => p.id === delBtn.dataset.id);
     const { error } = await supabaseClient.from('vehicle_fuel_purchases').delete().eq('id', delBtn.dataset.id);
     if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
+    // Mirrors the add handler above -- undoing a logged delivery has to
+    // take the liters back off the reservoir's own level too, not just
+    // remove the bill from the list. Covers both directions: the
+    // reservoir's own entry (isRes), and a vehicle's entry that had
+    // been marked "din rezervorul propriu" (purchase.source_reservoir_id).
+    const isRes = eq && isReservoir(eq);
+    const sourceReservoir = (!isRes && purchase && purchase.source_reservoir_id)
+      ? allEquipment.find(e => e.id === purchase.source_reservoir_id) : null;
+    if (isRes && purchase) {
+      const newQuantity = Math.max(0, round2(Number(eq.quantity || 0) - Number(purchase.liters)));
+      const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, vehicleId);
+      if (qError) console.error(qError);
+      else logEntityActivity('masina', vehicleId, `S-a anulat o alimentare de ${purchase.liters} L (total ${newQuantity.toLocaleString('ro-RO')} L).`);
+    } else if (sourceReservoir) {
+      const newQuantity = round2(Number(sourceReservoir.quantity || 0) + Number(purchase.liters));
+      const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, sourceReservoir.id);
+      if (qError) console.error(qError);
+      else logEntityActivity('masina', sourceReservoir.id, `S-au adăugat înapoi ${purchase.liters} L (alimentare anulată pentru ${eq ? eq.name : 'o mașină'}) — total ${newQuantity.toLocaleString('ro-RO')} L.`);
+    }
     await loadVehicleFuelPurchases();
+    if (isRes || sourceReservoir) await loadEquipment();
+    else renderMachinesFuelReport();
     renderFuelPurchaseList();
-    renderMachinesFuelReport();
   });
   const machinesFuelReportTableBody = document.getElementById('machinesFuelReportTableBody');
   if (machinesFuelReportTableBody) machinesFuelReportTableBody.addEventListener('click', (e) => {
     const editBtn = e.target.closest('.fuel-log-edit-btn');
     if (editBtn) {
       const eq = allEquipment.find(v => v.id === editBtn.dataset.vehicleId);
+      // The reservoir has no odometer reading to save, but it still
+      // opens this same sheet -- openVehicleFuelLogForm hides the
+      // reading half for it and leaves just "Alimentări" (logging fuel
+      // delivered into the tank). Renaming/retiring the reservoir
+      // itself stays on Prezentare generală's own row link.
       if (eq) openVehicleFuelLogForm(eq);
       return;
     }
@@ -891,7 +1078,7 @@
     return [...years].sort((a, b) => b - a);
   }
   function fuelReportAoaForPeriod(vehicles, year, month){
-    const header = ['Mașină', 'Nr. înmatriculare', 'Km (diferență)', 'Timp (diferență)', 'Total alimentare (L)', 'L (diferență)', 'Consum efectiv', 'Consum normat'];
+    const header = ['Mașină', 'Nr. înmatriculare', 'Km (diferență)', 'Timp (diferență)', 'Total alimentare (L)', 'Consum efectiv', 'Consum normat', 'Notificări'];
     const rows = [header];
     vehicles.forEach(eq => {
       const cs = vehicleFuelConsumptions(eq, year, month);
@@ -899,16 +1086,16 @@
       const hC = cs.find(c => c.unit === 'h');
       const totalAdded = fuelPurchaseSum(eq.id, year, month);
       const joinPair = (fmt) => [kmC, hC].filter(Boolean).map(fmt).filter(Boolean).join(' · ');
-      const leftoverVal = [kmC, hC].map(c => c && c.leftoverOut).find(v => v != null);
+      const trendFlagged = cs.some(c => c.trendOverLimit);
       rows.push([
         eq.name || '',
         eq.plate_number || '',
         kmC && kmC.delta != null ? kmC.delta : '',
         hC && hC.delta != null ? hC.delta : '',
         totalAdded > 0 ? totalAdded : '',
-        leftoverVal == null ? '' : (leftoverVal < 0.05 ? 0 : -Number(leftoverVal.toFixed(1))),
         joinPair(c => c.actual != null ? `${c.actual.toFixed(1)} ${c.unitRateLabel}` : ''),
         joinPair(c => c.rated != null ? `${c.rated} ${c.unitRateLabel}` : ''),
+        trendFlagged ? 'Peste normat (3 luni)' : '',
       ]);
     });
     return rows;
@@ -971,6 +1158,274 @@
   }
   const fuelReportExportBtn = document.getElementById('fuelReportExportBtn');
   if (fuelReportExportBtn) fuelReportExportBtn.addEventListener('click', exportFuelReportToExcel);
+
+  /* ============================================================
+     ROMPETROL PDF IMPORT — "List Transactions" exports are a real
+     text layer (Crystal Reports), not a scan, so this reads them
+     directly via pdf.js rather than asking staff to retype every
+     line. Via Oil's own export is a genuine scanned image with zero
+     extractable text (checked directly -- a plain text pull gets
+     nothing back from it), so it gets no auto-import here and still
+     goes in by hand; this importer only ever claims to handle the
+     Rompetrol format, never silently no-ops on a different one.
+     ============================================================ */
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  }
+  // Reconstructs each page's visual rows from pdf.js's text items, which
+  // otherwise come back in whatever order the PDF's content stream drew
+  // them in -- for this Crystal Reports export that's column-by-column
+  // across the whole page, not row-by-row (confirmed directly: a plain
+  // in-order text pull interleaves unrelated rows). Grouping by y
+  // (±2pt, same row) and sorting each group by x rebuilds the row left-
+  // to-right, same result as a layout-aware text extraction would give,
+  // without needing to replicate exact column spacing -- the row
+  // parser below only cares about token order, not alignment.
+  async function pdfFileToLines(file){
+    const buf = await file.arrayBuffer();
+    const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+    const lines = [];
+    for (let p = 1; p <= doc.numPages; p++) {
+      const page = await doc.getPage(p);
+      const content = await page.getTextContent();
+      const items = content.items
+        .filter(it => it.str && it.str.trim() !== '')
+        .map(it => ({ str: it.str, x: it.transform[4], y: it.transform[5] }));
+      const rows = [];
+      items.forEach(it => {
+        let row = rows.find(r => Math.abs(r.y - it.y) <= 2);
+        if (!row) { row = { y: it.y, items: [] }; rows.push(row); }
+        row.items.push(it);
+      });
+      rows.sort((a, b) => b.y - a.y);
+      rows.forEach(r => {
+        const line = r.items.sort((a, b) => a.x - b.x).map(i => i.str.trim()).join(' ').replace(/\s+/g, ' ').trim();
+        if (line) lines.push(line);
+      });
+    }
+    return lines;
+  }
+  // Matches one real transaction line: idx, date, time, then a middle
+  // blob (station name + plate + km -- free text, so pulled as one
+  // group and split below rather than fought over in the regex itself),
+  // the device type (a fixed "Pass/Tag" or "Card", the one stable
+  // anchor between the free-text station/plate and the numeric tail),
+  // the fuel type, and the five trailing numeric columns. "Total
+  // vehicul :" subtotal lines, section headers (a plate alone), page
+  // headers/footers and the final "Total alocare/general" lines all
+  // simply don't match this shape, so they're skipped with no explicit
+  // exclusion list needed.
+  const ROMPETROL_ROW_RE = /^\d+\s+(\d{2}\/\d{2}\/\d{4})\s+\d{1,2}:\d{2}\s+(.+?)\s+(?:Pass\/Tag|Card)\s+.+?\s+([\d,]+\.\d+)\s+[\d,]+\.\d+\s+[\d,]+\.\d+\s+[\d,]+\.\d+\s+[\d,]+\s+(\d+)\s*$/;
+  function parseRompetrolLines(lines){
+    const rows = [];
+    lines.forEach(line => {
+      const m = line.match(ROMPETROL_ROW_RE);
+      if (!m) return;
+      const [, dateStr, middleBlob, qtyStr, nrTranz] = m;
+      // The middle blob is "<station words...> <plate> <km>" -- station
+      // is free text (sometimes with its own digits, e.g. "A3 Lot 2"),
+      // so splitting from the RIGHT (km is always last, plate always
+      // second-to-last) is the only reliable split, regardless of what
+      // the station name itself contains.
+      const tokens = middleBlob.trim().split(/\s+/);
+      tokens.pop(); // km -- not imported (see note above the button)
+      const rawPlate = tokens.pop();
+      const [mm, dd, yyyy] = dateStr.split('/');
+      rows.push({
+        rawPlate, qty: Number(qtyStr.replace(/,/g, '')),
+        date: `${yyyy}-${mm}-${dd}`, year: Number(yyyy), month: Number(mm),
+        nrTranz,
+      });
+    });
+    return rows;
+  }
+  let pendingFuelImportRows = [];
+  function fuelImportVehicleOptions(selectedId){
+    const vehicles = allEquipment.filter(eq => eq.erp_category === 'masina')
+      .slice().sort((a, b) => (a.plate_number || a.name || '').localeCompare(b.plate_number || b.name || '', 'ro'));
+    const opts = vehicles.map(eq => `<option value="${escapeHtml(eq.id)}"${eq.id === selectedId ? ' selected' : ''}>${escapeHtml(eq.plate_number ? `${eq.plate_number} — ${eq.name}` : eq.name)}</option>`);
+    return `<option value=""${selectedId ? '' : ' selected'}>— alege mașina —</option>` + opts.join('');
+  }
+  function renderFuelImportPreview(){
+    const table = document.getElementById('fuelImportPreviewTable');
+    const wrap = document.getElementById('fuelImportPreview');
+    const toImportCount = pendingFuelImportRows.filter(r => r.include && r.vehicleId).length;
+    const dupCount = pendingFuelImportRows.filter(r => r.alreadyImported).length;
+    table.innerHTML = `
+      <thead><tr>
+        <th></th><th>Data</th><th>Litri</th><th>Marcaj fișier</th><th>Mașină</th>
+      </tr></thead>
+      <tbody>
+        ${pendingFuelImportRows.map((r, i) => `
+          <tr class="${r.alreadyImported ? 'row-duplicate' : (r.possibleDuplicate || r.monthHasManualData) ? 'row-warning' : !r.vehicleId ? 'row-error' : ''}">
+            <td><input type="checkbox" class="fuel-import-row-include" data-idx="${i}" ${r.include ? 'checked' : ''} ${(r.vehicleId && !r.alreadyImported) ? '' : 'disabled'}></td>
+            <td>${formatWoDateRO(r.date)}</td>
+            <td>${r.qty} L</td>
+            <td>${escapeHtml(r.rawPlate)}${r.alreadyImported ? ' <strong>(deja importat)</strong>'
+              : r.possibleDuplicate ? ' <strong>(posibil deja introdus manual — verificați)</strong>'
+              : r.monthHasManualData ? ' <strong>(mașina are deja alimentări introduse manual luna asta — verificați să nu dublați)</strong>'
+              : ''}</td>
+            <td><select class="fuel-import-select" data-idx="${i}" ${r.alreadyImported ? 'disabled' : ''}>${fuelImportVehicleOptions(r.vehicleId)}</select></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    `;
+    document.getElementById('fuelImportPreviewNote').textContent =
+      `Previzualizare — ${toImportCount} din ${pendingFuelImportRows.length} rânduri vor fi importate.`
+      + (dupCount > 0 ? ` (${dupCount} deja importate anterior, omise automat.)` : '')
+      + ' Alegeți mașina pentru rândurile nerecunoscute, sau debifați un rând pentru a-l exclude.';
+    table.querySelectorAll('.fuel-import-row-include').forEach(cb => {
+      cb.addEventListener('change', () => { pendingFuelImportRows[Number(cb.dataset.idx)].include = cb.checked; });
+    });
+    table.querySelectorAll('.fuel-import-select').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const idx = Number(sel.dataset.idx);
+        const row = pendingFuelImportRows[idx];
+        const rawPlate = row.rawPlate;
+        row.vehicleId = sel.value || null;
+        row.include = !!row.vehicleId;
+        // Fixing one occurrence of an unrecognized plate (e.g.
+        // "KATERPIL", a fuel-card label rather than a real plate) almost
+        // always means every other row with that exact same raw text
+        // is the same vehicle too -- applied to the rest of them
+        // automatically so a multi-fill-up month doesn't need the same
+        // fix repeated by hand. Only touches rows that are themselves
+        // still unresolved, never overriding a different, already-made
+        // choice elsewhere.
+        pendingFuelImportRows.forEach(other => {
+          if (other !== row && other.rawPlate === rawPlate && !other.vehicleId && !other.alreadyImported) {
+            other.vehicleId = row.vehicleId;
+            other.include = true;
+          }
+        });
+        renderFuelImportPreview();
+      });
+    });
+    wrap.style.display = 'block';
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  const fuelImportBtn = document.getElementById('fuelImportBtn');
+  const fuelImportFileInput = document.getElementById('fuelImportFileInput');
+  if (fuelImportBtn && fuelImportFileInput) {
+    fuelImportBtn.addEventListener('click', () => fuelImportFileInput.click());
+    fuelImportFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const lines = await pdfFileToLines(file);
+        if (lines.join('').trim().length < 50) {
+          alert('Acest fișier pare să fie un document scanat (fără text selectabil) — doar exporturile Rompetrol „List Transactions" pot fi importate automat. Introduceți datele din acest fișier manual.');
+          return;
+        }
+        const parsed = parseRompetrolLines(lines);
+        if (!parsed.length) {
+          alert('Nu am recunoscut niciun rând de tranzacție în acest fișier. Verificați că e un export Rompetrol „List Transactions".');
+          return;
+        }
+        const plateIndex = {};
+        allEquipment.filter(eq => eq.erp_category === 'masina' && eq.plate_number).forEach(eq => {
+          plateIndex[eq.plate_number.trim().toUpperCase()] = eq.id;
+        });
+        // "REZERVIG" is Rompetrol's own fixed label for the on-site
+        // diesel reservoir -- unlike a fuel-card nickname (KATERPI2/
+        // KATERPIL), which could in principle move to a different
+        // piece of equipment, there's only ever one reservoir and this
+        // label always means it, so it's a permanent rule rather than
+        // something to re-ask for on every upload.
+        const reservoir = allReservoirs()[0];
+        if (reservoir) plateIndex['REZERVIG'] = reservoir.id;
+        const existingTranzIds = new Set(allVehicleFuelPurchases.map(p => p.external_transaction_id).filter(Boolean));
+        pendingFuelImportRows = parsed.map(r => {
+          const vehicleId = plateIndex[r.rawPlate.trim().toUpperCase()] || null;
+          const alreadyImported = existingTranzIds.has(r.nrTranz);
+          // Rows entered manually before this importer existed have no
+          // external_transaction_id to match against at all -- this
+          // catches that case by date+vehicle+amount instead, so a
+          // month that's already been typed in by hand doesn't get
+          // silently double-counted just because it predates this
+          // feature. A real same-day, same-liters second fill-up is
+          // rare enough that flagging it for a human glance is the
+          // safer default over trusting it blindly either way.
+          const possibleDuplicate = !alreadyImported && vehicleId && allVehicleFuelPurchases.some(p =>
+            p.vehicle_id === vehicleId && p.year === r.year && p.month === r.month
+            && p.purchase_date === r.date && Math.abs(Number(p.liters) - r.qty) < 0.02);
+          // Broader net for the same legacy-data gap: most months
+          // entered before this importer existed were typed in as ONE
+          // lump sum for the whole month, not per fill-up -- which
+          // possibleDuplicate above can't catch at all (different date,
+          // different amount, same real fuel). Any pre-existing,
+          // non-imported row at all for this vehicle+month is enough to
+          // hold this one back for a manual look, since there's no way
+          // to tell "additional, real fill-up" apart from "the same fuel
+          // already counted" from the data alone.
+          const monthHasManualData = !alreadyImported && !possibleDuplicate && vehicleId && allVehicleFuelPurchases.some(p =>
+            p.vehicle_id === vehicleId && p.year === r.year && p.month === r.month && !p.external_transaction_id);
+          return {
+            ...r, vehicleId,
+            alreadyImported,
+            possibleDuplicate,
+            monthHasManualData,
+            include: !!vehicleId && !alreadyImported && !possibleDuplicate && !monthHasManualData,
+          };
+        });
+        renderFuelImportPreview();
+      } catch (err) {
+        console.error('Fuel import PDF parse failed:', err);
+        alert('Eroare la citirea fișierului PDF: ' + (err && err.message ? err.message : 'motiv necunoscut'));
+      } finally {
+        fuelImportFileInput.value = '';
+      }
+    });
+  }
+  const fuelImportCancelBtn = document.getElementById('fuelImportCancelBtn');
+  if (fuelImportCancelBtn) fuelImportCancelBtn.addEventListener('click', () => {
+    pendingFuelImportRows = [];
+    document.getElementById('fuelImportPreview').style.display = 'none';
+  });
+  const fuelImportConfirmBtn = document.getElementById('fuelImportConfirmBtn');
+  if (fuelImportConfirmBtn) fuelImportConfirmBtn.addEventListener('click', async () => {
+    const toSave = pendingFuelImportRows.filter(r => r.include && r.vehicleId && !r.alreadyImported);
+    if (!toSave.length) { alert('Niciun rând selectat de importat.'); return; }
+    fuelImportConfirmBtn.disabled = true;
+    fuelImportConfirmBtn.textContent = 'Se importă...';
+    const payload = toSave.map(r => ({
+      vehicle_id: r.vehicleId, year: r.year, month: r.month, liters: r.qty,
+      purchase_date: r.date, note: `Import Rompetrol (${r.rawPlate})`,
+      user_email: currentSessionEmail || null,
+      external_transaction_id: r.nrTranz,
+    }));
+    const { error } = await supabaseClient.from('vehicle_fuel_purchases').insert(payload);
+    fuelImportConfirmBtn.disabled = false;
+    fuelImportConfirmBtn.textContent = 'Confirmă și salvează';
+    if (error) {
+      console.error(error);
+      alert('Eroare la import: ' + (error.message || 'motiv necunoscut'));
+      return;
+    }
+    // The reservoir's "quantity" is its own live level, not something
+    // computed from readings like a real vehicle -- same rule the
+    // manual "Adaugă alimentare" flow already follows, so an import
+    // that resolved to the reservoir has to raise it too, in one lump
+    // sum rather than per transaction.
+    const reservoirTotals = {};
+    toSave.forEach(r => {
+      const eq = allEquipment.find(v => v.id === r.vehicleId);
+      if (eq && isReservoir(eq)) reservoirTotals[eq.id] = (reservoirTotals[eq.id] || 0) + r.qty;
+    });
+    for (const [reservoirId, added] of Object.entries(reservoirTotals)) {
+      const eq = allEquipment.find(v => v.id === reservoirId);
+      const newQuantity = round2(Number(eq.quantity || 0) + added);
+      const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, reservoirId);
+      if (qError) console.error(qError);
+      else logEntityActivity('masina', reservoirId, `S-au adăugat ${round2(added)} L din import Rompetrol (total ${newQuantity.toLocaleString('ro-RO')} L).`);
+    }
+    pendingFuelImportRows = [];
+    document.getElementById('fuelImportPreview').style.display = 'none';
+    showToast(`${toSave.length} alimentări importate.`);
+    await loadVehicleFuelPurchases();
+    if (Object.keys(reservoirTotals).length) await loadEquipment();
+    else renderMachinesFuelReport();
+  });
   // Echipamente/Materiale/Produse's own list rows, the ERP Home stats
   // card + alert banner, and the shared add/edit sheet (erpItemFormSheet)
   // are now admin-react/'s EquipmentRow/ErpHomePanel/EquipmentForm -- all
@@ -987,8 +1442,20 @@
   // "+ Adaugă mașină" (vf-id blank → insert) and for "Editează" on the
   // detail card (vf-id set → update). Licență transport/Tahograf only
   // apply to Camion, and toggle live as the Subcategorie select changes.
-  function syncVehicleFormCamionFields(){
+  // Rezervor is the odd one out: it skips identity (plate/chassis/
+  // assigned), the whole "Consum carburant"/"Documente" sections, and
+  // shows only Nume + Litri -- a tank has none of the rest.
+  function syncVehicleFormFields(){
     const subcat = document.getElementById('vf-subcat').value;
+    const reservoirMode = subcat === 'rezervor';
+    document.getElementById('vf-plate-field').style.display = reservoirMode ? 'none' : '';
+    document.getElementById('vf-chassis-field').style.display = reservoirMode ? 'none' : '';
+    document.getElementById('vf-assigned-field').style.display = reservoirMode ? 'none' : '';
+    document.getElementById('vf-reservoir-liters-field').style.display = reservoirMode ? '' : 'none';
+    document.getElementById('vf-reservoir-baseline-field').style.display = reservoirMode ? '' : 'none';
+    document.getElementById('vf-fuel-section').style.display = reservoirMode ? 'none' : '';
+    document.getElementById('vf-docs-section').style.display = reservoirMode ? 'none' : '';
+    if (reservoirMode) return;
     const isCamion = subcat === 'camion';
     document.getElementById('vf-transport-license-field').style.display = isCamion ? '' : 'none';
     document.getElementById('vf-tachograph-field').style.display = isCamion ? '' : 'none';
@@ -1009,7 +1476,7 @@
     document.getElementById('vf-service-due-hours-field').style.display = tracksHours ? '' : 'none';
   }
   const vfSubcatSelect = document.getElementById('vf-subcat');
-  if (vfSubcatSelect) vfSubcatSelect.addEventListener('change', syncVehicleFormCamionFields);
+  if (vfSubcatSelect) vfSubcatSelect.addEventListener('change', syncVehicleFormFields);
   const addMachineBtn = document.getElementById('addMachineBtn');
   if (addMachineBtn) addMachineBtn.addEventListener('click', () => {
     document.getElementById('vf-id').value = '';
@@ -1032,11 +1499,18 @@
     document.getElementById('vf-fuel-initial-hours').value = '';
     document.getElementById('vf-service-due-km').value = '';
     document.getElementById('vf-service-due-hours').value = '';
-    syncVehicleFormCamionFields();
+    document.getElementById('vf-reservoir-liters').value = '';
+    // Defaults to the current month -- a brand-new reservoir's own
+    // liters figure is, by definition, as-of right now, same as every
+    // other "current" value in this form.
+    document.getElementById('vf-reservoir-baseline').value = `${erpLoadedAt.getFullYear()}-${String(erpLoadedAt.getMonth() + 1).padStart(2, '0')}`;
+    syncVehicleFormFields();
     const titleEl = document.getElementById('vehicleFormSheetTitle');
     if (titleEl) titleEl.textContent = 'Adaugă mașină';
     const saveBtn = document.getElementById('vfSaveBtn');
     if (saveBtn) saveBtn.textContent = 'Adaugă';
+    const deleteBtn = document.getElementById('vfDeleteBtn');
+    if (deleteBtn) deleteBtn.style.display = 'none';
     setSheetOpen('vehicleFormSheet', true);
   });
   function openVehicleEdit(eq){
@@ -1060,13 +1534,32 @@
     document.getElementById('vf-fuel-initial-hours').value = eq.fuel_initial_hours ?? '';
     document.getElementById('vf-service-due-km').value = eq.fuel_service_interval_km ?? '';
     document.getElementById('vf-service-due-hours').value = eq.fuel_service_interval_hours ?? '';
-    syncVehicleFormCamionFields();
+    document.getElementById('vf-reservoir-liters').value = eq.quantity ?? '';
+    // Falls back to the current month for a reservoir that predates
+    // this field (never had a baseline recorded) -- same default as a
+    // brand-new one, rather than leaving the picker blank.
+    document.getElementById('vf-reservoir-baseline').value = (eq.reservoir_baseline_year != null && eq.reservoir_baseline_month != null)
+      ? `${eq.reservoir_baseline_year}-${String(eq.reservoir_baseline_month).padStart(2, '0')}`
+      : `${erpLoadedAt.getFullYear()}-${String(erpLoadedAt.getMonth() + 1).padStart(2, '0')}`;
+    syncVehicleFormFields();
     const titleEl = document.getElementById('vehicleFormSheetTitle');
     if (titleEl) titleEl.textContent = `Editează — ${eq.name}`;
     const saveBtn = document.getElementById('vfSaveBtn');
     if (saveBtn) saveBtn.textContent = 'Salvează';
+    // Real vehicles still delete from their own subcategory card page
+    // (Editează/Șterge icons) -- the reservoir has no such page, so this
+    // is its only delete path, shown only when editing an existing one.
+    const deleteBtn = document.getElementById('vfDeleteBtn');
+    if (deleteBtn) deleteBtn.style.display = isReservoir(eq) ? '' : 'none';
     setSheetOpen('vehicleFormSheet', true);
   }
+  const vfDeleteBtn = document.getElementById('vfDeleteBtn');
+  if (vfDeleteBtn) vfDeleteBtn.addEventListener('click', async () => {
+    const id = document.getElementById('vf-id').value;
+    if (!id) return;
+    const ok = await deleteVehicle(id);
+    if (ok) setSheetOpen('vehicleFormSheet', false);
+  });
   const vfSaveBtn = document.getElementById('vfSaveBtn');
   if (vfSaveBtn) vfSaveBtn.addEventListener('click', async () => {
     const id = document.getElementById('vf-id').value;
@@ -1076,6 +1569,46 @@
     const subcat = document.getElementById('vf-subcat').value;
     const assigned = document.getElementById('vf-assigned').value.trim();
     const notes = document.getElementById('vf-notes').value.trim();
+    if (subcat === 'rezervor') {
+      const litersInput = document.getElementById('vf-reservoir-liters').value;
+      if (litersInput === '') { alert('Completați litrii din rezervor.'); return; }
+      const liters = Number(litersInput);
+      // "YYYY-MM" from the <input type="month"> -- the month the
+      // "Litri" value above is as-of.
+      const baselineInput = document.getElementById('vf-reservoir-baseline').value;
+      if (baselineInput === '') { alert('Completați luna de referință a rezervorului.'); return; }
+      const [baselineYear, baselineMonth] = baselineInput.split('-').map(Number);
+      const name = title || 'Rezervor motorină';
+      const reservoirPayload = {
+        name, category: subcat, quantity: liters, unit: 'L', notes: notes || null,
+        reservoir_baseline_year: baselineYear, reservoir_baseline_month: baselineMonth,
+        plate_number: null, serial_number: null, assigned_to: null,
+        itp_expires_on: null, insurance_expires_on: null, transport_license_expires_on: null,
+        parking_ticket_expires_on: null, vignette_expires_on: null, tachograph_expires_on: null,
+        fuel_rated_consumption_km: null, fuel_rated_consumption_hours: null, fuel_tank_capacity_l: null,
+        fuel_initial_km: null, fuel_initial_hours: null,
+        fuel_service_interval_km: null, fuel_service_interval_hours: null,
+      };
+      if (id) {
+        const original = allEquipment.find(v => v.id === id);
+        const { error } = await AppDataServices.erp.saveVehicle(supabaseClient, reservoirPayload, id);
+        if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+        const changeSummary = original ? describeVehicleFieldChanges(original, reservoirPayload) : '';
+        logEntityActivity('masina', id, changeSummary ? `Rezervorul a fost actualizat — ${changeSummary}.` : 'Rezervorul a fost actualizat (fără modificări de câmp).');
+        setSheetOpen('vehicleFormSheet', false);
+        showToast('Rezervorul a fost actualizat.');
+        loadEquipment();
+      } else {
+        const payload = Object.assign({ item_type: 'echipament', erp_category: 'masina', status: 'Disponibil' }, reservoirPayload);
+        const { data, error } = await AppDataServices.erp.saveVehicle(supabaseClient, payload, null);
+        if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+        if (data && data[0]) logEntityActivity('masina', data[0].id, 'Rezervor adăugat.');
+        setSheetOpen('vehicleFormSheet', false);
+        showToast('Rezervorul a fost adăugat.');
+        loadEquipment();
+      }
+      return;
+    }
     if (!plate) { alert('Completați numărul de înmatriculare.'); return; }
     const normalizedPlate = plate.toUpperCase().replace(/[\s-]+/g, '');
     const duplicatePlate = allEquipment.find(vehicle =>
@@ -1203,12 +1736,12 @@
       });
       const c = log ? vehicleFuelConsumptionFor(eq, unit, log.year, log.month) : null;
       const consumptionVal = c && c.actual != null
-        ? `${c.actual.toFixed(1)} ${c.unitRateLabel}${c.rated != null ? ` (normat ${c.rated} ${c.unitRateLabel})` : ''}${c.overLimit ? ' ⚠' : ''}`
+        ? `${c.actual.toFixed(1)} ${c.unitRateLabel}${c.rated != null ? ` (normat ${c.rated} ${c.unitRateLabel})` : ''}${c.trendOverLimit ? ' ⚠' : ''}`
         : '—';
       items.push({
         label: unit === 'hours' ? 'Consum efectiv (ore)' : 'Consum efectiv',
         value: consumptionVal,
-        cls: c && c.overLimit ? 'mt-warn' : '',
+        cls: c && c.trendOverLimit ? 'mt-warn' : '',
       });
       const service = vehicleServiceCountdownFor(eq, unit);
       if (service != null) {
@@ -1262,6 +1795,10 @@
   // then scroll to and highlight its card there — a click on Prezentare
   // generală goes straight to the car, not through another popup.
   function goToVehicle(eq){
+    // The reservoir has no subcategory page of its own to jump to --
+    // its only row lives right on Prezentare generală, so its one-click
+    // action is opening the edit form directly instead.
+    if (isReservoir(eq)) { openAdminTab('machines'); setMachinesSubcatFilter('Toate', { sidebarKey: 'Toate' }); openVehicleEdit(eq); return; }
     // Unlike the in-table ticket-link (already on panel-machines), this
     // is also reached from the Home smart search and command palette —
     // it must switch to Parc Auto itself, not just update its filter.
@@ -1279,7 +1816,8 @@
   // Shared by the row delete icon — one confirm/delete/refresh path.
   async function deleteVehicle(id){
     const eq = allEquipment.find(v => v.id === id);
-    if (!confirm(`Ștergeți mașina${eq ? ' „' + eq.name + '"' : ''}? Această acțiune nu poate fi anulată.`)) return false;
+    const noun = eq && isReservoir(eq) ? 'rezervorul' : 'mașina';
+    if (!confirm(`Ștergeți ${noun}${eq ? ' „' + eq.name + '"' : ''}? Această acțiune nu poate fi anulată.`)) return false;
     const result = await AppDataServices.erp.deleteVehicle(supabaseClient, id);
     if (result.blockedByHistory) {
       alert('Mașina are rezervări LPS asociate. Păstrează istoricul: schimbă starea în „Indisponibil” în ERP în loc să o ștergi.');
@@ -1287,8 +1825,8 @@
     }
     const { error } = result;
     if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return false; }
-    logEntityActivity('masina', id, 'Mașina a fost ștearsă.');
-    showToast('Mașina a fost ștearsă.');
+    logEntityActivity('masina', id, eq && isReservoir(eq) ? 'Rezervorul a fost șters.' : 'Mașina a fost ștearsă.');
+    showToast(eq && isReservoir(eq) ? 'Rezervorul a fost șters.' : 'Mașina a fost ștearsă.');
     loadEquipment();
     return true;
   }
@@ -1467,6 +2005,8 @@
       btn.addEventListener('click', () => {
         openAdminTab('machines');
         setMachinesSubcatFilter(btn.dataset.subcat);
+        erpMachinesSubgroup.classList.remove('open');
+        erpMachinesToggle.classList.remove('open');
       });
     });
   }

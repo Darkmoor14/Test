@@ -15,15 +15,6 @@ interface FrictionRow {
   target_label: string | null;
   user_email: string | null;
 }
-interface PageViewRow {
-  tab: string | null;
-  duration_seconds: number | null;
-}
-interface FeatureClickRow {
-  tab: string | null;
-  target_label: string | null;
-  click_count: number | null;
-}
 interface SearchQueryRow {
   created_at: string;
   target_label: string | null;
@@ -31,7 +22,16 @@ interface SearchQueryRow {
   meta: { matched?: boolean } | null;
 }
 
+// Hand-maintained on purpose (no "what shipped" table exists to query) --
+// but that only works if it's actually kept current. Add a line here
+// whenever something user-visible ships; newest first.
 const APP_CHANGELOG = [
+  { date: '26.10.2026', text: 'Jurnal de activitate acoperă acum și Sesizările (creare, schimbări de stare, arhivare, legături de duplicat), nu doar Proiecte/Resurse.' },
+  { date: '26.10.2026', text: 'Documentație a devenit propria zonă (iconiță și rol separate), nu mai e sub meniul HR. Sincronizarea cu telefonul s-a mutat acolo.' },
+  { date: '26.10.2026', text: 'Colțuri rotunjite pe tot tabloul de bord, pentru un aspect unitar.' },
+  { date: '26.10.2026', text: 'Fereastra de adăugare din Resurse și inventar (Echipamente/Materiale/Produse) apare din nou și e centrată pe ecran, ca restul ferestrelor.' },
+  { date: '26.10.2026', text: 'Ștergerea unui eveniment din calendar avertizează automat personalul invitat (notificare) și oferă trimiterea unui email de anulare invitaților externi.' },
+  { date: '25.10.2026', text: 'Calendarul se poate sincroniza cu Apple Calendar de pe telefon (sincronizare într-un singur sens).' },
   { date: '01.10.2026', text: 'Secțiunea Mașini din ERP a fost redenumită în Parc Auto.' },
   { date: '01.10.2026', text: 'ERP împărțit în Echipamente / Mașini / Materiale, cu pagină proprie de Home.' },
   { date: '01.10.2026', text: 'Stare sistem: jurnal de erori, sugestii de îmbunătățire (clicuri repetate, scris excesiv) și istoric actualizări.' },
@@ -44,8 +44,6 @@ export function AutoImprove() {
   const supabase = useSupabase();
   const [errors, setErrors] = useState<ErrorLogRow[]>([]);
   const [friction, setFriction] = useState<FrictionRow[]>([]);
-  const [pageViews, setPageViews] = useState<PageViewRow[]>([]);
-  const [featureClicks, setFeatureClicks] = useState<FeatureClickRow[]>([]);
   const [searches, setSearches] = useState<SearchQueryRow[]>([]);
 
   const loadErrorLog = useCallback(async () => {
@@ -56,15 +54,6 @@ export function AutoImprove() {
     const { data } = await supabase.from('app_interaction_signals').select('*').order('created_at', { ascending: false }).limit(300);
     setFriction(data || []);
   }, [supabase]);
-  const loadWorkflow = useCallback(async () => {
-    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const [viewsResult, clicksResult] = await Promise.all([
-      supabase.from('app_page_views').select('*').gte('created_at', cutoff).order('created_at', { ascending: false }).limit(2000),
-      supabase.from('app_feature_clicks').select('*').gte('created_at', cutoff).order('created_at', { ascending: false }).limit(2000),
-    ]);
-    setPageViews(viewsResult.data || []);
-    setFeatureClicks(clicksResult.data || []);
-  }, [supabase]);
   const loadSearches = useCallback(async () => {
     const { data } = await supabase.from('app_interaction_signals').select('*').eq('signal_type', 'search_query').order('created_at', { ascending: false }).limit(100);
     setSearches(data || []);
@@ -73,9 +62,8 @@ export function AutoImprove() {
   useEffect(() => {
     loadErrorLog();
     loadFriction();
-    loadWorkflow();
     loadSearches();
-  }, [loadErrorLog, loadFriction, loadWorkflow, loadSearches]);
+  }, [loadErrorLog, loadFriction, loadSearches]);
 
   const frictionGroups = (() => {
     const groups = new Map<string, { signal_type: string; tab: string | null; target_label: string | null; count: number; lastSeen: string; users: Set<string> }>();
@@ -88,26 +76,6 @@ export function AutoImprove() {
       groups.set(key, g);
     });
     return Array.from(groups.values()).sort((a, b) => b.count - a.count).slice(0, 20);
-  })();
-
-  const byTab = (() => {
-    const m = new Map<string, number>();
-    pageViews.forEach((row) => {
-      const label = row.tab || '—';
-      m.set(label, (m.get(label) || 0) + Number(row.duration_seconds || 0));
-    });
-    const sorted = Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, 12);
-    const max = sorted.length ? sorted[0][1] : 1;
-    return { sorted, max };
-  })();
-
-  const byAction = (() => {
-    const m = new Map<string, number>();
-    featureClicks.forEach((row) => {
-      const key = `${row.tab || '—'}|${row.target_label || '—'}`;
-      m.set(key, (m.get(key) || 0) + (Number(row.click_count) || 0));
-    });
-    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, 15);
   })();
 
   return (
@@ -184,63 +152,6 @@ export function AutoImprove() {
                     <div>
                       <div className="status-history-check">{kindLabel} {desc} — ×{g.count}</div>
                       <div className="status-history-message">{g.tab || ''}{g.users.size ? ` · ${g.users.size} ${g.users.size === 1 ? 'utilizator' : 'utilizatori'}` : ''}</div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        <div className="status-card status-card-wide">
-          <div className="status-card-head">
-            <h4>Workflow — cum se folosește platforma</h4>
-            <div className="status-card-head-actions">
-              <button type="button" className="btn status-card-head-btn" onClick={() => downloadJson(`workflow-${new Date().toISOString().slice(0, 10)}.json`, { page_views: pageViews, feature_clicks: featureClicks })}>
-                Descarcă JSON
-              </button>
-            </div>
-          </div>
-          <p className="status-note" style={{ marginTop: 0, marginBottom: 12 }}>
-            Timp petrecut pe fiecare pagină și acțiunile cele mai folosite, ca să se știe unde chiar contează efortul de îmbunătățire.
-          </p>
-          <h5 className="status-subhead">Timp petrecut pe pagini (ultimele 30 de zile)</h5>
-          <div className="status-history-list">
-            {byTab.sorted.length === 0 ? (
-              <p className="status-history-empty">Încă nu sunt date despre timpul petrecut pe pagini.</p>
-            ) : (
-              byTab.sorted.map(([tabLabel, seconds]) => {
-                const minutes = Math.round(seconds / 60);
-                const pct = Math.max(4, Math.round((seconds / byTab.max) * 100));
-                return (
-                  <div key={tabLabel} className="status-history-item ok">
-                    <span className="status-history-time">{minutes} min</span>
-                    <span className="status-history-dot" />
-                    <div>
-                      <div className="status-history-check">{tabLabel}</div>
-                      <div className="status-workflow-bar"><div className="status-workflow-bar-fill" style={{ width: `${pct}%` }} /></div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-          <h5 className="status-subhead">Acțiuni cele mai folosite</h5>
-          <div className="status-history-list">
-            {byAction.length === 0 ? (
-              <p className="status-history-empty">Încă nu sunt date despre acțiunile folosite.</p>
-            ) : (
-              byAction.map(([key, count]) => {
-                const sepIdx = key.indexOf('|');
-                const tab = key.slice(0, sepIdx);
-                const label = key.slice(sepIdx + 1);
-                return (
-                  <div key={key} className="status-history-item ok">
-                    <span className="status-history-time">×{count}</span>
-                    <span className="status-history-dot" />
-                    <div>
-                      <div className="status-history-check">{label}</div>
-                      <div className="status-history-message">{tab}</div>
                     </div>
                   </div>
                 );

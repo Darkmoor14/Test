@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { useSupabase } from './lib/supabaseContext';
 import { useGlobalTelemetry } from './features/status/useGlobalTelemetry';
@@ -79,6 +79,7 @@ function TicketsRootMounter({ sessionEmail, targets, anchor }: { sessionEmail: s
 }
 
 function LoginScreen({ onLoggedIn }: { onLoggedIn: () => void }) {
+  const a11yId = useId();
   const supabase = useSupabase();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -100,15 +101,15 @@ function LoginScreen({ onLoggedIn }: { onLoggedIn: () => void }) {
       <div className="login-card">
         <h2>Admin — Stare sistem (pilot React)</h2>
         <p className="sub">Autentificare pentru echipa Insta Grup</p>
-        {error && <div className="login-error">{error}</div>}
+        {error && <div className="login-error" role="alert">{error}</div>}
         <form onSubmit={submit}>
           <div className="field">
-            <label>Email</label>
-            <input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <label htmlFor={`${a11yId}-email`}>Email</label>
+            <input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} id={`${a11yId}-email`}/>
           </div>
           <div className="field">
-            <label>Parolă</label>
-            <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <label htmlFor={`${a11yId}-parol`}>Parolă</label>
+            <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} id={`${a11yId}-parol`}/>
           </div>
           <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={busy}>
             {busy ? 'Se autentifică...' : 'Autentificare'}

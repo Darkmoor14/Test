@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useModalSheet } from '../../lib/useModalSheet';
 import { useSupabase } from '../../lib/supabaseContext';
 import { formatLogTimeRO } from '../../lib/format';
 
@@ -34,12 +35,20 @@ export function EntityLogSheet({ current, onClose, sessionEmail }: { current: En
   const [loading, setLoading] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [saving, setSaving] = useState(false);
+  const latestKeyRef = useRef<string | null>(null);
 
   const load = async (type: string, id: string) => {
+    const key = `${type}:${id}`;
+    latestKeyRef.current = key;
     setLoading(true);
     const { data, error } = await supabase.from('entity_log').select('*')
       .eq('entity_type', type).eq('entity_id', id)
       .order('created_at', { ascending: false }).limit(100);
+    // A newer sheet (different entity) may have opened -- or the sheet may
+    // have been closed and reopened for the same entity -- while this
+    // request was in flight. Bail rather than show entity A's log under
+    // entity B's title if A's response resolves after B's own load started.
+    if (latestKeyRef.current !== key) return;
     setLoading(false);
     if (error) { setRows([]); return; }
     setRows((data as EntityLogRow[]) || []);
@@ -49,6 +58,8 @@ export function EntityLogSheet({ current, onClose, sessionEmail }: { current: En
     if (current) { setNoteText(''); load(current.type, current.id); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.type, current?.id]);
+
+  const { panelRef, handleKeyDown, backdropOnClick } = useModalSheet({ open: !!current, onClose, guard: saving });
 
   if (!current) return null;
 
@@ -66,14 +77,14 @@ export function EntityLogSheet({ current, onClose, sessionEmail }: { current: En
   };
 
   return (
-    <div className="mobile-sheet show" aria-hidden="false">
-      <div className="mobile-sheet-backdrop" onClick={onClose} />
-      <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="entityLogSheetTitle">
+    <div className="mobile-sheet show" aria-hidden="false" onKeyDown={handleKeyDown}>
+      <div className="mobile-sheet-backdrop" onClick={backdropOnClick} />
+      <div ref={panelRef} tabIndex={-1} className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="entityLogSheetTitle">
         <div className="mobile-sheet-panel-scroll">
           <div className="sheet-handle" />
           <div className="sheet-head">
             <div><h3 id="entityLogSheetTitle">Istoric — {current.title}</h3></div>
-            <button type="button" className="sheet-close" aria-label="Închide" onClick={onClose}>×</button>
+            <button type="button" className="sheet-close" aria-label="Închide" disabled={saving} onClick={onClose}>×</button>
           </div>
           <div className="entity-log-list">
             {loading ? (

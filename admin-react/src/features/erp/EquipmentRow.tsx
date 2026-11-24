@@ -32,7 +32,7 @@ export function EquipmentRow({ eq }: { eq: EquipmentItem }) {
       </div>
       <div className="backlog-actions">
         <button type="button" className="btn eq-edit" data-requires-write="erp" onClick={() => store.openForm(eq)}>Editează</button>
-        <button type="button" className="btn btn-primary eq-status" data-requires-write="erp" onClick={() => store.cycleStatus(eq)}>{EQUIPMENT_STATUS_LABEL[EQUIPMENT_STATUS_CYCLE[eq.status]] || 'Schimbă starea'}</button>
+        <button type="button" className="btn btn-primary eq-status" data-requires-write="erp" disabled={store.cyclingIds.has(eq.id)} onClick={() => store.cycleStatus(eq)}>{EQUIPMENT_STATUS_LABEL[EQUIPMENT_STATUS_CYCLE[eq.status]] || 'Schimbă starea'}</button>
         {(erpCategory === 'material' || erpCategory === 'produs') && (
           <button type="button" className="btn eq-ledger" onClick={() => window.openStockLedgerSheet?.(eq.id, eq.name)}>Jurnal stoc</button>
         )}

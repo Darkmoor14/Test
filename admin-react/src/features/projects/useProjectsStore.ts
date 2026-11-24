@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
+import { useRealtimeReload } from '../../lib/useRealtimeReload';
 import { createLogEntityActivity } from '../shared/entityLogClient';
 import { projectData, saveChecklist as persistChecklist } from '../../lib/dataServices';
 import type { BacklogProject, BacklogFilterKey, Project, ProjectsFilterKey, WorkOrder } from './types';
@@ -43,6 +44,7 @@ export function useProjectsStore(sessionEmail: string | null) {
   }, [supabase]);
 
   useEffect(() => { if (sessionEmail) reloadProjects(); }, [sessionEmail, reloadProjects]);
+  useRealtimeReload(supabase, 'current_projects', reloadProjects, !!sessionEmail);
 
   const projectAvailableYears = useMemo(() => {
     const years = new Set<number>();
@@ -147,6 +149,7 @@ export function useProjectsStore(sessionEmail: string | null) {
   }, [supabase]);
 
   useEffect(() => { if (sessionEmail) reloadBacklog(); }, [sessionEmail, reloadBacklog]);
+  useRealtimeReload(supabase, 'backlog_projects', reloadBacklog, !!sessionEmail);
 
   const setBacklogFilter = useCallback((key: BacklogFilterKey) => setBacklogFilterState(key), []);
 
@@ -173,14 +176,22 @@ export function useProjectsStore(sessionEmail: string | null) {
 
   const toggleBacklogStatus = useCallback(async (p: BacklogProject) => {
     const isDone = (p.status || 'Ongoing') === 'Terminat';
-    const nextStatus = isDone ? 'Ongoing' : 'Terminat';
     const question = isDone ? `Reactivați lucrarea "${p.title}"?` : `Marcați lucrarea "${p.title}" ca soluționată? Va fi mutată în tab-ul „Soluționate”.`;
     if (!confirm(question)) return;
-    const { error } = await projectData.updateBacklog(supabase, p.id, { status: nextStatus, resolved_on: isDone ? null : new Date().toISOString() });
+    // confirm() blocks for an indeterminate time -- another staff member's
+    // edit (realtime) or a pending reload could land while it's open.
+    // Re-deriving from the live list right before the write (rather than
+    // trusting the possibly-stale `p` the dialog was opened with) means the
+    // transition reflects the item's actual current status, not whatever
+    // it was a moment ago (CLICK-PATH-303).
+    const live = backlogProjects.find((x) => x.id === p.id) || p;
+    const liveIsDone = (live.status || 'Ongoing') === 'Terminat';
+    const nextStatus = liveIsDone ? 'Ongoing' : 'Terminat';
+    const { error } = await projectData.updateBacklog(supabase, p.id, { status: nextStatus, resolved_on: liveIsDone ? null : new Date().toISOString() });
     if (error) { console.error(error); alert('Eroare la actualizarea lucrării. Încercați din nou.'); return; }
-    logEntityActivity('backlog', p.id, isDone ? 'Lucrarea a fost reactivată.' : 'Lucrarea a fost marcată ca soluționată.');
+    logEntityActivity('backlog', p.id, liveIsDone ? 'Lucrarea a fost reactivată.' : 'Lucrarea a fost marcată ca soluționată.');
     await reloadBacklog();
-  }, [supabase, reloadBacklog, logEntityActivity]);
+  }, [supabase, backlogProjects, reloadBacklog, logEntityActivity]);
 
   const saveBacklogChecklist = useCallback(async (id: string, items: BacklogProject['checklist']) => {
     const { error } = await persistChecklist(supabase, 'backlog_projects', id, items || []);
@@ -209,6 +220,7 @@ export function useProjectsStore(sessionEmail: string | null) {
   }, [supabase]);
 
   useEffect(() => { if (sessionEmail) reloadWorkOrders(); }, [sessionEmail, reloadWorkOrders]);
+  useRealtimeReload(supabase, 'work_orders', reloadWorkOrders, !!sessionEmail);
 
   // Supabase is shared across staff accounts. Refresh when returning to a
   // module so edits made by another person do not remain invisible until

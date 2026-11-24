@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useId } from 'react';
 import { useProjects } from './ProjectsContext';
 
 export function WorkOrderForm() {
+  const a11yId = useId();
   const store = useProjects();
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
@@ -36,12 +37,12 @@ export function WorkOrderForm() {
   return (
     <div className="project-form" style={{ display: 'block' }}>
       <div className="pf-grid">
-        <div className="ctrl-field"><label>Lucrare</label><input type="text" placeholder="ex: Asfaltare Str. Gh. Doja" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-        <div className="ctrl-field"><label>Loc / adresă</label><input type="text" placeholder="ex: Str. Gh. Doja, Târgu-Mureș" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
-        <div className="ctrl-field"><label>Echipă / responsabil</label><input type="text" placeholder="ex: Echipa 2 - Ionel Ghiurchi" value={crew} onChange={(e) => setCrew(e.target.value)} /></div>
-        <div className="ctrl-field"><label>Data programată</label><input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></div>
-        <div className="ctrl-field"><label>Până la (opțional)</label><input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></div>
-        <div className="ctrl-field" style={{ gridColumn: '1/-1' }}><label>Descriere</label><input type="text" placeholder="Detalii despre lucrare" value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+        <div className="ctrl-field"><label htmlFor={`${a11yId}-lucrare`}>Lucrare</label><input type="text" placeholder="ex: Asfaltare Str. Gh. Doja" value={title} onChange={(e) => setTitle(e.target.value)} id={`${a11yId}-lucrare`}/></div>
+        <div className="ctrl-field"><label htmlFor={`${a11yId}-loc-adres`}>Loc / adresă</label><input type="text" placeholder="ex: Str. Gh. Doja, Târgu-Mureș" value={location} onChange={(e) => setLocation(e.target.value)} id={`${a11yId}-loc-adres`}/></div>
+        <div className="ctrl-field"><label htmlFor={`${a11yId}-echip-responsabil`}>Echipă / responsabil</label><input type="text" placeholder="ex: Echipa 2 - Ionel Ghiurchi" value={crew} onChange={(e) => setCrew(e.target.value)} id={`${a11yId}-echip-responsabil`}/></div>
+        <div className="ctrl-field"><label htmlFor={`${a11yId}-data-programat`}>Data programată</label><input type="date" value={start} onChange={(e) => setStart(e.target.value)} id={`${a11yId}-data-programat`}/></div>
+        <div className="ctrl-field"><label htmlFor={`${a11yId}-p-n-la-op-ional`}>Până la (opțional)</label><input type="date" value={end} onChange={(e) => setEnd(e.target.value)} id={`${a11yId}-p-n-la-op-ional`}/></div>
+        <div className="ctrl-field" style={{ gridColumn: '1/-1' }}><label htmlFor={`${a11yId}-descriere`}>Descriere</label><input type="text" placeholder="Detalii despre lucrare" value={description} onChange={(e) => setDescription(e.target.value)} id={`${a11yId}-descriere`}/></div>
       </div>
       <div className="pf-actions">
         <button className="btn" type="button" onClick={store.closeWorkOrderForm}>Anulează</button>

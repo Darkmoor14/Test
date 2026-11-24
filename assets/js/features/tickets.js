@@ -160,10 +160,11 @@
          "Toate" already shows archived projects too (see
          getFilteredProjects), so auto-archiving replaces the older
          behavior of deleting these rows outright.
-     The public pages (relatii-publice.html, sesizari.html) also
-     filter by the same 14-day window client-side, so a ticket or
-     project disappears from the public site on schedule even on
-     days nobody has logged into admin.
+     The public pages (relatii-publice/sesizari.html,
+     relatii-publice/proiecte-publice.html) also filter by the same
+     14-day window client-side, so a ticket or project disappears from
+     the public site on schedule even on days nobody has logged into
+     admin.
 
      REQUIRES the `archived` / `archived_at` columns on
      `current_projects` — see the migration note above
@@ -179,7 +180,7 @@
     // indefinitely (and keeps showing under "Așteaptă raport") until
     // someone fills it in, however long that takes. This is
     // completely separate from the public site's own 14-day
-    // visibility window (relatii-publice.html/sesizari.html filter by
+    // visibility window (relatii-publice/sesizari.html filters by
     // resolved_on client-side, not by this archived flag), so a
     // ticket still disappears from the public pages on schedule
     // either way — only the *admin* archive is being held back here.

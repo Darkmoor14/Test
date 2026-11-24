@@ -22,6 +22,10 @@ export function SearchToggle<S>({
   const inputRef = useRef<HTMLInputElement>(null);
   const hadQueryRef = useRef(!!query.trim());
   const preSearchRef = useRef<PreSearchFilters<S> | null>(null);
+  // What THIS component set each field to while widening -- lets the
+  // watcher below tell "nothing touched it since" apart from "the popover
+  // changed it mid-search" (see CLICK-PATH-102).
+  const widenedRef = useRef<PreSearchFilters<S> | null>(null);
 
   // An external clear (e.g. goToTicket() clearing a stale search) sets
   // `query` directly rather than through handleChange -- re-sync the
@@ -38,13 +42,14 @@ export function SearchToggle<S>({
   const handleChange = (value: string) => {
     const hasQuery = !!value.trim();
     if (hasQuery && !hadQueryRef.current) {
-      preSearchRef.current = {
-        status: status ?? null, year: year ?? null, month: month ?? null, day,
-      };
-      if (setStatus && widenStatus !== undefined) setStatus(widenStatus);
-      if (setYear) setYear('all');
-      if (setMonth) setMonth('all');
-      if (setDay) setDay(null);
+      const pre: PreSearchFilters<S> = { status: status ?? null, year: year ?? null, month: month ?? null, day };
+      preSearchRef.current = pre;
+      const widened: PreSearchFilters<S> = { status: pre.status, year: pre.year, month: pre.month, day: pre.day };
+      if (setStatus && widenStatus !== undefined) { setStatus(widenStatus); widened.status = widenStatus; }
+      if (setYear) { setYear('all'); widened.year = 'all'; }
+      if (setMonth) { setMonth('all'); widened.month = 'all'; }
+      if (setDay) { setDay(null); widened.day = null; }
+      widenedRef.current = widened;
     } else if (!hasQuery && hadQueryRef.current && preSearchRef.current) {
       const pre = preSearchRef.current;
       if (setStatus && pre.status !== null) setStatus(pre.status);
@@ -52,10 +57,29 @@ export function SearchToggle<S>({
       if (setMonth && pre.month !== null) setMonth(pre.month);
       if (setDay && pre.day !== undefined) setDay(pre.day ?? null);
       preSearchRef.current = null;
+      widenedRef.current = null;
     }
     hadQueryRef.current = hasQuery;
     setQuery(value);
   };
+
+  // While a search is active, year/month/day/status can still be changed
+  // directly (e.g. via FilterPopover) -- without this, clearing the search
+  // would silently revert that change back to whatever was selected before
+  // the search even started, since preSearchRef's snapshot was otherwise
+  // frozen at search-start (CLICK-PATH-102). Treat any value that no
+  // longer matches what THIS component set while widening as a real
+  // external change, and keep the restore target in sync with it.
+  useEffect(() => {
+    if (!hadQueryRef.current) return;
+    const w = widenedRef.current;
+    const pre = preSearchRef.current;
+    if (!w || !pre) return;
+    if (status !== undefined && status !== w.status) { pre.status = status; w.status = status; }
+    if (year !== undefined && year !== w.year) { pre.year = year; w.year = year; }
+    if (month !== undefined && month !== w.month) { pre.month = month; w.month = month; }
+    if (day !== w.day) { pre.day = day; w.day = day; }
+  }, [status, year, month, day]);
 
   return (
     <div className={`overview-search-wrap${expanded ? ' expanded' : ''}`}>

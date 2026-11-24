@@ -229,7 +229,16 @@ export function useStatusChecks(sessionEmail: string | null) {
     );
   }, [maybeLog, supabase]);
 
+  const [refreshing, setRefreshing] = useState(false);
   const loadSystemStatus = useCallback(async () => {
+    // Without this, each of the 5 checks below has no ordering guarantee
+    // against a second overlapping run -- clicking "Reîmprospătează" twice
+    // in quick succession (nothing previously disabled it) could let an
+    // older click's response resolve after a newer one's for the same
+    // check, regressing the displayed status/latency to stale data until
+    // the next periodic refresh or another click corrected it
+    // (CLICK-PATH-405). Self-healing either way, but the guard avoids it.
+    setRefreshing(true);
     await Promise.all([checkDb(), checkAuth(), checkFunctions(), checkSystem(), checkBackup()]);
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -237,6 +246,7 @@ export function useStatusChecks(sessionEmail: string | null) {
       ...s,
       lastCheckedLabel: `Ultima verificare: ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`,
     }));
+    setRefreshing(false);
   }, [checkAuth, checkBackup, checkDb, checkFunctions, checkSystem]);
 
   useEffect(() => {
@@ -251,5 +261,5 @@ export function useStatusChecks(sessionEmail: string | null) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { state, loadSystemStatus, checkSystem };
+  return { state, loadSystemStatus, checkSystem, refreshing };
 }

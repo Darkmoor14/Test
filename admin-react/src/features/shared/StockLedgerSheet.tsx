@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
 import { formatLogTimeRO } from '../../lib/format';
+import { useModalSheet } from '../../lib/useModalSheet';
 
 declare global {
   interface Window {
@@ -26,24 +27,33 @@ export function StockLedgerSheet({ current, onClose }: { current: StockLedgerShe
   const supabase = useSupabase();
   const [rows, setRows] = useState<StockLedgerRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const latestItemIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!current) return;
+    const itemId = current.itemId;
+    latestItemIdRef.current = itemId;
     setLoading(true);
     supabase.from('stock_ledger').select('*')
-      .eq('item_id', current.itemId).order('created_at', { ascending: false }).limit(100)
+      .eq('item_id', itemId).order('created_at', { ascending: false }).limit(100)
       .then(({ data, error }) => {
+        // A newer sheet (different item) may have opened while this request
+        // was in flight -- bail rather than show item A's rows under item
+        // B's title if A's response happens to resolve after B's.
+        if (latestItemIdRef.current !== itemId) return;
         setLoading(false);
         setRows(error ? [] : ((data as StockLedgerRow[]) || []));
       });
   }, [current, supabase]);
 
+  const { panelRef, handleKeyDown, backdropOnClick } = useModalSheet({ open: !!current, onClose });
+
   if (!current) return null;
 
   return (
-    <div className="mobile-sheet show" aria-hidden="false">
-      <div className="mobile-sheet-backdrop" onClick={onClose} />
-      <div className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="stockLedgerSheetTitle">
+    <div className="mobile-sheet show" aria-hidden="false" onKeyDown={handleKeyDown}>
+      <div className="mobile-sheet-backdrop" onClick={backdropOnClick} />
+      <div ref={panelRef} tabIndex={-1} className="mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="stockLedgerSheetTitle">
         <div className="mobile-sheet-panel-scroll">
           <div className="sheet-handle" />
           <div className="sheet-head">

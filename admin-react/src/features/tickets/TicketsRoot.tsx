@@ -35,7 +35,17 @@ export function TicketsRoot({ sessionEmail, targets }: { sessionEmail: string | 
       {createPortal(<TicketsPanel sessionEmail={sessionEmail} />, targets.ticketsPanelRoot)}
       {createPortal(<ReportsPanel />, targets.reportsPanelRoot)}
       <OverviewPanel sessionEmail={sessionEmail} />
-      <DuplicateLinkSheet />
+      {/* Both triggers for this sheet (TicketCard's "Leagă duplicate" and
+          TicketArchiveBar's "Marchează ca duplicate") live inside
+          TicketsPanel, portaled into panel-tickets -- but this component
+          itself was a plain child here, physically mounted inside
+          panel-overview. panel-overview is display:none whenever
+          panel-tickets is the active tab, so the sheet "opened" in state
+          but was invisible the entire time anyone used it from Sesizări
+          rather than Prezentare generală. Portaling to document.body
+          escapes the per-tab admin-panel display:none entirely, same as
+          every other sheet already renders as a position:fixed overlay. */}
+      {createPortal(<DuplicateLinkSheet />, document.body)}
     </TicketsStoreProvider>
   );
 }

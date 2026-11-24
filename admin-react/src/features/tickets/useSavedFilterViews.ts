@@ -26,8 +26,26 @@ export function useSavedFilterViews(scope: string, sessionEmail: string | null) 
   }, [supabase, scope, sessionEmail]);
 
   const remove = useCallback(async (id: string) => {
-    setViews((prev) => prev.filter((v) => v.id !== id));
-    await supabase.from('saved_filter_views').delete().eq('id', id);
+    let removed: SavedFilterView | undefined;
+    let removedIndex = -1;
+    setViews((prev) => {
+      removedIndex = prev.findIndex((v) => v.id === id);
+      removed = prev[removedIndex];
+      return prev.filter((v) => v.id !== id);
+    });
+    const { error } = await supabase.from('saved_filter_views').delete().eq('id', id);
+    if (error && removed) {
+      // The optimistic removal above was wrong -- put it back rather than
+      // leave the UI showing it gone while it's still saved server-side
+      // with no indication anything failed (CLICK-PATH-104/302).
+      console.error(error);
+      alert('Nu am putut șterge vizualizarea salvată. Încercați din nou.');
+      setViews((prev) => {
+        const next = prev.slice();
+        next.splice(Math.min(removedIndex, next.length), 0, removed as SavedFilterView);
+        return next;
+      });
+    }
   }, [supabase]);
 
   useEffect(() => { /* loaded lazily on popover open via load() */ }, []);

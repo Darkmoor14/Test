@@ -45,11 +45,20 @@
     --display:'Space Grotesk',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:var(--body);color:var(--ink-900);background:var(--paper-000);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  html,body{height:100%;}
+  body{font-family:var(--body);color:var(--ink-900);background:var(--paper-000);line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh;}
+  body > *{flex-shrink:0;}
+  /* This page is now short (two teaser sections, no live lists) --
+     on a tall/wide screen its content can be shorter than the
+     viewport, which would otherwise leave the footer stranded
+     mid-page instead of at the bottom. margin-top:auto on the footer
+     (inside this flex column) pushes it down to fill the gap; it's a
+     no-op once there's enough content to fill the viewport anyway. */
+  footer{margin-top:auto;}
   a{color:inherit;text-decoration:none;}
   img{display:block;max-width:100%;}
   :focus-visible{outline:2px solid var(--copper-500);outline-offset:3px;}
-  .wrap{max-width:1440px;margin:0 auto;padding:0 40px;}
+  .wrap{max-width:1600px;margin:0 auto;padding:0 40px;width:100%;}
   h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:-0.01em;}
 
   header{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
@@ -232,6 +241,22 @@
   .section-head h2{font-size:clamp(28px,3.4vw,42px);color:var(--ink-900);margin-bottom:12px;}
   .section-head p{color:var(--ink-900);font-size:17.5px;}
 
+  /* Sesizări + Lucrări de modernizare teasers, side by side */
+  .sections-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start;}
+  /* .section-head h2's clamp (up to 42px) was sized for a full-width
+     section; halved into two columns here, "Lucrări de reabilitare și
+     modernizare" sits within a few px of its column's width at that
+     size -- fine on paper, but any font-substitution/zoom/width
+     wobble tips it onto two lines. Capping it lower gives real
+     headroom instead of a near-exact fit. */
+  .sections-grid .section-col h2{font-size:clamp(24px,2.3vw,32px);}
+  .sections-grid .section-col{max-width:none;margin-bottom:0;}
+  .sections-grid .section-col + .section-col{padding-left:56px;border-left:1px solid var(--line-strong);}
+  @media(max-width:860px){
+    .sections-grid{grid-template-columns:1fr;gap:40px;}
+    .sections-grid .section-col + .section-col{padding-left:0;border-left:none;padding-top:40px;border-top:1px solid var(--line-strong);}
+  }
+
   /* ===== PUBLIC NOTICE (temporary outage/work announcements) ===== */
   .important-notice-outer{padding:28px 0 0;}
   .public-notice{
@@ -242,78 +267,13 @@
   .public-notice .pn-title{font-family:var(--display);font-weight:600;font-size:16px;margin-bottom:6px;color:var(--signal-red);}
   .public-notice p{font-size:15px;color:var(--ink-900);line-height:1.6;margin:0;}
 
-  /* ===== CURRENT PROJECTS ("Proiecte de modernizare") ===== */
-  .current-grid{
-    display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
-    gap:20px;
-  }
-  .current-card{
-    background:var(--paper-000);border:1px solid var(--line-strong);border-radius:4px;
-    padding:26px 24px;
-  }
-  .cc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;}
-  .cc-title{font-family:var(--display);font-weight:600;font-size:17px;color:var(--ink-900);line-height:1.3;}
-  .cc-status{
-    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
-    padding:4px 9px;border-radius:3px;white-space:nowrap;flex-shrink:0;
-  }
-  .cc-status.scheduled{background:var(--paper-100);color:var(--ink-600);}
-  .cc-status.progress{background:var(--copper-050);color:var(--copper-600);}
-  .cc-status.done{background:var(--signal-green-bg);color:var(--signal-green);}
-  .cc-address{font-size:13.5px;color:var(--ink-900);margin-bottom:18px;display:flex;align-items:center;gap:6px;}
-  .cc-address svg{width:14px;height:14px;flex-shrink:0;color:var(--ink-400);}
-  .cc-bar-track{width:100%;height:6px;background:var(--paper-100);border-radius:4px;overflow:hidden;margin-bottom:8px;}
-  .cc-bar-fill{height:100%;background:var(--copper-500);border-radius:4px;transition:width .4s ease;}
-  .cc-bar-label{
-    display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;
-    color:var(--ink-900);margin-bottom:16px;
-  }
-  .cc-bar-label .pct{color:var(--copper-600);font-weight:600;}
-  .cc-dates{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-900);}
-  .cc-dates .k{font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--ink-900);letter-spacing:0.04em;display:block;margin-bottom:2px;}
-  .current-empty{text-align:center;padding:50px 0;color:var(--ink-900);font-size:14.5px;}
-
-  /* ===== TICKETS ("Sesizări iluminat") ===== */
-  .toolbar{background:var(--paper-000);border:1px solid var(--line-strong);border-radius:6px;padding:18px;margin-bottom:24px;}
-  .toolbar-inner{display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
-  .chips{display:flex;gap:8px;flex-wrap:wrap;}
-  .chip{
-    font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:20px;
-    border:1px solid var(--line-strong);color:var(--ink-900);cursor:pointer;
-    transition:all .15s;background:var(--paper-000);white-space:nowrap;
-  }
-  .chip:hover{border-color:var(--copper-500);color:var(--copper-600);}
-  .chip.active{background:var(--copper-500);border-color:var(--copper-500);color:#fff;}
-  .search-box{flex:1;min-width:200px;max-width:320px;}
-  .search-box input{
-    width:100%;padding:9px 13px;border:1px solid var(--line-strong);border-radius:3px;
-    font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-900);
-  }
-  .search-box input:focus{border-color:var(--copper-500);background:var(--paper-000);}
-  .result-count{font-family:var(--mono);font-size:12.5px;color:var(--ink-900);}
-
-  .ticket-list{display:flex;flex-direction:column;gap:14px;}
-  .ticket-card{
-    border:1px solid var(--line-strong);border-radius:5px;padding:22px 24px;background:var(--paper-000);
-  }
-  .ticket-card.urgent{border-color:rgba(181,80,47,0.35);background:var(--signal-red-bg);}
-  .ticket-card.done{opacity:0.7;}
-  .ticket-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
-  .ticket-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  .ticket-num{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink-900);}
-  .ticket-tag{
-    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
-    padding:4px 9px;border-radius:3px;background:var(--signal-orange-bg);color:var(--signal-orange);
-  }
-  .ticket-tag.urgent-tag{background:var(--signal-red-bg);color:var(--signal-red);}
-  .ticket-status-pill{
-    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
-    padding:4px 9px;border-radius:3px;background:var(--signal-green-bg);color:var(--signal-green);
-  }
-  .ticket-body{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;font-size:14px;color:var(--ink-700);}
-  .ticket-body .full{grid-column:1/-1;}
-  .ticket-body .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;color:var(--ink-900);letter-spacing:0.04em;display:block;margin-bottom:2px;}
-  .no-results{padding:60px 0;text-align:center;color:var(--ink-900);font-size:14.5px;}
+  /* ===== SUB-PAGE TEASER SECTIONS (Sesizări / Lucrări de modernizare) =====
+     Both "Sesizări iluminat public" and "Lucrări de modernizare" used to
+     render their live lists inline on this page (ticket cards, then
+     the current-projects grid). Both now live on their own pages under
+     relatii-publice/ — this page is just a hub with a heading/lede/CTA
+     for each, so it no longer needs Supabase at all. */
+  .section-actions{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:22px;}
 
   footer{background:var(--paper-050);color:var(--ink-900);padding:32px 0;font-size:12.5px;border-top:1px solid var(--line);}
 
@@ -429,28 +389,32 @@
     <p data-i18n="rp_hero_lede">O privire publică asupra proiectelor de modernizare aflate în derulare și a sesizărilor de iluminat public transmise prin site — actualizate periodic de echipa noastră.</p>
     <div class="hero-jumplinks">
       <a href="#sesizari-iluminat" data-i18n="public_h1">Situația sesizărilor curente</a>
+      <a href="#lucrari-modernizare" data-i18n="projpub_h1">Lucrări de reabilitare și modernizare</a>
     </div>
   </div>
 </section>
 
-<section class="section-block alt" id="sesizari-iluminat">
+<section class="section-block alt">
   <div class="wrap">
-    <div class="section-head">
-      <div class="eyebrow" data-i18n="public_eyebrow">Sesizări iluminat public</div>
-      <h2 data-i18n="public_h1">Situația sesizărilor curente</h2>
-      <p data-i18n="public_lede">O listă publică a sesizărilor de iluminat public transmise prin site — pentru transparență, fără date personale ale celor care au raportat problema.</p>
-      <a href="raportare.html" class="public-report-cta" data-i18n="public_back">← Raportează o problemă nouă</a>
-    </div>
-
-    <div class="toolbar">
-      <div class="toolbar-inner">
-        <div class="chips" id="chipsWrap"></div>
-        <div class="search-box"><input type="text" id="searchInput" placeholder="Caută după adresă sau număr tichet..." data-i18n-placeholder="public_search_ph" aria-label="Caută o sesizare" data-i18n-aria="public_search_aria"></div>
-        <div class="result-count" id="resultCount"></div>
+    <div class="sections-grid">
+      <div class="section-head section-col" id="sesizari-iluminat">
+        <div class="eyebrow" data-i18n="public_eyebrow">Sesizări iluminat public</div>
+        <h2 data-i18n="public_h1">Situația sesizărilor curente</h2>
+        <p data-i18n="public_lede">O listă publică a sesizărilor de iluminat public transmise prin site.</p>
+        <div class="section-actions">
+          <a href="raportare.html" class="public-report-cta" data-i18n="public_back">← Raportează o problemă nouă</a>
+          <a href="relatii-publice/sesizari.html" class="public-report-cta" data-i18n="public_view_cta">Vezi sesizări</a>
+        </div>
+      </div>
+      <div class="section-head section-col" id="lucrari-modernizare">
+        <div class="eyebrow" data-i18n="projpub_eyebrow">Lucrări de modernizare</div>
+        <h2 data-i18n="projpub_h1">Lucrări de reabilitare și modernizare</h2>
+        <p data-i18n="projpub_lede">O prezentare publică asupra proiectelor de modernizare aflate în derulare.</p>
+        <div class="section-actions">
+          <a href="relatii-publice/proiecte-publice.html" class="public-report-cta" data-i18n="projpub_cta">Vezi proiectele de modernizare</a>
+        </div>
       </div>
     </div>
-
-    <div class="ticket-list" id="ticketList"></div>
   </div>
 </section>
 
@@ -504,8 +468,6 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-
 <div class="modal-overlay" id="cookieModal" onclick="if(event.target===this) closeModal('cookieModal')">
   <div class="modal-card">
     <div class="modal-head">
@@ -527,10 +489,6 @@
 
 <script src="i18n.js"></script>
 <script>
-  const SUPABASE_URL = "https://ebuigyyjifnjiuzsgpih.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_aXC8Q_v2faRB0uEAlZYFog_JreYGXvq";
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
   /* ============================================================
      LEGAL MODALS (GDPR / Termeni și Condiții) — same pattern used
      on every page, so the footer buttons work here too.
@@ -540,275 +498,14 @@
   document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id)); } });
 
   /* ============================================================
-     "RELAȚII PUBLICE" PAGE — combines two previously separate public
-     views into one: modernization projects ("Proiecte de
-     modernizare", formerly the homepage's "Ce facem acum" section)
-     and the public streetlight-ticket status list (same data/queries
-     as sesizari.html). This page is now what the header's "Relații
-     publice" button links to; the homepage no longer shows live
-     project data directly.
-
-     AUTO-HIDE AFTER 2 WEEKS: per Adam's request, both finished
-     projects and resolved tickets should stop being shown here (and
-     move to archive) automatically two weeks after completion. The
-     admin dashboard performs the actual archiving/cleanup in the
-     database (see admin.html's autoArchiveStaleTickets /
-     autoCleanupStaleProjects, run on staff login) — but since that
-     only runs when someone opens admin.html, this page ALSO filters
-     client-side by date as a safety net, so a project or ticket
-     disappears from the public page on schedule even on days nobody
-     has logged into admin.
+     "RELAȚII PUBLICE" PAGE — a hub linking out to the two public
+     sub-pages: sesizări (relatii-publice/sesizari.html) and lucrări
+     de modernizare (relatii-publice/proiecte-publice.html). Both used
+     to render their live lists inline here (and the projects grid
+     lived on index.html's "Ce facem acum" section before that) — this
+     page now just shows each section's heading/lede and a button to
+     its own page, so it needs no Supabase calls of its own.
      ============================================================ */
-  const AUTO_HIDE_DAYS = 14;
-  function isOlderThanAutoHideWindow(dateISO){
-    if (!dateISO) return false;
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - AUTO_HIDE_DAYS);
-    return new Date(dateISO) < cutoff;
-  }
-
-  (function initNavDropdown(){
-    const dropdown = document.getElementById('navDespreDropdown');
-    if (!dropdown) return;
-    const trigger = dropdown.querySelector('.nav-dropdown-trigger');
-    function closeDropdown(){ dropdown.classList.remove('open'); trigger.setAttribute('aria-expanded', 'false'); }
-    trigger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = dropdown.classList.toggle('open');
-      trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    });
-    document.addEventListener('click', (e) => { if (!dropdown.contains(e.target)) closeDropdown(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDropdown(); });
-    dropdown.querySelectorAll('.nav-dropdown-menu a').forEach(a => a.addEventListener('click', closeDropdown));
-  })();
-
-  /* ============================================================
-     SECTION 1 — PROIECTE DE MODERNIZARE (current_projects table)
-     Same logic that used to live on index.html's "Ce facem acum"
-     section. Progress/status are derived client-side from
-     start_date/due_date. A project whose due_date is more than
-     AUTO_HIDE_DAYS in the past is filtered out here so it stops
-     appearing on the public site automatically.
-     ============================================================ */
-  let currentProjectsData = [];
-
-  function calcProgress(startISO, dueISO){
-    const now = new Date();
-    const start = new Date(startISO);
-    const due = new Date(dueISO);
-    if (now <= start) return 0;
-    if (now >= due) return 100;
-    return Math.round(((now - start) / (due - start)) * 100);
-  }
-
-  function calcStatus(startISO, dueISO){
-    const now = new Date();
-    const start = new Date(startISO);
-    const due = new Date(dueISO);
-    if (now < start) return 'scheduled';
-    if (now >= due) return 'done';
-    return 'progress';
-  }
-
-  function fmtDateShort(iso){
-    if (!iso) return '—';
-    const d = new Date(iso);
-    const locale = getLang() === 'ro' ? 'ro-RO' : (getLang() === 'hu' ? 'hu-HU' : 'en-GB');
-    return d.toLocaleDateString(locale, {day:'2-digit', month:'2-digit', year:'numeric'});
-  }
-
-  const STATUS_LABEL_KEY = {
-    scheduled: 'current_status_scheduled',
-    progress: 'current_status_progress',
-    done: 'current_status_done',
-  };
-
-  function renderCurrentProjects(){
-    const grid = document.getElementById('currentGrid');
-    const empty = document.getElementById('currentEmpty');
-    if (!grid) return;
-
-    if (currentProjectsData.length === 0) {
-      grid.innerHTML = '';
-      empty.style.display = 'block';
-      return;
-    }
-    empty.style.display = 'none';
-
-    grid.innerHTML = currentProjectsData.map(p => {
-      const pct = calcProgress(p.start_date, p.due_date);
-      const status = calcStatus(p.start_date, p.due_date);
-      return `
-        <div class="current-card">
-          <div class="cc-top">
-            <div class="cc-title">${escapeHtmlCP(p.title)}</div>
-            <span class="cc-status ${status}">${t(STATUS_LABEL_KEY[status])}</span>
-          </div>
-          <div class="cc-address">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
-            ${escapeHtmlCP(p.address)}
-          </div>
-          <div class="cc-bar-track"><div class="cc-bar-fill" style="width:${pct}%;"></div></div>
-          <div class="cc-bar-label"><span>${t('current_progress_label')}</span><span class="pct">${pct}%</span></div>
-          <div class="cc-dates">
-            <div><span class="k">${t('current_k_start')}</span>${fmtDateShort(p.start_date)}</div>
-            <div style="text-align:right;"><span class="k">${t('current_k_due')}</span>${fmtDateShort(p.due_date)}</div>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  function escapeHtmlCP(value){
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  async function loadCurrentProjects(){
-    const { data, error } = await supabaseClient
-      .from('current_projects')
-      .select('*')
-      .eq('archived', false)
-      .order('start_date', { ascending: true });
-    if (error) {
-      console.error('Failed to load current_projects:', error);
-      return;
-    }
-    // Safety-net auto-hide: drop anything finished more than
-    // AUTO_HIDE_DAYS ago, even if the admin cleanup sweep hasn't
-    // run yet for it.
-    currentProjectsData = (data || []).filter(p => !isOlderThanAutoHideWindow(p.due_date));
-    renderCurrentProjects();
-  }
-  loadCurrentProjects();
-  window.addEventListener('langchange', renderCurrentProjects);
-
-  /* ============================================================
-     SECTION 2 — SESIZĂRI ILUMINAT (public_tickets view)
-     Same query/rendering as sesizari.html. A resolved ticket whose
-     resolved_on is more than AUTO_HIDE_DAYS in the past is filtered
-     out client-side, in addition to whatever the admin's own
-     archived flag / DB sweep already does.
-     ============================================================ */
-  let allTickets = [];
-  let activeFilter = 'Ongoing';
-  let searchTerm = '';
-
-  // Used to include a time component (HH:MM) — dropped per request.
-  function fmtDate(iso){
-    if(!iso) return '—';
-    const d = new Date(iso);
-    const locale = getLang() === 'ro' ? 'ro-RO' : (getLang() === 'hu' ? 'hu-HU' : 'en-GB');
-    return d.toLocaleDateString(locale, {day:'2-digit', month:'2-digit', year:'numeric'});
-  }
-
-  function escapeHtml(value){
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  const chipDefs = [
-    { key: 'Ongoing', labelKey: 'public_chip_active' },
-    { key: 'Terminat', labelKey: 'public_chip_done' },
-  ];
-  const chipsWrap = document.getElementById('chipsWrap');
-  const chipEls = {};
-  chipDefs.forEach(c => {
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'chip' + (c.key === activeFilter ? ' active' : '');
-    chip.addEventListener('click', () => {
-      activeFilter = c.key;
-      document.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
-      chip.classList.add('active');
-      renderTickets();
-    });
-    chipsWrap.appendChild(chip);
-    chipEls[c.key] = { el: chip, labelKey: c.labelKey };
-  });
-
-  function updateChipLabels(){
-    chipDefs.forEach(c => {
-      chipEls[c.key].el.textContent = t(c.labelKey);
-    });
-  }
-
-  document.getElementById('searchInput').addEventListener('input', (e) => {
-    searchTerm = e.target.value.trim().toLowerCase();
-    renderTickets();
-  });
-
-  async function loadTickets(){
-    const list = document.getElementById('ticketList');
-    list.innerHTML = `<div class="no-results">...</div>`;
-    const { data, error } = await supabaseClient
-      .from('public_tickets')
-      .select('*')
-      .order('submitted_on', { ascending: false });
-
-    if (error) {
-      list.innerHTML = `<div class="no-results">${t('public_load_error')}</div>`;
-      console.error(error);
-      return;
-    }
-    // Safety-net auto-hide for resolved tickets older than the
-    // 2-week display window.
-    allTickets = (data || []).filter(tk => !(tk.status === 'Terminat' && isOlderThanAutoHideWindow(tk.resolved_on)));
-    renderTickets();
-  }
-
-  function renderTickets(){
-    updateChipLabels();
-    const list = document.getElementById('ticketList');
-    const filtered = allTickets.filter(tk => {
-      const matchFilter = tk.status === activeFilter;
-      const matchSearch = !searchTerm ||
-        (tk.address || '').toLowerCase().includes(searchTerm) ||
-        (tk.ticket_number || '').toLowerCase().includes(searchTerm);
-      return matchFilter && matchSearch;
-    });
-    document.getElementById('resultCount').textContent = t('public_count', {n: filtered.length});
-
-    if (filtered.length === 0) {
-      list.innerHTML = `<div class="no-results">${t('public_no_results')}</div>`;
-      return;
-    }
-
-    list.innerHTML = '';
-    filtered.forEach(tk => {
-      const isUrgent = tk.type === 'Anunt accident';
-      const isDone = tk.status === 'Terminat';
-      const card = document.createElement('div');
-      card.className = 'ticket-card' + (isUrgent && !isDone ? ' urgent' : '') + (isDone ? ' done' : '');
-      card.innerHTML = `
-        <div class="ticket-top">
-          <div class="ticket-meta">
-            <span class="ticket-num">${escapeHtml(tk.ticket_number || '—')}</span>
-            <span class="ticket-tag ${isUrgent ? 'urgent-tag' : ''}">${isUrgent ? t('ticket_type_accident') : t('ticket_type_func')}</span>
-          </div>
-          <span class="${isDone ? 'ticket-status-pill' : 'ticket-tag'}">${isDone ? t('ticket_status_done') : t('ticket_status_active')}</span>
-        </div>
-        <div class="ticket-body">
-          <div><span class="k">${t('public_k_date')}</span>${fmtDate(tk.submitted_on)}</div>
-          <div><span class="k">${t('public_k_address')}</span>${escapeHtml(tk.address || '—')}</div>
-          ${tk.public_name ? `<div><span class="k">${t('public_k_name')}</span>${escapeHtml(tk.public_name)}</div>` : ''}
-          ${isDone ? `<div class="full"><span class="k">${t('public_k_resolved')}</span>${fmtDate(tk.resolved_on)}</div>` : ''}
-        </div>
-      `;
-      list.appendChild(card);
-    });
-  }
-
-  loadTickets();
-  window.addEventListener('langchange', renderTickets);
 
   /* ============================================================
      COOKIE CONSENT BANNER — see index.html for the full policy

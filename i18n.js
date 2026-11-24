@@ -1,7 +1,7 @@
 /* ================================================================
    i18n.js -- shared translation system for insta-grup.ro
    ----------------------------------------------------------------
-   Used by: index.html, proiecte.html, sesizari.html
+   Used by: index.html, proiecte.html, relatii-publice/sesizari.html
    NOT used by: admin.html (stays Romanian-only, no switcher, by design)
 
    How it works:
@@ -149,6 +149,7 @@ ro: {
   current_progress_label: "Progres estimat",
   current_k_start: "Început",
   current_k_due: "Finalizare estimată",
+  current_k_notes: "Notă",
   hub_tag: "Sediu",
   hub_title: "Insta Grup S.A.",
   hub_desc: "Str. Căminului nr. 35, Târgu-Mureș",
@@ -239,7 +240,7 @@ ro: {
   cookie_banner_link: "Politica de cookie-uri",
   cookie_banner_accept: "Am înțeles",
 
-  // Ticket status vocabulary (shared with sesizari.html / dynamic labels)
+  // Ticket status vocabulary (shared with relatii-publice/sesizari.html / dynamic labels)
   ticket_type_func: "Defect",
   ticket_type_accident: "Accident",
   ticket_status_active: "Activ",
@@ -264,11 +265,11 @@ ro: {
   archive_no_results: "Niciun proiect găsit. Încercați alți termeni de căutare.",
   archive_data_note: "Descrierile proiectelor de mai jos sunt păstrate în limba română, ca înregistrări istorice originale.",
 
-  // sesizari.html
+  // relatii-publice.html + relatii-publice/sesizari.html
   public_eyebrow: "Sesizări iluminat public",
   public_h1: "Situația sesizărilor curente",
-  public_lede: "O listă publică a sesizărilor de iluminat public transmise prin site — pentru transparență, fără date personale ale celor care au raportat problema.",
-  public_back: "← Raportează o problemă nouă",
+  public_lede: "O listă publică a sesizărilor de iluminat public transmise prin site.",  public_back: "← Raportează o problemă nouă",
+  public_view_cta: "Vezi sesizări",
   public_search_ph: "Caută după adresă sau număr tichet...",
   public_search_aria: "Caută o sesizare",
   public_chip_active: "Active",
@@ -283,6 +284,13 @@ ro: {
   public_k_work_done: "Ce s-a făcut",
   public_before: "Înainte",
   public_after: "După",
+
+  // relatii-publice.html + relatii-publice/proiecte-publice.html
+  projpub_eyebrow: "Lucrări de modernizare",
+  projpub_h1: "Lucrări de reabilitare și modernizare",
+  projpub_lede: "O prezentare publică asupra proiectelor de modernizare aflate în derulare.",
+  projpub_cta: "Vezi proiectele de modernizare",
+  rp_sub_back: "← Relații publice",
 },
 
 en: {
@@ -388,6 +396,7 @@ en: {
   current_progress_label: "Estimated progress",
   current_k_start: "Started",
   current_k_due: "Estimated completion",
+  current_k_notes: "Note",
   hub_tag: "Headquarters",
   hub_title: "Insta Grup S.A.",
   hub_desc: "35 Căminului St., Târgu-Mureș",
@@ -500,8 +509,8 @@ en: {
 
   public_eyebrow: "Streetlight reports",
   public_h1: "Current status of reports",
-  public_lede: "A public list of public-lighting reports submitted through the site — for transparency, with no personal data of the people who reported the issue.",
-  public_back: "← Report a new problem",
+  public_lede: "A public list of public-lighting reports submitted through the site.",  public_back: "← Report a new problem",
+  public_view_cta: "View reports",
   public_search_ph: "Search by address or report number...",
   public_search_aria: "Search a report",
   public_chip_active: "Active",
@@ -516,6 +525,12 @@ en: {
   public_k_work_done: "Work done",
   public_before: "Before",
   public_after: "After",
+
+  projpub_eyebrow: "Modernization works",
+  projpub_h1: "Rehabilitation and modernization works",
+  projpub_lede: "A public overview of the modernization projects currently in progress.",
+  projpub_cta: "View modernization projects",
+  rp_sub_back: "← Public relations",
 },
 
 hu: {
@@ -621,6 +636,7 @@ hu: {
   current_progress_label: "Becsült előrehaladás",
   current_k_start: "Kezdés",
   current_k_due: "Becsült befejezés",
+  current_k_notes: "Megjegyzés",
   hub_tag: "Székhely",
   hub_title: "Insta Grup S.A.",
   hub_desc: "Căminului utca 35, Marosvásárhely",
@@ -733,8 +749,8 @@ hu: {
 
   public_eyebrow: "Közvilágítási bejelentések",
   public_h1: "A bejelentések jelenlegi állapota",
-  public_lede: "A weboldalon keresztül beküldött közvilágítási bejelentések nyilvános listája — átláthatóság céljából, a bejelentők személyes adatai nélkül.",
-  public_back: "← Új probléma bejelentése",
+  public_lede: "A weboldalon keresztül beküldött közvilágítási bejelentések nyilvános listája.",  public_back: "← Új probléma bejelentése",
+  public_view_cta: "Bejelentések megtekintése",
   public_search_ph: "Keresés cím vagy bejelentési szám alapján...",
   public_search_aria: "Bejelentés keresése",
   public_chip_active: "Aktív",
@@ -749,6 +765,12 @@ hu: {
   public_k_work_done: "Elvégzett munka",
   public_before: "Előtte",
   public_after: "Utána",
+
+  projpub_eyebrow: "Korszerűsítési munkálatok",
+  projpub_h1: "Felújítási és korszerűsítési munkálatok",
+  projpub_lede: "Nyilvános áttekintés a jelenleg folyamatban lévő korszerűsítési projektekről.",
+  projpub_cta: "Korszerűsítési projektek megtekintése",
+  rp_sub_back: "← Közkapcsolatok",
 },
 
 };

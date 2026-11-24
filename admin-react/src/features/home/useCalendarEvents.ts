@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
+import { useRealtimeReload } from '../../lib/useRealtimeReload';
 import type { CalendarEvent } from './calendarUtils';
 
 export interface CalendarEventInput {
@@ -17,6 +18,8 @@ export interface CalendarEventInput {
   recurrence_end_date: string | null;
   recurrence_count: number | null;
   attendees: string[] | null;
+  travel_time_minutes: number | null;
+  url: string | null;
 }
 
 export function useCalendarEvents(sessionEmail: string | null) {
@@ -39,8 +42,21 @@ export function useCalendarEvents(sessionEmail: string | null) {
   }, [supabase]);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    if (sessionEmail) reload();
+  }, [sessionEmail, reload]);
+
+  // Lets a change made on the CalDAV side (a phone/Mac calendar
+  // account writing straight to this table) or by another staff
+  // member show up here without reopening Acasă -- safe from clobbering
+  // an open CalendarEventFormSheet, since that sheet is handed a
+  // snapshot captured when it was opened (HomePage's formEvent), not a
+  // live reference into this array.
+  // Gated on sessionEmail for the same reason every sibling store
+  // (tickets/erp/projects/staffRoster) already is -- this one previously
+  // wasn't, which was harmless only because both entry points already
+  // keep HomePage unmounted until login (CLICK-PATH-503), not because an
+  // anonymous fetch/subscribe attempt here would have been safe on its own.
+  useRealtimeReload(supabase, 'calendar_events', reload, !!sessionEmail);
 
   const saveEvent = useCallback(async (id: string | null, payload: CalendarEventInput): Promise<boolean> => {
     try {
@@ -60,14 +76,33 @@ export function useCalendarEvents(sessionEmail: string | null) {
     }
   }, [supabase, sessionEmail, reload]);
 
-  const deleteEvent = useCallback(async (id: string): Promise<boolean> => {
-    const { error } = await supabase.from('calendar_events').delete().eq('id', id);
+  // staffRecipients are the deleted event's attendees who have an account
+  // here -- they get a push warning them it's gone from their "De făcut"
+  // feed. External (non-staff) invitees have no account to push to; the
+  // form offers them a cancellation email + CANCEL .ics separately.
+  const deleteEvent = useCallback(async (event: CalendarEvent, staffRecipients: string[]): Promise<boolean> => {
+    const { error } = await supabase.from('calendar_events').delete().eq('id', event.id);
     if (error) {
       console.error('Ștergerea a eșuat:', error);
       alert('Ștergerea a eșuat.');
       return false;
     }
     await reload();
+    if (staffRecipients.length > 0) {
+      try {
+        const { error: pushError } = await supabase.functions.invoke('send-push', {
+          body: {
+            title: 'Eveniment anulat',
+            body: `"${event.title}" a fost șters din calendar.`,
+            url: 'admin-3.html',
+            recipients: staffRecipients,
+          },
+        });
+        if (pushError) console.error('send-push failed:', pushError);
+      } catch (err) {
+        console.error('send-push call failed:', err);
+      }
+    }
     return true;
   }, [supabase, reload]);
 

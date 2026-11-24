@@ -1,5 +1,5 @@
 import { useProjects } from './ProjectsContext';
-import { calcProjectProgress, calcProjectStatus, fmtDateShort } from './projectUtils';
+import { calcProjectProgress, calcProjectStatus, fmtDateShort, fmtMonthYear } from './projectUtils';
 import type { Project } from './types';
 
 export function ProjectCard({ p }: { p: Project }) {
@@ -31,7 +31,7 @@ export function ProjectCard({ p }: { p: Project }) {
       </div>
       <div className="pc-bar-track"><div className="pc-bar-fill" style={{ width: `${pct}%` }} /></div>
       <div className="pc-meta">
-        <span>{fmtDateShort(p.start_date)} → {fmtDateShort(p.due_date)}</span>
+        <span>{fmtMonthYear(p.start_date)} → {fmtMonthYear(p.due_date)}</span>
         <span>{pct}%</span>
       </div>
       {p.notes && <div className="pc-address" style={{ marginBottom: 12 }}>📝 {p.notes}</div>}

@@ -257,3 +257,16 @@ export function describeActiveDateFilter(opts: {
   if (!yearOk) parts.push(opts.year === 'all' ? 'toți anii' : `an ${opts.year}`);
   return parts.filter(Boolean).join(', ');
 }
+
+// For describeFieldChanges (../shared/entityLogClient) -- same
+// "what actually changed" diffing ERP/Proiecte already log on save,
+// now applied to the one payload TicketCard.tsx's save button sends.
+export const TICKET_FIELD_LABELS: Record<string, string> = {
+  status: 'Stare',
+  resolved_by: 'Soluționat de',
+  name: 'Nume',
+  phone: 'Telefon',
+  email: 'Email',
+  address: 'Adresă',
+  description: 'Descriere',
+};

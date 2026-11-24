@@ -33,7 +33,45 @@
 
   const SUPABASE_URL = "https://ebuigyyjifnjiuzsgpih.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_aXC8Q_v2faRB0uEAlZYFog_JreYGXvq";
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Auto-recovers from "JWT issued at future" -- a device's clock being
+  // briefly ahead of real time (common right after waking from sleep,
+  // before it's re-synced) makes the session token Supabase silently
+  // auto-refreshes in the background look like it was minted in the
+  // future from the server's point of view, so every request using it
+  // gets rejected until the clock settles or the page is reloaded. Seen
+  // recurring in app_error_log (loadTickets/loadCalendarEvents failing
+  // with this exact message, different users, different days/tabs) with
+  // nothing retrying at the time. Every panel in admin-3.html -- vanilla
+  // and React alike -- shares this one client (see mount.tsx's own
+  // comment), so wrapping its fetch here covers all of them from one
+  // place: on this specific rejection, refresh the session and retry
+  // the SAME request once with the new token, instead of surfacing the
+  // failure. refreshPromise is shared across concurrent failures (e.g.
+  // several panels loading at once hit this in the same instant) so a
+  // single clock-skew blip triggers one refresh, not one per request;
+  // the refresh endpoint itself is excluded below so a refresh that
+  // fails the same way can't retry into itself.
+  let clockSkewRefreshPromise = null;
+  async function fetchWithClockSkewRetry(url, options){
+    const res = await fetch(url, options);
+    if (res.ok || res.status !== 401) return res;
+    const urlStr = typeof url === 'string' ? url : (url && url.toString ? url.toString() : '');
+    if (urlStr.includes('/auth/v1/token')) return res;
+    let bodyText = '';
+    try { bodyText = await res.clone().text(); } catch (e) { return res; }
+    if (!bodyText.includes('issued at future')) return res;
+    if (!clockSkewRefreshPromise) {
+      clockSkewRefreshPromise = supabaseClient.auth.refreshSession().finally(() => { clockSkewRefreshPromise = null; });
+    }
+    const { data, error: refreshError } = await clockSkewRefreshPromise;
+    if (refreshError || !data.session) return res;
+    const headers = new Headers((options && options.headers) || {});
+    headers.set('Authorization', `Bearer ${data.session.access_token}`);
+    return fetch(url, Object.assign({}, options, { headers }));
+  }
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { fetch: fetchWithClockSkewRetry },
+  });
 
   const loginWrap = document.getElementById('loginWrap');
   const dash = document.getElementById('dash');
@@ -95,7 +133,10 @@
        tickets   — Sesizări: full access.
        proiecte  — Proiecte: full access.
        erp       — Resurse și inventar: full access.
-       hr        — HR (and Documentație, nested under it): full access.
+       hr        — HR: full access.
+       docs      — Documentație: full access (view only -- nothing in
+                   it writes anywhere, but it follows the same
+                   grant-this-section model as every other role).
 
      A person can hold any combination. No view-only tier any more —
      holding a section's role grants full read+write on it and shows
@@ -145,10 +186,8 @@
   // would just redirect straight back (see openAdminTab's matching
   // guard in lps.js) or a control that would fail at save time.
   // data-category (rail/category-panel) vs. role name differ only for
-  // "projects" <-> 'proiecte'. Documentație lives nested under the HR
-  // rail icon (see TAB_CATEGORY in lps.js), so it rides on 'hr' too —
-  // homeNavDocs below, not a category of its own.
-  const CATEGORY_TO_MODULE = { tickets: 'tickets', projects: 'proiecte', erp: 'erp', hr: 'hr' };
+  // "projects" <-> 'proiecte'.
+  const CATEGORY_TO_MODULE = { tickets: 'tickets', projects: 'proiecte', erp: 'erp', hr: 'hr', docs: 'docs' };
   function applyRolePermissionsToUI(){
     const god = isGod();
     Object.keys(CATEGORY_TO_MODULE).forEach(category => {
@@ -189,7 +228,7 @@
       'hr-employees': god || modulePermission('hr') === 'write',
       'hr-worktime': god || modulePermission('hr') === 'write',
       'hr-vacation': god || modulePermission('hr') === 'write',
-      docs: god || modulePermission('hr') === 'write',
+      docs: god || modulePermission('docs') === 'write',
       status: god,
       'status-improve': god,
       'status-audit': god,
@@ -434,6 +473,8 @@
     });
     const searchWrap = document.getElementById('docsHomeSearchWrap');
     if (searchWrap) searchWrap.style.display = docsActiveGroup === 'home' ? '' : 'none';
+    const syncCta = document.getElementById('docsOpenCalendarSyncBtn')?.closest('.docs-calendar-sync-cta');
+    if (syncCta) syncCta.style.display = docsActiveGroup === 'home' ? '' : 'none';
     document.querySelectorAll('.docs-toc-link').forEach(link => {
       const target = document.getElementById(link.dataset.docsTarget);
       link.style.display = (target && target.dataset.docsGroup === docsActiveGroup) ? '' : 'none';
@@ -474,19 +515,17 @@
       if (subgroup) subgroup.classList.toggle('open');
     });
   }
-  // HR's "Documentație" dropdown — moved here from its own top-level
-  // rail icon (see the sidebar markup). One level above the Proiecte
-  // toggle just above, which nests fine (.docs-nav-subgroup's indent
-  // just stacks for each level deep).
-  const hrDocsToggleBtn = document.querySelector('.docs-nav-toggle[data-hr-toggle="docs"]');
-  if (hrDocsToggleBtn) {
-    hrDocsToggleBtn.addEventListener('click', () => {
-      hrDocsToggleBtn.classList.toggle('open');
-      const subgroup = document.querySelector('.docs-nav-subgroup[data-hr-subgroup="docs"]');
-      if (subgroup) subgroup.classList.toggle('open');
+  applyDocsSectionVisibility(); // initial state — docsActiveGroup starts at 'home'
+
+  // Documentație's own calendar-sync shortcut -- opens the same sheet
+  // Acasă's calendar card used to trigger (now moved here entirely; see
+  // SharedSheetsRoot.tsx's window.openCalendarSync).
+  const docsOpenCalendarSyncBtn = document.getElementById('docsOpenCalendarSyncBtn');
+  if (docsOpenCalendarSyncBtn) {
+    docsOpenCalendarSyncBtn.addEventListener('click', () => {
+      if (typeof openCalendarSync === 'function') openCalendarSync();
     });
   }
-  applyDocsSectionVisibility(); // initial state — docsActiveGroup starts at 'home'
 
   // Documentație's table of contents — scrolls within the panel rather
   // than using real #anchors, which would collide with the tab-restore
@@ -542,7 +581,16 @@
      within the same authenticated dashboard (no second login needed).
      ============================================================ */
   document.querySelectorAll('.admin-tab').forEach(tab => {
-    tab.addEventListener('click', () => openAdminTab(tab.dataset.tab));
+    tab.addEventListener('click', () => {
+      openAdminTab(tab.dataset.tab);
+      // Picking a tab from inside an open dropdown (e.g. "Raport lunar
+      // consum" under Parc Auto) should close it, same as clicking
+      // anywhere else outside it already does (see lps.js) -- without
+      // this, a tab click INSIDE the dropdown left it open since it
+      // never counts as "outside".
+      document.querySelectorAll('.category-topbar .docs-nav-toggle.open').forEach(btn => btn.classList.remove('open'));
+      document.querySelectorAll('.category-topbar .docs-nav-subgroup.open').forEach(sg => sg.classList.remove('open'));
+    });
   });
 
   /* ============================================================
@@ -672,9 +720,9 @@
       text: 'Un spațiu personal, tip post-it, salvat doar în acest browser — nu e vizibil pentru alți utilizatori.',
     },
     {
-      selector: '.rail-item[data-category="hr"]',
+      selector: '.rail-item[data-category="docs"]',
       title: 'Documentație completă',
-      text: 'Dacă vrei detalii pas cu pas pentru orice pagină sau buton din platformă, ghidul complet e mereu aici — sub „HR”, ca un meniu derulant — organizat pe aceleași secțiuni ca restul platformei (Sesizări, Proiecte, Resurse și inventar), cu propria căutare.',
+      text: 'Dacă vrei detalii pas cu pas pentru orice pagină sau buton din platformă, ghidul complet e mereu aici — organizat pe aceleași secțiuni ca restul platformei (Sesizări, Proiecte, Resurse și inventar), cu propria căutare.',
     },
   ];
   let onboardingStepIndex = 0;

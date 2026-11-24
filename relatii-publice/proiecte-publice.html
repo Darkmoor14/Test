@@ -3,22 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sesizări iluminat public — Insta Grup Târgu-Mureș</title>
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<meta name="description" content="Situația sesizărilor de iluminat public transmise către Insta Grup în Târgu-Mureș — o listă publică actualizată periodic.">
-<link rel="canonical" href="https://insta-grup.ro/sesizari.html">
+<title>Lucrări de modernizare — Insta Grup Târgu-Mureș</title>
+<link rel="icon" type="image/png" sizes="192x192" href="../icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="../icons/icon-512.png">
+<link rel="apple-touch-icon" href="../icons/icon-192.png">
+<meta name="description" content="O prezentare publică asupra proiectelor de modernizare și reabilitare a iluminatului public aflate în derulare în Târgu-Mureș.">
+<link rel="canonical" href="https://insta-grup.ro/relatii-publice/proiecte-publice.html">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ro_RO">
 <meta property="og:site_name" content="Insta Grup">
-<meta property="og:url" content="https://insta-grup.ro/sesizari.html">
-<meta property="og:title" content="Sesizări iluminat public — Insta Grup Târgu-Mureș">
-<meta property="og:description" content="Situația sesizărilor de iluminat public transmise către Insta Grup în Târgu-Mureș — o listă publică actualizată periodic.">
+<meta property="og:url" content="https://insta-grup.ro/relatii-publice/proiecte-publice.html">
+<meta property="og:title" content="Lucrări de modernizare — Insta Grup Târgu-Mureș">
+<meta property="og:description" content="O prezentare publică asupra proiectelor de modernizare și reabilitare a iluminatului public aflate în derulare în Târgu-Mureș.">
 <meta property="og:image" content="https://insta-grup.ro/assets/img/logo.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Sesizări iluminat public — Insta Grup Târgu-Mureș">
-<meta name="twitter:description" content="Situația sesizărilor de iluminat public transmise către Insta Grup în Târgu-Mureș — o listă publică actualizată periodic.">
+<meta name="twitter:title" content="Lucrări de modernizare — Insta Grup Târgu-Mureș">
+<meta name="twitter:description" content="O prezentare publică asupra proiectelor de modernizare și reabilitare a iluminatului public aflate în derulare în Târgu-Mureș.">
 <meta name="twitter:image" content="https://insta-grup.ro/assets/img/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,22 +40,28 @@
     --line:#E2E3DE; --line-strong:#D3D4CE;
     --copper-600:#A81419; --copper-500:#D11F24; --copper-300:#E2686C; --copper-050:#FBEAEA;
     --signal-green:#3E7A57; --signal-green-bg:#E9F3EC;
-    --signal-red:#B5502F; --signal-red-bg:#FBEDE7;
     --display:'Space Grotesk',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:var(--body);color:var(--ink-900);background:var(--paper-000);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  html,body{height:100%;}
+  body{font-family:var(--body);color:var(--ink-900);background:var(--paper-000);line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh;}
+  body > *{flex-shrink:0;}
+  /* Pushes the footer to the bottom of the viewport on a tall/wide
+     screen when there are few or no active projects, instead of
+     leaving it stranded mid-page above a block of empty white space. */
+  footer{margin-top:auto;}
   a{color:inherit;text-decoration:none;}
   img{display:block;max-width:100%;}
   :focus-visible{outline:2px solid var(--copper-500);outline-offset:3px;}
-  .wrap{max-width:1180px;margin:0 auto;padding:0 32px;}
+  .wrap{max-width:1600px;margin:0 auto;padding:0 40px;width:100%;}
   h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:-0.01em;}
 
   header{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
   nav{max-width:1180px;margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:76px;}
   .logo-img{height:60px;width:auto;display:block;}
-  .navlinks{display:flex;gap:36px;font-size:15.5px;color:var(--ink-900);}
+  .navlinks{display:flex;gap:36px;font-size:15.5px;color:var(--ink-900);align-items:center;}
   .navlinks a:hover{color:var(--copper-600);}
+  .navlinks a.active{color:var(--copper-600);font-weight:600;}
   .nav-cta{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--paper-000);background:var(--copper-500);padding:10px 20px;border-radius:2px;transition:background .2s;}
   .nav-cta:hover{background:var(--copper-600);}
   .lang-switch{display:flex;align-items:center;gap:2px;border:1px solid var(--line-strong);border-radius:3px;padding:2px;}
@@ -67,77 +73,128 @@
   .lang-switch button:hover{color:var(--copper-600);}
   .lang-switch button.active{background:var(--copper-500);color:#fff;}
   .nav-right{display:flex;align-items:center;gap:14px;}
-  .nav-dropdown{position:relative;}
-  .nav-dropdown::after{
-    content:'';
-    position:absolute;
-    top:100%;left:50%;
-    transform:translateX(-50%);
-    width:230px;height:16px;
-  }
-  .nav-dropdown-trigger{display:flex;align-items:center;gap:6px;font-family:inherit;font-size:15.5px;color:var(--ink-900);background:none;border:none;padding:0;cursor:pointer;transition:color .2s;}
-  .nav-dropdown-trigger:hover{color:var(--copper-600);}
-  .nav-dropdown.open .nav-dropdown-trigger{color:var(--copper-600);}
-  .nav-dropdown-chevron{width:13px;height:13px;transition:transform .2s ease;flex-shrink:0;}
-  .nav-dropdown.open .nav-dropdown-chevron{transform:rotate(180deg);}
-  .nav-dropdown-menu{position:absolute;top:calc(100% + 16px);left:50%;transform:translateX(-50%) translateY(-6px);background:var(--paper-000);border:1px solid var(--line-strong);border-radius:4px;box-shadow:0 14px 32px rgba(20,24,29,0.14);min-width:230px;padding:8px;z-index:120;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease, transform .18s ease, visibility .18s;}
-  .nav-dropdown:hover .nav-dropdown-menu,.nav-dropdown.open .nav-dropdown-menu{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0);}
-  .nav-dropdown-menu a{display:block;padding:10px 12px;border-radius:3px;font-size:15px;color:var(--ink-700);transition:background .15s,color .15s;}
-  .nav-dropdown-menu a:hover{background:var(--paper-050);color:var(--copper-600);}
+  /* ===== MOBILE HEADER ===== */
+  .mobile-menu-btn{display:none;}
+  .mobile-nav-backdrop{display:none;}
+  .mobile-nav-sidebar{display:none;}
   @media(max-width:860px){
-    nav{flex-wrap:wrap;height:auto;padding:14px 20px;row-gap:12px;}
-    .navlinks{display:flex;order:3;width:100%;justify-content:center;flex-wrap:wrap;gap:16px 24px;font-size:14.5px;}
-    .nav-right{width:100%;justify-content:center;flex-wrap:wrap;}
+    nav{padding:14px 20px;height:auto;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;}
+    .navlinks, .nav-right .lang-switch{display:none;}
+    .mobile-menu-btn{
+      display:flex;flex-direction:column;justify-content:center;gap:5px;
+      width:36px;height:36px;flex-shrink:0;
+      background:none;border:none;cursor:pointer;padding:0;
+      grid-column:1;justify-self:start;
+    }
+    .mobile-menu-btn span{
+      display:block;width:22px;height:2px;background:var(--ink-900);border-radius:1px;
+    }
+    .logo{grid-column:2;justify-self:center;}
+    .nav-right{grid-column:3;justify-self:end;width:auto;}
+    .nav-cta{padding:8px 10px;font-size:11px;text-align:center;line-height:1.25;white-space:normal;}
+
+    .mobile-nav-backdrop{
+      display:block;position:fixed;inset:0;background:rgba(20,24,29,0.45);z-index:299;
+      opacity:0;pointer-events:none;transition:opacity .25s;
+    }
+    .mobile-nav-backdrop.open{opacity:1;pointer-events:auto;}
+    .mobile-nav-backdrop.closing-guard{pointer-events:auto;}
+    .mobile-nav-sidebar{
+      display:flex;flex-direction:column;
+      position:fixed;top:0;left:0;bottom:0;width:78%;max-width:300px;z-index:300;
+      background:var(--paper-000);
+      transform:translateX(-100%);transition:transform .25s ease;
+      box-shadow:2px 0 28px rgba(20,24,29,0.18);
+      padding-top:env(safe-area-inset-top, 0);
+      padding-bottom:env(safe-area-inset-bottom, 0);
+    }
+    .mobile-nav-sidebar.open{transform:translateX(0);}
+    .mobile-nav-sidebar-head{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:20px 20px 16px;border-bottom:1px solid var(--line);flex-shrink:0;
+    }
+    .mobile-nav-sidebar-close{
+      width:32px;height:32px;border-radius:50%;border:1px solid var(--line-strong);
+      background:none;font-size:18px;line-height:1;color:var(--ink-700);cursor:pointer;
+    }
+    .mobile-nav-sidebar-links{
+      display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
+      height:auto;max-width:none;margin:0;padding:14px 0;
+    }
+    .mobile-nav-sidebar-links a{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      padding:16px 24px;font-size:16px;color:var(--ink-900);
+      border-left:3px solid transparent;
+      transition:background .15s,color .15s,border-color .15s;
+    }
+    .mobile-nav-sidebar-links a::after{
+      content:"";width:7px;height:7px;flex-shrink:0;
+      border-right:2px solid var(--ink-400);border-bottom:2px solid var(--ink-400);
+      transform:rotate(-45deg);transition:border-color .15s;
+    }
+    .mobile-nav-sidebar-links a:hover{background:var(--paper-050);}
+    .mobile-nav-sidebar-links a:hover::after{border-color:var(--copper-500);}
+    .mobile-nav-sidebar-links a.active{
+      color:var(--copper-600);border-left-color:var(--copper-500);
+      background:var(--copper-050);font-weight:600;
+    }
+    .mobile-nav-sidebar-links a.active::after{border-color:var(--copper-500);}
+    .mobile-nav-sidebar-foot{
+      margin-top:auto;padding:18px 24px;border-top:1px solid var(--line);
+      display:flex;flex-direction:column;gap:10px;flex-shrink:0;
+      background:var(--paper-050);
+    }
+    .mobile-nav-sidebar-foot-label{
+      font-family:var(--mono);font-size:11px;text-transform:uppercase;
+      letter-spacing:0.06em;color:var(--ink-600);
+    }
+    .mobile-nav-sidebar-foot .lang-switch{
+      display:flex;background:var(--paper-000);align-self:flex-start;
+    }
+    .mobile-nav-sidebar-foot .lang-switch button{padding:7px 14px;font-size:13px;}
   }
 
-  .hero{padding:140px 0 40px;border-bottom:1px solid var(--line);}
+  .hero{padding:150px 0 40px;border-bottom:1px solid var(--line);}
   .eyebrow{font-family:var(--mono);font-size:13.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--copper-600);display:flex;align-items:center;gap:10px;margin-bottom:18px;}
   .eyebrow::before{content:"";width:20px;height:1px;background:var(--copper-600);display:inline-block;}
-  .hero h1{font-size:clamp(38px,5.4vw,64px);line-height:1.06;max-width:820px;margin-bottom:14px;color:var(--ink-900);}
-  .hero p{color:var(--ink-900);font-size:18.5px;max-width:620px;}
+  .hero h1{font-size:clamp(32px,4.6vw,52px);line-height:1.08;max-width:760px;margin-bottom:14px;color:var(--ink-900);}
+  .hero p{color:var(--ink-900);font-size:17.5px;max-width:620px;}
   .back-link{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:13px;color:var(--ink-900);margin-top:22px;}
   .back-link:hover{color:var(--copper-600);}
 
-  .toolbar{position:sticky;top:76px;z-index:90;background:var(--paper-000);border-bottom:1px solid var(--line);padding:18px 0;}
-  .toolbar-inner{display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
-  .chips{display:flex;gap:8px;flex-wrap:wrap;}
-  .chip{
-    font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:20px;
-    border:1px solid var(--line-strong);color:var(--ink-900);cursor:pointer;
-    transition:all .15s;background:var(--paper-000);white-space:nowrap;
+  /* ===== CURRENT PROJECTS ("Proiecte de modernizare") ===== */
+  /* padding-top/bottom only, not the shorthand -- this div also
+     carries .wrap's own "padding:0 40px" for its left/right inset,
+     and the shorthand here would reset (zero out) that horizontal
+     padding since this rule comes later in the cascade. */
+  .projects-section{padding-top:40px;padding-bottom:80px;}
+  .current-grid{
+    display:grid;grid-template-columns:repeat(2, 1fr);
+    gap:28px;
   }
-  .chip:hover{border-color:var(--copper-500);color:var(--copper-600);}
-  .chip.active{background:var(--copper-500);border-color:var(--copper-500);color:#fff;}
-  .search-box{flex:1;min-width:200px;max-width:320px;}
-  .search-box input{
-    width:100%;padding:9px 13px;border:1px solid var(--line-strong);border-radius:3px;
-    font-family:var(--body);font-size:13.5px;background:var(--paper-050);color:var(--ink-900);
+  @media(max-width:760px){
+    .current-grid{grid-template-columns:1fr;}
   }
-  .search-box input:focus{border-color:var(--copper-500);background:var(--paper-000);}
-  .result-count{font-family:var(--mono);font-size:12.5px;color:var(--ink-900);}
-
-  .ticket-list{padding:24px 0 80px;display:flex;flex-direction:column;gap:14px;}
-  .ticket-card{
-    border:1px solid var(--line-strong);border-radius:5px;padding:22px 24px;background:var(--paper-000);
+  .current-card{
+    background:var(--paper-000);border:1px solid var(--line-strong);border-radius:4px;
+    padding:34px 32px;
   }
-  .ticket-card.urgent{border-color:rgba(181,80,47,0.35);background:var(--signal-red-bg);}
-  .ticket-card.done{opacity:0.7;}
-  .ticket-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
-  .ticket-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  .ticket-num{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink-900);}
-  .ticket-tag{
+  .cc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;}
+  .cc-title{font-family:var(--display);font-weight:600;font-size:17px;color:var(--ink-900);line-height:1.3;}
+  .cc-status{
     font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
-    padding:4px 9px;border-radius:3px;background:var(--paper-100);color:var(--ink-900);
+    padding:4px 9px;border-radius:3px;white-space:nowrap;flex-shrink:0;
   }
-  .ticket-tag.urgent-tag{background:var(--signal-red-bg);color:var(--signal-red);}
-  .ticket-status-pill{
-    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
-    padding:4px 9px;border-radius:3px;background:var(--signal-green-bg);color:var(--signal-green);
-  }
-  .ticket-body{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;font-size:14px;color:var(--ink-700);}
-  .ticket-body .full{grid-column:1/-1;}
-  .ticket-body .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;color:var(--ink-900);letter-spacing:0.04em;display:block;margin-bottom:2px;}
-  .no-results{padding:60px 0;text-align:center;color:var(--ink-900);font-size:14.5px;}
+  .cc-status.scheduled{background:var(--paper-100);color:var(--ink-600);}
+  .cc-status.progress{background:var(--copper-050);color:var(--copper-600);}
+  .cc-status.done{background:var(--signal-green-bg);color:var(--signal-green);}
+  .cc-address{font-size:13.5px;color:var(--ink-900);margin-bottom:18px;display:flex;align-items:center;gap:6px;}
+  .cc-address svg{width:14px;height:14px;flex-shrink:0;color:var(--ink-400);}
+  .cc-dates{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-900);}
+  .cc-dates .k{font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--ink-900);letter-spacing:0.04em;display:block;margin-bottom:2px;}
+  .cc-notes{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-size:13.5px;color:var(--ink-700);line-height:1.5;}
+  .cc-notes .k{font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--ink-900);letter-spacing:0.04em;display:block;margin-bottom:4px;}
+  .current-empty{text-align:center;padding:50px 0;color:var(--ink-900);font-size:14.5px;}
 
   footer{background:var(--paper-050);color:var(--ink-900);padding:32px 0;font-size:12.5px;border-top:1px solid var(--line);}
   .footer-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;align-items:center;}
@@ -162,12 +219,9 @@
   .modal-body strong{color:var(--ink-900);font-weight:600;}
   .modal-foot{padding:16px 32px 28px;font-size:12.5px;color:var(--ink-900);font-style:italic;}
   @media(max-width:640px){
-    nav{flex-wrap:wrap;height:auto;padding:14px 20px;row-gap:12px;}
-    .nav-right{width:100%;justify-content:center;}
     .logo-img{height:44px;}
-    .lang-switch button{padding:5px 8px;font-size:11px;}
-    .nav-cta{font-size:12px;padding:9px 16px;}
-    .navlinks{gap:12px 18px;font-size:14px;}
+    .mobile-nav-sidebar-foot .lang-switch button{padding:5px 8px;font-size:11px;}
+    .nav-cta{font-size:10.5px;padding:7px 8px;}
   }
 
   /* ===== COOKIE CONSENT BANNER ===== */
@@ -199,21 +253,15 @@
 
 <header>
   <nav>
-    <a href="index.html"><img src="assets/img/logo.png" alt="Insta Grup" class="logo-img"></a>
-    <div class="navlinks">
-      <div class="nav-dropdown" id="navDespreDropdown">
-        <button type="button" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
-          <span data-i18n="nav_despre">Despre noi</span>
-          <svg class="nav-dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <div class="nav-dropdown-menu">
-          <a href="index.html#proiecte" data-i18n="nav_proiecte">Proiecte</a>
-          <a href="index.html#servicii" data-i18n="nav_servicii">Servicii</a>
-          <a href="index.html#despre" data-i18n="nav_despre">Despre noi</a>
-          <a href="index.html#contact" data-i18n="nav_contact">Contact</a>
-        </div>
-      </div>
-      <a href="relatii-publice.html" data-i18n="nav_relatii">Iluminat public</a>
+    <button type="button" class="mobile-menu-btn" id="mobileNavMenuBtn" aria-label="Meniu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <a href="../index.html" class="logo logo-img-wrap"><img src="../assets/img/logo.png" alt="Insta Grup" class="logo-img"></a>    <div class="navlinks">
+      <a href="../index.html" data-i18n="nav_despre">Despre</a>
+      <a href="../servicii.html" data-i18n="nav_servicii">Servicii</a>
+      <a href="../proiecte.html" data-i18n="nav_lucrari">Lucrări</a>
+      <a href="../produse.html" data-i18n="nav_produse">Produse</a>
+      <a href="../relatii-publice.html" data-i18n="nav_relatii" class="active">Iluminat public</a>
     </div>
     <div class="nav-right">
       <div class="lang-switch">
@@ -221,30 +269,46 @@
         <button type="button" data-lang="en" onclick="setLanguage('en')">EN</button>
         <button type="button" data-lang="hu" onclick="setLanguage('hu')">HU</button>
       </div>
-      <a href="raportare.html" class="nav-cta" data-i18n="nav_cta">Sesizări iluminat public</a>
+      <a href="../raportare.html" class="nav-cta" data-i18n="nav_cta">Sesizări iluminat public</a>
     </div>
   </nav>
 </header>
 
-<section class="hero">
-  <div class="wrap">
-    <div class="eyebrow" data-i18n="public_eyebrow">Sesizări iluminat public</div>
-    <h1 data-i18n="public_h1">Situația sesizărilor curente</h1>
-    <p data-i18n="public_lede">O listă publică a sesizărilor de iluminat public transmise prin site — pentru transparență, fără date personale ale celor care au raportat problema.</p>
-    <a href="raportare.html" class="back-link" data-i18n="public_back">← Raportează o problemă nouă</a>
+<div class="mobile-nav-backdrop" id="mobileNavBackdrop"></div>
+<div class="mobile-nav-sidebar" id="mobileNavSidebar" aria-hidden="true">
+  <div class="mobile-nav-sidebar-head">
+    <span style="font-family:var(--display);font-weight:600;font-size:16px;color:var(--ink-900);">Meniu</span>
+    <button type="button" class="mobile-nav-sidebar-close" id="mobileNavSidebarClose" aria-label="Închide">×</button>
   </div>
-</section>
-
-<div class="toolbar">
-  <div class="wrap toolbar-inner">
-    <div class="chips" id="chipsWrap"></div>
-    <div class="search-box"><input type="text" id="searchInput" placeholder="Caută după adresă sau număr tichet..." data-i18n-placeholder="public_search_ph" aria-label="Caută o sesizare" data-i18n-aria="public_search_aria"></div>
-    <div class="result-count" id="resultCount"></div>
+  <nav class="mobile-nav-sidebar-links">
+    <a href="../index.html" data-i18n="nav_despre">Despre</a>
+    <a href="../servicii.html" data-i18n="nav_servicii">Servicii</a>
+    <a href="../proiecte.html" data-i18n="nav_lucrari">Lucrări</a>
+    <a href="../produse.html" data-i18n="nav_produse">Produse</a>
+    <a href="../relatii-publice.html" data-i18n="nav_relatii" class="active">Iluminat public</a>
+  </nav>
+  <div class="mobile-nav-sidebar-foot">
+    <span class="mobile-nav-sidebar-foot-label">Limbă</span>
+    <div class="lang-switch">
+      <button type="button" data-lang="ro" onclick="setLanguage('ro')">RO</button>
+      <button type="button" data-lang="en" onclick="setLanguage('en')">EN</button>
+      <button type="button" data-lang="hu" onclick="setLanguage('hu')">HU</button>
+    </div>
   </div>
 </div>
 
-<div class="wrap">
-  <div class="ticket-list" id="ticketList"></div>
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow" data-i18n="projpub_eyebrow">Lucrări de modernizare</div>
+    <h1 data-i18n="projpub_h1">Lucrări de reabilitare și modernizare</h1>
+    <p data-i18n="projpub_lede">O prezentare publică asupra proiectelor de modernizare aflate în derulare.</p>
+    <a href="../relatii-publice.html" class="back-link" data-i18n="rp_sub_back">← Relații publice</a>
+  </div>
+</section>
+
+<div class="wrap projects-section">
+  <div class="current-grid" id="currentGrid"></div>
+  <div class="current-empty" id="currentEmpty" data-i18n="current_empty" style="display:none;">Momentan nu sunt proiecte active afișate.</div>
 </div>
 
 <footer>
@@ -318,39 +382,30 @@
   </div>
 </div>
 
-<script src="i18n.js"></script>
+<script src="../i18n.js"></script>
 <script>
   /* ================================================================
-     PUBLIC TICKET STATUS PAGE — insta-grup.ro/sesizari.html
+     PUBLIC MODERNIZATION PROJECTS PAGE —
+     insta-grup.ro/relatii-publice/proiecte-publice.html
      ----------------------------------------------------------------
-     Purpose: a public, read-only, no-login page where any visitor can
-     see the current state of reported street-lighting issues, for
-     transparency.
+     Purpose: a public, read-only, no-login page showing the current
+     state of ongoing street-lighting modernization/rehabilitation
+     projects, reading from the `current_projects` table (RLS already
+     allows anon select on non-archived rows — see
+     supabase/migrations for the policy). Linked from
+     relatii-publice.html's "Lucrări de modernizare" teaser section.
 
-     IMPORTANT (security/GDPR): this page reads from `public_tickets`,
-     a Postgres VIEW in Supabase -- NOT the real `tickets` table. That
-     view intentionally excludes phone, email, resolved_by, AND the
-     free-text description -- exposing only: ticket_number, type,
-     address, status, submitted_on, resolved_on, and `public_name`.
-     Address IS kept exact on purpose -- it's the location of the
-     reported fault (which pole, which stretch of street), not the
-     reporter's own address, and a vague location would defeat the
-     point of this page. `public_name` is NOT a real citizen's name --
-     the view only ever fills it in when the ticket's `name` column
-     holds one of a small set of institutional sources (Autosesizare /
-     Poliția locală / Birou energetic); any actual person's name stays
-     null/hidden, same as before. See
-     supabase/sql/006_public_tickets_view.sql in this repo for the
-     actual, committed view definition (this used to say "see
-     public-tickets-view.sql", a file that was never actually in the
-     repo -- it now is, under supabase/sql/). Do NOT change this page
-     to query `tickets` directly -- that table's RLS only allows staff
-     (authenticated) to read it, and even if that were opened up to
-     anon, it would leak every visitor's real name/phone/email
-     publicly.
+     This used to be inline on relatii-publice.html itself (and before
+     that, on index.html's "Ce facem acum" section) — moved to its own
+     page so relatii-publice.html can stay a simple hub linking to this
+     and to sesizari.html, matching the same split now used for
+     tickets.
 
-     Only two filters are offered on purpose (Active / Soluționate) --
-     no "Toate" combined view, matching the brief for this page.
+     AUTO-HIDE AFTER 2 WEEKS: a project whose due_date is more than
+     AUTO_HIDE_DAYS in the past is filtered out client-side, as a
+     safety net alongside admin.html's own autoCleanupStaleProjects
+     sweep (see admin.html), so it disappears on schedule even on a
+     day nobody has opened admin.
      ================================================================ */
   const SUPABASE_URL = "https://ebuigyyjifnjiuzsgpih.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_aXC8Q_v2faRB0uEAlZYFog_JreYGXvq";
@@ -363,6 +418,100 @@
   function openModal(id){ document.getElementById(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
   function closeModal(id){ document.getElementById(id).classList.remove('open'); document.body.style.overflow = ''; }
   document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id)); } });
+
+  const AUTO_HIDE_DAYS = 14;
+  function isOlderThanAutoHideWindow(dateISO){
+    if (!dateISO) return false;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - AUTO_HIDE_DAYS);
+    return new Date(dateISO) < cutoff;
+  }
+
+  let currentProjectsData = [];
+
+  function calcStatus(startISO, dueISO){
+    const now = new Date();
+    const start = new Date(startISO);
+    const due = new Date(dueISO);
+    if (now < start) return 'scheduled';
+    if (now >= due) return 'done';
+    return 'progress';
+  }
+
+  // Public card shows just month + year (no day) for start/due -- the
+  // exact day isn't meaningful to a site visitor and admin's own
+  // ProjectCard still shows the full date for staff who need it.
+  function fmtMonthYear(iso){
+    if (!iso) return '—';
+    const d = new Date(iso);
+    const locale = getLang() === 'ro' ? 'ro-RO' : (getLang() === 'hu' ? 'hu-HU' : 'en-GB');
+    return d.toLocaleDateString(locale, {month:'long', year:'numeric'});
+  }
+
+  const STATUS_LABEL_KEY = {
+    scheduled: 'current_status_scheduled',
+    progress: 'current_status_progress',
+    done: 'current_status_done',
+  };
+
+  function escapeHtmlCP(value){
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function renderCurrentProjects(){
+    const grid = document.getElementById('currentGrid');
+    const empty = document.getElementById('currentEmpty');
+    if (!grid) return;
+
+    if (currentProjectsData.length === 0) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    grid.innerHTML = currentProjectsData.map(p => {
+      const status = calcStatus(p.start_date, p.due_date);
+      return `
+        <div class="current-card">
+          <div class="cc-top">
+            <div class="cc-title">${escapeHtmlCP(p.title)}</div>
+            <span class="cc-status ${status}">${t(STATUS_LABEL_KEY[status])}</span>
+          </div>
+          <div class="cc-address">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+            ${escapeHtmlCP(p.address)}
+          </div>
+          <div class="cc-dates">
+            <div><span class="k">${t('current_k_start')}</span>${fmtMonthYear(p.start_date)}</div>
+            <div style="text-align:right;"><span class="k">${t('current_k_due')}</span>${fmtMonthYear(p.due_date)}</div>
+          </div>
+          ${p.notes ? `<div class="cc-notes"><span class="k">${t('current_k_notes')}</span>${escapeHtmlCP(p.notes)}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function loadCurrentProjects(){
+    const { data, error } = await supabaseClient
+      .from('current_projects')
+      .select('*')
+      .eq('archived', false)
+      .order('start_date', { ascending: true });
+    if (error) {
+      console.error('Failed to load current_projects:', error);
+      return;
+    }
+    currentProjectsData = (data || []).filter(p => !isOlderThanAutoHideWindow(p.due_date));
+    renderCurrentProjects();
+  }
+  loadCurrentProjects();
+  window.addEventListener('langchange', renderCurrentProjects);
 
   (function initNavDropdown(){
     const dropdown = document.getElementById('navDespreDropdown');
@@ -378,120 +527,6 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDropdown(); });
     dropdown.querySelectorAll('.nav-dropdown-menu a').forEach(a => a.addEventListener('click', closeDropdown));
   })();
-
-  let allTickets = [];
-  let activeFilter = 'Ongoing';
-  let searchTerm = '';
-
-  // Used to include a time component (HH:MM) — dropped per request.
-  function fmtDate(iso){
-    if(!iso) return '—';
-    const d = new Date(iso);
-    const locale = getLang() === 'ro' ? 'ro-RO' : (getLang() === 'hu' ? 'hu-HU' : 'en-GB');
-    return d.toLocaleDateString(locale, {day:'2-digit', month:'2-digit', year:'numeric'});
-  }
-
-  function escapeHtml(value){
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  const chipDefs = [
-    { key: 'Ongoing', labelKey: 'public_chip_active' },
-    { key: 'Terminat', labelKey: 'public_chip_done' },
-  ];
-  const chipsWrap = document.getElementById('chipsWrap');
-  const chipEls = {};
-  chipDefs.forEach(c => {
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'chip' + (c.key === activeFilter ? ' active' : '');
-    chip.addEventListener('click', () => {
-      activeFilter = c.key;
-      document.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
-      chip.classList.add('active');
-      render();
-    });
-    chipsWrap.appendChild(chip);
-    chipEls[c.key] = { el: chip, labelKey: c.labelKey };
-  });
-
-  function updateChipLabels(){
-    chipDefs.forEach(c => {
-      chipEls[c.key].el.textContent = t(c.labelKey);
-    });
-  }
-
-  document.getElementById('searchInput').addEventListener('input', (e) => {
-    searchTerm = e.target.value.trim().toLowerCase();
-    render();
-  });
-
-  async function loadTickets(){
-    const list = document.getElementById('ticketList');
-    list.innerHTML = `<div class="no-results">...</div>`;
-    const { data, error } = await supabaseClient
-      .from('public_tickets')
-      .select('*')
-      .order('submitted_on', { ascending: false });
-
-    if (error) {
-      list.innerHTML = `<div class="no-results">${t('public_load_error')}</div>`;
-      console.error(error);
-      return;
-    }
-    allTickets = data;
-    render();
-  }
-
-  function render(){
-    updateChipLabels();
-    const list = document.getElementById('ticketList');
-    const filtered = allTickets.filter(t => {
-      const matchFilter = t.status === activeFilter;
-      const matchSearch = !searchTerm ||
-        (t.address || '').toLowerCase().includes(searchTerm) ||
-        (t.ticket_number || '').toLowerCase().includes(searchTerm);
-      return matchFilter && matchSearch;
-    });
-    document.getElementById('resultCount').textContent = t('public_count', {n: filtered.length});
-
-    if (filtered.length === 0) {
-      list.innerHTML = `<div class="no-results">${t('public_no_results')}</div>`;
-      return;
-    }
-
-    list.innerHTML = '';
-    filtered.forEach(tk => {
-      const isUrgent = tk.type === 'Anunt accident';
-      const isDone = tk.status === 'Terminat';
-      const card = document.createElement('div');
-      card.className = 'ticket-card' + (isUrgent && !isDone ? ' urgent' : '') + (isDone ? ' done' : '');
-      card.innerHTML = `
-        <div class="ticket-top">
-          <div class="ticket-meta">
-            <span class="ticket-num">${escapeHtml(tk.ticket_number || '—')}</span>
-            <span class="ticket-tag ${isUrgent ? 'urgent-tag' : ''}">${isUrgent ? t('ticket_type_accident') : t('ticket_type_func')}</span>
-          </div>
-          <span class="${isDone ? 'ticket-status-pill' : 'ticket-tag'}">${isDone ? t('ticket_status_done') : t('ticket_status_active')}</span>
-        </div>
-        <div class="ticket-body">
-          <div><span class="k">${t('public_k_date')}</span>${fmtDate(tk.submitted_on)}</div>
-          <div><span class="k">${t('public_k_address')}</span>${escapeHtml(tk.address || '—')}</div>
-          ${tk.public_name ? `<div><span class="k">${t('public_k_name')}</span>${escapeHtml(tk.public_name)}</div>` : ''}
-          ${isDone ? `<div class="full"><span class="k">${t('public_k_resolved')}</span>${fmtDate(tk.resolved_on)}</div>` : ''}
-        </div>
-      `;
-      list.appendChild(card);
-    });
-  }
-
-  loadTickets();
-  window.addEventListener('langchange', render);
 
   /* ============================================================
      COOKIE CONSENT BANNER — see index.html for the full policy
@@ -539,5 +574,39 @@
   })();
 </script>
 
+<script>
+  (function(){
+    const menuBtn = document.getElementById('mobileNavMenuBtn');
+    const backdrop = document.getElementById('mobileNavBackdrop');
+    const sidebar = document.getElementById('mobileNavSidebar');
+    const closeBtn = document.getElementById('mobileNavSidebarClose');
+    if (!menuBtn || !backdrop || !sidebar) return;
+
+    let closingGuardTimeout = null;
+    function setOpen(open){
+      sidebar.classList.toggle('open', open);
+      sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
+      menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      clearTimeout(closingGuardTimeout);
+      if (open) {
+        backdrop.classList.add('open');
+        backdrop.classList.remove('closing-guard');
+      } else {
+        backdrop.classList.remove('open');
+        backdrop.classList.add('closing-guard');
+        closingGuardTimeout = setTimeout(() => {
+          backdrop.classList.remove('closing-guard');
+        }, 400);
+      }
+    }
+    menuBtn.addEventListener('click', () => setOpen(true));
+    if (closeBtn) closeBtn.addEventListener('click', () => setOpen(false));
+    backdrop.addEventListener('click', (e) => { e.preventDefault(); setOpen(false); });
+    backdrop.addEventListener('touchstart', (e) => { e.preventDefault(); setOpen(false); }, { passive: false });
+    sidebar.querySelectorAll('.mobile-nav-sidebar-links a').forEach(a => {
+      a.addEventListener('click', () => setOpen(false));
+    });
+  })();
+</script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo } from 'react';
 import { useTickets } from './TicketsContext';
 import { useStaffRoster } from '../home/useStaffRoster';
 import {
@@ -58,12 +58,7 @@ export function OverviewTable({ sessionEmail }: { sessionEmail: string | null })
   const { isGod, modulePermission } = useStaffRoster(sessionEmail);
   const canWriteTickets = isGod || modulePermission('tickets') === 'write';
   const ordered = useOverviewVisibleTickets();
-  const [expandedNoteIds, setExpandedNoteIds] = useState<Set<string>>(new Set());
-  const toggleNote = (id: string) => setExpandedNoteIds((prev) => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
+  const { expandedNoteIds, toggleNote } = store;
 
   if (ordered.length === 0) {
     return (
@@ -121,7 +116,12 @@ export function OverviewTable({ sessionEmail }: { sessionEmail: string | null })
                     </>
                   ) : (
                     <>
-                      <td>{isDone ? <span className="resolved-date-toggle" title="Vezi ce s-a făcut" onClick={() => toggleNote(t.id)}>{fmtDateOnly(t.resolved_on)}</span> : '—'}</td>
+                      <td>{isDone ? (
+                        <span
+                          role="button" tabIndex={0} className="resolved-date-toggle" title="Vezi ce s-a făcut" onClick={() => toggleNote(t.id)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleNote(t.id); } }}
+                        >{fmtDateOnly(t.resolved_on)}</span>
+                      ) : '—'}</td>
                       <td>{resolutionDays !== null ? formatDurationDays(resolutionDays) : '—'}</td>
                     </>
                   )}
@@ -143,6 +143,7 @@ export function OverviewTable({ sessionEmail }: { sessionEmail: string | null })
 
 export function OverviewCardsMobile() {
   const store = useTickets();
+  const { expandedNoteIds, toggleNote } = store;
   const ordered = useOverviewVisibleTickets();
   if (ordered.length === 0) return <div className="overview-cards-mobile"><div className="overview-empty">Nicio sesizare de afișat.</div></div>;
   return (
@@ -155,11 +156,13 @@ export function OverviewCardsMobile() {
         const daysOpen = t.submitted_on ? (Date.now() - parseTicketDate(t.submitted_on).getTime()) / 86400000 : 0;
         const isAging = !isDone && daysOpen > AGING_THRESHOLD_DAYS;
         const selected = store.overviewShareSelectedIds.has(t.id);
+        const noteExpanded = expandedNoteIds.has(t.id);
         return (
-          <button
-            key={t.id} type="button"
+          <div
+            key={t.id} role="button" tabIndex={0}
             className={`ov-card ${isDone ? 'done' : ''} ${isUrgent && !isDone ? 'urgent' : ''} ${isDuplicate ? 'duplicate' : ''}`}
             onClick={() => store.goToTicket(t.id)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); store.goToTicket(t.id); } }}
           >
             <div className="ov-card-top">
               <span className={`status-bubble ${isDone ? 'done' : 'active'}`} />
@@ -167,8 +170,9 @@ export function OverviewCardsMobile() {
               <span className="ov-card-num">{t.ticket_number || '—'}</span>
               {isDuplicate && <span className="duplicate-badge">Duplicat</span>}
               <span
-                className={`ov-card-share ${selected ? 'selected' : ''}`} role="checkbox" aria-checked={selected} aria-label="Selectează pentru trimitere"
+                tabIndex={0} className={`ov-card-share ${selected ? 'selected' : ''}`} role="checkbox" aria-checked={selected} aria-label="Selectează pentru trimitere"
                 onClick={(e) => { e.stopPropagation(); store.toggleShareSelected(t.id); }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); store.toggleShareSelected(t.id); } }}
               >
                 <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
               </span>
@@ -179,27 +183,42 @@ export function OverviewCardsMobile() {
               <span>{t.name || '—'} · {t.phone || '—'}</span>
             </div>
             {isDuplicate ? (
-              <div className="ov-card-resolved duplicate-link-note" onClick={(e) => { if (canonicalTicket) { e.stopPropagation(); store.goToTicket(canonicalTicket.id); } }}>
+              <div
+                className="ov-card-resolved duplicate-link-note"
+                role={canonicalTicket ? 'button' : undefined} tabIndex={canonicalTicket ? 0 : undefined}
+                onClick={(e) => { if (canonicalTicket) { e.stopPropagation(); store.goToTicket(canonicalTicket.id); } }}
+                onKeyDown={(e) => { if (canonicalTicket && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); store.goToTicket(canonicalTicket.id); } }}
+              >
                 Duplicat al {canonicalTicket ? (canonicalTicket.ticket_number || '—') : '—'}{canonicalTicket ? ' — Mergi la original' : ''}
               </div>
             ) : isDone ? (
               <div
+                role="button" tabIndex={0}
+                aria-expanded={noteExpanded}
                 className="ov-card-resolved resolved-date-toggle-mobile"
-                onClick={(e) => {
+                onClick={(e) => { e.stopPropagation(); toggleNote(t.id); }}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter' && e.key !== ' ') return;
+                  e.preventDefault();
                   e.stopPropagation();
-                  const el = document.getElementById('resnote-mobile-' + t.id);
-                  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+                  toggleNote(t.id);
                 }}
               >
                 Soluționat: {fmtDateOnly(t.resolved_on)}
               </div>
             ) : null}
             {isDone && !isDuplicate && (
-              <div id={'resnote-mobile-' + t.id} className="resnote-expand-mobile" style={{ display: 'none' }}>
+              // Same expandedNoteIds React state as the desktop toggle above
+              // -- a raw document.getElementById(...).style.display write
+              // here (the vanilla-DOM original) kept its own state out of
+              // React entirely, so it didn't survive a re-render recreating
+              // this node and didn't agree with the desktop toggle for the
+              // same ticket (CLICK-PATH-105).
+              <div className="resnote-expand-mobile" style={{ display: noteExpanded ? 'block' : 'none' }}>
                 <strong>Ce s-a făcut:</strong> {t.resolution_note || <em>Nu a fost completat încă.</em>}
               </div>
             )}
-          </button>
+          </div>
         );
       })}
     </div>

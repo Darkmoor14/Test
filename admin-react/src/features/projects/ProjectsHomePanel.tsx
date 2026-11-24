@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useProjects } from './ProjectsContext';
 import { dateKey } from './projectUtils';
 
@@ -26,7 +27,22 @@ export function ProjectsHomePanel() {
   const store = useProjects();
   const activeProjects = store.projects.filter((p) => !p.archived).length;
   const activeBacklog = store.backlogProjects.filter((p) => (p.status || 'Ongoing') !== 'Terminat').length;
-  const lpsCount = internalProjectsCount();
+  // internalProjectsCount() reads localStorage at render time only -- this
+  // panel wasn't re-rendering just because the vanilla LPS panel added or
+  // removed a project, so the badge could sit stale until something else
+  // happened to trigger a re-render (CLICK-PATH-304). admin:tabchange
+  // (dispatched on every tab switch, including landing on this one) and
+  // the storage event (another tab's write) both refresh it.
+  const [lpsCount, setLpsCount] = useState(internalProjectsCount);
+  useEffect(() => {
+    const refresh = () => setLpsCount(internalProjectsCount());
+    window.addEventListener('admin:tabchange', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('admin:tabchange', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
   const today = new Date();
   const cutoff = new Date(today);
   cutoff.setDate(cutoff.getDate() + 14);
