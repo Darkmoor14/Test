@@ -232,6 +232,15 @@
   .section-head h2{font-size:clamp(28px,3.4vw,42px);color:var(--ink-900);margin-bottom:12px;}
   .section-head p{color:var(--ink-900);font-size:17.5px;}
 
+  /* Sesizări + Lucrări de modernizare teasers, side by side */
+  .sections-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start;}
+  .sections-grid .section-col{max-width:none;margin-bottom:0;}
+  .sections-grid .section-col + .section-col{padding-left:56px;border-left:1px solid var(--line-strong);}
+  @media(max-width:860px){
+    .sections-grid{grid-template-columns:1fr;gap:40px;}
+    .sections-grid .section-col + .section-col{padding-left:0;border-left:none;padding-top:40px;border-top:1px solid var(--line-strong);}
+  }
+
   /* ===== PUBLIC NOTICE (temporary outage/work announcements) ===== */
   .important-notice-outer{padding:28px 0 0;}
   .public-notice{
@@ -369,28 +378,25 @@
   </div>
 </section>
 
-<section class="section-block alt" id="sesizari-iluminat">
+<section class="section-block alt">
   <div class="wrap">
-    <div class="section-head">
-      <div class="eyebrow" data-i18n="public_eyebrow">Sesizări iluminat public</div>
-      <h2 data-i18n="public_h1">Situația sesizărilor curente</h2>
-      <p data-i18n="public_lede">O listă publică a sesizărilor de iluminat public transmise prin site — pentru transparență, fără date personale ale celor care au raportat problema.</p>
-      <div class="section-actions">
-        <a href="raportare.html" class="public-report-cta" data-i18n="public_back">← Raportează o problemă nouă</a>
-        <a href="relatii-publice/sesizari.html" class="public-report-cta" data-i18n="public_view_cta">Vezi sesizări</a>
+    <div class="sections-grid">
+      <div class="section-head section-col" id="sesizari-iluminat">
+        <div class="eyebrow" data-i18n="public_eyebrow">Sesizări iluminat public</div>
+        <h2 data-i18n="public_h1">Situația sesizărilor curente</h2>
+        <p data-i18n="public_lede">O listă publică a sesizărilor de iluminat public transmise prin site — pentru transparență, fără date personale ale celor care au raportat problema.</p>
+        <div class="section-actions">
+          <a href="raportare.html" class="public-report-cta" data-i18n="public_back">← Raportează o problemă nouă</a>
+          <a href="relatii-publice/sesizari.html" class="public-report-cta" data-i18n="public_view_cta">Vezi sesizări</a>
+        </div>
       </div>
-    </div>
-  </div>
-</section>
-
-<section class="section-block" id="lucrari-modernizare">
-  <div class="wrap">
-    <div class="section-head">
-      <div class="eyebrow" data-i18n="projpub_eyebrow">Lucrări de modernizare</div>
-      <h2 data-i18n="projpub_h1">Lucrări de reabilitare și modernizare</h2>
-      <p data-i18n="projpub_lede">O prezentare publică asupra proiectelor de modernizare aflate în derulare.</p>
-      <div class="section-actions">
-        <a href="relatii-publice/proiecte-publice.html" class="public-report-cta" data-i18n="projpub_cta">Vezi proiectele de modernizare</a>
+      <div class="section-head section-col" id="lucrari-modernizare">
+        <div class="eyebrow" data-i18n="projpub_eyebrow">Lucrări de modernizare</div>
+        <h2 data-i18n="projpub_h1">Lucrări de reabilitare și modernizare</h2>
+        <p data-i18n="projpub_lede">O prezentare publică asupra proiectelor de modernizare aflate în derulare.</p>
+        <div class="section-actions">
+          <a href="relatii-publice/proiecte-publice.html" class="public-report-cta" data-i18n="projpub_cta">Vezi proiectele de modernizare</a>
+        </div>
       </div>
     </div>
   </div>
