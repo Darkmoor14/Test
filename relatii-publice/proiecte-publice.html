@@ -169,12 +169,15 @@
      padding since this rule comes later in the cascade. */
   .projects-section{padding-top:40px;padding-bottom:80px;}
   .current-grid{
-    display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
-    gap:20px;
+    display:grid;grid-template-columns:repeat(2, 1fr);
+    gap:28px;
+  }
+  @media(max-width:760px){
+    .current-grid{grid-template-columns:1fr;}
   }
   .current-card{
     background:var(--paper-000);border:1px solid var(--line-strong);border-radius:4px;
-    padding:26px 24px;
+    padding:34px 32px;
   }
   .cc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;}
   .cc-title{font-family:var(--display);font-weight:600;font-size:17px;color:var(--ink-900);line-height:1.3;}
