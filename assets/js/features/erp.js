@@ -1160,14 +1160,19 @@
   if (fuelReportExportBtn) fuelReportExportBtn.addEventListener('click', exportFuelReportToExcel);
 
   /* ============================================================
-     ROMPETROL PDF IMPORT — "List Transactions" exports are a real
-     text layer (Crystal Reports), not a scan, so this reads them
-     directly via pdf.js rather than asking staff to retype every
-     line. Via Oil's own export is a genuine scanned image with zero
+     FUEL PDF IMPORT — Rompetrol's "List Transactions" export and Via
+     Oil's "Fișă client" (CLIENTI CREDITORI) report are both a real
+     text layer (Crystal Reports / GESTPOS2000), not a scan, so this
+     reads them directly via pdf.js rather than asking staff to retype
+     every line. Via Oil's OWN point-of-sale receipt (a different
+     document than the fișă) is a genuine scanned image with zero
      extractable text (checked directly -- a plain text pull gets
-     nothing back from it), so it gets no auto-import here and still
-     goes in by hand; this importer only ever claims to handle the
-     Rompetrol format, never silently no-ops on a different one.
+     nothing back from it) -- that one still has to go in by hand; the
+     "scanned document" check below catches it and says so rather than
+     silently no-op'ing.
+     Which supplier a given file is gets auto-detected by trying each
+     parser in turn (see the file-input handler below) -- staff just
+     pick a file, they don't need to say which company it's from.
      ============================================================ */
   if (typeof pdfjsLib !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
@@ -1239,7 +1244,46 @@
     });
     return rows;
   }
+  // Via Oil's "Fișă client" report prints each transaction across 3
+  // separate lines once reconstructed by y-position (confirmed
+  // directly against a real export): a date+product line, then the
+  // main data line (row number, "Marfuri", bon number, plate, two "_"
+  // placeholders where a km reading would go, then quantity/unit
+  // price/total), then a time+card line. Matching the data line
+  // directly (it's the only one with this exact shape) and reading the
+  // date off the line immediately before it is simpler and more robust
+  // than trying to track state across a 3-line group by hand.
+  const VIAOIL_ROW_RE = /^(\d+)\s+Marfuri\s+(\d+)\s+(\d+)\s+(.+?)\s+_\s+_\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)$/;
+  function parseViaOilLines(lines){
+    const rows = [];
+    let skippedGeneratorCount = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(VIAOIL_ROW_RE);
+      if (!m) continue;
+      const [, , bonNr, , plateRaw, qtyStr] = m;
+      const rawPlate = plateRaw.trim();
+      // The on-site generator shows up in this report like any other
+      // "vehicle" (it still buys fuel through the same card system),
+      // but it isn't a registered car and has no plate to match --
+      // always left out, not just unresolved-and-skippable.
+      if (/^GENERATOR\b/i.test(rawPlate)) { skippedGeneratorCount++; continue; }
+      const dateMatch = (lines[i - 1] || '').match(/^(\d{2})\.(\d{2})\.(\d{4})\b/);
+      if (!dateMatch) continue;
+      const [, dd, mm, yyyy] = dateMatch;
+      rows.push({
+        rawPlate, qty: Number(qtyStr),
+        date: `${yyyy}-${mm}-${dd}`, year: Number(yyyy), month: Number(mm),
+        // Prefixed so a Via Oil bon number can never collide with a
+        // Rompetrol nr. tranzacție that happens to be the same digits
+        // -- they're different suppliers' own independent numbering.
+        nrTranz: `VIAOIL-${bonNr}`,
+      });
+    }
+    return { rows, skippedGeneratorCount };
+  }
   let pendingFuelImportRows = [];
+  let pendingFuelImportSupplier = 'Rompetrol';
+  let pendingFuelImportSkippedGenerators = 0;
   function fuelImportVehicleOptions(selectedId){
     const vehicles = allEquipment.filter(eq => eq.erp_category === 'masina')
       .slice().sort((a, b) => (a.plate_number || a.name || '').localeCompare(b.plate_number || b.name || '', 'ro'));
@@ -1271,8 +1315,10 @@
       </tbody>
     `;
     document.getElementById('fuelImportPreviewNote').textContent =
-      `Previzualizare — ${toImportCount} din ${pendingFuelImportRows.length} rânduri vor fi importate.`
+      `Fișier recunoscut ca ${pendingFuelImportSupplier}. `
+      + `Previzualizare — ${toImportCount} din ${pendingFuelImportRows.length} rânduri vor fi importate.`
       + (dupCount > 0 ? ` (${dupCount} deja importate anterior, omise automat.)` : '')
+      + (pendingFuelImportSkippedGenerators > 0 ? ` (${pendingFuelImportSkippedGenerators} rând${pendingFuelImportSkippedGenerators > 1 ? 'uri' : ''} generator omis${pendingFuelImportSkippedGenerators > 1 ? 'e' : ''} automat, nu e mașină înregistrată.)` : '')
       + ' Alegeți mașina pentru rândurile nerecunoscute, sau debifați un rând pentru a-l exclude.';
     table.querySelectorAll('.fuel-import-row-include').forEach(cb => {
       cb.addEventListener('change', () => { pendingFuelImportRows[Number(cb.dataset.idx)].include = cb.checked; });
@@ -1314,14 +1360,28 @@
       try {
         const lines = await pdfFileToLines(file);
         if (lines.join('').trim().length < 50) {
-          alert('Acest fișier pare să fie un document scanat (fără text selectabil) — doar exporturile Rompetrol „List Transactions" pot fi importate automat. Introduceți datele din acest fișier manual.');
+          alert('Acest fișier pare să fie un document scanat (fără text selectabil) — doar exporturile Rompetrol „List Transactions" sau fișele Via Oil pot fi importate automat. Introduceți datele din acest fișier manual.');
           return;
         }
-        const parsed = parseRompetrolLines(lines);
+        // Try each supplier's parser in turn rather than asking staff
+        // which company the file is from -- a file that isn't either
+        // format just won't match either shape, same end result as
+        // before (the "couldn't recognize" alert) either way.
+        let parsed = parseRompetrolLines(lines);
+        let supplier = 'Rompetrol';
+        let skippedGeneratorCount = 0;
         if (!parsed.length) {
-          alert('Nu am recunoscut niciun rând de tranzacție în acest fișier. Verificați că e un export Rompetrol „List Transactions".');
+          const viaOil = parseViaOilLines(lines);
+          parsed = viaOil.rows;
+          skippedGeneratorCount = viaOil.skippedGeneratorCount;
+          supplier = 'Via Oil';
+        }
+        if (!parsed.length) {
+          alert('Nu am recunoscut niciun rând de tranzacție în acest fișier. Verificați că e un export Rompetrol „List Transactions" sau o fișă Via Oil.');
           return;
         }
+        pendingFuelImportSupplier = supplier;
+        pendingFuelImportSkippedGenerators = skippedGeneratorCount;
         const plateIndex = {};
         allEquipment.filter(eq => eq.erp_category === 'masina' && eq.plate_number).forEach(eq => {
           plateIndex[eq.plate_number.trim().toUpperCase()] = eq.id;
@@ -1336,7 +1396,13 @@
         if (reservoir) plateIndex['REZERVIG'] = reservoir.id;
         const existingTranzIds = new Set(allVehicleFuelPurchases.map(p => p.external_transaction_id).filter(Boolean));
         pendingFuelImportRows = parsed.map(r => {
-          const vehicleId = plateIndex[r.rawPlate.trim().toUpperCase()] || null;
+          // Stripped of all whitespace before matching, not just
+          // trimmed at the ends -- Rompetrol's own plates never had
+          // internal spaces to begin with (so this is a no-op there),
+          // but Via Oil's report prints them as "MS 02 DNV" while
+          // every plate_number in the system is stored solid
+          // ("MS02DNV"); stripping is what actually makes those match.
+          const vehicleId = plateIndex[r.rawPlate.replace(/\s+/g, '').toUpperCase()] || null;
           const alreadyImported = existingTranzIds.has(r.nrTranz);
           // Rows entered manually before this importer existed have no
           // external_transaction_id to match against at all -- this
@@ -1390,7 +1456,7 @@
     fuelImportConfirmBtn.textContent = 'Se importă...';
     const payload = toSave.map(r => ({
       vehicle_id: r.vehicleId, year: r.year, month: r.month, liters: r.qty,
-      purchase_date: r.date, note: `Import Rompetrol (${r.rawPlate})`,
+      purchase_date: r.date, note: `Import ${pendingFuelImportSupplier} (${r.rawPlate})`,
       user_email: currentSessionEmail || null,
       external_transaction_id: r.nrTranz,
     }));
@@ -1417,7 +1483,7 @@
       const newQuantity = round2(Number(eq.quantity || 0) + added);
       const { error: qError } = await AppDataServices.erp.saveVehicle(supabaseClient, { quantity: newQuantity }, reservoirId);
       if (qError) console.error(qError);
-      else logEntityActivity('masina', reservoirId, `S-au adăugat ${round2(added)} L din import Rompetrol (total ${newQuantity.toLocaleString('ro-RO')} L).`);
+      else logEntityActivity('masina', reservoirId, `S-au adăugat ${round2(added)} L din import ${pendingFuelImportSupplier} (total ${newQuantity.toLocaleString('ro-RO')} L).`);
     }
     pendingFuelImportRows = [];
     document.getElementById('fuelImportPreview').style.display = 'none';
