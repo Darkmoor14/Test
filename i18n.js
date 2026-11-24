@@ -267,7 +267,7 @@ ro: {
   // relatii-publice.html + relatii-publice/sesizari.html
   public_eyebrow: "Sesizări iluminat public",
   public_h1: "Situația sesizărilor curente",
-  public_lede: "O listă publică a sesizărilor de iluminat public transmise prin site — pentru transparență, fără date personale ale celor care au raportat problema.",
+  public_lede: "O listă publică a sesizărilor de iluminat public transmise prin site.",
   public_back: "← Raportează o problemă nouă",
   public_view_cta: "Vezi sesizări",
   public_search_ph: "Caută după adresă sau număr tichet...",
@@ -508,7 +508,7 @@ en: {
 
   public_eyebrow: "Streetlight reports",
   public_h1: "Current status of reports",
-  public_lede: "A public list of public-lighting reports submitted through the site — for transparency, with no personal data of the people who reported the issue.",
+  public_lede: "A public list of public-lighting reports submitted through the site.",
   public_back: "← Report a new problem",
   public_view_cta: "View reports",
   public_search_ph: "Search by address or report number...",
@@ -748,7 +748,7 @@ hu: {
 
   public_eyebrow: "Közvilágítási bejelentések",
   public_h1: "A bejelentések jelenlegi állapota",
-  public_lede: "A weboldalon keresztül beküldött közvilágítási bejelentések nyilvános listája — átláthatóság céljából, a bejelentők személyes adatai nélkül.",
+  public_lede: "A weboldalon keresztül beküldött közvilágítási bejelentések nyilvános listája.",
   public_back: "← Új probléma bejelentése",
   public_view_cta: "Bejelentések megtekintése",
   public_search_ph: "Keresés cím vagy bejelentési szám alapján...",
