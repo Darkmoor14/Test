@@ -1277,6 +1277,9 @@
         // Rompetrol nr. tranzacție that happens to be the same digits
         // -- they're different suppliers' own independent numbering.
         nrTranz: `VIAOIL-${bonNr}`,
+        // Unprefixed, for showing in the saved note -- "bon VIAOIL-173501"
+        // would be a confusing read next to "Import Via Oil" right before it.
+        docNumber: bonNr,
       });
     }
     return { rows, skippedGeneratorCount };
@@ -1456,7 +1459,7 @@
     fuelImportConfirmBtn.textContent = 'Se importă...';
     const payload = toSave.map(r => ({
       vehicle_id: r.vehicleId, year: r.year, month: r.month, liters: r.qty,
-      purchase_date: r.date, note: `Import ${pendingFuelImportSupplier} (${r.rawPlate})`,
+      purchase_date: r.date, note: `Import ${pendingFuelImportSupplier} (${r.rawPlate}${r.docNumber ? `, bon ${r.docNumber}` : ''})`,
       user_email: currentSessionEmail || null,
       external_transaction_id: r.nrTranz,
     }));
