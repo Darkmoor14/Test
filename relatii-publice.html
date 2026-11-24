@@ -47,6 +47,7 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   html,body{height:100%;}
   body{font-family:var(--body);color:var(--ink-900);background:var(--paper-000);line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh;}
+  body > *{flex-shrink:0;}
   /* This page is now short (two teaser sections, no live lists) --
      on a tall/wide screen its content can be shorter than the
      viewport, which would otherwise leave the footer stranded
