@@ -1240,6 +1240,10 @@
         rawPlate, qty: Number(qtyStr.replace(/,/g, '')),
         date: `${yyyy}-${mm}-${dd}`, year: Number(yyyy), month: Number(mm),
         nrTranz,
+        // Unprefixed already (Rompetrol's own numbering needs no
+        // supplier prefix) -- same field the saved note reads for
+        // both suppliers.
+        docNumber: nrTranz,
       });
     });
     return rows;
