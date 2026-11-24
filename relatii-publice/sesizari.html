@@ -3,21 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sesizări iluminat public — Insta Grup Târgu-Mureș</title>
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Sesizări iluminat public Târgu-Mureș — Insta Grup</title>
+<link rel="icon" type="image/png" sizes="192x192" href="../icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="../icons/icon-512.png">
+<link rel="apple-touch-icon" href="../icons/icon-192.png">
 <meta name="description" content="Situația sesizărilor de iluminat public transmise către Insta Grup în Târgu-Mureș — o listă publică actualizată periodic.">
-<link rel="canonical" href="https://insta-grup.ro/sesizari.html">
+<link rel="canonical" href="https://insta-grup.ro/relatii-publice/sesizari.html">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ro_RO">
 <meta property="og:site_name" content="Insta Grup">
-<meta property="og:url" content="https://insta-grup.ro/sesizari.html">
-<meta property="og:title" content="Sesizări iluminat public — Insta Grup Târgu-Mureș">
+<meta property="og:url" content="https://insta-grup.ro/relatii-publice/sesizari.html">
+<meta property="og:title" content="Sesizări iluminat public Târgu-Mureș — Insta Grup">
 <meta property="og:description" content="Situația sesizărilor de iluminat public transmise către Insta Grup în Târgu-Mureș — o listă publică actualizată periodic.">
 <meta property="og:image" content="https://insta-grup.ro/assets/img/logo.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Sesizări iluminat public — Insta Grup Târgu-Mureș">
+<meta name="twitter:title" content="Sesizări iluminat public Târgu-Mureș — Insta Grup">
 <meta name="twitter:description" content="Situația sesizărilor de iluminat public transmise către Insta Grup în Târgu-Mureș — o listă publică actualizată periodic.">
 <meta name="twitter:image" content="https://insta-grup.ro/assets/img/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,6 +41,7 @@
     --copper-600:#A81419; --copper-500:#D11F24; --copper-300:#E2686C; --copper-050:#FBEAEA;
     --signal-green:#3E7A57; --signal-green-bg:#E9F3EC;
     --signal-red:#B5502F; --signal-red-bg:#FBEDE7;
+    --signal-orange:#B5792F; --signal-orange-bg:#FBF2E7;
     --display:'Space Grotesk',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -54,8 +55,9 @@
   header{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
   nav{max-width:1180px;margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:76px;}
   .logo-img{height:60px;width:auto;display:block;}
-  .navlinks{display:flex;gap:36px;font-size:15.5px;color:var(--ink-900);}
+  .navlinks{display:flex;gap:36px;font-size:15.5px;color:var(--ink-900);align-items:center;}
   .navlinks a:hover{color:var(--copper-600);}
+  .navlinks a.active{color:var(--copper-600);font-weight:600;}
   .nav-cta{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--paper-000);background:var(--copper-500);padding:10px 20px;border-radius:2px;transition:background .2s;}
   .nav-cta:hover{background:var(--copper-600);}
   .lang-switch{display:flex;align-items:center;gap:2px;border:1px solid var(--line-strong);border-radius:3px;padding:2px;}
@@ -67,36 +69,95 @@
   .lang-switch button:hover{color:var(--copper-600);}
   .lang-switch button.active{background:var(--copper-500);color:#fff;}
   .nav-right{display:flex;align-items:center;gap:14px;}
-  .nav-dropdown{position:relative;}
-  .nav-dropdown::after{
-    content:'';
-    position:absolute;
-    top:100%;left:50%;
-    transform:translateX(-50%);
-    width:230px;height:16px;
-  }
-  .nav-dropdown-trigger{display:flex;align-items:center;gap:6px;font-family:inherit;font-size:15.5px;color:var(--ink-900);background:none;border:none;padding:0;cursor:pointer;transition:color .2s;}
-  .nav-dropdown-trigger:hover{color:var(--copper-600);}
-  .nav-dropdown.open .nav-dropdown-trigger{color:var(--copper-600);}
-  .nav-dropdown-chevron{width:13px;height:13px;transition:transform .2s ease;flex-shrink:0;}
-  .nav-dropdown.open .nav-dropdown-chevron{transform:rotate(180deg);}
-  .nav-dropdown-menu{position:absolute;top:calc(100% + 16px);left:50%;transform:translateX(-50%) translateY(-6px);background:var(--paper-000);border:1px solid var(--line-strong);border-radius:4px;box-shadow:0 14px 32px rgba(20,24,29,0.14);min-width:230px;padding:8px;z-index:120;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease, transform .18s ease, visibility .18s;}
-  .nav-dropdown:hover .nav-dropdown-menu,.nav-dropdown.open .nav-dropdown-menu{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0);}
-  .nav-dropdown-menu a{display:block;padding:10px 12px;border-radius:3px;font-size:15px;color:var(--ink-700);transition:background .15s,color .15s;}
-  .nav-dropdown-menu a:hover{background:var(--paper-050);color:var(--copper-600);}
+  /* ===== MOBILE HEADER ===== */
+  .mobile-menu-btn{display:none;}
+  .mobile-nav-backdrop{display:none;}
+  .mobile-nav-sidebar{display:none;}
   @media(max-width:860px){
-    nav{flex-wrap:wrap;height:auto;padding:14px 20px;row-gap:12px;}
-    .navlinks{display:flex;order:3;width:100%;justify-content:center;flex-wrap:wrap;gap:16px 24px;font-size:14.5px;}
-    .nav-right{width:100%;justify-content:center;flex-wrap:wrap;}
+    nav{padding:14px 20px;height:auto;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;}
+    .navlinks, .nav-right .lang-switch{display:none;}
+    .mobile-menu-btn{
+      display:flex;flex-direction:column;justify-content:center;gap:5px;
+      width:36px;height:36px;flex-shrink:0;
+      background:none;border:none;cursor:pointer;padding:0;
+      grid-column:1;justify-self:start;
+    }
+    .mobile-menu-btn span{
+      display:block;width:22px;height:2px;background:var(--ink-900);border-radius:1px;
+    }
+    .logo{grid-column:2;justify-self:center;}
+    .nav-right{grid-column:3;justify-self:end;width:auto;}
+    .nav-cta{padding:8px 10px;font-size:11px;text-align:center;line-height:1.25;white-space:normal;}
+
+    .mobile-nav-backdrop{
+      display:block;position:fixed;inset:0;background:rgba(20,24,29,0.45);z-index:299;
+      opacity:0;pointer-events:none;transition:opacity .25s;
+    }
+    .mobile-nav-backdrop.open{opacity:1;pointer-events:auto;}
+    .mobile-nav-backdrop.closing-guard{pointer-events:auto;}
+    .mobile-nav-sidebar{
+      display:flex;flex-direction:column;
+      position:fixed;top:0;left:0;bottom:0;width:78%;max-width:300px;z-index:300;
+      background:var(--paper-000);
+      transform:translateX(-100%);transition:transform .25s ease;
+      box-shadow:2px 0 28px rgba(20,24,29,0.18);
+      padding-top:env(safe-area-inset-top, 0);
+      padding-bottom:env(safe-area-inset-bottom, 0);
+    }
+    .mobile-nav-sidebar.open{transform:translateX(0);}
+    .mobile-nav-sidebar-head{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:20px 20px 16px;border-bottom:1px solid var(--line);flex-shrink:0;
+    }
+    .mobile-nav-sidebar-close{
+      width:32px;height:32px;border-radius:50%;border:1px solid var(--line-strong);
+      background:none;font-size:18px;line-height:1;color:var(--ink-700);cursor:pointer;
+    }
+    .mobile-nav-sidebar-links{
+      display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
+      height:auto;max-width:none;margin:0;padding:14px 0;
+    }
+    .mobile-nav-sidebar-links a{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      padding:16px 24px;font-size:16px;color:var(--ink-900);
+      border-left:3px solid transparent;
+      transition:background .15s,color .15s,border-color .15s;
+    }
+    .mobile-nav-sidebar-links a::after{
+      content:"";width:7px;height:7px;flex-shrink:0;
+      border-right:2px solid var(--ink-400);border-bottom:2px solid var(--ink-400);
+      transform:rotate(-45deg);transition:border-color .15s;
+    }
+    .mobile-nav-sidebar-links a:hover{background:var(--paper-050);}
+    .mobile-nav-sidebar-links a:hover::after{border-color:var(--copper-500);}
+    .mobile-nav-sidebar-links a.active{
+      color:var(--copper-600);border-left-color:var(--copper-500);
+      background:var(--copper-050);font-weight:600;
+    }
+    .mobile-nav-sidebar-links a.active::after{border-color:var(--copper-500);}
+    .mobile-nav-sidebar-foot{
+      margin-top:auto;padding:18px 24px;border-top:1px solid var(--line);
+      display:flex;flex-direction:column;gap:10px;flex-shrink:0;
+      background:var(--paper-050);
+    }
+    .mobile-nav-sidebar-foot-label{
+      font-family:var(--mono);font-size:11px;text-transform:uppercase;
+      letter-spacing:0.06em;color:var(--ink-600);
+    }
+    .mobile-nav-sidebar-foot .lang-switch{
+      display:flex;background:var(--paper-000);align-self:flex-start;
+    }
+    .mobile-nav-sidebar-foot .lang-switch button{padding:7px 14px;font-size:13px;}
   }
 
-  .hero{padding:140px 0 40px;border-bottom:1px solid var(--line);}
+  .hero{padding:150px 0 40px;border-bottom:1px solid var(--line);}
   .eyebrow{font-family:var(--mono);font-size:13.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--copper-600);display:flex;align-items:center;gap:10px;margin-bottom:18px;}
   .eyebrow::before{content:"";width:20px;height:1px;background:var(--copper-600);display:inline-block;}
-  .hero h1{font-size:clamp(38px,5.4vw,64px);line-height:1.06;max-width:820px;margin-bottom:14px;color:var(--ink-900);}
-  .hero p{color:var(--ink-900);font-size:18.5px;max-width:620px;}
-  .back-link{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:13px;color:var(--ink-900);margin-top:22px;}
+  .hero h1{font-size:clamp(32px,4.6vw,52px);line-height:1.08;max-width:760px;margin-bottom:14px;color:var(--ink-900);}
+  .hero p{color:var(--ink-900);font-size:17.5px;max-width:620px;}
+  .back-link{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:13px;color:var(--ink-900);margin-top:22px;margin-right:22px;}
   .back-link:hover{color:var(--copper-600);}
+  .hero-links{display:flex;flex-wrap:wrap;align-items:center;}
 
   .toolbar{position:sticky;top:76px;z-index:90;background:var(--paper-000);border-bottom:1px solid var(--line);padding:18px 0;}
   .toolbar-inner{display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
@@ -127,7 +188,7 @@
   .ticket-num{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink-900);}
   .ticket-tag{
     font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
-    padding:4px 9px;border-radius:3px;background:var(--paper-100);color:var(--ink-900);
+    padding:4px 9px;border-radius:3px;background:var(--signal-orange-bg);color:var(--signal-orange);
   }
   .ticket-tag.urgent-tag{background:var(--signal-red-bg);color:var(--signal-red);}
   .ticket-status-pill{
@@ -162,12 +223,9 @@
   .modal-body strong{color:var(--ink-900);font-weight:600;}
   .modal-foot{padding:16px 32px 28px;font-size:12.5px;color:var(--ink-900);font-style:italic;}
   @media(max-width:640px){
-    nav{flex-wrap:wrap;height:auto;padding:14px 20px;row-gap:12px;}
-    .nav-right{width:100%;justify-content:center;}
     .logo-img{height:44px;}
-    .lang-switch button{padding:5px 8px;font-size:11px;}
-    .nav-cta{font-size:12px;padding:9px 16px;}
-    .navlinks{gap:12px 18px;font-size:14px;}
+    .mobile-nav-sidebar-foot .lang-switch button{padding:5px 8px;font-size:11px;}
+    .nav-cta{font-size:10.5px;padding:7px 8px;}
   }
 
   /* ===== COOKIE CONSENT BANNER ===== */
@@ -199,21 +257,15 @@
 
 <header>
   <nav>
-    <a href="index.html"><img src="assets/img/logo.png" alt="Insta Grup" class="logo-img"></a>
-    <div class="navlinks">
-      <div class="nav-dropdown" id="navDespreDropdown">
-        <button type="button" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
-          <span data-i18n="nav_despre">Despre noi</span>
-          <svg class="nav-dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <div class="nav-dropdown-menu">
-          <a href="index.html#proiecte" data-i18n="nav_proiecte">Proiecte</a>
-          <a href="index.html#servicii" data-i18n="nav_servicii">Servicii</a>
-          <a href="index.html#despre" data-i18n="nav_despre">Despre noi</a>
-          <a href="index.html#contact" data-i18n="nav_contact">Contact</a>
-        </div>
-      </div>
-      <a href="relatii-publice.html" data-i18n="nav_relatii">Iluminat public</a>
+    <button type="button" class="mobile-menu-btn" id="mobileNavMenuBtn" aria-label="Meniu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <a href="../index.html" class="logo logo-img-wrap"><img src="../assets/img/logo.png" alt="Insta Grup" class="logo-img"></a>    <div class="navlinks">
+      <a href="../index.html" data-i18n="nav_despre">Despre</a>
+      <a href="../servicii.html" data-i18n="nav_servicii">Servicii</a>
+      <a href="../proiecte.html" data-i18n="nav_lucrari">Lucrări</a>
+      <a href="../produse.html" data-i18n="nav_produse">Produse</a>
+      <a href="../relatii-publice.html" data-i18n="nav_relatii" class="active">Iluminat public</a>
     </div>
     <div class="nav-right">
       <div class="lang-switch">
@@ -221,17 +273,43 @@
         <button type="button" data-lang="en" onclick="setLanguage('en')">EN</button>
         <button type="button" data-lang="hu" onclick="setLanguage('hu')">HU</button>
       </div>
-      <a href="raportare.html" class="nav-cta" data-i18n="nav_cta">Sesizări iluminat public</a>
+      <a href="../raportare.html" class="nav-cta" data-i18n="nav_cta">Sesizări iluminat public</a>
     </div>
   </nav>
 </header>
+
+<div class="mobile-nav-backdrop" id="mobileNavBackdrop"></div>
+<div class="mobile-nav-sidebar" id="mobileNavSidebar" aria-hidden="true">
+  <div class="mobile-nav-sidebar-head">
+    <span style="font-family:var(--display);font-weight:600;font-size:16px;color:var(--ink-900);">Meniu</span>
+    <button type="button" class="mobile-nav-sidebar-close" id="mobileNavSidebarClose" aria-label="Închide">×</button>
+  </div>
+  <nav class="mobile-nav-sidebar-links">
+    <a href="../index.html" data-i18n="nav_despre">Despre</a>
+    <a href="../servicii.html" data-i18n="nav_servicii">Servicii</a>
+    <a href="../proiecte.html" data-i18n="nav_lucrari">Lucrări</a>
+    <a href="../produse.html" data-i18n="nav_produse">Produse</a>
+    <a href="../relatii-publice.html" data-i18n="nav_relatii" class="active">Iluminat public</a>
+  </nav>
+  <div class="mobile-nav-sidebar-foot">
+    <span class="mobile-nav-sidebar-foot-label">Limbă</span>
+    <div class="lang-switch">
+      <button type="button" data-lang="ro" onclick="setLanguage('ro')">RO</button>
+      <button type="button" data-lang="en" onclick="setLanguage('en')">EN</button>
+      <button type="button" data-lang="hu" onclick="setLanguage('hu')">HU</button>
+    </div>
+  </div>
+</div>
 
 <section class="hero">
   <div class="wrap">
     <div class="eyebrow" data-i18n="public_eyebrow">Sesizări iluminat public</div>
     <h1 data-i18n="public_h1">Situația sesizărilor curente</h1>
     <p data-i18n="public_lede">O listă publică a sesizărilor de iluminat public transmise prin site — pentru transparență, fără date personale ale celor care au raportat problema.</p>
-    <a href="raportare.html" class="back-link" data-i18n="public_back">← Raportează o problemă nouă</a>
+    <div class="hero-links">
+      <a href="../relatii-publice.html" class="back-link" data-i18n="rp_sub_back">← Relații publice</a>
+      <a href="../raportare.html" class="back-link" data-i18n="public_back">← Raportează o problemă nouă</a>
+    </div>
   </div>
 </section>
 
@@ -318,14 +396,20 @@
   </div>
 </div>
 
-<script src="i18n.js"></script>
+<script src="../i18n.js"></script>
 <script>
   /* ================================================================
-     PUBLIC TICKET STATUS PAGE — insta-grup.ro/sesizari.html
+     PUBLIC TICKET STATUS PAGE — insta-grup.ro/relatii-publice/sesizari.html
      ----------------------------------------------------------------
      Purpose: a public, read-only, no-login page where any visitor can
      see the current state of reported street-lighting issues, for
-     transparency.
+     transparency. Linked from relatii-publice.html's "Sesizări
+     iluminat public" teaser section via a "Vezi sesizări" button —
+     this page used to be inline on that page directly, and before
+     that lived at the site root as sesizari.html (now removed; this
+     is its replacement, under relatii-publice/ since it's a sub-page
+     of "Relații publice", with the current site header/nav and the
+     14-day auto-hide window that the root-level version predated).
 
      IMPORTANT (security/GDPR): this page reads from `public_tickets`,
      a Postgres VIEW in Supabase -- NOT the real `tickets` table. That
@@ -341,16 +425,22 @@
      Poliția locală / Birou energetic); any actual person's name stays
      null/hidden, same as before. See
      supabase/sql/006_public_tickets_view.sql in this repo for the
-     actual, committed view definition (this used to say "see
-     public-tickets-view.sql", a file that was never actually in the
-     repo -- it now is, under supabase/sql/). Do NOT change this page
-     to query `tickets` directly -- that table's RLS only allows staff
+     actual, committed view definition. Do NOT change this page to
+     query `tickets` directly -- that table's RLS only allows staff
      (authenticated) to read it, and even if that were opened up to
      anon, it would leak every visitor's real name/phone/email
      publicly.
 
      Only two filters are offered on purpose (Active / Soluționate) --
      no "Toate" combined view, matching the brief for this page.
+
+     AUTO-HIDE AFTER 2 WEEKS: a resolved ticket whose resolved_on is
+     more than AUTO_HIDE_DAYS in the past is filtered out client-side
+     here, same as relatii-publice.html and admin.html's own sweep —
+     see admin.html's autoArchiveStaleTickets, which performs the
+     actual archiving in the database (this is just a client-side
+     safety net so it still disappears on schedule even on a day
+     nobody has opened admin).
      ================================================================ */
   const SUPABASE_URL = "https://ebuigyyjifnjiuzsgpih.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_aXC8Q_v2faRB0uEAlZYFog_JreYGXvq";
@@ -364,26 +454,18 @@
   function closeModal(id){ document.getElementById(id).classList.remove('open'); document.body.style.overflow = ''; }
   document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id)); } });
 
-  (function initNavDropdown(){
-    const dropdown = document.getElementById('navDespreDropdown');
-    if (!dropdown) return;
-    const trigger = dropdown.querySelector('.nav-dropdown-trigger');
-    function closeDropdown(){ dropdown.classList.remove('open'); trigger.setAttribute('aria-expanded', 'false'); }
-    trigger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = dropdown.classList.toggle('open');
-      trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    });
-    document.addEventListener('click', (e) => { if (!dropdown.contains(e.target)) closeDropdown(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDropdown(); });
-    dropdown.querySelectorAll('.nav-dropdown-menu a').forEach(a => a.addEventListener('click', closeDropdown));
-  })();
+  const AUTO_HIDE_DAYS = 14;
+  function isOlderThanAutoHideWindow(dateISO){
+    if (!dateISO) return false;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - AUTO_HIDE_DAYS);
+    return new Date(dateISO) < cutoff;
+  }
 
   let allTickets = [];
   let activeFilter = 'Ongoing';
   let searchTerm = '';
 
-  // Used to include a time component (HH:MM) — dropped per request.
   function fmtDate(iso){
     if(!iso) return '—';
     const d = new Date(iso);
@@ -414,7 +496,7 @@
       activeFilter = c.key;
       document.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
       chip.classList.add('active');
-      render();
+      renderTickets();
     });
     chipsWrap.appendChild(chip);
     chipEls[c.key] = { el: chip, labelKey: c.labelKey };
@@ -428,7 +510,7 @@
 
   document.getElementById('searchInput').addEventListener('input', (e) => {
     searchTerm = e.target.value.trim().toLowerCase();
-    render();
+    renderTickets();
   });
 
   async function loadTickets(){
@@ -444,18 +526,18 @@
       console.error(error);
       return;
     }
-    allTickets = data;
-    render();
+    allTickets = (data || []).filter(tk => !(tk.status === 'Terminat' && isOlderThanAutoHideWindow(tk.resolved_on)));
+    renderTickets();
   }
 
-  function render(){
+  function renderTickets(){
     updateChipLabels();
     const list = document.getElementById('ticketList');
-    const filtered = allTickets.filter(t => {
-      const matchFilter = t.status === activeFilter;
+    const filtered = allTickets.filter(tk => {
+      const matchFilter = tk.status === activeFilter;
       const matchSearch = !searchTerm ||
-        (t.address || '').toLowerCase().includes(searchTerm) ||
-        (t.ticket_number || '').toLowerCase().includes(searchTerm);
+        (tk.address || '').toLowerCase().includes(searchTerm) ||
+        (tk.ticket_number || '').toLowerCase().includes(searchTerm);
       return matchFilter && matchSearch;
     });
     document.getElementById('resultCount').textContent = t('public_count', {n: filtered.length});
@@ -491,7 +573,7 @@
   }
 
   loadTickets();
-  window.addEventListener('langchange', render);
+  window.addEventListener('langchange', renderTickets);
 
   /* ============================================================
      COOKIE CONSENT BANNER — see index.html for the full policy
@@ -539,5 +621,39 @@
   })();
 </script>
 
+<script>
+  (function(){
+    const menuBtn = document.getElementById('mobileNavMenuBtn');
+    const backdrop = document.getElementById('mobileNavBackdrop');
+    const sidebar = document.getElementById('mobileNavSidebar');
+    const closeBtn = document.getElementById('mobileNavSidebarClose');
+    if (!menuBtn || !backdrop || !sidebar) return;
+
+    let closingGuardTimeout = null;
+    function setOpen(open){
+      sidebar.classList.toggle('open', open);
+      sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
+      menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      clearTimeout(closingGuardTimeout);
+      if (open) {
+        backdrop.classList.add('open');
+        backdrop.classList.remove('closing-guard');
+      } else {
+        backdrop.classList.remove('open');
+        backdrop.classList.add('closing-guard');
+        closingGuardTimeout = setTimeout(() => {
+          backdrop.classList.remove('closing-guard');
+        }, 400);
+      }
+    }
+    menuBtn.addEventListener('click', () => setOpen(true));
+    if (closeBtn) closeBtn.addEventListener('click', () => setOpen(false));
+    backdrop.addEventListener('click', (e) => { e.preventDefault(); setOpen(false); });
+    backdrop.addEventListener('touchstart', (e) => { e.preventDefault(); setOpen(false); }, { passive: false });
+    sidebar.querySelectorAll('.mobile-nav-sidebar-links a').forEach(a => {
+      a.addEventListener('click', () => setOpen(false));
+    });
+  })();
+</script>
 </body>
 </html>
