@@ -53,7 +53,7 @@
   a{color:inherit;text-decoration:none;}
   img{display:block;max-width:100%;}
   :focus-visible{outline:2px solid var(--copper-500);outline-offset:3px;}
-  .wrap{max-width:1600px;margin:0 auto;padding:0 40px;}
+  .wrap{max-width:1600px;margin:0 auto;padding:0 40px;width:100%;}
   h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:-0.01em;}
 
   header{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
@@ -163,7 +163,11 @@
   .back-link:hover{color:var(--copper-600);}
 
   /* ===== CURRENT PROJECTS ("Proiecte de modernizare") ===== */
-  .projects-section{padding:40px 0 80px;}
+  /* padding-top/bottom only, not the shorthand -- this div also
+     carries .wrap's own "padding:0 40px" for its left/right inset,
+     and the shorthand here would reset (zero out) that horizontal
+     padding since this rule comes later in the cascade. */
+  .projects-section{padding-top:40px;padding-bottom:80px;}
   .current-grid{
     display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
     gap:20px;
