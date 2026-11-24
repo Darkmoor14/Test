@@ -43,11 +43,16 @@
     --display:'Space Grotesk',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:var(--body);color:var(--ink-900);background:var(--paper-000);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  html,body{height:100%;}
+  body{font-family:var(--body);color:var(--ink-900);background:var(--paper-000);line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh;}
+  /* Pushes the footer to the bottom of the viewport on a tall/wide
+     screen when there are few or no active projects, instead of
+     leaving it stranded mid-page above a block of empty white space. */
+  footer{margin-top:auto;}
   a{color:inherit;text-decoration:none;}
   img{display:block;max-width:100%;}
   :focus-visible{outline:2px solid var(--copper-500);outline-offset:3px;}
-  .wrap{max-width:1180px;margin:0 auto;padding:0 32px;}
+  .wrap{max-width:1600px;margin:0 auto;padding:0 40px;}
   h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:-0.01em;}
 
   header{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
