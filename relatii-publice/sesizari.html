@@ -161,6 +161,15 @@
   .hero h1{font-size:clamp(32px,4.6vw,52px);line-height:1.08;max-width:760px;margin-bottom:14px;color:var(--ink-900);}
   .hero p{color:var(--ink-900);font-size:17.5px;max-width:620px;}
   .back-link{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:13px;color:var(--ink-900);margin-top:22px;margin-right:22px;}
+  .response-time-note{
+    display:flex;align-items:flex-start;gap:9px;
+    font-family:var(--mono);font-size:13px;line-height:1.5;color:var(--ink-600);
+    margin-top:14px;
+  }
+  .response-time-note::before{
+    content:"";width:7px;height:7px;border-radius:50%;flex-shrink:0;
+    background:var(--copper-500);margin-top:6px;
+  }
   .back-link:hover{color:var(--copper-600);}
   .hero-links{display:flex;flex-wrap:wrap;align-items:center;}
 
@@ -311,6 +320,7 @@
     <div class="eyebrow" data-i18n="public_eyebrow">Sesizări iluminat public</div>
     <h1 data-i18n="public_h1">Situația sesizărilor curente</h1>
     <p data-i18n="public_lede">O listă publică a sesizărilor de iluminat public transmise prin site.</p>
+    <p class="response-time-note" data-i18n="public_response_time">Timpul mediu de intervenție este de 2 zile.</p>
     <div class="hero-links">
       <a href="../relatii-publice.html" class="back-link" data-i18n="rp_sub_back">← Relații publice</a>
     </div>
