@@ -242,6 +242,13 @@
 
   /* Sesizări + Lucrări de modernizare teasers, side by side */
   .sections-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start;}
+  /* .section-head h2's clamp (up to 42px) was sized for a full-width
+     section; halved into two columns here, "Lucrări de reabilitare și
+     modernizare" sits within a few px of its column's width at that
+     size -- fine on paper, but any font-substitution/zoom/width
+     wobble tips it onto two lines. Capping it lower gives real
+     headroom instead of a near-exact fit. */
+  .sections-grid .section-col h2{font-size:clamp(24px,2.3vw,32px);}
   .sections-grid .section-col{max-width:none;margin-bottom:0;}
   .sections-grid .section-col + .section-col{padding-left:56px;border-left:1px solid var(--line-strong);}
   @media(max-width:860px){
