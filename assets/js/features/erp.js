@@ -1248,42 +1248,66 @@
     });
     return rows;
   }
-  // Via Oil's "Fișă client" report prints each transaction across 3
-  // separate lines once reconstructed by y-position (confirmed
-  // directly against a real export): a date+product line, then the
-  // main data line (row number, "Marfuri", bon number, plate, two "_"
-  // placeholders where a km reading would go, then quantity/unit
-  // price/total), then a time+card line. Matching the data line
-  // directly (it's the only one with this exact shape) and reading the
-  // date off the line immediately before it is simpler and more robust
-  // than trying to track state across a 3-line group by hand.
-  const VIAOIL_ROW_RE = /^(\d+)\s+Marfuri\s+(\d+)\s+(\d+)\s+(.+?)\s+_\s+_\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)$/;
+  // Via Oil's plate column is narrow enough that a 3-token plate like
+  // "MS 42 DNV" doesn't fit on the main data line (line B) and wraps
+  // instead -- the first part lands on the date line above it (line A),
+  // the rest on the time line below it (line C). A short, old-style
+  // plate like "MS 02975" fits with no wrap at all. Confirmed directly
+  // against two real exports, one with each case -- the plate is
+  // reassembled from whichever of the 3 lines actually holds a
+  // fragment of it, rather than assuming it's always whole on one
+  // specific line.
+  function viaOilDataLineTokens(line){
+    const t = line.trim().split(/\s+/);
+    if (t.length < 9) return null;
+    if (!/^\d+$/.test(t[0]) || t[1] !== 'Marfuri' || !/^\d+$/.test(t[2]) || !/^\d+$/.test(t[3])) return null;
+    if (t[t.length - 5] !== '_' || t[t.length - 4] !== '_') return null;
+    const tail = t.slice(-3);
+    if (!tail.every((v) => /^[\d.]+$/.test(v))) return null;
+    return { bonNr: t[2], platePart: t.slice(4, -5).join(' '), qty: Number(tail[0]) };
+  }
+  function viaOilDateLineTokens(line){
+    const t = line.trim().split(/\s+/);
+    if (t.length < 4) return null;
+    const dm = t[0].match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if (!dm) return null;
+    if (!/^\d{4}$/.test(t[t.length - 3]) || !/^\d{4}$/.test(t[t.length - 2])) return null;
+    return { dd: dm[1], mm: dm[2], yyyy: dm[3], platePart: t.slice(1, -3).join(' ') };
+  }
+  function viaOilTimeLineTokens(line){
+    const t = line.trim().split(/\s+/);
+    if (t.length < 5) return null;
+    if (!/^\d{2}:\d{2}:\d{2}$/.test(t[0])) return null;
+    if (!/^\d{4}$/.test(t[t.length - 4]) || !/^\d{4}$/.test(t[t.length - 3])) return null;
+    return { platePart: t.slice(1, -4).join(' ') };
+  }
   function parseViaOilLines(lines){
     const rows = [];
     let skippedGeneratorCount = 0;
     for (let i = 0; i < lines.length; i++) {
-      const m = lines[i].match(VIAOIL_ROW_RE);
-      if (!m) continue;
-      const [, , bonNr, , plateRaw, qtyStr] = m;
-      const rawPlate = plateRaw.trim();
+      const data = viaOilDataLineTokens(lines[i]);
+      if (!data) continue;
+      const dateInfo = viaOilDateLineTokens(lines[i - 1] || '');
+      if (!dateInfo) continue;
+      const timeInfo = viaOilTimeLineTokens(lines[i + 1] || '');
+      const rawPlate = [dateInfo.platePart, data.platePart, timeInfo ? timeInfo.platePart : '']
+        .filter(Boolean).join(' ').trim();
+      if (!rawPlate) continue;
       // The on-site generator shows up in this report like any other
       // "vehicle" (it still buys fuel through the same card system),
       // but it isn't a registered car and has no plate to match --
       // always left out, not just unresolved-and-skippable.
       if (/^GENERATOR\b/i.test(rawPlate)) { skippedGeneratorCount++; continue; }
-      const dateMatch = (lines[i - 1] || '').match(/^(\d{2})\.(\d{2})\.(\d{4})\b/);
-      if (!dateMatch) continue;
-      const [, dd, mm, yyyy] = dateMatch;
       rows.push({
-        rawPlate, qty: Number(qtyStr),
-        date: `${yyyy}-${mm}-${dd}`, year: Number(yyyy), month: Number(mm),
+        rawPlate, qty: data.qty,
+        date: `${dateInfo.yyyy}-${dateInfo.mm}-${dateInfo.dd}`, year: Number(dateInfo.yyyy), month: Number(dateInfo.mm),
         // Prefixed so a Via Oil bon number can never collide with a
         // Rompetrol nr. tranzacție that happens to be the same digits
         // -- they're different suppliers' own independent numbering.
-        nrTranz: `VIAOIL-${bonNr}`,
+        nrTranz: `VIAOIL-${data.bonNr}`,
         // Unprefixed, for showing in the saved note -- "bon VIAOIL-173501"
         // would be a confusing read next to "Import Via Oil" right before it.
-        docNumber: bonNr,
+        docNumber: data.bonNr,
       });
     }
     return { rows, skippedGeneratorCount };
