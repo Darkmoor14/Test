@@ -273,15 +273,6 @@
      relatii-publice/ — this page is just a hub with a heading/lede/CTA
      for each, so it no longer needs Supabase at all. */
   .section-actions{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:22px;}
-  .response-time-note{
-    display:flex;align-items:flex-start;gap:9px;
-    font-family:var(--mono);font-size:13px;line-height:1.5;color:var(--ink-600);
-    margin-top:14px;
-  }
-  .response-time-note::before{
-    content:"";width:7px;height:7px;border-radius:50%;flex-shrink:0;
-    background:var(--copper-500);margin-top:6px;
-  }
 
   footer{background:var(--paper-050);color:var(--ink-900);padding:32px 0;font-size:12.5px;border-top:1px solid var(--line);}
 
@@ -409,7 +400,6 @@
         <div class="eyebrow" data-i18n="public_eyebrow">Sesizări iluminat public</div>
         <h2 data-i18n="public_h1">Situația sesizărilor curente</h2>
         <p data-i18n="public_lede">O listă publică a sesizărilor de iluminat public transmise prin site.</p>
-        <p class="response-time-note" data-i18n="public_response_time">Timpul mediu de intervenție este de 2 zile.</p>
         <div class="section-actions">
           <a href="raportare.html" class="public-report-cta" data-i18n="public_back">← Raportează o problemă nouă</a>
           <a href="relatii-publice/sesizari.html" class="public-report-cta" data-i18n="public_view_cta">Vezi sesizări</a>
