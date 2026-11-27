@@ -25,8 +25,8 @@ export const ticketData = {
 export const projectData = {
   listProjects: (db: SupabaseClient) => db.from('current_projects').select('*').order('start_date', { ascending: true }),
   saveProject: (db: SupabaseClient, id: string | null, values: Record<string, unknown>) => id
-    ? db.from('current_projects').update(values).eq('id', id)
-    : db.from('current_projects').insert(values),
+    ? db.from('current_projects').update(values).eq('id', id).select('id')
+    : db.from('current_projects').insert(values).select('id'),
   updateProject: (db: SupabaseClient, id: string, values: Record<string, unknown>) => db.from('current_projects').update(values).eq('id', id),
   updateProjects: (db: SupabaseClient, ids: string[], values: Record<string, unknown>) => db.from('current_projects').update(values).in('id', ids),
   deleteProject: (db: SupabaseClient, id: string) => db.from('current_projects').delete().eq('id', id),

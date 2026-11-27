@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSupabase } from '../../lib/supabaseContext';
 import { useRealtimeReload } from '../../lib/useRealtimeReload';
-import { createLogEntityActivity } from '../shared/entityLogClient';
+import { createLogEntityActivity, describeFieldChanges } from '../shared/entityLogClient';
 import { projectData, saveChecklist as persistChecklist } from '../../lib/dataServices';
 import type { BacklogProject, BacklogFilterKey, Project, ProjectsFilterKey, WorkOrder } from './types';
 import { calcProjectStatus, getProjectStatusFilterKey, matchesProjectSearch, matchesProjectYear } from './projectUtils';
@@ -19,6 +19,10 @@ declare global {
 function showToast(message: string) {
   if (typeof window.showToast === 'function') window.showToast(message);
 }
+
+const PROJECT_FIELD_LABELS: Record<string, string> = {
+  title: 'Titlu', address: 'Adresă', start_date: 'Data începerii', due_date: 'Data finalizării estimată', notes: 'Note',
+};
 
 export function useProjectsStore(sessionEmail: string | null) {
   const supabase = useSupabase();
@@ -78,13 +82,20 @@ export function useProjectsStore(sessionEmail: string | null) {
   const closeProjectForm = useCallback(() => setProjectFormOpen(false), []);
 
   const saveProject = useCallback(async (payload: Omit<Project, 'id' | 'checklist' | 'archived' | 'archived_at'>, id: string | null) => {
-    const { error } = await projectData.saveProject(supabase, id, payload);
+    const { data, error } = await projectData.saveProject(supabase, id, payload);
     if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return false; }
+    if (id) {
+      const changeSummary = editingProject ? describeFieldChanges(editingProject as unknown as Record<string, unknown>, payload, PROJECT_FIELD_LABELS) : '';
+      logEntityActivity('project', id, changeSummary ? `Proiectul a fost actualizat — ${changeSummary}.` : 'Proiectul a fost actualizat (fără modificări de câmp).');
+    } else {
+      const createdId = data?.[0]?.id;
+      if (createdId) logEntityActivity('project', createdId, `Proiectul "${payload.title}" a fost creat.`);
+    }
     showToast(id ? 'Proiectul a fost actualizat.' : 'Proiectul a fost adăugat.');
     setProjectFormOpen(false);
     await reloadProjects();
     return true;
-  }, [supabase, reloadProjects]);
+  }, [supabase, reloadProjects, editingProject, logEntityActivity]);
 
   const deleteProject = useCallback(async (p: Project) => {
     if (!confirm(`Ștergeți proiectul "${p.title}"? Această acțiune este permanentă.`)) return;
