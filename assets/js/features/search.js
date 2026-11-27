@@ -132,7 +132,12 @@
   function describeErpMatch(item, q){
     const cat = item.erp_category || (item.item_type === 'echipament' ? 'echipament' : 'material');
     const isVehicle = cat === 'masina';
-    const isMaterial = cat === 'material';
+    // Produse are equally quantity-tracked in the ERP (see useErpStore.ts's
+    // own isStockTracked) -- without this, asking about a Produs's stock
+    // fell through to the status branch below instead of answering with
+    // its actual quantity, the same category confusion the LPS resource
+    // picker had.
+    const isStockTracked = cat === 'material' || cat === 'produs';
     const tab = tabForErpCategory(cat);
     if (isVehicle && /\bkm\b|kilometr/.test(q)) {
       if (item.odometer_km != null) {
@@ -152,7 +157,7 @@
       const assigned = item.assigned_to ? `, alocat(ă) la ${item.assigned_to}` : '';
       return { text: `${item.name} ${loc}${assigned}.`, tab, matched: true };
     }
-    if (isMaterial && (/\bstoc\b|ramas|\bcat\b|\bcate\b/.test(q))) {
+    if (isStockTracked && (/\bstoc\b|ramas|\bcat\b|\bcate\b/.test(q))) {
       const reserved = (allResourceAssignments || []).filter(a => a.inventory_item_id === item.id && a.status === 'reserved' && a.item_type === 'material').reduce((s, a) => s + (Number(a.quantity) || 0), 0);
       const reservedNote = reserved ? ` (din care ${reserved}${item.unit ? ' ' + item.unit : ''} rezervat pe proiecte neterminate)` : '';
       return { text: `Mai sunt ${Number(item.quantity)}${item.unit ? ' ' + item.unit : ''} din ${item.name}${reservedNote}.`, tab, matched: true };
@@ -164,7 +169,7 @@
       return { text: `${item.name}: ${EQUIPMENT_STATUS_LABEL[item.status] || item.status}.`, tab, matched: true };
     }
     const parts = isVehicle ? [item.name] : [`${item.name} — ${EQUIPMENT_STATUS_LABEL[item.status] || item.status}`];
-    if (isMaterial) parts.push(`stoc: ${Number(item.quantity)}${item.unit ? ' ' + item.unit : ''}`);
+    if (isStockTracked) parts.push(`stoc: ${Number(item.quantity)}${item.unit ? ' ' + item.unit : ''}`);
     if (isVehicle && item.plate_number) parts.push(`nr. ${item.plate_number}`);
     if (!isVehicle && item.location) parts.push(`locație: ${item.location}`);
     if (item.assigned_to) parts.push(`alocat: ${item.assigned_to}`);

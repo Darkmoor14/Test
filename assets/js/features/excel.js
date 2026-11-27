@@ -1778,9 +1778,15 @@
         AppDataServices.tickets.saveResolutionNote(supabaseClient, r.matched.id, r.note.trim())
       ));
       let failCount = 0;
-      results.forEach(result => {
+      results.forEach((result, i) => {
         const error = result.status === 'fulfilled' ? result.value.error : result.reason;
-        if (error) { console.error(error); failCount++; }
+        if (error) { console.error(error); failCount++; return; }
+        // The identical write from a ticket's own card (saveTicketCard)
+        // already logs here -- this bulk import path writes the same
+        // resolution_note field but was missing this call, so none of it
+        // ever showed up in Jurnal de activitate.
+        const r = toSave[i];
+        logEntityActivity('ticket', r.matched.id, `Tichetul ${r.matched.ticket_number || ''} a fost actualizat — Ce s-a făcut: ${r.note.trim()} (import fișă remedieri).`);
       });
       repairSheetConfirmBtn.disabled = false;
       repairSheetConfirmBtn.textContent = 'Confirmă și salvează';
