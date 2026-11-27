@@ -127,9 +127,6 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
       </div>
       <div className="status-grid">
         <div className="status-card status-card-wide">
-          <p className="status-note" style={{ marginTop: 0, marginBottom: 12 }}>
-            Fiecare secțiune din bara principală (Sesizări, Proiecte, Resurse, HR) are propriul rol — bifată, persoana are acces complet la secțiune și îi apare iconița pe Acasă; nebifată, secțiunea îi este complet ascunsă. O persoană poate avea orice combinație. „God” e singurul care vede și <strong>Stare sistem</strong>, și are automat acces la tot restul.
-          </p>
           <div className="overview-table-wrap">
             <table className="overview-table" id="staffRolesTable">
               <colgroup>
