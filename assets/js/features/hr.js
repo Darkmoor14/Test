@@ -1,8 +1,9 @@
 /* ============================================================
-     HR — ANGAJAȚI / PONTAJ / CONCEDIU. Open to every signed-in staff
-     account, view and write both — no per-role split here, unlike
-     tickets/proiecte/erp (see "Authenticated staff can …" RLS
-     policies on hr_employees/hr_worktime_entries/hr_vacation_entries).
+     HR — ANGAJAȚI / PONTAJ / CONCEDIU. Write access is gated the same
+     way as tickets/proiecte/erp -- staff_permission('hr') = 'write',
+     enforced by RLS on hr_employees/hr_worktime_entries/
+     hr_vacation_entries -- and admin-core.js's applyRolePermissionsToUI
+     already hides the whole HR tab from anyone lacking the 'hr' role.
      Three tables, loaded together since Pontaj/Concediu both need
      employee names and Angajați needs vacation totals.
      ============================================================ */
@@ -153,7 +154,12 @@
     if (!start || !end) return null;
     const [sh, sm] = start.split(':').map(Number);
     const [eh, em] = end.split(':').map(Number);
-    const diffMin = (eh * 60 + em) - (sh * 60 + sm);
+    let diffMin = (eh * 60 + em) - (sh * 60 + sm);
+    // A shift crossing midnight (e.g. a night repair, 22:00-06:00) produces
+    // a negative diff here -- wrap it forward a day instead of rejecting
+    // it outright, so overnight shifts can actually be logged. A genuinely
+    // zero-length shift (start === end) stays rejected below.
+    if (diffMin < 0) diffMin += 24 * 60;
     if (diffMin <= 0) return null;
     return Math.round((diffMin / 60) * 100) / 100;
   }
@@ -287,6 +293,15 @@
     const end_date = document.getElementById('hrVf-end').value;
     if (!start_date || !end_date) { alert('Completați perioada.'); return; }
     if (end_date < start_date) { alert('Data de sfârșit nu poate fi înainte de data de început.'); return; }
+    // Nothing else checks this -- not here, not a DB constraint/trigger --
+    // so without it, correcting a wrong date range by adding a second
+    // entry (instead of editing the first) silently double-counts those
+    // days in "Zile folosite" everywhere it's shown.
+    const overlapping = allHrVacation.find(v => v.employee_id === employee_id && v.id !== id && v.start_date <= end_date && v.end_date >= start_date);
+    if (overlapping) {
+      alert(`Perioada se suprapune cu un concediu existent (${formatWoDateRO(overlapping.start_date)}–${formatWoDateRO(overlapping.end_date)}) pentru acest angajat. Editați concediul existent în loc să adăugați unul nou.`);
+      return;
+    }
     const days_used = calcVacationDays(start_date, end_date);
     const notes = document.getElementById('hrVf-notes').value.trim() || null;
     const payload = { employee_id, start_date, end_date, days_used, notes };
