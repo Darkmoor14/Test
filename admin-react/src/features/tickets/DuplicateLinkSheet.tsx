@@ -29,7 +29,15 @@ export function DuplicateLinkSheet() {
     // selection to carry over, so it starts empty as before. Deliberately
     // not re-running this when store.selectedIds changes afterward -- that
     // would wipe out whatever the user has since checked inside this sheet.
-    setCheckedIds(sheet.excludeTicketId ? new Set() : new Set(store.selectedIds));
+    // A ticket already linked as someone else's duplicate shouldn't be
+    // re-parented just because it was caught up in the main list's bulk
+    // selection -- the visible match rows below already exclude these
+    // (see the `!t.duplicate_of` filter in `matches`); this seed has to
+    // apply the same filter, or an already-duplicate ticket stays silently
+    // includable in extraIds with no warning that it was linked elsewhere.
+    setCheckedIds(sheet.excludeTicketId ? new Set() : new Set(
+      Array.from(store.selectedIds).filter((id) => !store.tickets.find((t) => t.id === id)?.duplicate_of),
+    ));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sheet]);
 

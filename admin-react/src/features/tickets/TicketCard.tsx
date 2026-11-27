@@ -162,7 +162,7 @@ export function TicketCard({ t, sessionEmail }: { t: Ticket; sessionEmail: strin
       <div className="ticket-top">
         <div className="ticket-meta">
           <label className="ticket-select">
-            <input type="checkbox" className="f-select" checked={store.selectedIds.has(t.id)} onChange={(e) => store.toggleSelected(t.id, e.target.checked)} />
+            <input type="checkbox" className="f-select" disabled={!canWriteTickets} checked={store.selectedIds.has(t.id)} onChange={(e) => store.toggleSelected(t.id, e.target.checked)} />
           </label>
           <span className="ticket-num">{t.ticket_number || '—'}</span>
           <span className={`ticket-tag ${isUrgent ? 'urgent-tag' : ''}`}>{isUrgent ? 'Accident' : 'Defect'}</span>
@@ -235,19 +235,19 @@ export function TicketCard({ t, sessionEmail }: { t: Ticket; sessionEmail: strin
           </>
         )}
         {isDuplicate ? (
-          <button type="button" className="btn" onClick={() => store.unmarkDuplicate(t.id)}>Anulează duplicat</button>
+          <button type="button" className="btn" disabled={!canWriteTickets} onClick={() => store.unmarkDuplicate(t.id)}>Anulează duplicat</button>
         ) : isArchived ? (
-          <button className="btn" onClick={() => store.restoreTicket(t.id)}>Dezarhivează</button>
+          <button className="btn" disabled={!canWriteTickets} onClick={() => store.restoreTicket(t.id)}>Dezarhivează</button>
         ) : (isDone && !isEditing) ? (
           <div className="resnote-readonly">Pentru modificări, selectează tichetul și apasă Editează.</div>
         ) : (
           <>
-            <button type="button" className="btn btn-primary" disabled={saving} onClick={handleSave}>Salvează<span className="save-status">✓ Salvat</span></button>
+            <button type="button" className="btn btn-primary" disabled={saving || !canWriteTickets} onClick={handleSave}>Salvează<span className="save-status">✓ Salvat</span></button>
             {isEditing && <button type="button" className="btn" onClick={() => store.cancelEdit(t.id)}>Anulează</button>}
           </>
         )}
         {!isDuplicate && !isArchived && (
-          <button type="button" className="btn" onClick={() => store.setDuplicateSheet({ excludeTicketId: t.id })}>Leagă duplicate</button>
+          <button type="button" className="btn" disabled={!canWriteTickets} onClick={() => store.setDuplicateSheet({ excludeTicketId: t.id })}>Leagă duplicate</button>
         )}
       </div>
     </div>
