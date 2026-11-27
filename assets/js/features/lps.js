@@ -521,18 +521,19 @@
       if (!item) return;
       if (event.target.closest('.lps-delete-btn')) {
         if (!window.confirm('Șterge această înregistrare LPS? Resursele asociate (rezervări echipament/material) se șterg și ele.')) return;
-        // Give back stock for any still-reserved material assignments
-        // before the cascade delete removes their rows.
+        // Returning stock for a still-reserved material assignment has to be
+        // atomic (row-locked, done in one SQL statement) to avoid a lost
+        // update racing a concurrent stock change, and to avoid the
+        // floating-point drift a hand-rolled client-side `quantity +=` can
+        // leave permanently in equipment_inventory -- delete_lps_resource_
+        // assignment (via AppDataServices.erp.deleteResource) already gets
+        // this right for a single assignment's own delete button, so reuse
+        // it here per assignment instead of re-deriving the same logic from
+        // locally cached (and possibly stale) state.
         const myAssignments = allResourceAssignments.filter(a => a.lookahead_item_id === lookaheadId);
         for (const a of myAssignments) {
-          if (a.status === 'reserved' && a.item_type === 'material' && a.quantity) {
-            const inv = allEquipment.find(e => e.id === a.inventory_item_id);
-            if (inv) {
-              const resultingQty = Number(inv.quantity) + Number(a.quantity);
-              await supabaseClient.from('equipment_inventory').update({ quantity: resultingQty }).eq('id', inv.id);
-              logStockLedger(inv.id, inv.name, Number(a.quantity), resultingQty, 'Returnat — ștergere lucrare LPS');
-            }
-          }
+          const { error: resError } = await AppDataServices.erp.deleteResource(supabaseClient, a.id);
+          if (resError) { console.error(resError); alert('Eroare la eliberarea resurselor asociate. Încercați din nou.'); return; }
         }
         const { error } = await supabaseClient.from('lps_lookahead_items').delete().eq('id', lookaheadId);
         if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }

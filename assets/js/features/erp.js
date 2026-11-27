@@ -129,26 +129,14 @@
     }
   }
 
-  /* ============================================================
-     JURNAL STOC (stock_ledger) — un rând per schimbare de cantitate
-     pe un material (rezervare, returnare la ștergere, editare
-     manuală), în loc de a suprascrie tăcut quantity. Doar materialele
-     au o cantitate urmărită bucată-cu-bucată — echipamentele/mașinile
-     se rezervă pe perioadă, nu se "consumă".
-     ============================================================ */
-  async function logStockLedger(itemId, itemName, changeQty, resultingQty, reason){
-    try {
-      await supabaseClient.from('stock_ledger').insert({
-        item_id: itemId, item_name: itemName, change_qty: changeQty, resulting_qty: resultingQty, reason, user_email: currentSessionEmail || null,
-      });
-    } catch (e) { /* best effort — never block the stock change it's describing */ }
-  }
-  // The stock_ledger SHEET (stockLedgerSheet) is now
-  // admin-react/'s StockLedgerSheet, opened via window.openStockLedgerSheet
-  // -- Materiale/Produse are React-owned and call it directly; nothing
-  // vanilla/deferred opens it, so only the write-side logStockLedger()
-  // above stays here (still called by lps.js when returning reserved
-  // stock on a deleted LPS look-ahead item).
+  // The stock_ledger SHEET (stockLedgerSheet) is now admin-react/'s
+  // StockLedgerSheet, opened via window.openStockLedgerSheet -- Materiale/
+  // Produse are React-owned and call it directly. lps.js's own stock
+  // returns (on deleting an LPS look-ahead item) used to write stock_ledger
+  // by hand via a logStockLedger() that lived here, but that path now goes
+  // through delete_lps_resource_assignment (a DB RPC that writes its own
+  // stock_ledger row atomically) instead, so nothing vanilla/deferred
+  // writes stock_ledger directly here any more.
 
   // Licență transport/Tahograf se aplică doar subcategoriei Camion —
   // celelalte 3 subcategorii nu le au în formular, deci nu intră în
