@@ -80,12 +80,7 @@ export function AutoImprove() {
 
   return (
     <>
-      <div className="status-panel-head">
-        <div>
-          <div className="home-eyebrow">Auto-îmbunătățire</div>
-          <h2>Auto-îmbunătățire</h2>
-        </div>
-      </div>
+      <div className="status-panel-head"></div>
       <div className="status-grid">
         <div className="status-card status-card-wide">
           <div className="status-card-head">

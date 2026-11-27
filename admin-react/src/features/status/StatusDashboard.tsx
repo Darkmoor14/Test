@@ -60,7 +60,7 @@ export function StatusDashboard({ sessionEmail, landingPage }: { sessionEmail: s
   return (
     <>
       <div className="status-panel-head">
-        <div className="home-eyebrow">Monitorizare</div>
+        <div />
         <button
           type="button"
           className="status-info-btn"

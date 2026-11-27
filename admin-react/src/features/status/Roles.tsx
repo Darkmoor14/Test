@@ -108,10 +108,7 @@ export function Roles({ sessionEmail }: { sessionEmail: string | null }) {
   return (
     <>
       <div className="status-panel-head">
-        <div>
-          <div className="home-eyebrow">Roluri</div>
-          <h2>Roluri</h2>
-        </div>
+        <div />
         <button
           type="button"
           className="btn btn-primary"

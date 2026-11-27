@@ -50,9 +50,7 @@ export function SiteStats() {
 
   return (
     <>
-      <div className="status-panel-head">
-        <div className="home-eyebrow">Statistici site public</div>
-      </div>
+      <div className="status-panel-head"></div>
       {error && (
         <p className="status-note" style={{ color: 'var(--signal-red, #B5502F)' }}>
           Eroare la încărcarea statisticilor: {error}

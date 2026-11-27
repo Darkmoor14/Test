@@ -93,12 +93,7 @@ export function AuditLog() {
 
   return (
     <>
-      <div className="status-panel-head">
-        <div>
-          <div className="home-eyebrow">Jurnal de activitate</div>
-          <h2>Jurnal de activitate</h2>
-        </div>
-      </div>
+      <div className="status-panel-head"></div>
       <div className="status-grid">
         <div className="status-card status-card-wide">
           <div className="status-card-head">
