@@ -106,6 +106,7 @@ export function useProjectsStore(sessionEmail: string | null) {
     const { error } = await projectData.deleteProject(supabase, p.id);
     if (error) { console.error(error); alert('Eroare la ștergere.'); return; }
     logEntityActivity('project', p.id, `Proiectul "${p.title}" a fost șters.`);
+    showToast(`Proiectul "${p.title}" a fost șters.`);
     await reloadProjects();
   }, [supabase, reloadProjects, logEntityActivity]);
 
@@ -113,6 +114,7 @@ export function useProjectsStore(sessionEmail: string | null) {
     const { error } = await projectData.updateProject(supabase, p.id, { archived: false, archived_at: null });
     if (error) { console.error(error); alert('Eroare la dezarhivare. Încercați din nou.'); return; }
     logEntityActivity('project', p.id, 'Proiectul a fost dezarhivat.');
+    showToast('Proiectul a fost dezarhivat.');
     await reloadProjects();
   }, [supabase, reloadProjects, logEntityActivity]);
 
@@ -123,6 +125,7 @@ export function useProjectsStore(sessionEmail: string | null) {
     const { error } = await projectData.updateProjects(supabase, ids, { archived: true, archived_at: new Date().toISOString() });
     if (error) { console.error(error); alert('Eroare la arhivare. Încercați din nou.'); return; }
     ids.forEach((id) => logEntityActivity('project', id, 'Proiectul a fost arhivat.'));
+    showToast(ids.length === 1 ? 'Proiectul a fost arhivat.' : `${ids.length} proiecte au fost arhivate.`);
     setProjectSelectedIds(new Set());
     await reloadProjects();
   }, [supabase, projectSelectedIds, reloadProjects, logEntityActivity]);
@@ -286,6 +289,7 @@ export function useProjectsStore(sessionEmail: string | null) {
     if (!confirm(`Marcați „${w.title}” ca finalizată?`)) return;
     const { error } = await projectData.updateWorkOrder(supabase, w.id, { status: 'Finalizat' });
     if (error) { console.error(error); alert('Eroare la actualizare. Încercați din nou.'); return; }
+    showToast(`„${w.title}” a fost marcată ca finalizată.`);
     await reloadWorkOrders();
   }, [supabase, reloadWorkOrders]);
 
@@ -293,6 +297,7 @@ export function useProjectsStore(sessionEmail: string | null) {
     if (!confirm(`Ștergeți definitiv programarea „${w.title}”?`)) return;
     const { error } = await projectData.deleteWorkOrder(supabase, w.id);
     if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
+    showToast(`Programarea „${w.title}” a fost ștearsă.`);
     await reloadWorkOrders();
   }, [supabase, reloadWorkOrders]);
 

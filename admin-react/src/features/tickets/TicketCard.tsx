@@ -42,6 +42,7 @@ export function TicketCard({ t, sessionEmail }: { t: Ticket; sessionEmail: strin
   const [resolver, setResolver] = useState(draft?.['.f-resolver'] ?? t.resolved_by ?? '');
   const [resolvedDate, setResolvedDate] = useState(draft?.['.f-resolved-date'] ?? resolvedDateParts.date);
   const [saving, setSaving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -153,6 +154,12 @@ export function TicketCard({ t, sessionEmail }: { t: Ticket; sessionEmail: strin
     setSaving(false);
   };
 
+  const handleRestore = async () => {
+    setRestoring(true);
+    await store.restoreTicket(t.id);
+    setRestoring(false);
+  };
+
   return (
     <div
       ref={cardRef}
@@ -237,7 +244,7 @@ export function TicketCard({ t, sessionEmail }: { t: Ticket; sessionEmail: strin
         {isDuplicate ? (
           <button type="button" className="btn" disabled={!canWriteTickets} onClick={() => store.unmarkDuplicate(t.id)}>Anulează duplicat</button>
         ) : isArchived ? (
-          <button className="btn" disabled={!canWriteTickets} onClick={() => store.restoreTicket(t.id)}>Dezarhivează</button>
+          <button className="btn" disabled={restoring || !canWriteTickets} onClick={handleRestore}>Dezarhivează</button>
         ) : (isDone && !isEditing) ? (
           <div className="resnote-readonly">Pentru modificări, selectează tichetul și apasă Editează.</div>
         ) : (

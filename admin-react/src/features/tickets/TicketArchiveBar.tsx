@@ -1,10 +1,17 @@
+import { useState } from 'react';
 import { useTickets } from './TicketsContext';
 
 export function TicketArchiveBar() {
   const store = useTickets();
+  const [archiving, setArchiving] = useState(false);
   const count = store.selectedIds.size;
   if (count === 0) return null;
   const minDuplicateSelection = typeof window !== 'undefined' && window.innerWidth <= 600 ? 1 : 2;
+  const handleArchive = async () => {
+    setArchiving(true);
+    await store.archiveSelected();
+    setArchiving(false);
+  };
   return (
     <div className="archive-bar show">
       <span>{count} selectate</span>
@@ -13,7 +20,7 @@ export function TicketArchiveBar() {
       {count >= minDuplicateSelection && (
         <button className="btn" type="button" onClick={() => store.setDuplicateSheet({ excludeTicketId: null })}>Marchează ca duplicate</button>
       )}
-      <button className="btn btn-primary" type="button" onClick={store.archiveSelected}>Arhivează selectate</button>
+      <button className="btn btn-primary" type="button" disabled={archiving} onClick={handleArchive}>Arhivează selectate</button>
     </div>
   );
 }

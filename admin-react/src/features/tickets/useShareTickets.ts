@@ -30,7 +30,9 @@ async function shareText(title: string, text: string, itemLabel: string): Promis
       await navigator.share({ title, text });
       return true;
     } catch (err) {
-      if ((err as Error).name !== 'AbortError') console.error(err);
+      if ((err as Error).name === 'AbortError') return false;
+      console.error(err);
+      alert(`Nu am putut partaja datele ${itemLabel}.`);
       return false;
     }
   }

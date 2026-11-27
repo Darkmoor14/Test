@@ -341,37 +341,53 @@ export function useTicketsStore(sessionEmail: string | null) {
     if (error) { console.error(error); alert('Eroare la dezarhivare. Încercați din nou.'); return false; }
     const ticket = tickets.find((t) => t.id === ticketId);
     logEntityActivity('ticket', ticketId, `Tichetul ${ticket?.ticket_number || ''} a fost restaurat din arhivă.`);
+    showToast(`Tichetul ${ticket?.ticket_number || ''} a fost restaurat.`);
     await reload();
     return true;
   }, [supabase, tickets, reload, logEntityActivity]);
 
-  const archiveSelected = useCallback(async () => {
-    if (selectedIds.size === 0) return;
-    const idsToArchive = new Set(selectedIds);
-    selectedIds.forEach((id) => {
+  // Expands a selection to its full duplicate group (archiving one member
+  // of a linked set without the rest would leave an inconsistent, broken
+  // group). Called twice by archiveSelected below -- once to build the
+  // confirm() message, and again right before the actual write -- so a
+  // duplicate link that changed in the meantime (another staff member's
+  // edit, a realtime update) isn't baked into a group computed before the
+  // dialog opened, same reasoning as toggleBacklogStatus's CLICK-PATH-303
+  // live re-derivation.
+  const expandToDuplicateGroup = useCallback((ids: Set<string>) => {
+    const expanded = new Set(ids);
+    ids.forEach((id) => {
       const t = tickets.find((x) => x.id === id);
       if (!t) return;
       if (t.duplicate_of) {
-        idsToArchive.add(t.duplicate_of);
-        tickets.filter((d) => d.duplicate_of === t.duplicate_of).forEach((d) => idsToArchive.add(d.id));
+        expanded.add(t.duplicate_of);
+        tickets.filter((d) => d.duplicate_of === t.duplicate_of).forEach((d) => expanded.add(d.id));
       } else {
-        tickets.filter((d) => d.duplicate_of === t.id).forEach((d) => idsToArchive.add(d.id));
+        tickets.filter((d) => d.duplicate_of === t.id).forEach((d) => expanded.add(d.id));
       }
     });
+    return expanded;
+  }, [tickets]);
+
+  const archiveSelected = useCallback(async () => {
+    if (selectedIds.size === 0) return;
+    const idsToArchive = expandToDuplicateGroup(selectedIds);
     const addedCount = idsToArchive.size - selectedIds.size;
     const confirmMsg = addedCount > 0
       ? `Arhivați ${idsToArchive.size} tichete? (${selectedIds.size} selectate + ${addedCount} incluse automat ca să nu se rupă un grup de duplicate.) Nu vor mai apărea pe pagina publică de sesizări, dar rămân salvate și pot fi restaurate oricând.`
       : `Arhivați ${selectedIds.size} tichete? Nu vor mai apărea pe pagina publică de sesizări, dar rămân salvate și pot fi restaurate oricând.`;
     if (!confirm(confirmMsg)) return;
-    const { error } = await ticketData.updateMany(supabase, Array.from(idsToArchive), { archived: true, archived_at: new Date().toISOString() });
+    const liveIdsToArchive = expandToDuplicateGroup(selectedIds);
+    const { error } = await ticketData.updateMany(supabase, Array.from(liveIdsToArchive), { archived: true, archived_at: new Date().toISOString() });
     if (error) { console.error(error); alert('Eroare la arhivare. Încercați din nou.'); return; }
-    idsToArchive.forEach((id) => {
+    liveIdsToArchive.forEach((id) => {
       const t = tickets.find((x) => x.id === id);
       logEntityActivity('ticket', id, `Tichetul ${t?.ticket_number || ''} a fost arhivat.`);
     });
+    showToast(liveIdsToArchive.size === 1 ? 'Tichetul a fost arhivat.' : `${liveIdsToArchive.size} tichete au fost arhivate.`);
     setSelectedIds(new Set());
     await reload();
-  }, [supabase, selectedIds, tickets, reload, logEntityActivity]);
+  }, [supabase, selectedIds, expandToDuplicateGroup, reload, logEntityActivity, tickets]);
 
   const markDuplicates = useCallback(async (canonicalId: string, duplicateIds: string[]) => {
     const result = await ticketData.updateMany(supabase, duplicateIds, { duplicate_of: canonicalId });
