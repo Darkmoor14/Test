@@ -35,11 +35,14 @@ export function AuditLog() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const { data: logData, error } = await supabase
-        .from('entity_log')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(200);
+      // Filtering to one category has to happen in the query, not just on
+      // the 200 rows already fetched -- a low-volume category (e.g. a
+      // brand-new entity type, or one far rarer than the busiest category)
+      // can have real history sitting entirely outside that top-200 window,
+      // which a client-side-only filter would wrongly report as empty.
+      let query = supabase.from('entity_log').select('*').order('created_at', { ascending: false }).limit(200);
+      if (filter !== 'all') query = query.eq('entity_type', filter);
+      const { data: logData, error } = await query;
       if (error) { setRows([]); setLoading(false); return; }
       const entries = (logData || []) as EntityLogRow[];
       setRows(entries);
@@ -73,7 +76,7 @@ export function AuditLog() {
       setTitles(titleMap);
       setLoading(false);
     })();
-  }, [supabase]);
+  }, [supabase, filter]);
 
   const entityTitle = (row: EntityLogRow) => {
     const key = `${row.entity_type}:${row.entity_id}`;
@@ -87,8 +90,12 @@ export function AuditLog() {
   };
 
   const filtered = useMemo(() => {
-    const allRows = rows.filter((r) => (TICKET_ENTITY_TYPES as readonly string[]).includes(r.entity_type) || (PROJECT_ENTITY_TYPES as readonly string[]).includes(r.entity_type) || (ERP_ENTITY_TYPES as readonly string[]).includes(r.entity_type));
-    return filter === 'all' ? allRows : allRows.filter((r) => r.entity_type === filter);
+    // A specific category is now fetched server-side above (see the
+    // query's .eq), so rows here are already just that category -- only
+    // "Toate categoriile" still needs the defensive whitelist, to exclude
+    // any entity_type outside what this screen knows how to label.
+    if (filter !== 'all') return rows;
+    return rows.filter((r) => (TICKET_ENTITY_TYPES as readonly string[]).includes(r.entity_type) || (PROJECT_ENTITY_TYPES as readonly string[]).includes(r.entity_type) || (ERP_ENTITY_TYPES as readonly string[]).includes(r.entity_type));
   }, [rows, filter]);
 
   return (

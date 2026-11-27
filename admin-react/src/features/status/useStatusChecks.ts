@@ -230,6 +230,11 @@ export function useStatusChecks(sessionEmail: string | null) {
   }, [maybeLog, supabase]);
 
   const [refreshing, setRefreshing] = useState(false);
+  // setRefreshing's own state update isn't readable synchronously by the
+  // setInterval callback below (it closes over whatever `refreshing` was
+  // at mount time, not its later value) -- a ref mirrors it so the
+  // interval can actually see the current in-flight state.
+  const refreshingRef = useRef(false);
   const loadSystemStatus = useCallback(async () => {
     // Without this, each of the 5 checks below has no ordering guarantee
     // against a second overlapping run -- clicking "Reîmprospătează" twice
@@ -238,6 +243,7 @@ export function useStatusChecks(sessionEmail: string | null) {
     // check, regressing the displayed status/latency to stale data until
     // the next periodic refresh or another click corrected it
     // (CLICK-PATH-405). Self-healing either way, but the guard avoids it.
+    refreshingRef.current = true;
     setRefreshing(true);
     await Promise.all([checkDb(), checkAuth(), checkFunctions(), checkSystem(), checkBackup()]);
     const now = new Date();
@@ -246,6 +252,7 @@ export function useStatusChecks(sessionEmail: string | null) {
       ...s,
       lastCheckedLabel: `Ultima verificare: ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`,
     }));
+    refreshingRef.current = false;
     setRefreshing(false);
   }, [checkAuth, checkBackup, checkDb, checkFunctions, checkSystem]);
 
@@ -253,9 +260,13 @@ export function useStatusChecks(sessionEmail: string | null) {
     loadSystemStatus();
     // Keeps the 48h history filling up between visits, not just a single
     // point every time the tab is opened -- matches the 5-minute interval
-    // in system-status.js.
+    // in system-status.js. Skips firing a new run while one (manual or
+    // periodic) is still in flight, same guard as the manual refresh
+    // button -- otherwise a slow run still running when this timer fires
+    // hits the exact overlapping-response race the ref above exists to
+    // prevent, just via a different trigger than a double click.
     const id = setInterval(() => {
-      if (sessionEmail) loadSystemStatus();
+      if (sessionEmail && !refreshingRef.current) loadSystemStatus();
     }, 5 * 60 * 1000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
