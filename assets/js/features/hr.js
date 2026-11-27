@@ -50,7 +50,7 @@
     }
     const vacCountEl = document.getElementById('hrHomeVacationCount');
     if (vacCountEl) {
-      const thisYearUsed = allHrVacation.filter(v => v.start_date && v.start_date.startsWith(curYear)).reduce((sum, v) => sum + (Number(v.days_used) || 0), 0);
+      const thisYearUsed = allHrVacation.reduce((sum, v) => sum + daysInYear(v.start_date, v.end_date, curYear), 0);
       vacCountEl.textContent = thisYearUsed;
     }
   }
@@ -268,6 +268,23 @@
     const e = new Date(end + 'T00:00:00');
     const diff = Math.round((e - s) / 86400000);
     return diff >= 0 ? diff + 1 : null;
+  }
+  // How many of a [start,end] vacation's days actually fall within `year`
+  // -- used for the "this year" home stat instead of attributing the
+  // entry's FULL days_used to whichever year its start_date happens to be
+  // in. Without this, a vacation spanning New Year's (e.g. 28 Dec - 3 Jan)
+  // would count all 7 days against the start year and zero against the
+  // next, even though some of those days are actually in the next year.
+  function daysInYear(start, end, year){
+    if (!start || !end) return 0;
+    const s = new Date(start + 'T00:00:00');
+    const e = new Date(end + 'T00:00:00');
+    const yearStart = new Date(`${year}-01-01T00:00:00`);
+    const yearEnd = new Date(`${year}-12-31T00:00:00`);
+    const overlapStart = s > yearStart ? s : yearStart;
+    const overlapEnd = e < yearEnd ? e : yearEnd;
+    const diff = Math.round((overlapEnd - overlapStart) / 86400000);
+    return diff >= 0 ? diff + 1 : 0;
   }
   function openHrVacationForm(entry){
     document.getElementById('hrVf-id').value = entry ? entry.id : '';
