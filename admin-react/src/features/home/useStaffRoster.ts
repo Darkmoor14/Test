@@ -10,6 +10,14 @@ export function useStaffRoster(sessionEmail: string | null) {
   const supabase = useSupabase();
   const [roles, setRoles] = useState<string[]>([]);
   const [allStaffEmails, setAllStaffEmails] = useState<string[]>([]);
+  // Mirrors staff_permission()'s own extra grant: a legacy
+  // admin_html_access row with role='full' gets ticket write access
+  // independent of staff_roles. Without this, this hook's modulePermission
+  // could say 'none' for 'tickets' while the DB (and admin-core.js's own
+  // separate copy of this same check) would actually allow the write --
+  // UI controls gated on this hook would then block someone the DB lets
+  // through.
+  const [legacyTicketsFull, setLegacyTicketsFull] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // load() now has two callers (the mount/sessionEmail effect below,
@@ -24,10 +32,14 @@ export function useStaffRoster(sessionEmail: string | null) {
     const rolesPromise = sessionEmail
       ? supabase.from('staff_roles').select('role').eq('email', sessionEmail)
       : Promise.resolve({ data: [] as { role: string }[], error: null });
-    const [{ data: rosterRows }, { data: roleRows }] = await Promise.all([rosterPromise, rolesPromise]);
+    const legacyPromise = sessionEmail
+      ? supabase.from('admin_html_access').select('role').eq('email', sessionEmail)
+      : Promise.resolve({ data: [] as { role: string }[], error: null });
+    const [{ data: rosterRows }, { data: roleRows }, { data: legacyRows }] = await Promise.all([rosterPromise, rolesPromise, legacyPromise]);
     if (callId !== latestCallId.current) return;
     setAllStaffEmails([...new Set((rosterRows || []).map((r: { email: string }) => r.email))]);
     setRoles((roleRows || []).map((r: { role: string }) => r.role));
+    setLegacyTicketsFull((legacyRows || []).some((r: { role: string }) => r.role === 'full'));
     setLoading(false);
   }, [supabase, sessionEmail]);
 
@@ -41,7 +53,8 @@ export function useStaffRoster(sessionEmail: string | null) {
   useRealtimeReload(supabase, 'staff_roles', load, !!sessionEmail);
 
   const isGod = roles.includes('god');
-  const modulePermission = (mod: string): 'write' | 'none' => (isGod || roles.includes(mod) ? 'write' : 'none');
+  const modulePermission = (mod: string): 'write' | 'none' =>
+    (isGod || roles.includes(mod) || (mod === 'tickets' && legacyTicketsFull)) ? 'write' : 'none';
 
   return { loading, isGod, modulePermission, allStaffEmails };
 }

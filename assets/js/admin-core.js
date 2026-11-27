@@ -144,8 +144,16 @@
      applyRolePermissionsToUI). God implies every section.
      ============================================================ */
   let currentUserRoles = [];
+  // Mirrors staff_permission()'s own extra grant: a legacy
+  // admin_html_access row with role='full' gets ticket write access
+  // independent of staff_roles (see fetchCurrentUserRoles below, which
+  // populates this alongside currentUserRoles). Without this,
+  // modulePermission could say 'none' for 'tickets' while the DB would
+  // actually allow the write.
+  let legacyTicketsFullAccess = false;
   function modulePermission(mod){
     if (currentUserRoles.includes('god') || currentUserRoles.includes(mod)) return 'write';
+    if (mod === 'tickets' && legacyTicketsFullAccess) return 'write';
     return 'none';
   }
   function isGod(){ return currentUserRoles.includes('god'); }
@@ -177,6 +185,16 @@
     } catch (err) {
       console.error('Could not fetch staff roles (defaulting to none):', err);
       currentUserRoles = [];
+    }
+    try {
+      const { data: legacyData, error: legacyError } = await supabaseClient
+        .from('admin_html_access')
+        .select('role')
+        .eq('email', email);
+      legacyTicketsFullAccess = !legacyError && !!(legacyData || []).some(r => r.role === 'full');
+    } catch (err) {
+      console.error('Could not fetch legacy admin_html_access role (defaulting to none):', err);
+      legacyTicketsFullAccess = false;
     }
   }
   // Hides each rail category/home-nav shortcut entirely for anyone not
