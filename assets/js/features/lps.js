@@ -461,8 +461,10 @@
       due_date: values.due_date || null,
       ready: values.ready === 'true',
     };
-    const { error } = await supabaseClient.from('lps_lookahead_items').insert(payload);
+    const { data, error } = await supabaseClient.from('lps_lookahead_items').insert(payload).select('id');
     if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return; }
+    const createdId = data && data[0] && data[0].id;
+    if (createdId) logEntityActivity('lookahead', createdId, `Elementul „${payload.title}” a fost creat.`);
     form.reset();
     await refreshLookaheadWorkspace();
   });
@@ -534,6 +536,7 @@
         }
         const { error } = await supabaseClient.from('lps_lookahead_items').delete().eq('id', lookaheadId);
         if (error) { console.error(error); alert('Eroare la ștergere. Încercați din nou.'); return; }
+        logEntityActivity('lookahead', lookaheadId, `Elementul „${item.title}” a fost șters.`);
       } else if (event.target.closest('.lps-make-ready-btn')) {
         const { error } = await supabaseClient.from('lps_lookahead_items').update({ ready: true }).eq('id', lookaheadId);
         if (error) { console.error(error); alert('Eroare. Încercați din nou.'); return; }
@@ -603,7 +606,12 @@
   const aresHint = document.getElementById('ares-hint');
   function populateAresItemSelect(){
     const type = aresTypeSelect.value;
-    const options = allEquipment.filter(e => e.item_type === type);
+    // item_type only distinguishes 'echipament' from 'material' in the DB
+    // (no separate value for Produse) -- erp_category is what actually
+    // tells a raw material apart from a finished product sharing the same
+    // item_type, so a finished product doesn't get offered here as if it
+    // were a consumable material.
+    const options = allEquipment.filter(e => e.item_type === type && (type !== 'material' || e.erp_category !== 'produs'));
     aresItemSelect.innerHTML = options.length
       ? options.map(e => `<option value="${escapeHtml(e.id)}">${escapeHtml(e.name)}</option>`).join('')
       : '<option value="">Niciun element de acest tip în ERP</option>';

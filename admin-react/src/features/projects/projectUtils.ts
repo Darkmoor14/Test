@@ -1,9 +1,23 @@
 import type { Project, ProjectStatusKey } from './types';
 
+// due_date is a bare "YYYY-MM-DD" calendar date (see monthInputToDate below
+// -- it's deliberately the LAST day of the chosen due month, specifically
+// so the project "counts as in-progress through the whole month"). Parsing
+// it with `new Date(dueISO)` lands on UTC midnight, which in a UTC+2/+3
+// timezone (Romania) is already 2-3 AM *local* that same day -- so a plain
+// `now >= due` flips the project to "Finalizat" a couple of hours into its
+// last day instead of only once that day has actually finished locally.
+// Comparing against the end of that calendar day in local time (not UTC)
+// keeps the project in-progress for the entire day/month, matching intent.
+function endOfLocalDay(dateStr: string): Date {
+  const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
+  return new Date(y, m - 1, d, 23, 59, 59, 999);
+}
+
 export function calcProjectProgress(startISO: string, dueISO: string): number {
   const now = new Date();
   const start = new Date(startISO);
-  const due = new Date(dueISO);
+  const due = endOfLocalDay(dueISO);
   if (now <= start) return 0;
   if (now >= due) return 100;
   return Math.round(((now.getTime() - start.getTime()) / (due.getTime() - start.getTime())) * 100);
@@ -12,7 +26,7 @@ export function calcProjectProgress(startISO: string, dueISO: string): number {
 export function calcProjectStatus(startISO: string, dueISO: string): { key: ProjectStatusKey; label: string } {
   const now = new Date();
   const start = new Date(startISO);
-  const due = new Date(dueISO);
+  const due = endOfLocalDay(dueISO);
   if (now < start) return { key: 'scheduled', label: 'Programat' };
   if (now >= due) return { key: 'done', label: 'Finalizat' };
   return { key: 'progress', label: 'În desfășurare' };

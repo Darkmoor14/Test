@@ -24,6 +24,10 @@ const PROJECT_FIELD_LABELS: Record<string, string> = {
   title: 'Titlu', address: 'Adresă', start_date: 'Data începerii', due_date: 'Data finalizării estimată', notes: 'Note',
 };
 
+const BACKLOG_FIELD_LABELS: Record<string, string> = {
+  title: 'Titlu', address: 'Adresă', employee_name: 'Angajat', start_date: 'Data începerii', description: 'Descriere',
+};
+
 export function useProjectsStore(sessionEmail: string | null) {
   const supabase = useSupabase();
   const logEntityActivity = useMemo(() => createLogEntityActivity(supabase, () => sessionEmail), [supabase, sessionEmail]);
@@ -101,8 +105,9 @@ export function useProjectsStore(sessionEmail: string | null) {
     if (!confirm(`Ștergeți proiectul "${p.title}"? Această acțiune este permanentă.`)) return;
     const { error } = await projectData.deleteProject(supabase, p.id);
     if (error) { console.error(error); alert('Eroare la ștergere.'); return; }
+    logEntityActivity('project', p.id, `Proiectul "${p.title}" a fost șters.`);
     await reloadProjects();
-  }, [supabase, reloadProjects]);
+  }, [supabase, reloadProjects, logEntityActivity]);
 
   const restoreProject = useCallback(async (p: Project) => {
     const { error } = await projectData.updateProject(supabase, p.id, { archived: false, archived_at: null });
@@ -177,13 +182,20 @@ export function useProjectsStore(sessionEmail: string | null) {
   const closeBacklogForm = useCallback(() => setBacklogFormOpen(false), []);
 
   const saveBacklog = useCallback(async (payload: { title: string; address: string; employee_name: string | null; start_date: string; description: string | null }, id: string | null) => {
-    const { error } = await projectData.saveBacklog(supabase, id, payload);
+    const { data, error } = await projectData.saveBacklog(supabase, id, payload);
     if (error) { console.error(error); alert('Eroare la salvare. Încercați din nou.'); return false; }
+    if (id) {
+      const changeSummary = editingBacklog ? describeFieldChanges(editingBacklog as unknown as Record<string, unknown>, payload, BACKLOG_FIELD_LABELS) : '';
+      logEntityActivity('backlog', id, changeSummary ? `Lucrarea a fost actualizată — ${changeSummary}.` : 'Lucrarea a fost actualizată (fără modificări de câmp).');
+    } else {
+      const createdId = data?.[0]?.id;
+      if (createdId) logEntityActivity('backlog', createdId, `Lucrarea "${payload.title}" a fost adăugată.`);
+    }
     showToast(id ? 'Lucrarea a fost actualizată.' : 'Lucrarea a fost adăugată.');
     setBacklogFormOpen(false);
     await reloadBacklog();
     return true;
-  }, [supabase, reloadBacklog]);
+  }, [supabase, reloadBacklog, editingBacklog, logEntityActivity]);
 
   const toggleBacklogStatus = useCallback(async (p: BacklogProject) => {
     const isDone = (p.status || 'Ongoing') === 'Terminat';

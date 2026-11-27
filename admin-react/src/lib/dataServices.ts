@@ -32,8 +32,8 @@ export const projectData = {
   deleteProject: (db: SupabaseClient, id: string) => db.from('current_projects').delete().eq('id', id),
   listBacklog: (db: SupabaseClient) => db.from('backlog_projects').select('*').order('start_date', { ascending: true }),
   saveBacklog: (db: SupabaseClient, id: string | null, values: Record<string, unknown>) => id
-    ? db.from('backlog_projects').update(values).eq('id', id)
-    : db.from('backlog_projects').insert(values),
+    ? db.from('backlog_projects').update(values).eq('id', id).select('id')
+    : db.from('backlog_projects').insert(values).select('id'),
   updateBacklog: (db: SupabaseClient, id: string, values: Record<string, unknown>) => db.from('backlog_projects').update(values).eq('id', id),
   listWorkOrders: (db: SupabaseClient) => db.from('work_orders').select('*').order('scheduled_date', { ascending: true }),
   saveWorkOrder: (db: SupabaseClient, id: string | null, values: Record<string, unknown>) => id
